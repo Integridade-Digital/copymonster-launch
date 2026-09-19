@@ -11,7 +11,8 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.39.0",
-    "@copymonster/supabase-client": "workspace:*"
+    "@copymonster/supabase-client": "workspace:*",
+    "reflect-metadata": "^0.2.1"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

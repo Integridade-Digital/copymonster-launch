@@ -1,5 +1,6 @@
 /** Browser entry for the Web client. */
 import { AppWebEntry, applyIndexInjections } from '@deepseek-ai/dsh-client-web'
+import { AppWrapper } from './lib/auth/app-wrapper'
 
 interface DesktopBootGlobal {
   dshDesktopBoot?: {
@@ -16,6 +17,12 @@ const reportFailure = (reason: unknown): void => {
 try {
   const el = document.getElementById('root')
   if (el === null) throw new Error('web app: missing #root')
+  
+  // Criar container para o AppWrapper
+  const authContainer = document.createElement('div')
+  authContainer.id = 'auth-root'
+  el.appendChild(authContainer)
+  
   const entry = new AppWebEntry(el)
   if (desktop !== undefined) {
     const gate = (globalThis as { __DSH_BOOT_READY__?: PromiseWithResolvers<void> }).__DSH_BOOT_READY__

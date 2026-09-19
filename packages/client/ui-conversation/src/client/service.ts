@@ -207,6 +207,20 @@ export class ConversationController extends Service implements IConversation {
    * @param text - prompt text, sent verbatim as one text block.
    */
   async send(text: string): Promise<void> {
+    // Disparar evento de tentativa de envio para verificação de autenticação
+    const event = new CustomEvent('dsh:message-send-attempt', {
+      bubbles: true,
+      cancelable: true,
+      detail: { text },
+    });
+    
+    const wasPrevented = !window.dispatchEvent(event);
+    
+    // Se o evento foi prevenido pelo guard de autenticação, não prosseguir
+    if (wasPrevented) {
+      return;
+    }
+    
     const session = this.scopedSession('send')
     const result = await session.prompt([{ type: 'text', text }], 'queue')
     if (!result.ok) throw new Error(`conversation.send failed: ${result.error.code}: ${result.error.message}`)

@@ -1,0 +1,25 @@
+{
+  "name": "@copymonster/auth-middleware",
+  "version": "0.1.0",
+  "description": "Auth middleware for CopyMonster API - extracts user identity from requests",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint src/",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.39.0",
+    "@copymonster/supabase-client": "workspace:*",
+    "reflect-metadata": "^0.2.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.10.0",
+    "@types/express": "^4.17.21",
+    "typescript": "^5.3.0"
+  },
+  "peerDependencies": {
+    "typescript": ">=5.0.0"
+  }
+}

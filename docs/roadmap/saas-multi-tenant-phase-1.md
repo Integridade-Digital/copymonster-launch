@@ -118,6 +118,25 @@ Criar toda a infraestrutura de autenticação e identidade do zero, permitindo q
 
 ## 📋 ENTREGÁVEIS DA FASE 1
 
+### 1.0 Princípios de Design e Identidade Visual
+
+**Regra fundamental:** Todas as novas páginas DEVEM herdar o layout original existente.
+
+**O que será mantido:**
+- Paleta de cores atual do DSH
+- Tipografia e escalas existentes
+- Componentes de UI do sistema de design atual
+- Estrutura de layout (sidebar, header, content area)
+- Responsividade e breakpoints existentes
+
+**Implementação:**
+- Novos componentes usarão os mesmos providers de tema
+- Páginas de auth usarão o mesmo `ThemeProvider` existente
+- Botões, inputs e cards seguirão o estilo atual
+- Nenhuma introdução de novas dependências de UI
+
+---
+
 ### 1.1 Schema do Supabase (Banco de Dados)
 
 **Arquivo:** `/workspace/supabase/migrations/001_initial_identity.sql`
@@ -267,22 +286,79 @@ interface RequestContext {
 
 ---
 
-### 1.4 Integração Supabase Auth no Frontend
+### 1.4 Rotas de Autenticação e Fluxo de Usuário
+
+**Localização:** `/workspace/apps/web/src/routes/` (ou estrutura de rotas existente)
+
+**Novas rotas a serem criadas:**
+
+| Rota | Descrição | Acesso | Comportamento |
+|------|-----------|--------|---------------|
+| `/` | Chat público | Público | Visitante digita → Se logado, processa. Se não, redireciona `/register` |
+| `/register` | Registro de nova conta | Público | Formulário: Nome, E-mail, WhatsApp (intl), Senha |
+| `/login` | Login de usuário existente | Público | Formulário: E-mail, Senha |
+| `/forgot-password` | Recuperação de senha | Público | Formulário: E-mail |
+| `/reset-password` | Redefinição de senha | Público (com token) | Formulário: Nova senha (via token do email) |
+
+**Comportamento da rota raiz `/`:**
+```typescript
+// Pseudo-código do fluxo
+async function handleSendMessage(message: string) {
+  const { user } = useAuth();
+  
+  if (!user || !user.isActive) {
+    // Redireciona para registro preservando a mensagem
+    navigate('/register', { state: { pendingMessage: message } });
+    return;
+  }
+  
+  // Usuário logado e ativo → processa mensagem
+  await processMessage(message);
+}
+```
+
+**Campos do formulário de registro (`/register`):**
+- `full_name` (obrigatório)
+- `email` (obrigatório, validação de formato)
+- `whatsapp` (obrigatório, formato internacional ex: +5511999999999)
+- `password` (obrigatório, mín. 8 caracteres, 1 número, 1 letra)
+- `confirm_password` (obrigatório, deve matcher com password)
+- Checkbox: "Li e concordo com os Termos de Uso" (obrigatório)
+
+**Integração com Supabase Auth:**
+- Registro cria usuário em `auth.users` + tabela `users` + tenant padrão
+- Login via email/senha ou OAuth (Google/GitHub se configurado)
+- Forgot password envia email via Supabase Auth
+- Reset password usa token de reset do Supabase
+
+---
+
+### 1.5 Integração Supabase Auth no Frontend
 
 **Localização:** `/workspace/apps/web/src/lib/auth/`
 
 **Implementação:**
-- Provider React para estado de autenticação
+- Provider React para estado de autenticação herdando tema atual
 - Hook `useAuth()` para acessar usuário atual
 - Componente `<AuthProvider>` para envolver a aplicação
-- Login via OAuth (Google/GitHub) configurado no Supabase
+- Login via email/senha (obrigatório) + OAuth opcional (Google/GitHub)
 - Logout e refresh de token
 - Persistência de sessão no localStorage
+- Validação de formulário com mesmo estilo dos inputs existentes
 
 **Componentes novos:**
 ```tsx
-// /workspace/apps/web/src/components/auth/LoginButton.tsx
-// Botão de login com provedores OAuth
+// /workspace/apps/web/src/components/auth/LoginForm.tsx
+// Formulário de login com email/senha - herda estilo atual
+
+// /workspace/apps/web/src/components/auth/RegisterForm.tsx
+// Formulário de registro com todos os campos - herda estilo atual
+
+// /workspace/apps/web/src/components/auth/ForgotPasswordForm.tsx
+// Formulário de recuperação de senha
+
+// /workspace/apps/web/src/components/auth/ResetPasswordForm.tsx
+// Formulário de redefinição de senha com token
 
 // /workspace/apps/web/src/components/auth/ProtectedRoute.tsx
 // Wrapper para rotas que exigem autenticação
@@ -291,9 +367,15 @@ interface RequestContext {
 // Hook para estado de autenticação
 ```
 
+**Estilização:**
+- Todos os formulários usarão os mesmos componentes de input do sistema atual
+- Cores, bordas, sombras e tipografia idênticas ao restante da aplicação
+- Botões seguirão o mesmo padrão dos botões existentes
+- Layout responsivo mantendo breakpoints atuais
+
 ---
 
-### 1.5 Seed Inicial de Dados (Primeiro Tenant e Admin)
+### 1.6 Seed Inicial de Dados (Primeiro Tenant e Admin)
 
 **Script:** `/workspace/scripts/seed-initial-tenant.ts`
 
@@ -363,7 +445,14 @@ interface RequestContext {
 /workspace/apps/web/src/lib/auth/auth.provider.tsx
 /workspace/apps/web/src/lib/auth/use-auth.ts
 /workspace/apps/web/src/lib/auth/protected-route.tsx
-/workspace/apps/web/src/components/auth/LoginButton.tsx
+/workspace/apps/web/src/components/auth/LoginForm.tsx
+/workspace/apps/web/src/components/auth/RegisterForm.tsx
+/workspace/apps/web/src/components/auth/ForgotPasswordForm.tsx
+/workspace/apps/web/src/components/auth/ResetPasswordForm.tsx
+/workspace/apps/web/src/pages/RegisterPage.tsx
+/workspace/apps/web/src/pages/LoginPage.tsx
+/workspace/apps/web/src/pages/ForgotPasswordPage.tsx
+/workspace/apps/web/src/pages/ResetPasswordPage.tsx
 /workspace/scripts/seed-initial-tenant.ts
 /workspace/.env.example (atualizar com vars do Supabase)
 ```
@@ -414,10 +503,14 @@ Uma vez aprovada esta fase, a implementação seguirá esta ordem:
 1. **Passo 1:** Criar arquivo de migration SQL
 2. **Passo 2:** Criar pacote `supabase-client` no backend
 3. **Passo 3:** Criar pacote `auth-middleware` no backend
-4. **Passo 4:** Integrar autenticação no frontend
-5. **Passo 5:** Criar script de seed inicial
-6. **Passo 6:** Implementar testes
-7. **Passo 7:** Validar tudo funcionando junto
+4. **Passo 4:** Integrar autenticação no frontend (mantendo identidade visual atual)
+5. **Passo 5:** Criar páginas de auth (/register, /login, /forgot-password, /reset-password)
+6. **Passo 6:** Implementar fluxo de redirecionamento na rota raiz `/`
+7. **Passo 7:** Criar script de seed inicial
+8. **Passo 8:** Implementar testes
+9. **Passo 9:** Validar tudo funcionando junto
+
+**Importante:** Não implementarei nada até você dar **APROVAÇÃO EXPLÍCITA** deste plano.
 
 ---
 

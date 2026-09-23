@@ -107,6 +107,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`picomatch`](https://github.com/micromatch/picomatch) | MIT |
 | [`react`](https://github.com/facebook/react) | MIT |
 | [`react-dom`](https://github.com/facebook/react) | MIT |
+| [`react-router-dom`](https://github.com/remix-run/react-router) | MIT |
 | [`readable-stream`](https://github.com/nodejs/readable-stream) | MIT |
 | [`resolve.exports`](https://github.com/lukeed/resolve.exports) | MIT |
 | [`semver`](https://github.com/npm/node-semver) | ISC |
@@ -220,7 +221,6 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`playwright`](https://github.com/microsoft/playwright) | Apache-2.0 |
 | [`pnpm`](https://github.com/pnpm/pnpm) | MIT |
 | [`publint`](https://github.com/publint/publint) | MIT |
-| [`react-router-dom`](https://github.com/remix-run/react-router) | MIT |
 | [`smol-toml`](https://github.com/squirrelchat/smol-toml) | BSD-3-Clause |
 | [`spdx-expression-parse`](https://github.com/jslicense/spdx-expression-parse.js) | MIT |
 | [`tar`](https://github.com/isaacs/node-tar) | BlueOak-1.0.0 |

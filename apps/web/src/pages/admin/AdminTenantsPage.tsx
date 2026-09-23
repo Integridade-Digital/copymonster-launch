@@ -1,57 +1,55 @@
-import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../lib/auth';
-import { supabase } from '../../lib/supabase/client';
+import React, { useState, useEffect } from 'react'
+import { supabase } from '../../lib/supabase/client'
 
 interface Tenant {
-  id: string;
-  name: string;
-  slug: string;
-  status: 'active' | 'suspended' | 'deleted';
-  created_at: string;
-  subscription_status?: string;
+  id: string
+  name: string
+  slug: string
+  status: 'active' | 'suspended' | 'deleted'
+  created_at: string
+  subscription_status?: string
 }
 
 export function AdminTenantsPage() {
-  const { user } = useAuth();
-  const [tenants, setTenants] = useState<Tenant[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const [tenants, setTenants] = useState<Tenant[]>([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   useEffect(() => {
-    loadTenants();
-  }, []);
+    loadTenants()
+  }, [])
 
   async function loadTenants() {
     try {
-      setIsLoading(true);
+      setIsLoading(true)
       const { data, error } = await supabase
         .from('tenants')
         .select('*')
-        .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false })
 
-      if (error) throw error;
-      setTenants(data || []);
-    } catch (err: any) {
-      setError(err.message);
+      if (error) throw error
+      setTenants(data || [])
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   }
 
   async function handleSuspendTenant(tenantId: string) {
-    if (!confirm('Tem certeza que deseja suspender este tenant?')) return;
+    if (!confirm('Tem certeza que deseja suspender este tenant?')) return
 
     try {
       const { error } = await supabase
         .from('tenants')
         .update({ status: 'suspended' })
-        .eq('id', tenantId);
+        .eq('id', tenantId)
 
-      if (error) throw error;
-      loadTenants();
-    } catch (err: any) {
-      alert('Erro ao suspender tenant: ' + err.message);
+      if (error) throw error
+      loadTenants()
+    } catch (err: unknown) {
+      alert('Erro ao suspender tenant: ' + (err instanceof Error ? err.message : String(err)))
     }
   }
 
@@ -60,12 +58,12 @@ export function AdminTenantsPage() {
       const { error } = await supabase
         .from('tenants')
         .update({ status: 'active' })
-        .eq('id', tenantId);
+        .eq('id', tenantId)
 
-      if (error) throw error;
-      loadTenants();
-    } catch (err: any) {
-      alert('Erro ao ativar tenant: ' + err.message);
+      if (error) throw error
+      loadTenants()
+    } catch (err: unknown) {
+      alert('Erro ao ativar tenant: ' + (err instanceof Error ? err.message : String(err)))
     }
   }
 
@@ -74,7 +72,7 @@ export function AdminTenantsPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
-    );
+    )
   }
 
   return (
@@ -120,7 +118,7 @@ export function AdminTenantsPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {tenants.map((tenant) => (
+            {tenants.map(tenant => (
               <tr key={tenant.id}>
                 <td className="px-6 py-4 whitespace-nowrap">
                   <div className="text-sm font-medium text-gray-900">{tenant.name}</div>
@@ -131,8 +129,8 @@ export function AdminTenantsPage() {
                 <td className="px-6 py-4 whitespace-nowrap">
                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
                     tenant.status === 'active' ? 'bg-green-100 text-green-800' :
-                    tenant.status === 'suspended' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
+                      tenant.status === 'suspended' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-red-100 text-red-800'
                   }`}>
                     {tenant.status}
                   </span>
@@ -170,32 +168,32 @@ export function AdminTenantsPage() {
         <CreateTenantModal
           onClose={() => setShowCreateModal(false)}
           onCreated={() => {
-            setShowCreateModal(false);
-            loadTenants();
+            setShowCreateModal(false)
+            loadTenants()
           }}
         />
       )}
     </div>
-  );
+  )
 }
 
 function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => void }) {
-  const [name, setName] = useState('');
-  const [slug, setSlug] = useState('');
-  const [isCreating, setIsCreating] = useState(false);
+  const [name, setName] = useState('')
+  const [slug, setSlug] = useState('')
+  const [isCreating, setIsCreating] = useState(false)
 
   async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setIsCreating(true);
+    e.preventDefault()
+    setIsCreating(true)
 
     try {
-      const { error } = await supabase.from('tenants').insert([{ name, slug }]);
-      if (error) throw error;
-      onCreated();
-    } catch (err: any) {
-      alert('Erro ao criar tenant: ' + err.message);
+      const { error } = await supabase.from('tenants').insert([{ name, slug }])
+      if (error) throw error
+      onCreated()
+    } catch (err: unknown) {
+      alert('Erro ao criar tenant: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
-      setIsCreating(false);
+      setIsCreating(false)
     }
   }
 
@@ -209,7 +207,7 @@ function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCrea
             <input
               type="text"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={e => setName(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               required
             />
@@ -219,7 +217,7 @@ function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCrea
             <input
               type="text"
               value={slug}
-              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
+              onChange={e => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md"
               required
             />
@@ -243,5 +241,5 @@ function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCrea
         </form>
       </div>
     </div>
-  );
+  )
 }

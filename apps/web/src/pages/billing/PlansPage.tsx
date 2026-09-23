@@ -1,35 +1,34 @@
-import React, { useEffect, useState } from 'react';
-import { useAuth } from '../../lib/auth';
-import { supabase } from '../../lib/supabase/client';
-import { RoleGate } from '../../components/auth/RoleGate';
+import { useEffect, useState } from 'react'
+import { useAuth } from '../../lib/auth'
+import { supabase } from '../../lib/supabase/client'
 
 interface Plan {
-  id: string;
-  name: string;
-  slug: string;
-  price_cents: number;
-  currency: string;
-  features: string[];
-  limits: any;
-  stripe_price_id?: string;
+  id: string
+  name: string
+  slug: string
+  price_cents: number
+  currency: string
+  features: string[]
+  limits: Record<string, number>
+  stripe_price_id?: string
 }
 
 interface TenantSubscription {
-  subscription_status: string;
-  current_period_end?: string;
-  plan_id?: string;
+  subscription_status: string
+  current_period_end: string | null
+  plan_id: string | null
 }
 
 export function PlansPage() {
-  const { user } = useAuth();
-  const [plans, setPlans] = useState<Plan[]>([]);
-  const [subscription, setSubscription] = useState<TenantSubscription | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isProcessing, setIsProcessing] = useState<string | null>(null);
+  const { user } = useAuth()
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [subscription, setSubscription] = useState<TenantSubscription | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isProcessing, setIsProcessing] = useState<string | null>(null)
 
   useEffect(() => {
-    loadData();
-  }, []);
+    loadData()
+  }, [])
 
   async function loadData() {
     try {
@@ -38,59 +37,59 @@ export function PlansPage() {
         .from('plans')
         .select('*')
         .eq('is_active', true)
-        .order('price_cents');
+        .order('price_cents')
 
-      setPlans(plansData || []);
+      setPlans(plansData || [])
 
       // Carregar assinatura atual do tenant
       const { data: tenantData } = await supabase
         .from('tenants')
         .select('subscription_status, current_period_end, plan_id')
-        .eq('id', (user as any).tenantId)
-        .single();
+        .eq('id', user?.tenantId ?? '')
+        .single()
 
-      setSubscription(tenantData || null);
-    } catch (error: any) {
-      console.error('Error loading plans:', error);
+      setSubscription(tenantData || null)
+    } catch (error: unknown) {
+      console.error('Error loading plans:', error)
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
   }
 
   async function handleSubscribe(planSlug: string) {
-    const plan = plans.find(p => p.slug === planSlug);
+    const plan = plans.find(p => p.slug === planSlug)
     if (!plan || !plan.stripe_price_id) {
-      alert('Plano não disponível para assinatura online');
-      return;
+      alert('Plano não disponível para assinatura online')
+      return
     }
 
-    setIsProcessing(planSlug);
+    setIsProcessing(planSlug)
 
     try {
       const response = await fetch('/api/billing/create-checkout', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await (window as any).supabase?.auth.getSession())?.data?.session?.access_token}`
+          'Authorization': `Bearer ${(await supabase.auth.getSession())?.data?.session?.access_token}`,
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           priceId: plan.stripe_price_id,
-          tenantId: (user as any).tenantId
-        })
-      });
+          tenantId: user?.tenantId ?? '',
+        }),
+      })
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Erro ao criar checkout');
+        const error = await response.json() as { message?: string }
+        throw new Error(error.message || 'Erro ao criar checkout')
       }
 
-      const { url } = await response.json();
-      
+      const { url } = await response.json()
+
       // Redirecionar para checkout do Stripe
-      window.location.href = url;
-    } catch (error: any) {
-      alert('Erro: ' + error.message);
-      setIsProcessing(null);
+      window.location.href = url
+    } catch (error: unknown) {
+      alert('Erro: ' + (error instanceof Error ? error.message : String(error)))
+      setIsProcessing(null)
     }
   }
 
@@ -98,19 +97,19 @@ export function PlansPage() {
     try {
       const response = await fetch('/api/billing/create-portal-session', {
         method: 'POST',
-        headers: { 
+        headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${(await (window as any).supabase?.auth.getSession())?.data?.session?.access_token}`
+          'Authorization': `Bearer ${(await supabase.auth.getSession())?.data?.session?.access_token}`,
         },
-        body: JSON.stringify({ tenantId: (user as any).tenantId })
-      });
+        body: JSON.stringify({ tenantId: user?.tenantId ?? '' }),
+      })
 
-      if (!response.ok) throw new Error('Erro ao criar portal');
-      
-      const { url } = await response.json();
-      window.location.href = url;
-    } catch (error: any) {
-      alert('Erro: ' + error.message);
+      if (!response.ok) throw new Error('Erro ao criar portal')
+
+      const { url } = await response.json()
+      window.location.href = url
+    } catch (error: unknown) {
+      alert('Erro: ' + (error instanceof Error ? error.message : String(error)))
     }
   }
 
@@ -119,7 +118,7 @@ export function PlansPage() {
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
       </div>
-    );
+    )
   }
 
   return (
@@ -152,8 +151,8 @@ export function PlansPage() {
 
       <div className="grid md:grid-cols-3 gap-8">
         {plans.map((plan) => {
-          const isCurrentPlan = subscription?.plan_id === plan.id;
-          const isFree = plan.slug === 'free';
+          const isCurrentPlan = subscription?.plan_id === plan.id
+          const isFree = plan.slug === 'free'
 
           return (
             <div
@@ -165,7 +164,7 @@ export function PlansPage() {
               }`}
             >
               <h3 className="text-2xl font-bold text-gray-900">{plan.name}</h3>
-              
+
               <div className="mt-4 mb-6">
                 <span className="text-4xl font-bold text-gray-900">
                   R$ {(plan.price_cents / 100).toFixed(0)}
@@ -190,7 +189,7 @@ export function PlansPage() {
                   <ul className="text-sm text-gray-600 space-y-1">
                     {Object.entries(plan.limits).map(([key, value]) => (
                       <li key={key}>
-                        • {key.replace('_', ' ')}: {value === -1 ? 'Ilimitado' : value}
+                        • {key.replace('_', ' ')}: {value === -1 ? 'Ilimitado' : String(value)}
                       </li>
                     ))}
                   </ul>
@@ -204,21 +203,21 @@ export function PlansPage() {
                   isCurrentPlan
                     ? 'bg-green-600 text-white cursor-default'
                     : isFree
-                    ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
-                    : 'bg-blue-600 text-white hover:bg-blue-700'
+                      ? 'bg-gray-200 text-gray-800 hover:bg-gray-300'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
                 } disabled:opacity-50`}
               >
                 {isCurrentPlan ? 'Plano Atual' : isFree ? 'Plano Gratuito' : 'Assinar Agora'}
               </button>
             </div>
-          );
+          )
         })}
       </div>
 
       {/* FAQ Section */}
       <div className="mt-16 max-w-3xl mx-auto">
         <h2 className="text-2xl font-bold text-center mb-8">Perguntas Frequentes</h2>
-        
+
         <div className="space-y-4">
           <details className="group bg-white border border-gray-200 rounded-lg">
             <summary className="flex justify-between items-center cursor-pointer p-4 font-medium">
@@ -226,7 +225,7 @@ export function PlansPage() {
               <span className="transform group-open:rotate-180 transition">▼</span>
             </summary>
             <div className="px-4 pb-4 text-gray-600">
-              Sim! Você pode cancelar sua assinatura quando quiser através do portal do cliente. 
+              Sim! Você pode cancelar sua assinatura quando quiser através do portal do cliente.
               Seu acesso permanece ativo até o final do período pago.
             </div>
           </details>
@@ -248,12 +247,12 @@ export function PlansPage() {
               <span className="transform group-open:rotate-180 transition">▼</span>
             </summary>
             <div className="px-4 pb-4 text-gray-600">
-              Ao atingir o limite de sessões ou tokens, você será notificado e poderá fazer upgrade 
+              Ao atingir o limite de sessões ou tokens, você será notificado e poderá fazer upgrade
               para um plano superior. Sessões existentes não são afetadas.
             </div>
           </details>
         </div>
       </div>
     </div>
-  );
+  )
 }

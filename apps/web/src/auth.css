@@ -1,0 +1,205 @@
+/*
+ * CopyMonster auth screens.
+ *
+ * These render before the Harness client plugins (and therefore before the
+ * `--dsw-*` theme tokens) exist, so every value here is self-contained with a
+ * token fallback. Scoped to `.cm-auth-*` and `#dsh-web-root` so nothing leaks
+ * into the Harness shell.
+ */
+
+:root {
+  --cm-auth-primary: var(--dsw-color-primary, #2563eb);
+  --cm-auth-primary-hover: #1d4ed8;
+  --cm-auth-bg: #f8fafc;
+  --cm-auth-text: #0f172a;
+  --cm-auth-muted: #64748b;
+  --cm-auth-border: #e2e8f0;
+  --cm-auth-error-bg: #fef2f2;
+  --cm-auth-error-text: #b91c1c;
+  --cm-auth-error-border: #fecaca;
+  --cm-auth-success-bg: #f0fdf4;
+  --cm-auth-success-text: #15803d;
+  --cm-auth-success-border: #bbf7d0;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --cm-auth-bg: #0b1220;
+    --cm-auth-text: #e2e8f0;
+    --cm-auth-muted: #94a3b8;
+    --cm-auth-border: #1e293b;
+    --cm-auth-error-bg: #2a1215;
+    --cm-auth-error-text: #fca5a5;
+    --cm-auth-error-border: #7f1d1d;
+    --cm-auth-success-bg: #0d2818;
+    --cm-auth-success-text: #86efac;
+    --cm-auth-success-border: #14532d;
+  }
+}
+
+.cm-auth-boot {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  background: var(--cm-auth-bg);
+  color: var(--cm-auth-muted);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.cm-auth-spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--cm-auth-border);
+  border-top-color: var(--cm-auth-primary);
+  border-radius: 50%;
+  animation: cm-auth-spin 0.7s linear infinite;
+}
+
+@keyframes cm-auth-spin {
+  to { transform: rotate(360deg); }
+}
+
+.cm-auth-page {
+  display: flex;
+  min-height: 100vh;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  background: var(--cm-auth-bg);
+  color: var(--cm-auth-text);
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+.cm-auth-card {
+  width: 100%;
+  max-width: 26rem;
+}
+
+.cm-auth-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.cm-auth-title {
+  margin: 0;
+  font-size: 1.75rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.cm-auth-subtitle {
+  margin: 0.5rem 0 0;
+  font-size: 0.875rem;
+  color: var(--cm-auth-muted);
+}
+
+.cm-auth-link {
+  color: var(--cm-auth-primary);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.cm-auth-link:hover {
+  text-decoration: underline;
+}
+
+.cm-auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cm-auth-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.cm-auth-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.cm-auth-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.9rem;
+  color: var(--cm-auth-text);
+  background: transparent;
+  border: 1px solid var(--cm-auth-border);
+  border-radius: 0.5rem;
+  outline: none;
+}
+
+.cm-auth-input:focus {
+  border-color: var(--cm-auth-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cm-auth-primary) 25%, transparent);
+}
+
+.cm-auth-hint {
+  font-size: 0.75rem;
+  color: var(--cm-auth-muted);
+}
+
+.cm-auth-alert {
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  border: 1px solid transparent;
+}
+
+.cm-auth-alert--error {
+  background: var(--cm-auth-error-bg);
+  color: var(--cm-auth-error-text);
+  border-color: var(--cm-auth-error-border);
+}
+
+.cm-auth-alert--success {
+  background: var(--cm-auth-success-bg);
+  color: var(--cm-auth-success-text);
+  border-color: var(--cm-auth-success-border);
+}
+
+.cm-auth-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 0.65rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--cm-auth-primary);
+  border: none;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.cm-auth-button:hover:not(:disabled) {
+  background: var(--cm-auth-primary-hover);
+}
+
+.cm-auth-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.cm-auth-row {
+  display: flex;
+  justify-content: flex-end;
+  font-size: 0.875rem;
+}
+
+.cm-auth-footer {
+  margin-top: 0.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+/* The Harness shell fills the viewport exactly as before this gate. */
+#dsh-web-root {
+  min-height: 100vh;
+}

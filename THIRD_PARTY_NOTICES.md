@@ -59,6 +59,7 @@ External packages installed for runtime use or distributed inside the prebuilt b
 | [`@puppeteer/browsers`](https://github.com/puppeteer/puppeteer/tree/main/packages/browsers) | Apache-2.0 |
 | [`@shikijs/langs`](https://github.com/shikijs/shiki) | MIT |
 | [`@standard-schema/spec`](https://github.com/standard-schema/standard-schema) | MIT |
+| [`@supabase/supabase-js`](https://github.com/supabase/supabase-js) | MIT |
 | [`@tanstack/react-virtual`](https://github.com/TanStack/virtual) | MIT |
 | [`@trycua/cua-driver`](https://github.com/trycua/cua) | MIT |
 | [`@vscode/ripgrep`](https://github.com/microsoft/vscode-ripgrep) | MIT |
@@ -219,6 +220,7 @@ External packages **directly declared** for development, tests, types, or toolin
 | [`playwright`](https://github.com/microsoft/playwright) | Apache-2.0 |
 | [`pnpm`](https://github.com/pnpm/pnpm) | MIT |
 | [`publint`](https://github.com/publint/publint) | MIT |
+| [`react-router-dom`](https://github.com/remix-run/react-router) | MIT |
 | [`smol-toml`](https://github.com/squirrelchat/smol-toml) | BSD-3-Clause |
 | [`spdx-expression-parse`](https://github.com/jslicense/spdx-expression-parse.js) | MIT |
 | [`tar`](https://github.com/isaacs/node-tar) | BlueOak-1.0.0 |

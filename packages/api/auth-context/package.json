@@ -1,10 +1,10 @@
 {
-  "name": "@deepseek-ai/dsh-supabase-client",
+  "name": "@deepseek-ai/dsh-api-auth-context",
   "version": "0.1.0",
   "license": "MIT",
   "private": true,
   "type": "module",
-  "description": "CopyMonster Supabase clients (anon + service role) for the Harness host",
+  "description": "CopyMonster auth service and Typert Host Context adapter",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "exports": {
@@ -13,8 +13,8 @@
       "default": "./lib/index.js"
     },
     "./types": {
-      "types": "./lib/types/supabase.types.d.ts",
-      "default": "./lib/types/supabase.types.js"
+      "types": "./lib/types/types.d.ts",
+      "default": "./lib/types/types.js"
     },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
@@ -30,10 +30,16 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@deepseek-ai/dsh-constants": "workspace:*",
-    "@supabase/supabase-js": "^2.39.0"
+    "@deepseek-ai/dsh-supabase-client": "workspace:*",
+    "@deepseek-ai/dsh-constants": "workspace:*"
+  },
+  "peerDependencies": {
+    "@deepseek-ai/cordis": "*",
+    "@deepseek-ai/dsh-typert-protocol": "*"
   },
   "devDependencies": {
+    "@deepseek-ai/cordis": "workspace:^",
+    "@deepseek-ai/dsh-typert-protocol": "workspace:^",
     "@types/node": "^22.0.0",
     "typescript": "^5.3.0",
     "vitest": "^1.0.0"

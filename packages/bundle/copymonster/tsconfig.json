@@ -9,7 +9,13 @@
   ],
   "references": [
     {
-      "path": "../../util/constants"
+      "path": "../../../vendor/cordis"
+    },
+    {
+      "path": "../../api/auth-context"
+    },
+    {
+      "path": "../../api/auth-http"
     }
   ]
 }

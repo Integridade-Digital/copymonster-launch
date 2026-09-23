@@ -1,20 +1,16 @@
 {
-  "name": "@deepseek-ai/dsh-supabase-client",
+  "name": "@deepseek-ai/dsh-constants",
   "version": "0.1.0",
   "license": "MIT",
   "private": true,
   "type": "module",
-  "description": "CopyMonster Supabase clients (anon + service role) for the Harness host",
+  "description": "Shared CopyMonster constants (default tenant, auth context names)",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "exports": {
     ".": {
       "types": "./lib/types/index.d.ts",
       "default": "./lib/index.js"
-    },
-    "./types": {
-      "types": "./lib/types/supabase.types.d.ts",
-      "default": "./lib/types/supabase.types.js"
     },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
@@ -28,10 +24,6 @@
     "build": "tsc",
     "lint": "eslint src/",
     "test": "vitest run"
-  },
-  "dependencies": {
-    "@deepseek-ai/dsh-constants": "workspace:*",
-    "@supabase/supabase-js": "^2.39.0"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

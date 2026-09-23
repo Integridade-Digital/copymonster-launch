@@ -1,0 +1,17 @@
+# The CopyMonster SaaS bundle patch: the Cordis-native auth layer over the
+# shipped web profile. Applied after `dsh-base` and `dsh-web-app`, it inserts
+# the auth service (Typert Host Context adapter) and its HTTP routes. It
+# replaces no shipped row, so the original DSH composition is preserved.
+#
+# Use it as a stacked bundle in a profile, or as an overlay on the shipped
+# profile:
+#   dsh --profile web --patch ./packages/bundle/copymonster/cordis.patch.yml
+
+- insert:
+    # CopyMonster identity service (ctx.auth) + the `auth` Typert Context kind.
+    - id: auth-context
+      name: '@deepseek-ai/dsh-api-auth-context'
+
+    # node:http routes on ctx.webServer that report the caller identity.
+    - id: auth-http
+      name: '@deepseek-ai/dsh-api-auth-http'

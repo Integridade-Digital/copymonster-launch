@@ -1,10 +1,14 @@
 /**
- * @copymonster/supabase-client
- * 
- * Cliente Supabase para o backend do CopyMonster
- * Fornece clientes tipados para operações anon e admin
+ * CopyMonster Supabase client package entry.
+ * @module @deepseek-ai/dsh-supabase-client
  */
 
-export { supabaseAnonClient, supabaseAdminClient, getDefaultTenant, userExists, getUserRole } from './supabase.client';
-export type { Database, UserIdentity, SupabaseClientType } from './supabase.types';
-export { default as supabase } from './supabase.client';
+export {
+  supabaseAnonClient,
+  supabaseAdminClient,
+  getDefaultTenant,
+  userExists,
+  getUserRole,
+} from './supabase.client.ts'
+export { default as supabase } from './supabase.client.ts'
+export type { Database, UserIdentity, SupabaseClientType } from './supabase.types.ts'

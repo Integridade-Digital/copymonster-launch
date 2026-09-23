@@ -109,19 +109,28 @@ ALTER TABLE audit_logs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE app_sessions ENABLE ROW LEVEL SECURITY;
 
 -- FUNÇÕES AUXILIARES PARA RLS
+-- Derivam a identidade do JWT do Supabase via auth.uid(). Não usam
+-- current_setting('app.*') porque a API anon/authenticated não define essas
+-- variáveis por request; o RLS ficaria sempre negando acesso.
 CREATE OR REPLACE FUNCTION get_current_tenant_id()
 RETURNS UUID AS $$
 BEGIN
-  RETURN NULLIF(current_setting('app.current_tenant_id', TRUE), '')::UUID;
+  RETURN (
+    SELECT tenant_id
+    FROM public.user_tenant_roles
+    WHERE user_id = auth.uid()
+    ORDER BY created_at
+    LIMIT 1
+  );
 END;
-$$ LANGUAGE SQL SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION get_current_user_id()
 RETURNS UUID AS $$
 BEGIN
-  RETURN NULLIF(current_setting('app.current_user_id', TRUE), '')::UUID;
+  RETURN auth.uid();
 END;
-$$ LANGUAGE SQL SECURITY DEFINER;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 
 CREATE OR REPLACE FUNCTION is_admin_or_owner()
 RETURNS BOOLEAN AS $$
@@ -151,10 +160,12 @@ CREATE POLICY "Users can view own profile" ON users
 CREATE POLICY "Admins can view all users in tenant" ON users
   FOR SELECT USING (
     EXISTS (
-      SELECT 1 FROM user_tenant_roles utr
-      WHERE utr.user_id = get_current_user_id()
-      AND utr.tenant_id = (SELECT tenant_id FROM users WHERE id = get_current_user_id())
-      AND utr.role IN ('owner', 'admin')
+      SELECT 1
+      FROM user_tenant_roles admin_utr
+      JOIN user_tenant_roles target_utr ON target_utr.tenant_id = admin_utr.tenant_id
+      WHERE admin_utr.user_id = get_current_user_id()
+        AND admin_utr.role IN ('owner', 'admin')
+        AND target_utr.user_id = users.id
     )
   );
 

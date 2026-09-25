@@ -18,7 +18,7 @@
       "path": "../../client/connection/tsconfig.host.json"
     },
     {
-      "path": "../auth-context"
+      "path": "../auth-context/tsconfig.host.json"
     },
     {
       "path": "../../util/constants"

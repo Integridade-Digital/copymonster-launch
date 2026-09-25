@@ -1,10 +1,22 @@
 /**
  * CopyMonster identity vocabulary shared by the auth service, its Typert Host
- * Context adapter, and consumers such as the HTTP auth routes.
+ * and Client Context adapters, and consumers such as the HTTP auth routes.
+ *
+ * The `auth` Context kind is declared here so both compiler faces resolve the
+ * same merge; this module holds types only, keeping the Host service's
+ * Supabase and Node imports out of the browser program.
  * @module @deepseek-ai/dsh-api-auth-context/types
  */
 
-/** The four CopyMonster access levels. */
+import type { TypertContext } from '@deepseek-ai/dsh-typert-protocol'
+
+/**
+ * The four CopyMonster access levels.
+ *
+ * `anonymous` remains a storable `user_tenant_roles.role` value, but no
+ * identity is ever issued with it: a caller holding only that role has no
+ * membership to act within.
+ */
 export type UserRole = 'owner' | 'admin' | 'member' | 'anonymous'
 
 /** A resolved caller identity: who acts, in which tenant, with which role. */
@@ -30,3 +42,10 @@ export interface UserIdentity {
  * the bearer token the caller presents.
  */
 export type AuthToken = string
+
+declare module '@deepseek-ai/dsh-typert-protocol' {
+  interface TypertContextMap {
+    /** CopyMonster identity derived from the caller's bearer token. */
+    auth: TypertContext<AuthToken>
+  }
+}

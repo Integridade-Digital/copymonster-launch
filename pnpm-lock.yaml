@@ -919,20 +919,19 @@ importers:
         version: link:../../interaction/user-approval
 
   packages/api/auth-context:
-    dependencies:
-      '@deepseek-ai/dsh-constants':
-        specifier: workspace:*
-        version: link:../../util/constants
-      '@deepseek-ai/dsh-supabase-client':
-        specifier: workspace:*
-        version: link:../../server/supabase-client
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
         version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-supabase-client':
+        specifier: workspace:^
+        version: link:../../server/supabase-client
       '@deepseek-ai/dsh-typert-protocol':
         specifier: workspace:^
         version: link:../../typert/protocol
+      '@deepseek-ai/dsh-typert-registry':
+        specifier: workspace:^
+        version: link:../../typert/registry
       '@types/node':
         specifier: ^22.0.0
         version: 22.20.0

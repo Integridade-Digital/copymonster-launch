@@ -1,7 +1,22 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-/** Default tenant slug, mirrored from the host-side `dsh-constants` package. */
-const DEFAULT_TENANT_SLUG = 'integridade-digital';
+/** JSON document the `get_my_profile()` RPC returns, per `supabase/migrations/003`. */
+export interface MyProfileResult {
+  user: {
+    id: string;
+    email: string;
+    full_name: string | null;
+    avatar_url: string | null;
+    whatsapp: string | null;
+  };
+  tenant: {
+    id: string;
+    name: string;
+    slug: string;
+    status: string;
+  } | null;
+  role: 'owner' | 'admin' | 'member' | 'anonymous' | null;
+}
 
 /**
  * Browser-visible schema projection.
@@ -84,7 +99,12 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
+    Functions: {
+      get_my_profile: {
+        Args: Record<string, never>;
+        Returns: MyProfileResult;
+      };
+    };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
@@ -134,51 +154,32 @@ export const supabaseClient: SupabaseClient<Database> = createClient<Database>(
 
 /**
  * Read the signed-in user's profile, tenant, and role under row-level security.
- * @param userId - Supabase `auth.users` identity.
- * @returns the composed profile, or `null` when the profile row is unreachable.
+ *
+ * The single `get_my_profile()` RPC reads `auth.uid()` on the server, so the
+ * browser sends no user id and cannot widen its own scope; the returned
+ * `user.id` is still checked against `userId` so a stale session cannot resolve
+ * another account's profile.
+ * @param userId - Supabase `auth.users` identity the caller expects.
+ * @returns the composed profile, or `null` when the call fails, no session is
+ *   established, or the returned profile belongs to another account.
  */
 export async function getUserFullProfile(userId: string): Promise<AuthUser | null> {
   try {
-    const { data: userData, error: userError } = await supabaseClient
-      .from('users')
-      .select('id, email, full_name, whatsapp, avatar_url')
-      .eq('id', userId)
-      .single();
+    const { data, error } = await supabaseClient.rpc('get_my_profile');
 
-    if (userError !== null || userData === null) return null;
+    if (error !== null || data === null) return null;
+    if (data.user.id !== userId) return null;
 
-    const { data: tenantData } = await supabaseClient
-      .from('tenants')
-      .select('id')
-      .eq('slug', DEFAULT_TENANT_SLUG)
-      .eq('status', 'active')
-      .single();
-
-    if (tenantData === null) {
-      return {
-        id: userData.id,
-        email: userData.email,
-        ...userData.full_name === null ? {} : { fullName: userData.full_name },
-        ...userData.whatsapp === null ? {} : { whatsapp: userData.whatsapp },
-        ...userData.avatar_url === null ? {} : { avatarUrl: userData.avatar_url },
-      };
-    }
-
-    const { data: roleData } = await supabaseClient
-      .from('user_tenant_roles')
-      .select('role')
-      .eq('user_id', userId)
-      .eq('tenant_id', tenantData.id)
-      .single();
+    const { id, email, full_name, whatsapp, avatar_url } = data.user;
 
     return {
-      id: userData.id,
-      email: userData.email,
-      ...userData.full_name === null ? {} : { fullName: userData.full_name },
-      ...userData.whatsapp === null ? {} : { whatsapp: userData.whatsapp },
-      ...userData.avatar_url === null ? {} : { avatarUrl: userData.avatar_url },
-      tenantId: tenantData.id,
-      role: roleData?.role ?? 'anonymous',
+      id,
+      email,
+      ...full_name === null || full_name === '' ? {} : { fullName: full_name },
+      ...whatsapp === null || whatsapp === '' ? {} : { whatsapp },
+      ...avatar_url === null || avatar_url === '' ? {} : { avatarUrl: avatar_url },
+      ...data.tenant === null ? {} : { tenantId: data.tenant.id },
+      ...data.role === null ? {} : { role: data.role },
     };
   } catch (error: unknown) {
     console.error('Error fetching user profile:', error);

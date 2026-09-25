@@ -400,7 +400,7 @@
     { "path": "./packages/host/webserver" },
     { "path": "./packages/util/constants" },
     { "path": "./packages/server/supabase-client" },
-    { "path": "./packages/api/auth-context" },
+    { "path": "./packages/api/auth-context/tsconfig.host.json" },
     { "path": "./packages/api/auth-http" },
     { "path": "./packages/bundle/copymonster" },
     { "path": "./packages/sdk/client" },

@@ -12,7 +12,7 @@
       "path": "../../../vendor/cordis"
     },
     {
-      "path": "../../api/auth-context"
+      "path": "../../api/auth-context/tsconfig.host.json"
     },
     {
       "path": "../../api/auth-http"

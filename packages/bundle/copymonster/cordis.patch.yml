@@ -15,3 +15,10 @@
     # node:http routes on ctx.webServer that report the caller identity.
     - id: auth-http
       name: '@deepseek-ai/dsh-api-auth-http'
+
+    # Browser half of the `auth` Typert Context kind: reads the access token
+    # apps/web publishes on `__DSH_AUTH__` and sends it as the `authToken`
+    # argument of every `context: 'auth'` Remote call. The Host row above stays
+    # the one that turns that token into an identity.
+    - id: auth-context-client
+      name: '@deepseek-ai/dsh-api-auth-context/client'

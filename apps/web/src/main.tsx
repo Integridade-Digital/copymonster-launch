@@ -3,7 +3,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { AppWebEntry, applyIndexInjections } from '@deepseek-ai/dsh-client-web'
-import { AppWrapper, useAuth } from './lib/auth'
+import { AppWrapper, supabaseClient, useAuth } from './lib/auth'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -15,6 +15,30 @@ interface DesktopBootGlobal {
     failed(message: string): Promise<void>
     ready(): Promise<{ injections: Parameters<typeof applyIndexInjections>[0]; streamBaseUrl: string }>
   }
+}
+
+/** Session facts the Typert `auth` Client Context adapter reads from the page. */
+interface ClientAuthSession {
+  accessToken?: string
+}
+
+/** Page global carrying {@link ClientAuthSession}. */
+interface ClientAuthGlobal {
+  __DSH_AUTH__?: ClientAuthSession
+}
+
+const clientAuth = globalThis as ClientAuthGlobal
+
+/**
+ * Publish the signed-in Supabase access token where the Typert `auth` Client
+ * Context adapter reads it. The adapter holds no session of its own and
+ * re-reads this global on every Remote call, so a sign-out or a token refresh
+ * takes effect without a reload.
+ */
+function publishClientAuthSession(): void {
+  supabaseClient.auth.onAuthStateChange((_event, current) => {
+    clientAuth.__DSH_AUTH__ = { accessToken: current?.access_token }
+  })
 }
 
 const desktop = (globalThis as DesktopBootGlobal).dshDesktopBoot
@@ -97,6 +121,8 @@ function Root() {
 try {
   const el = document.getElementById('root')
   if (el === null) throw new Error('web app: missing #root')
+
+  publishClientAuthSession()
 
   createRoot(el).render(
     <React.StrictMode>

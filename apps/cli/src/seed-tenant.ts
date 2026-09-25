@@ -66,6 +66,7 @@ export async function runSeedTenant(): Promise<number> {
   const { data: users, error: usersError } = await supabaseAdminClient
     .from('users')
     .select('id, email, full_name')
+    .order('created_at', { ascending: true })
 
   if (usersError !== null) {
     console.error('seed-tenant: failed to list users:', usersError.message)

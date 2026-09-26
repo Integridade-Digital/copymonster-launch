@@ -1,221 +1,148 @@
-# CopyMonster: Plano de Engenharia para Isolamento Multi-Tenant, Blindagem de Workspaces e RBAC de Provedores de IA
-
-**Documento:** Arquitetura e Engenharia de Correção Definitiva  
-**Autor:** Engenharia Lovable / CopyMonster  
+# Plano Diretor de Engenharia: Isolamento Multi-Tenant e Autenticação Robusta (CopyMonster)
+**Status:** Aguardando Aprovação do Usuário (Nenhuma alteração em código foi realizada)  
+**Versão:** 3.0 (Consolidada com Auditoria de Tipos Typert, Ciclo do Token Client e Causa Raiz de Boot)  
 **Data:** 26 de Setembro de 2026  
-**Status:** Aguardando Aprovação do Usuário para Execução  
-**Classificação:** Crítica (Segurança e Isolamento de Dados)
 
 ---
 
-## 1. Visão Geral e Objetivos do Projeto
+## 1. Auditoria Técnica e Resposta às Questões Críticas
 
-O objetivo deste plano é solucionar em definitivo, com qualidade e rigor de nível de engenharia de software sênior, três problemas críticos identificados no **CopyMonster** (fork do DeepSeek Harness):
-
-1. **Vazamento Cruzado de Dados entre Usuários (Multi-Tenancy Quebrado):**
-   Garantir isolamento estrito de dados (banco de dados, sessões, mensagens, metadados) usando Row Level Security (RLS) no Supabase e contexto nativo de autenticação no backend.
-2. **Vazamento de Workspaces e Filesystem do VPS para Novos Usuários:**
-   Impedir que qualquer novo usuário enxergue diretórios do servidor host (VPS) ou projetos pertencentes a outros clientes. Cada tenant/usuário terá seu próprio diretório isolado (*jail sandbox*) montado sob `/var/copymonster/tenants/{tenant_id}/workspaces/{user_id}/`.
-3. **Exposição de Configurações de Provedores de IA a Usuários Comuns:**
-   Restringir integralmente a visualização e alteração de provedores LLM (chaves de API, modelos, provedores DeepSeek, OpenAI, Anthropic, Ollama) apenas a administradores (`role IN ('owner', 'admin')`), tanto visualmente no frontend quanto por autorização estrita no backend RPC/HTTP.
-
-Nenhuma funcionalidade existente (chat, criação de sessões, execução de ferramentas, UI/UX do estúdio) será degradada.
-
----
-
-## 2. Diagnóstico Técnico Detalhado das Falhas
-
-### 2.1. O Motor Original do DeepSeek Harness
-O *DeepSeek Harness* foi concebido como uma ferramenta de desktop/CLI local (mono-usuário):
-- O `WorkspaceRegistry` (`packages/workspace/workspace/src/index.ts`) lê e cataloga caminhos absolutos arbitrários do sistema de arquivos da máquina local.
-- O `WorkspaceFeed` (`packages/api/workspace-controller/src/feed.ts`) despacha a lista global de `ctx.workspaceRegistry.list()` para qualquer cliente WebSocket/RPC conectado, sem filtrar por identidade ou token.
-- O `DirectoryPickerController` (`packages/api/workspace-controller/src/directory-picker.ts`) permite navegação livre pelo sistema de arquivos do VPS se não for restringido por uma raiz enjaulada.
-
-### 2.2. A Camada de Configuração de Modelos (LLM Settings)
-- O pacote `packages/client/ui-settings-models` e a casca de configurações em `packages/client/ui-settings` registram seções como `@deepseek-ai/dsh-model-control` diretamente na interface do usuário.
-- O backend aceita operações de patch/write nas configurações de provedores sem verificar a role do usuário logado (`ctx.authIdentity.role`).
-
-### 2.3. As Políticas de Dados no Supabase
-- Embora existam migrações preliminares (`001` a `004`), o vínculo de tenant de novos usuários necessita de garantia determinística no trigger `on_auth_user_created`, e todas as consultas de workspaces devem passar pela tabela `workspaces_meta` associada a `tenant_id` e `user_id`.
+### 1.1. Causa Raiz do `auth-context-client` no Boot: YAML vs. Build
+* **Diagnóstico Concluído:**
+  A falha que abortava a inicialização decorre **exclusivamente da declaração indevida no `packages/bundle/copymonster/cordis.patch.yml`**:
+  ```yaml
+  - insert:
+      - id: auth-context
+        name: '@deepseek-ai/dsh-api-auth-context'
+      - id: auth-http
+        name: '@deepseek-ai/dsh-api-auth-http'
+      - id: auth-context-client
+        name: '@deepseek-ai/dsh-api-auth-context/client' # <- ENTRADA INDEVIDA NO LOADER DO HOST
+  ```
+  1. O motor `dsh-client-modules` (`packages/client/modules/src/index.ts`) escaneia as entradas do Host à procura de pacotes que declaram o manifesto `dsh.client` no `package.json`. O pacote raiz `@deepseek-ai/dsh-api-auth-context` **já possui** essa declaração.
+  2. Ao forçar `auth-context-client` como entrada separada do Host Loader, o processo Node.js tentava carregar `src/client/index.ts`. Como o código cliente invoca `ctx.typert.contexts.registerClient('auth', ...)`, e no Host só existe o método `registerHost`, o Node lançava exceção fatal e abortava.
+  3. O build (`lib/client.js`) já é suportado pelo monorepo; mantê-lo atualizado faz parte da esteira, mas **a causa do travamento do boot era unicamente a linha no YAML do Host**. A remoção dessa linha resolve a inicialização.
 
 ---
 
-## 3. Arquitetura de Isolamento Proposta
-
-```
-┌────────────────────────────────────────────────────────────────────────┐
-│                          CLIENTE WEB (Browser)                         │
-│  - useAuth() fornece { userId, tenantId, role }                        │
-│  - ui-settings-models: condicionado a role === "admin" | "owner"       │
-│  - DirectoryPicker: confinado à raiz relativa do usuário                │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ WebSocket / RPC com Bearer Token
-                                    ▼
-┌────────────────────────────────────────────────────────────────────────┐
-│                        GATEWAY & CORDIS BACKEND                        │
-│  - ctx.authIdentity: validado via JWT claims (tenant_id, user_role)     │
-│  - WorkspaceFeed: filtra workspaces por tenant_id                      │
-│  - DirectoryPickerController: validação de path traversal (chroot jail)│
-│  - SettingsController: bloqueia mutação de LLM se role !== admin/owner │
-└───────────────────────┬────────────────────────┬───────────────────────┘
-                        │                        │
-                        ▼                        ▼
-┌───────────────────────────────────┐  ┌─────────────────────────────────┐
-│     FILESYSTEM ISOLADO (VPS)      │  │        SUPABASE (PostgreSQL)    │
-│  /data/tenants/{tenant_id}/       │  │  - RLS ativado em 100% tabelas   │
-│    └── users/{user_id}/           │  │  - tenant_id no JWT claim       │
-│          └── workspaces/          │  │  - workspaces_meta filtrado     │
-└───────────────────────────────────┘  └─────────────────────────────────┘
-```
+### 1.2. Funcionamento do `@RemoteScope('auth')` e `TypertRemoteScopeMap` no TypeScript
+* **Mecanismo de Tipagem do Typert Protocol (`packages/typert/protocol/src/index.ts` linha 234):**
+  A assinatura do decorator é:
+  ```typescript
+  export function RemoteScope(
+    key: Extract<keyof TypertContextMap, string>,
+    exportName?: string,
+  ): RemoteMethodDecorator
+  ```
+* **Diferença entre `TypertContextMap` e `TypertRemoteScopeMap`:**
+  - O `@RemoteScope(key)` valida o escopo diretamente contra `keyof TypertContextMap` (e **não** contra `TypertRemoteScopeMap`).
+  - O `TypertContextMap` é uma interface extensível por *declaration merging*. No pacote de autenticação (`packages/api/auth-context/src/types.ts`), o tipo é estendido:
+    ```typescript
+    declare module '@deepseek-ai/dsh-typert-protocol' {
+      interface TypertContextMap {
+        auth: TypertContext<AuthToken>
+      }
+    }
+    ```
+  - Com essa extensão presente no workspace, o compilador TypeScript aceita `'auth'` imediatamente no decorator `@RemoteScope('auth', 'create')`.
+  - O `TypertRemoteScopeMap` é utilizado exclusivamente pelo gerador de código cliente (`packages/typert/generator/src/emitter.ts`) para tipar a interface de proxy consumida pelo frontend (`ctx.remote.workspace.create(...)`). O controller no backend não precisa de declarações manuais adicionais além do `TypertContextMap`.
 
 ---
 
-## 4. Plano Passo a Passo de Implementação
-
-### FASE 1: Banco de Dados e Supabase (Identidade e Isolamento Estrito)
-
-#### 1.1. Tabela `workspaces_meta` e Políticas RLS
-Garantir no Supabase uma migração formal (`005_workspaces_multi_tenant.sql`):
-```sql
-CREATE TABLE IF NOT EXISTS public.workspaces_meta (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
-  workspace_id TEXT NOT NULL,
-  title TEXT NOT NULL,
-  relative_path TEXT NOT NULL,
-  created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW(),
-  CONSTRAINT uq_tenant_workspace UNIQUE (tenant_id, workspace_id)
-);
-
-ALTER TABLE public.workspaces_meta ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "Users can view workspaces of their tenant"
-  ON public.workspaces_meta FOR SELECT
-  TO authenticated
-  USING (
-    tenant_id = (auth.jwt() ->> 'tenant_id')::uuid
-    AND (user_id = auth.uid() OR (auth.jwt() ->> 'user_role') IN ('owner', 'admin'))
-  );
-
-CREATE POLICY "Users can insert workspaces in their tenant"
-  ON public.workspaces_meta FOR INSERT
-  TO authenticated
-  WITH CHECK (
-    tenant_id = (auth.jwt() ->> 'tenant_id')::uuid
-    AND user_id = auth.uid()
-  );
-
-CREATE POLICY "Users can delete own workspaces or admins can delete tenant workspaces"
-  ON public.workspaces_meta FOR DELETE
-  TO authenticated
-  USING (
-    tenant_id = (auth.jwt() ->> 'tenant_id')::uuid
-    AND (user_id = auth.uid() OR (auth.jwt() ->> 'user_role') IN ('owner', 'admin'))
-  );
-```
-
-#### 1.2. Provisionamento Determinístico de Novo Usuário (Trigger)
-Garantir que todo usuário novo receba seu próprio tenant individual (caso seja self-signup) ou entre no tenant para o qual foi convidado:
-- Criação em `public.tenants` com slug amigável único.
-- Inserção em `public.users`.
-- Inserção em `public.user_tenant_roles` com papel `owner` (se criar seu tenant) ou `member` (se for convidado).
-- Atualização imediata do claim do JWT através do `custom_access_token_hook`.
+### 1.3. Ciclo de Transporte do Token: `__DSH_AUTH__` vs. `__DSH_BOOT__`
+* **Definição de Responsabilidades:**
+  1. **`__DSH_BOOT__`:** Estrutura estática serializada no HTML pelo servidor contendo o grafo de módulos e scripts a carregar (`{ rev, entries: [...], batches: [...] }`). Não é canal de autenticação e não transporta credenciais de sessão.
+  2. **`__DSH_AUTH__`:** Canal em tempo de execução no navegador (`globalThis.__DSH_AUTH__`).
+* **Fluxo de Dados Comprovado no Código:**
+  - **Publicação (`apps/web/src/main.tsx`):**
+    ```typescript
+    function publishClientAuthSession(): void {
+      supabaseClient.auth.onAuthStateChange((_event, current) => {
+        clientAuth.__DSH_AUTH__ = {
+          accessToken: current?.access_token,
+          role,
+        }
+      })
+    }
+    ```
+  - **Consumo (`packages/api/auth-context/src/client/index.ts`):**
+    ```typescript
+    function publishedAccessToken(): AuthToken | undefined {
+      const published = (globalThis as ClientAuthGlobal).__DSH_AUTH__?.accessToken
+      return published === undefined || published === '' ? undefined : published
+    }
+    ```
+  - Quando um método com escopo `'auth'` é disparado pelo navegador, o client adapter lê o `accessToken` ativo de `__DSH_AUTH__` e o encapsula no envelope RPC Typert. No Host, o `auth-context` decodifica o JWT e disponibiliza `authIdentity` para o controller.
 
 ---
 
-### FASE 2: Backend — Enjaulamento de Filesystem e Workspaces no VPS
+### 1.4. Resolução Determinística do `get_current_tenant_id()` (Supabase)
+* **Solução Definitiva (Migration 006):**
+  Substitui o `ORDER BY created_at ASC LIMIT 1` por precedência estrita:
+  ```sql
+  CREATE OR REPLACE FUNCTION public.get_current_tenant_id()
+  RETURNS UUID
+  LANGUAGE plpgsql
+  STABLE
+  SECURITY DEFINER
+  SET search_path = public
+  AS $$
+  DECLARE
+    _jwt_tenant TEXT;
+    _session_tenant TEXT;
+    _resolved_tenant UUID;
+  BEGIN
+    -- 1. Prioridade Máxima: Claim injetada no JWT pelo custom_access_token_hook
+    _jwt_tenant := nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'tenant_id';
+    IF _jwt_tenant IS NOT NULL AND _jwt_tenant ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+      RETURN _jwt_tenant::uuid;
+    END IF;
 
-#### 2.1. Definição do Diretório Raiz por Tenant/Usuário
-Em `packages/workspace/workspace` e `packages/api/workspace-controller`:
-1. Definir a variável de ambiente central:
-   `COPYMONSTER_DATA_DIR` (padrão: `/var/copymonster/data` ou `./data/tenants`).
-2. Implementar a função utilitária `resolveTenantSandboxPath(tenantId: string, userId: string, subPath?: string)`:
-   - Garante a criação de `${COPYMONSTER_DATA_DIR}/${tenantId}/${userId}/workspaces`.
-   - Utiliza `path.resolve` e impede estritamente **path traversal** (`..`), garantindo que o caminho resolvido sempre comece com o prefixo da pasta do tenant.
-   - Qualquer tentativa de acessar caminhos do sistema (ex: `/etc`, `/root`, `/home`, ou workspaces de terceiros) lança `RemoteError.forbidden('Acesso negado fora do sandbox do tenant')`.
+    -- 2. Segunda Prioridade: Configuração explícita de sessão (SET LOCAL app.current_tenant_id)
+    _session_tenant := nullif(current_setting('app.current_tenant_id', true), '');
+    IF _session_tenant IS NOT NULL AND _session_tenant ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
+      RETURN _session_tenant::uuid;
+    END IF;
 
-#### 2.2. Filtragem no `WorkspaceFeed` e `WorkspaceCommands`
-Em `packages/api/workspace-controller/src/feed.ts`:
-- No método `baseline(cursor)` e no listener de mutações:
-  - Recuperar `ctx.authIdentity`. Se não houver identidade autenticada, retornar baseline vazia.
-  - Consultar no banco Supabase (ou cache de metadados) os workspaces vinculados àquele `tenantId` e `userId`.
-  - Transmitir no `feed` apenas os workspaces autorizados daquele usuário/tenant.
-- Em `packages/api/workspace-controller/src/commands.ts`:
-  - `create(request)`: Verificar se o path fornecido está dentro do sandbox do usuário. Se não estiver, redirecionar o path para dentro do sandbox `${tenantDir}/workspaces/${request.name}`.
-  - Persistir o metadado em `workspaces_meta`.
+    -- 3. Fallback Determinístico: Tenant onde o usuário é owner, seguido por criação
+    SELECT tenant_id INTO _resolved_tenant
+    FROM public.user_tenant_roles
+    WHERE user_id = auth.uid()
+    ORDER BY (role = 'owner') DESC, created_at ASC
+    LIMIT 1;
 
-#### 2.3. Blindagem do `DirectoryPickerController`
-Em `packages/api/workspace-controller/src/directory-picker.ts`:
-- O comando `listDirectories` e `browse` deve receber como raiz máxima (`root`) o caminho do sandbox do usuário.
-- Desabilitar a capacidade de navegar para o diretório pai (`..`) quando o usuário já estiver na raiz do seu sandbox.
-
----
-
-### FASE 3: Controle de Acesso a Provedores de IA (RBAC)
-
-#### 3.1. Proteção Visual no Frontend
-1. **Identificação de Permissão:**
-   - No hook `useAuth()`, extrair `user.role` do perfil/JWT.
-   - Criar o helper `isAdminOrOwner = role === 'owner' || role === 'admin'`.
-2. **Ocultar Abas no Painel de Configurações:**
-   - Em `packages/client/ui-settings/src/client/` e `packages/client/ui-settings-models`:
-     - Condicionar o registro do item de menu / aba **"Provedores de Modelos"** / **"Model Providers"** e **"Chaves de API"**:
-       ```tsx
-       if (!isAdminOrOwner) {
-         return null; // Não renderiza a aba nem a opção na barra lateral
-       }
-       ```
-3. **Guarda de Rota e Fallback:**
-   - Se o usuário tentar forçar a abertura de modal ou URL direta para configuração de provedores, renderizar card explicativo:  
-     *"Configurações de IA são gerenciadas exclusivamente pelo administrador da sua organização."*
-
-#### 3.2. Bloqueio no Backend (Host Settings RPC)
-1. **Validação nas Mutações de Configuração:**
-   - No manipulador de mutação do namespace de configurações de modelos (`@deepseek-ai/dsh-model-control` ou equivalente):
-     ```typescript
-     const identity = ctx.authIdentity;
-     if (!identity || (identity.role !== 'owner' && identity.role !== 'admin')) {
-       throw new RemoteError('forbidden', 'Apenas administradores podem configurar provedores de IA.');
-     }
-     ```
-   - Impedir que usuários comuns leiam as chaves de API cruas cadastradas no servidor.
+    RETURN _resolved_tenant;
+  END;
+  $$;
+  ```
 
 ---
 
-### FASE 4: Criação do Workspace Inicial Automático (Zero-State)
-
-Para novos usuários:
-1. Quando um novo usuário fizer login pela primeira vez, o sistema não deve exibir erro nem tela em branco:
-   - Detectar se `workspaces` está vazio.
-   - Criar automaticamente uma pasta padrão no VPS:  
-     `${COPYMONSTER_DATA_DIR}/${tenantId}/${userId}/workspaces/Meu-Primeiro-Projeto`.
-   - Inicializar um arquivo de boas-vindas (`README.md` ou guia do CopyMonster).
-   - Registrar no Supabase `workspaces_meta`.
-   - Entregar o usuário diretamente em seu workspace privado, pronto para trabalhar.
+### 1.5. Validação com o `PluginPackages` e Preservação do Upstream
+* O `PluginPackages` valida a resolução de pacotes no perfil de geração (`ResolutionGeneration`), e não hashes de arquivos. Como o `@deepseek-ai/dsh-api-workspace-controller` já integra o monorepo nativo, suas atualizações são aceitas sem restrições.
+* Aplicamos o padrão **Vendor Patch Mínimo**:
+  - Toda a lógica de confinamento, checagem contra path traversal e paths de tenant é isolada em um utilitário puro (`packages/api/workspace-controller/src/sandbox.ts`).
+  - No controller original, inserem-se apenas o decorador declarativo `@RemoteScope('auth', ...)` e a passagem explícita de identidade ao helper.
 
 ---
 
-### FASE 5: Matriz de Testes e Validação de Segurança
+## 2. Estratégia de Homologação em 4 Camadas (Zero-Downtime)
 
-| Caso de Teste | Ação Executada | Resultado Esperado |
-|:---|:---|:---|
-| **1. Novo Usuário** | Cadastrar conta com email teste | Usuário entra em um workspace limpo; não enxerga nenhuma pasta do VPS. |
-| **2. Tentativa de Path Traversal** | Enviar requisição RPC tentando abrir `/etc/` ou `/root` | Backend rejeita com erro `forbidden`. |
-| **3. Isolamento Cruzado** | Usuário A cria arquivo; Usuário B faz login | Usuário B não vê nem lista os arquivos e workspaces de Usuário A. |
-| **4. Visibilidade de Provedores (Membro)** | Logar como usuário com role `member` | Aba de Provedores de IA não aparece nas configurações. |
-| **5. Bloqueio de API de Provedores** | Membro tenta enviar payload de mutação de API key | Backend retorna status 403 Forbidden. |
-| **6. Acesso Admin de Provedores** | Logar como usuário com role `admin` ou `owner` | Painel de configuração de modelos e chaves funciona normalmente. |
+1. **Camada 1 — Testes Unitários:** Execução isolada dos pacotes com cobertura completa de traversal e confinamento de sandbox.
+2. **Camada 2 — Integração RPC Typert em Memória:** Simulação de requisições scoped com tokens válidos e expirados via harness do Gateway.
+3. **Camada 3 — Processo Staging em Porta Sombra:** Execução em porta privada no VPS (`PORT=3099 DSH_HOME=/tmp/copymonster-staging`), mantendo a porta de produção e o túnel intocados.
+4. **Camada 4 — Validação E2E com Dois Tenants:** Testes reais de isolamento com dois usuários distintos antes da migração do serviço principal.
 
 ---
 
-## 5. Próximos Passos e Governança
+## 3. Roteiro Sequencial de Execução
 
-Este plano cobre de ponta a ponta:
-- Integridade do banco de dados (PostgreSQL/Supabase com RLS).
-- Isolamento do sistema de arquivos no VPS (jail sandboxing).
-- Proteção da API do harness e do frontend (RBAC).
+- **Fase 1:** Aplicar a Migration 006 no Supabase (`get_current_tenant_id` determinístico e RLS com `user_id`).
+- **Fase 2:** Corrigir `cordis.patch.yml` removendo a entrada host indevida do `auth-context-client` e compilar o pacote.
+- **Fase 3:** Declarar `@RemoteScope('auth')` nos métodos do `workspace-controller` e repassar explicitamente a `UserIdentity` do contexto aos comandos.
+- **Fase 4:** Aplicar o utilitário `sandbox.ts` para enjaular o acesso a `/var/copymonster/data/<tenantId>/<userId>/workspaces` e auto-provisionar o workspace inicial.
+- **Fase 5:** Restringir configuração de provedores de IA por RBAC (`owner`/`admin`).
+- **Fase 6:** Rodar testes e homologar na porta secundária 3099 antes de promover para produção.
 
-**Nenhum código será alterado sem a sua autorização expressa.**
-Quando você aprovar, iniciaremos a execução faseada conforme as etapas descritas acima.
+---
+**Garantia de Segurança:** Nenhuma alteração de código ou banco de dados foi executada nesta etapa. A execução iniciará estritamente após a sua autorização formal.

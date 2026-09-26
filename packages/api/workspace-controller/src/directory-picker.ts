@@ -5,6 +5,11 @@
 
 import { Context } from '@deepseek-ai/cordis'
 import { z } from 'zod'
+import { join } from 'node:path'
+import {
+  assertPathInSandbox,
+  ensureUserSandboxDirectory,
+} from '@deepseek-ai/dsh-workspace'
 import { DirectoryPickerError } from '@deepseek-ai/dsh-host-directory-picker'
 import type {
   DirectoryPickerCapabilities, DirectoryPickerErrorCode,
@@ -12,7 +17,7 @@ import type {
 // The seam owns the listing declaration; the generator requires the reference
 // site to name that package rather than this package's re-export of it.
 import type { DirectoryListing } from '@deepseek-ai/dsh-host-directory-picker/types'
-import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { Remote, RemoteError, TypertRemoteService, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import type { RemoteErrorCode } from '@deepseek-ai/dsh-typert-protocol'
 
 const createDirectoryRequestSchema = z.object({
@@ -63,7 +68,8 @@ export class DirectoryPickerController extends TypertRemoteService {
 
   /**
    * List one directory level for a Remote caller's in-app browser.
-   * @param path - absolute directory to list; absent lists the home directory.
+   * Confines listing strictly to the caller's authorized sandbox when authIdentity is present.
+   * @param path - absolute directory to list; absent lists the home directory or sandbox root.
    * @param signal - caller lifetime; abort stops the backend's scan instead of
    *   letting it outlive a disconnected caller.
    * @returns the level's listing with its ancestry.
@@ -72,14 +78,66 @@ export class DirectoryPickerController extends TypertRemoteService {
   async list(path: string | undefined, signal: AbortSignal): Promise<DirectoryListing> {
     const capability = this.requireCapability('browse', 'list')
     try {
-      return await capability.list(path, signal)
+      let targetPath = path
+      let sandboxRoot: string | undefined
+      const identity = this.ctx.authIdentity
+      if (identity?.tenantId && identity?.userId) {
+        sandboxRoot = await ensureUserSandboxDirectory(identity.tenantId, identity.userId)
+        if (targetPath === undefined || targetPath === '') {
+          targetPath = sandboxRoot
+        } else {
+          try {
+            targetPath = assertPathInSandbox(targetPath, sandboxRoot)
+          } catch (error: unknown) {
+            throw new RemoteError(
+              'directory-picker/unreadable',
+              `Access denied: "${path}" is outside the authorized sandbox.`,
+              { path },
+              { cause: error },
+            )
+          }
+        }
+      }
+
+      const listing = await capability.list(targetPath, signal)
+
+      if (sandboxRoot !== undefined) {
+        listing.home = sandboxRoot
+        const rootIndex = listing.crumbs.findIndex(c => c.path === sandboxRoot)
+        const root = sandboxRoot
+        if (rootIndex !== -1) {
+          listing.crumbs = listing.crumbs.slice(rootIndex)
+          const firstCrumb = listing.crumbs[0]
+          if (firstCrumb !== undefined) {
+            listing.crumbs[0] = {
+              ...firstCrumb,
+              name: 'workspaces',
+            }
+          }
+        } else {
+          listing.crumbs = [{ name: 'workspaces', path: root, hidden: false }]
+        }
+
+        listing.entries = listing.entries.filter((entry) => {
+          try {
+            assertPathInSandbox(entry.path, root)
+            return true
+          } catch {
+            return false
+          }
+        })
+      }
+
+      return listing
     } catch (error: unknown) {
+      if (remoteErrorOf(error) !== undefined) throw error
       throw cancellableFailure(error, signal, 'directory listing was aborted')
     }
   }
 
   /**
    * Create one child directory for a Remote caller's in-app browser.
+   * Confines directory creation strictly to the caller's authorized sandbox.
    * @param path - absolute existing parent directory.
    * @param name - single non-blank path segment.
    * @returns the created directory's absolute path.
@@ -94,9 +152,27 @@ export class DirectoryPickerController extends TypertRemoteService {
         { issues: request.error.issues },
       )
     }
+
+    let parentPath = request.data.path
+    const identity = this.ctx.authIdentity
+    if (identity?.tenantId && identity?.userId) {
+      const sandboxRoot = await ensureUserSandboxDirectory(identity.tenantId, identity.userId)
+      try {
+        parentPath = assertPathInSandbox(parentPath, sandboxRoot)
+        assertPathInSandbox(join(parentPath, request.data.name), sandboxRoot)
+      } catch (error: unknown) {
+        throw new RemoteError(
+          'directory-picker/create-failed',
+          'Access denied: cannot create directory outside authorized sandbox.',
+          { path: parentPath },
+          { cause: error },
+        )
+      }
+    }
+
     const capability = this.requireCapability('browse', 'createDirectory')
     try {
-      return await capability.createDirectory(request.data.path, request.data.name)
+      return await capability.createDirectory(parentPath, request.data.name)
     } catch (error: unknown) {
       throw browseFailure(error)
     }

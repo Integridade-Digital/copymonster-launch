@@ -1,3 +1,9 @@
+import { isAbsolute, resolve } from 'node:path'
+import {
+  assertPathInSandbox,
+  ensureUserSandboxDirectory,
+  resolveUserSandboxRoot,
+} from '@deepseek-ai/dsh-workspace'
 /** Workspace command implementation and stable Remote failure mapping. */
 
 import type { Context } from '@deepseek-ai/cordis'
@@ -40,11 +46,21 @@ export class WorkspaceCommands {
   create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue> {
     return this.enqueue(async () => {
       try {
-        const existing = await this.ctx.workspaceRegistry.resolveByPath(request.path)
+        let targetPath = request.path
+        const identity = this.ctx.authIdentity
+        if (identity?.tenantId && identity?.userId) {
+          const sandboxRoot = await ensureUserSandboxDirectory(identity.tenantId, identity.userId)
+          if (!isAbsolute(targetPath)) {
+            targetPath = resolve(sandboxRoot, targetPath)
+          } else {
+            targetPath = assertPathInSandbox(targetPath, sandboxRoot)
+          }
+        }
+        const existing = await this.ctx.workspaceRegistry.resolveByPath(targetPath)
         if (existing !== undefined) {
           return { workspace: workspaceView(existing), created: false }
         }
-        const workspace = await this.ctx.workspaceRegistry.create(request.path)
+        const workspace = await this.ctx.workspaceRegistry.create(targetPath)
         return { workspace: workspaceView(workspace), created: true }
       } catch (error) {
         if (remoteErrorOf(error) !== undefined) throw error
@@ -70,6 +86,19 @@ export class WorkspaceCommands {
     }
     return this.enqueue(async () => {
       const workspace = this.requireWorkspace(request.workspaceId)
+      const identity = this.ctx.authIdentity
+      if (identity?.tenantId && identity?.userId) {
+        const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+        try {
+          assertPathInSandbox(workspace.path, sandboxRoot)
+        } catch {
+          throw new RemoteError(
+            'workspace/forbidden',
+            'Access denied: cannot rename workspace outside authorized sandbox',
+            { workspaceId: request.workspaceId },
+          )
+        }
+      }
       if (title !== workspace.title) {
         if (this.ctx.workspaceRegistry.list().some(candidate =>
           candidate.id !== workspace.id && candidate.title === title)) {
@@ -92,6 +121,23 @@ export class WorkspaceCommands {
    */
   delete(request: WorkspaceDeleteRequest): Promise<WorkspaceDeleteValue> {
     return this.enqueue(async () => {
+      const workspace = this.ctx.workspaceRegistry.get(WorkspaceId(request.workspaceId))
+      if (workspace === undefined) {
+        throw workspaceNotFound(request.workspaceId)
+      }
+      const identity = this.ctx.authIdentity
+      if (identity?.tenantId && identity?.userId) {
+        const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+        try {
+          assertPathInSandbox(workspace.path, sandboxRoot)
+        } catch {
+          throw new RemoteError(
+            'workspace/forbidden',
+            'Access denied: cannot delete workspace outside authorized sandbox',
+            { workspaceId: request.workspaceId },
+          )
+        }
+      }
       if (!await this.ctx.workspaceRegistry.delete(WorkspaceId(request.workspaceId))) {
         throw workspaceNotFound(request.workspaceId)
       }

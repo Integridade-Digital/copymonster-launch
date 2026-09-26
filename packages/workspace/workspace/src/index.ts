@@ -16,6 +16,7 @@ import type { WorkspaceEntityHost } from './entity.ts'
 
 export { WorkspaceMoveInvalidError } from './entity.ts'
 import { defaultWorkspaceTitle, realpathNormalize } from './paths.ts'
+export * from './sandbox.ts'
 import { workspaceDomainSpec } from './spec.ts'
 import type { WorkspaceDomainState, WorkspaceRecord } from './spec.ts'
 import type { Workspace, WorkspaceId as WorkspaceIdBrand } from './types.ts'

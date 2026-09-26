@@ -1,3 +1,7 @@
+import {
+  assertPathInSandbox,
+  resolveUserSandboxRoot,
+} from '@deepseek-ai/dsh-workspace'
 /** Reconnect-safe Workspace baseline and increment producer. */
 
 import type { Context } from '@deepseek-ai/cordis'
@@ -68,8 +72,27 @@ export class WorkspaceFeed {
    * @returns all active Workspaces and archived Session identities.
    */
   baseline(): WorkspaceBaseline {
+    const all = this.ctx.workspaceRegistry.list()
+    const identity = this.ctx.authIdentity
+    if (!identity?.tenantId || !identity?.userId) {
+      return {
+        items: all.map(workspaceView),
+        archivedSessionIds: [...this.ctx.workspaceRegistry.archivedSessionIds],
+      }
+    }
+
+    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    const allowed = all.filter((ws) => {
+      try {
+        assertPathInSandbox(ws.path, sandboxRoot)
+        return true
+      } catch {
+        return false
+      }
+    })
+
     return {
-      items: this.ctx.workspaceRegistry.list().map(workspaceView),
+      items: allowed.map(workspaceView),
       archivedSessionIds: [...this.ctx.workspaceRegistry.archivedSessionIds],
     }
   }
@@ -131,6 +154,15 @@ export class WorkspaceFeed {
   }
 
   private publish(frame: Exclude<WorkspaceFollowFrame, { readonly type: 'baseline' }>): void {
+    const identity = this.ctx.authIdentity
+    if (identity?.tenantId && identity?.userId && frame.type === 'upsert') {
+      const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+      try {
+        assertPathInSandbox(frame.workspace.path, sandboxRoot)
+      } catch {
+        return
+      }
+    }
     for (const follower of this.followers) follower.push(frame)
   }
 }

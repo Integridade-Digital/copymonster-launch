@@ -304,4 +304,38 @@ describe('auth service', () => {
 
     expect(await ctx.auth.resolveContext(jwt(validClaims))).toBeUndefined()
   })
+  it("serves repeated lookups for the same token from the in-memory cache without hitting Supabase", async () => {
+    signedIn()
+    tables({ tenants: activeTenant, users: fullProfile })
+
+    const svc = await service()
+    const token = jwt(validClaims)
+
+    const first = await svc.resolveIdentity(token)
+    expect(first).toBeDefined()
+    expect(mocks.getUser).toHaveBeenCalledTimes(1)
+    expect(mocks.from).toHaveBeenCalledTimes(2)
+
+    // Second call within 60s should use cache
+    const second = await svc.resolveIdentity(token)
+    expect(second).toEqual(first)
+    expect(mocks.getUser).toHaveBeenCalledTimes(1)
+    expect(mocks.from).toHaveBeenCalledTimes(2)
+  })
+
+  it("clears cached identities when clearCache() is invoked", async () => {
+    signedIn()
+    tables({ tenants: activeTenant, users: fullProfile })
+
+    const svc = await service()
+    const token = jwt(validClaims)
+
+    await svc.resolveIdentity(token)
+    expect(mocks.getUser).toHaveBeenCalledTimes(1)
+
+    svc.clearCache()
+
+    await svc.resolveIdentity(token)
+    expect(mocks.getUser).toHaveBeenCalledTimes(2)
+  })
 })

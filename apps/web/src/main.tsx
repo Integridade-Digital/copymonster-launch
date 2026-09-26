@@ -2,7 +2,7 @@
 import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
-import { AppWebEntry, applyIndexInjections } from '@deepseek-ai/dsh-client-web'
+import type { applyIndexInjections } from '@deepseek-ai/dsh-client-web'
 import { AppWrapper, supabaseClient, useAuth } from './lib/auth'
 import { ProtectedRoute, PublicRoute } from './lib/auth/protected-route'
 import { RoleGate } from './components/auth/RoleGate'
@@ -107,37 +107,46 @@ class WebAppErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
   }
 }
 
-/** Mounts the Harness web shell; rendered only for an authenticated session. */
-function WebApp() {
-  const containerRef = React.useRef<HTMLDivElement>(null)
+/**
+ * Carrega o shell pesado do DSH Web dinamicamente apenas quando a rota autenticada for renderizada.
+ * Isso garante que páginas públicas de autenticação (/login, /register) não baixem o bundle completo do workspace.
+ */
+const LazyWebApp = React.lazy(async () => {
+  const { AppWebEntry, applyIndexInjections: applyInjections } = await import('@deepseek-ai/dsh-client-web')
 
-  React.useEffect(() => {
-    if (!containerRef.current) return
-    const entry = new AppWebEntry(containerRef.current)
+  return {
+    default: function WebAppShell() {
+      const containerRef = React.useRef<HTMLDivElement>(null)
 
-    if (desktop !== undefined) {
-      const gate = (globalThis as { __DSH_BOOT_READY__?: PromiseWithResolvers<void> }).__DSH_BOOT_READY__
-      if (gate === undefined) throw new Error('desktop web: boot readiness is missing')
-      void desktop.ready().then(async ({ injections, streamBaseUrl }) => {
-        const transport = globalThis as { __DSH_TRANSPORT__?: { ownsHost: boolean; streamBaseUrl: string } }
-        transport.__DSH_TRANSPORT__ = { ownsHost: true, streamBaseUrl }
-        await applyIndexInjections(injections, src => new Promise<void>((resolve, reject) => {
-          const script = document.createElement('script')
-          script.src = src
-          script.onload = () => { resolve() }
-          script.onerror = () => { reject(new Error(`desktop web: failed to load ${src}`)) }
-          document.head.append(script)
-        }))
-        gate.resolve()
-      }).catch((error: unknown) => { gate.reject(error) })
-    }
+      React.useEffect(() => {
+        if (!containerRef.current) return
+        const entry = new AppWebEntry(containerRef.current)
 
-    void entry.run(desktop === undefined ? undefined : reportFailure)
-    return () => { void entry.dispose() }
-  }, [])
+        if (desktop !== undefined) {
+          const gate = (globalThis as { __DSH_BOOT_READY__?: PromiseWithResolvers<void> }).__DSH_BOOT_READY__
+          if (gate === undefined) throw new Error('desktop web: boot readiness is missing')
+          void desktop.ready().then(async ({ injections, streamBaseUrl }) => {
+            const transport = globalThis as { __DSH_TRANSPORT__?: { ownsHost: boolean; streamBaseUrl: string } }
+            transport.__DSH_TRANSPORT__ = { ownsHost: true, streamBaseUrl }
+            await applyInjections(injections, src => new Promise<void>((resolve, reject) => {
+              const script = document.createElement('script')
+              script.src = src
+              script.onload = () => { resolve() }
+              script.onerror = () => { reject(new Error(`desktop web: failed to load ${src}`)) }
+              document.head.append(script)
+            }))
+            gate.resolve()
+          }).catch((error: unknown) => { gate.reject(error) })
+        }
 
-  return <div ref={containerRef} id="dsh-web-root" />
-}
+        void entry.run(desktop === undefined ? undefined : reportFailure)
+        return () => { void entry.dispose() }
+      }, [])
+
+      return <div ref={containerRef} id="dsh-web-root" />
+    },
+  }
+})
 
 /**
  * Top-level application routes using HTML5 browser history (BrowserRouter).
@@ -250,13 +259,22 @@ function AppRoutes() {
         }
       />
 
-      {/* Rota Principal - DSH Web Workspace Shell cercada por ErrorBoundary */}
+      {/* Rota Principal - DSH Web Workspace Shell com Lazy Loading cercada por ErrorBoundary */}
       <Route
         path="/"
         element={
           <ProtectedRoute>
             <WebAppErrorBoundary>
-              <WebApp />
+              <React.Suspense
+                fallback={
+                  <div className="cm-auth-boot" role="status" aria-live="polite">
+                    <span className="cm-auth-spinner" aria-hidden="true" />
+                    <span>Carregando ambiente de trabalho…</span>
+                  </div>
+                }
+              >
+                <LazyWebApp />
+              </React.Suspense>
             </WebAppErrorBoundary>
           </ProtectedRoute>
         }

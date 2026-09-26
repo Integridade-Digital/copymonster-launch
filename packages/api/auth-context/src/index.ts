@@ -33,6 +33,14 @@ const AUTH_CONTEXT_WIRE = 'authToken'
 const AUTH_CONTEXT_WIRE_TYPE = '@copymonster/auth#AuthToken'
 
 /**
+ * Cache entry for a resolved user identity.
+ */
+interface CachedIdentity {
+  identity: UserIdentity
+  expiresAt: number
+}
+
+/**
  * Decode the payload of a compact JWS.
  *
  * The signature is not checked here: {@link AuthService.resolveIdentity} first
@@ -101,6 +109,11 @@ function toUserRole(claim: string): UserRole | undefined {
 export class AuthService extends Service {
   static inject = ['typert']
 
+  /** In-memory LRU cache of resolved identities with a 60-second TTL. */
+  private readonly identityCache = new Map<string, CachedIdentity>()
+  private static readonly CACHE_TTL_MS = 60_000
+  private static readonly MAX_CACHE_ENTRIES = 1_000
+
   /**
    * @param ctx - owning plugin Context.
    */
@@ -125,6 +138,8 @@ export class AuthService extends Service {
    * role, names the `anonymous` role, or names a tenant that is not `active`
    * resolves to `undefined`: an authenticated user without a usable membership
    * gets no identity rather than a downgraded one.
+   *
+   * Hits the local in-memory LRU cache first to prevent repeated round-trips to Supabase.
    * @param token - Supabase-issued JWT presented by the caller.
    * @returns the identity, or `undefined` when the token is absent, invalid,
    *   expired, carries no usable tenant or role claim, names a tenant that is
@@ -132,6 +147,18 @@ export class AuthService extends Service {
    */
   async resolveIdentity(token: AuthToken): Promise<UserIdentity | undefined> {
     if (token.length === 0) return undefined
+
+    const now = Date.now()
+    const cached = this.identityCache.get(token)
+    if (cached !== undefined) {
+      if (now < cached.expiresAt) {
+        // Refresh position in Map for LRU behavior
+        this.identityCache.delete(token)
+        this.identityCache.set(token, cached)
+        return cached.identity
+      }
+      this.identityCache.delete(token)
+    }
 
     const { data: authData, error: authError } = await supabaseAdminClient.auth.getUser(token)
     if (authError !== null || authData.user === null) return undefined
@@ -163,7 +190,7 @@ export class AuthService extends Service {
       .single()
     if (profileError !== null || profile === null) return undefined
 
-    return {
+    const identity: UserIdentity = {
       userId: user.id,
       tenantId: claimTenantId,
       role,
@@ -172,6 +199,38 @@ export class AuthService extends Service {
       ...profile.whatsapp === null || profile.whatsapp === '' ? {} : { whatsapp: profile.whatsapp },
       ...profile.avatar_url === null || profile.avatar_url === '' ? {} : { avatarUrl: profile.avatar_url },
     }
+
+    // Determine TTL: 60s, capped by JWT `exp` if present and smaller
+    let ttlMs = AuthService.CACHE_TTL_MS
+    if (typeof claims.exp === 'number') {
+      const expRemainingMs = claims.exp * 1000 - now
+      if (expRemainingMs > 0 && expRemainingMs < ttlMs) {
+        ttlMs = expRemainingMs
+      }
+    }
+
+    // Evict oldest entry if at max capacity
+    if (this.identityCache.size >= AuthService.MAX_CACHE_ENTRIES) {
+      const oldestKey = this.identityCache.keys().next().value
+      if (oldestKey !== undefined) {
+        this.identityCache.delete(oldestKey)
+      }
+    }
+
+    this.identityCache.set(token, {
+      identity,
+      expiresAt: now + ttlMs,
+    })
+
+    return identity
+  }
+
+  /**
+   * Clears the in-memory identity cache.
+   * Useful for test isolation or explicit revocation.
+   */
+  clearCache(): void {
+    this.identityCache.clear()
   }
 
   /**

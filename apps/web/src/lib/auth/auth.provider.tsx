@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   supabaseClient,
   getUserFullProfile,
@@ -16,6 +16,7 @@ function asError(error: unknown): Error {
 /**
  * Installs the Supabase session listener and exposes the auth context.
  * Includes resilience against transient profile lookup timeouts and exposes authError/retryAuth.
+ * Deduplicates in-flight profile resolution and memoizes the context value.
  * @param props - the subtree that consumes the auth context.
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -23,21 +24,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [isLoading, setIsLoading] = useState(true);
   const [authError, setAuthError] = useState<Error | null>(null);
 
+  // Cache de promessa em andamento para deduplicar chamadas concorrentes para o mesmo userId
+  const inFlightProfileRef = useRef<{ userId: string; promise: Promise<AuthUser> } | null>(null);
+
   const resolveUserProfile = useCallback(async (userId: string, email?: string): Promise<AuthUser> => {
-    try {
-      const fullProfile = await getUserFullProfile(userId);
-      setAuthError(null);
-      return fullProfile;
-    } catch (err: unknown) {
-      console.error('Error fetching full profile, falling back to basic session:', err);
-      setAuthError(asError(err));
-      // Não desloga o usuário caso a busca do perfil RPC falhe por instabilidade de rede/timeout
-      return {
-        id: userId,
-        email: email ?? '',
-        role: 'member',
-      };
+    // Se já houver uma busca em andamento para este mesmo usuário, reutiliza a Promise
+    if (inFlightProfileRef.current && inFlightProfileRef.current.userId === userId) {
+      return inFlightProfileRef.current.promise;
     }
+
+    const promise = (async () => {
+      try {
+        const fullProfile = await getUserFullProfile(userId);
+        setAuthError(null);
+        return fullProfile;
+      } catch (err: unknown) {
+        console.error('Error fetching full profile, falling back to basic session:', err);
+        setAuthError(asError(err));
+        // Não desloga o usuário caso a busca do perfil RPC falhe por instabilidade de rede/timeout
+        return {
+          id: userId,
+          email: email ?? '',
+          role: 'member',
+        };
+      } finally {
+        if (inFlightProfileRef.current?.userId === userId) {
+          inFlightProfileRef.current = null;
+        }
+      }
+    })();
+
+    inFlightProfileRef.current = { userId, promise };
+    return promise;
   }, []);
 
   const refreshSession = useCallback(async () => {
@@ -59,42 +77,64 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let mounted = true;
+    let initialHandled = false;
 
-    async function loadSession() {
-      try {
-        const { data: { session }, error } = await supabaseClient.auth.getSession();
-        if (error) throw error;
-        if (session?.user) {
-          const profile = await resolveUserProfile(session.user.id, session.user.email);
-          if (mounted) setUser(profile);
-        } else if (mounted) {
+    // Trata eventos de autenticação de forma deduplicada
+    const handleSessionChange = async (event: string, sessionUser: { id: string; email?: string } | null) => {
+      if (!sessionUser) {
+        if (mounted) {
           setUser(null);
+          setAuthError(null);
         }
+        return;
+      }
+
+      // Evita refetch redundante em TOKEN_REFRESHED se o usuário já estiver resolvido com o mesmo id
+      if (event === 'TOKEN_REFRESHED' && user?.id === sessionUser.id) {
+        return;
+      }
+
+      try {
+        const profile = await resolveUserProfile(sessionUser.id, sessionUser.email);
+        if (mounted) setUser(profile);
       } catch (error: unknown) {
-        console.error('Error loading session:', error);
         if (mounted) setAuthError(asError(error));
+      }
+    };
+
+    // Subscrição única de auth do Supabase (onAuthStateChange emite INITIAL_SESSION logo ao registrar)
+    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(async (event, session) => {
+      initialHandled = true;
+      try {
+        await handleSessionChange(event, session?.user ?? null);
       } finally {
         if (mounted) setIsLoading(false);
       }
-    }
-
-    void loadSession();
-
-    const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(async (_event, session) => {
-      if (session?.user) {
-        const profile = await resolveUserProfile(session.user.id, session.user.email);
-        if (mounted) setUser(profile);
-      } else if (mounted) {
-        setUser(null);
-        setAuthError(null);
-      }
     });
+
+    // Fallback de segurança: caso o evento INITIAL_SESSION não seja emitido prontamente
+    const fallbackTimer = setTimeout(() => {
+      if (!initialHandled && mounted) {
+        void supabaseClient.auth.getSession().then(async ({ data: { session }, error }) => {
+          if (!mounted) return;
+          try {
+            if (error) throw error;
+            await handleSessionChange('FALLBACK_LOAD', session?.user ?? null);
+          } catch (err: unknown) {
+            setAuthError(asError(err));
+          } finally {
+            if (mounted) setIsLoading(false);
+          }
+        });
+      }
+    }, 150);
 
     return () => {
       mounted = false;
+      clearTimeout(fallbackTimer);
       subscription.unsubscribe();
     };
-  }, [resolveUserProfile]);
+  }, [resolveUserProfile, user?.id]);
 
   const retryAuth = useCallback(async () => {
     setIsLoading(true);
@@ -171,7 +211,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
-  const value: AuthContextType = {
+  const value = useMemo<AuthContextType>(() => ({
     user,
     isLoading,
     isAuthenticated: user !== null,
@@ -182,7 +222,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     resetPassword,
     updateUser,
-  };
+  }), [user, isLoading, authError, retryAuth, signIn, signUp, signOut, resetPassword, updateUser]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

@@ -66,6 +66,16 @@ export class WorkspaceController extends TypertRemoteService {
    * @param request - Workspace identity and proposed title.
    * @returns the updated Workspace projection.
    */
+
+  /**
+   * Ensure or auto-provision the initial default workspace for the authenticated user.
+   * @returns the Workspace and whether this call created it.
+   */
+  @RemoteScope('auth', 'ensureInitial')
+  ensureInitial(): Promise<WorkspaceCreateValue> {
+    return this.commands.ensureInitialWorkspace(this.ctx.authIdentity)
+  }
+
   @RemoteScope('auth', 'rename')
   rename(request: WorkspaceRenameRequest): Promise<WorkspaceValue> {
     return this.commands.rename(request, this.ctx.authIdentity)

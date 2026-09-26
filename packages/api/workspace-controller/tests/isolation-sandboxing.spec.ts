@@ -159,4 +159,31 @@ describe('DirectoryPicker and Workspace Tenant Isolation', () => {
       /Access denied: cannot delete workspace outside authorized sandbox/,
     )
   })
+
+  it('auto-provisions initial workspace inside tenant sandbox', async () => {
+    const ctx = new Context()
+    roots.push(ctx)
+
+    const tenantId = 'tenant-auto'
+    const userId = 'user-auto'
+    const userSandbox = resolveUserSandboxRoot(tenantId, userId)
+
+    ctx.provide('workspaceRegistry', {
+      resolveByPath: async (_p: string) => undefined,
+      create: async (p: string) => ({ id: 'ws-init', title: 'Default', path: p, sessionIds: [] }),
+    })
+
+    ctx.provide('authIdentity', {
+      userId,
+      tenantId,
+      role: 'member',
+      email: 'auto@example.com',
+    })
+
+    const commands = new WorkspaceCommands(ctx)
+    const result = await commands.ensureInitialWorkspace()
+    expect(result.created).toBe(true)
+    expect(result.workspace.path).toContain(userSandbox)
+    expect(result.workspace.path).toContain('default')
+  })
 })

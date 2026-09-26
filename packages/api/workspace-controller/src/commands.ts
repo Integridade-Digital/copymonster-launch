@@ -1,6 +1,7 @@
 import { isAbsolute, resolve } from 'node:path'
 import {
   assertPathInSandbox,
+  ensureInitialUserWorkspace,
   ensureUserSandboxDirectory,
   resolveUserSandboxRoot,
 } from '@deepseek-ai/dsh-workspace'
@@ -218,6 +219,23 @@ export class WorkspaceCommands {
   async unarchiveSession(request: WorkspaceUnarchiveSessionRequest): Promise<WorkspaceArchiveValue> {
     await this.ctx.workspaceRegistry.unarchiveSession(request.sessionId)
     return { archivedSessionIds: [...this.ctx.workspaceRegistry.archivedSessionIds] }
+  }
+
+
+  /**
+   * Auto-provisions or retrieves the initial workspace for the authenticated user.
+   */
+  async ensureInitialWorkspace(identity?: UserIdentity): Promise<WorkspaceCreateValue> {
+    const resolvedIdentity = identity ?? this.ctx.authIdentity
+    if (!resolvedIdentity?.tenantId || !resolvedIdentity.userId) {
+      throw new RemoteError(
+        'workspace/unauthorized',
+        'Authentication required to ensure initial workspace',
+        {},
+      )
+    }
+    await ensureInitialUserWorkspace(resolvedIdentity.tenantId, resolvedIdentity.userId)
+    return this.create({ path: 'default' }, resolvedIdentity)
   }
 
   private requireWorkspace(workspaceId: WorkspaceId): Workspace {

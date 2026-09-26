@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   assertPathInSandbox,
+  ensureInitialUserWorkspace,
   resolveUserSandboxRoot,
 } from '../src/sandbox.ts'
 
@@ -32,5 +33,10 @@ describe('Tenant & User Filesystem Sandbox', () => {
     expect(() => {
       assertPathInSandbox('/root', root)
     }).toThrow(/Security Violation/)
+  })
+
+  it('creates and resolves initial user workspace directory', async () => {
+    const initialPath = await ensureInitialUserWorkspace('tenant-init', 'user-init')
+    expect(initialPath).toContain('tenant-init/user-init/workspaces/default')
   })
 })

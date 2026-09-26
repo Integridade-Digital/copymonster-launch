@@ -34,6 +34,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'workspace/name-conflict': { readonly name: string }
     /** The Workspace resolves outside the sandbox the caller's identity authorizes. */
     'workspace/forbidden': { readonly workspaceId: WorkspaceId }
+    /** Authentication required to perform operation. */
+    'workspace/unauthorized': Record<string, never>
     /** The Session or its anchor is not in the Workspace's manual order. */
     'workspace/move-invalid': {
       readonly workspaceId: WorkspaceId

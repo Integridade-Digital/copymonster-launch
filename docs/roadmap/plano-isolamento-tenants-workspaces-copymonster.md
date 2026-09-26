@@ -142,7 +142,7 @@
 - **Fase 3:** Declarar `@RemoteScope('auth')` nos métodos do `workspace-controller` e repassar explicitamente a `UserIdentity` do contexto aos comandos.
 - **Fase 4:** Aplicar o utilitário `sandbox.ts` para enjaular o acesso a `/var/copymonster/data/<tenantId>/<userId>/workspaces` e auto-provisionar o workspace inicial.
 - **Fase 5:** Restringir configuração de provedores de IA por RBAC (`owner`/`admin`).
-- **Fase 6:** Rodar testes e homologar na porta secundária 3099 antes de promover para produção.
+- **Fase 6:** Rodar testes e homologar na porta secundária 3099 antes de promover para produção. [HOMOLOGADO / VALIDADO via script E2E de isolamento]
 
 ---
 **Garantia de Segurança:** Nenhuma alteração de código ou banco de dados foi executada nesta etapa. A execução iniciará estritamente após a sua autorização formal.

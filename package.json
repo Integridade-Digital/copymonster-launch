@@ -193,7 +193,8 @@
     "dev:web": "tsx scripts/dev-web.ts --poll",
     "postinstall": "node scripts/install-lefthook.mjs",
     "start:copymonster": "node apps/cli/lib/bin.js web --patch packages/bundle/copymonster/cordis.patch.yml",
-    "dev:copymonster": "node --import tsx/esm apps/cli/src/bin.ts web --patch packages/bundle/copymonster/cordis.patch.yml"
+    "dev:copymonster": "node --import tsx/esm apps/cli/src/bin.ts web --patch packages/bundle/copymonster/cordis.patch.yml",
+    "test:isolation": "node scripts/validate-tenant-isolation-e2e.mjs"
   },
   "devDependencies": {
     "@deepseek-ai/dsh-agent": "workspace:^",

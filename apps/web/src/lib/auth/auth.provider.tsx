@@ -25,15 +25,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authError, setAuthError] = useState<Error | null>(null);
 
   // Cache de promessa em andamento para deduplicar chamadas concorrentes para o mesmo userId
-  const inFlightProfileRef = useRef<{ userId: string; promise: Promise<AuthUser> } | null>(null);
+  const inFlightProfileRef = useRef<{ userId: string; promise: Promise<AuthUser | null> } | null>(null);
 
-  const resolveUserProfile = useCallback(async (userId: string, email?: string): Promise<AuthUser> => {
+  const resolveUserProfile = useCallback(async (userId: string, email?: string): Promise<AuthUser | null> => {
     // Se já houver uma busca em andamento para este mesmo usuário, reutiliza a Promise
     if (inFlightProfileRef.current && inFlightProfileRef.current.userId === userId) {
       return inFlightProfileRef.current.promise;
     }
 
-    const promise = (async () => {
+    const promise = (async (): Promise<AuthUser | null> => {
       try {
         const fullProfile = await getUserFullProfile(userId);
         setAuthError(null);

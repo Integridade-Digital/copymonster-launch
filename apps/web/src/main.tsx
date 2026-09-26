@@ -52,6 +52,61 @@ const reportFailure = (reason: unknown): void => {
   void desktop.failed(reason instanceof Error ? reason.message : String(reason)).catch(console.error)
 }
 
+/** Captura erros não tratados no shell DSH e exibe tela amigável de recuperação em vez de tela preta. */
+interface ErrorBoundaryProps {
+  children: React.ReactNode
+}
+
+interface ErrorBoundaryState {
+  hasError: boolean
+  error: Error | null
+}
+
+class WebAppErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  constructor(props: ErrorBoundaryProps) {
+    super(props)
+    this.state = { hasError: false, error: null }
+  }
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+    return { hasError: true, error }
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo): void {
+    console.error('WebApp failure intercepted by ErrorBoundary:', error, errorInfo)
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="cm-auth-page">
+          <div className="cm-auth-card" style={{ maxWidth: '480px', textAlign: 'center' }}>
+            <h2 className="cm-auth-title" style={{ color: 'var(--cm-auth-error-text)' }}>
+              Erro ao inicializar o CopyMonster
+            </h2>
+            <p className="cm-auth-subtitle" style={{ marginTop: '0.75rem' }}>
+              Ocorreu uma falha inesperada durante a inicialização do ambiente de trabalho:
+            </p>
+            <div className="cm-auth-alert cm-auth-alert--error" style={{ marginTop: '1rem', textAlign: 'left', wordBreak: 'break-word' }}>
+              {this.state.error?.message ?? 'Erro desconhecido'}
+            </div>
+            <button
+              type="button"
+              onClick={() => { window.location.reload() }}
+              className="cm-auth-button"
+              style={{ marginTop: '1.25rem' }}
+            >
+              Recarregar aplicação
+            </button>
+          </div>
+        </div>
+      )
+    }
+
+    return this.props.children
+  }
+}
+
 /** Mounts the Harness web shell; rendered only for an authenticated session. */
 function WebApp() {
   const containerRef = React.useRef<HTMLDivElement>(null)
@@ -89,13 +144,42 @@ function WebApp() {
  * Handles public auth flows, protected workspace shell, and SaaS management views.
  */
 function AppRoutes() {
-  const { isLoading } = useAuth()
+  const { isLoading, authError, retryAuth, user } = useAuth()
 
   if (isLoading) {
     return (
       <div className="cm-auth-boot" role="status" aria-live="polite">
         <span className="cm-auth-spinner" aria-hidden="true" />
         <span>Verificando sessão…</span>
+      </div>
+    )
+  }
+
+  // Se houver erro de rede/conexão com Supabase e o usuário não foi autenticado, exibe tela de contingência
+  if (authError && user === null) {
+    return (
+      <div className="cm-auth-page">
+        <div className="cm-auth-card" style={{ maxWidth: '440px', textAlign: 'center' }}>
+          <h2 className="cm-auth-title" style={{ color: 'var(--cm-auth-error-text)' }}>
+            Erro de conexão
+          </h2>
+          <p className="cm-auth-subtitle" style={{ marginTop: '0.5rem' }}>
+            Não foi possível comunicar com o servidor de autenticação.
+          </p>
+          <div className="cm-auth-alert cm-auth-alert--error" style={{ marginTop: '1rem', wordBreak: 'break-word' }}>
+            {authError.message}
+          </div>
+          {retryAuth && (
+            <button
+              type="button"
+              onClick={() => { void retryAuth() }}
+              className="cm-auth-button"
+              style={{ marginTop: '1.25rem' }}
+            >
+              Tentar novamente
+            </button>
+          )}
+        </div>
       </div>
     )
   }
@@ -166,12 +250,14 @@ function AppRoutes() {
         }
       />
 
-      {/* Rota Principal - DSH Web Workspace Shell */}
+      {/* Rota Principal - DSH Web Workspace Shell cercada por ErrorBoundary */}
       <Route
         path="/"
         element={
           <ProtectedRoute>
-            <WebApp />
+            <WebAppErrorBoundary>
+              <WebApp />
+            </WebAppErrorBoundary>
           </ProtectedRoute>
         }
       />

@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../lib/auth'
+import { useAuth, formatAuthError } from '../lib/auth'
 
 /** Login de usuário existente. */
 export function LoginPage() {
@@ -26,7 +26,7 @@ export function LoginPage() {
       if (signInError) throw signInError
       navigate('/')
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'E-mail ou senha inválidos')
+      setError(formatAuthError(err, 'E-mail ou senha inválidos. Tente novamente.'))
     } finally {
       setIsLoading(false)
     }

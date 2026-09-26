@@ -15,24 +15,64 @@ function asError(error: unknown): Error {
 
 /**
  * Installs the Supabase session listener and exposes the auth context.
+ * Includes resilience against transient profile lookup timeouts and exposes authError/retryAuth.
  * @param props - the subtree that consumes the auth context.
  */
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [authError, setAuthError] = useState<Error | null>(null);
+
+  const resolveUserProfile = useCallback(async (userId: string, email?: string): Promise<AuthUser> => {
+    try {
+      const fullProfile = await getUserFullProfile(userId);
+      setAuthError(null);
+      return fullProfile;
+    } catch (err: unknown) {
+      console.error('Error fetching full profile, falling back to basic session:', err);
+      setAuthError(asError(err));
+      // Não desloga o usuário caso a busca do perfil RPC falhe por instabilidade de rede/timeout
+      return {
+        id: userId,
+        email: email ?? '',
+        role: 'member',
+      };
+    }
+  }, []);
+
+  const refreshSession = useCallback(async () => {
+    try {
+      const { data: { session }, error } = await supabaseClient.auth.getSession();
+      if (error) throw error;
+      if (session?.user) {
+        const profile = await resolveUserProfile(session.user.id, session.user.email);
+        setUser(profile);
+      } else {
+        setUser(null);
+        setAuthError(null);
+      }
+    } catch (err: unknown) {
+      console.error('Error refreshing session:', err);
+      setAuthError(asError(err));
+    }
+  }, [resolveUserProfile]);
 
   useEffect(() => {
     let mounted = true;
 
     async function loadSession() {
       try {
-        const { data: { session } } = await supabaseClient.auth.getSession();
+        const { data: { session }, error } = await supabaseClient.auth.getSession();
+        if (error) throw error;
         if (session?.user) {
-          const fullProfile = await getUserFullProfile(session.user.id);
-          if (mounted) setUser(fullProfile);
+          const profile = await resolveUserProfile(session.user.id, session.user.email);
+          if (mounted) setUser(profile);
+        } else if (mounted) {
+          setUser(null);
         }
       } catch (error: unknown) {
         console.error('Error loading session:', error);
+        if (mounted) setAuthError(asError(error));
       } finally {
         if (mounted) setIsLoading(false);
       }
@@ -42,10 +82,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const { data: { subscription } } = supabaseClient.auth.onAuthStateChange(async (_event, session) => {
       if (session?.user) {
-        const fullProfile = await getUserFullProfile(session.user.id);
-        if (mounted) setUser(fullProfile);
+        const profile = await resolveUserProfile(session.user.id, session.user.email);
+        if (mounted) setUser(profile);
       } else if (mounted) {
         setUser(null);
+        setAuthError(null);
       }
     });
 
@@ -53,7 +94,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       mounted = false;
       subscription.unsubscribe();
     };
-  }, []);
+  }, [resolveUserProfile]);
+
+  const retryAuth = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      await refreshSession();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [refreshSession]);
 
   const signIn = useCallback(async (email: string, password: string): Promise<{ error: Error | null }> => {
     try {
@@ -87,6 +137,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signOut = useCallback(async () => {
     await supabaseClient.auth.signOut();
     setUser(null);
+    setAuthError(null);
   }, []);
 
   const resetPassword = useCallback(async (email: string): Promise<{ error: Error | null }> => {
@@ -124,6 +175,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     isLoading,
     isAuthenticated: user !== null,
+    authError,
+    retryAuth,
     signIn,
     signUp,
     signOut,

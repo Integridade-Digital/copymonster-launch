@@ -126,6 +126,8 @@ export interface AuthContextType {
   user: AuthUser | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  authError?: Error | null;
+  retryAuth?: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string, fullName: string, whatsapp: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;

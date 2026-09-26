@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth } from '../lib/auth'
+import { useAuth, formatAuthError } from '../lib/auth'
 
 /**
  * Registro de novo usuário.
@@ -68,7 +68,7 @@ export function RegisterPage() {
       setSuccessMessage('Conta criada! Verifique seu e-mail para confirmar o registro.')
       setTimeout(() => { navigate('/login') }, 3000)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erro ao criar conta. Tente novamente.')
+      setError(formatAuthError(err, 'Erro ao criar conta. Tente novamente.'))
     } finally {
       setIsLoading(false)
     }

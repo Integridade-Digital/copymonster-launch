@@ -1279,6 +1279,9 @@ importers:
       '@deepseek-ai/dsh-agent-presets':
         specifier: workspace:^
         version: link:../../preset/agent-presets
+      '@deepseek-ai/dsh-api-auth-context':
+        specifier: workspace:^
+        version: link:../auth-context
       '@deepseek-ai/dsh-credentials':
         specifier: workspace:^
         version: link:../../credentials/credentials
@@ -1371,6 +1374,9 @@ importers:
       '@deepseek-ai/cordis':
         specifier: workspace:^
         version: link:../../../vendor/cordis
+      '@deepseek-ai/dsh-api-auth-context':
+        specifier: workspace:^
+        version: link:../auth-context
       '@deepseek-ai/dsh-api-gateway':
         specifier: workspace:^
         version: link:../gateway

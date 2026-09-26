@@ -65,7 +65,7 @@ describe('Settings & Credentials RBAC isolation', () => {
 
     // Tentativa de update de LLM deve ser rejeitada com settings/forbidden
     await expect(ctx.settingsController.update('llm-deepseek', { apiKey: 'hacked' }, undefined))
-      .rejects.toThrowError(RemoteError)
+      .rejects.toThrow(RemoteError)
     await expect(ctx.settingsController.update('llm-deepseek', { apiKey: 'hacked' }, undefined))
       .rejects.toMatchObject({ code: 'settings/forbidden' })
 
@@ -85,7 +85,7 @@ describe('Settings & Credentials RBAC isolation', () => {
 
     // Describe credentials deve marcar writable: false
     const credInfo = await ctx.credentialsController.describe(['OPENAI_API_KEY'])
-    expect(credInfo.OPENAI_API_KEY.writable).toBe(false)
+    expect(credInfo.OPENAI_API_KEY?.writable).toBe(false)
   })
 
   it('permite acesso pleno quando não há autenticação (modo desktop local padrão)', async () => {

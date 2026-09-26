@@ -1,6 +1,8 @@
 /** Host Workspace Remote owner: explicit commands and reconnect-safe state. */
 
 import { Context } from '@deepseek-ai/cordis'
+// Type-only: resolves the `authIdentity` Context augmentation this controller reads.
+import type {} from '@deepseek-ai/dsh-api-auth-context'
 import { Remote, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { WorkspaceCommands } from './commands.ts'
 import { DirectoryPickerController } from './directory-picker.ts'

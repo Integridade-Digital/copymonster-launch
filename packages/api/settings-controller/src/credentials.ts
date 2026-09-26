@@ -113,7 +113,7 @@ export class CredentialsController extends TypertRemoteService {
   async set(ref: string, value: string): Promise<void> {
     const identity = this.ctx.authIdentity
     if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin') {
-      throw new RemoteError('credential/forbidden', 'Apenas administradores podem configurar credenciais e chaves de API.')
+      throw new RemoteError('credential/forbidden', 'Apenas administradores podem configurar credenciais e chaves de API.', { ref })
     }
     const request = parseRequest('credentials.set', setRequestSchema, { ref, value })
     const branded = credentialRef(request.ref)
@@ -130,7 +130,7 @@ export class CredentialsController extends TypertRemoteService {
   async unset(ref: string): Promise<void> {
     const identity = this.ctx.authIdentity
     if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin') {
-      throw new RemoteError('credential/forbidden', 'Apenas administradores podem remover credenciais e chaves de API.')
+      throw new RemoteError('credential/forbidden', 'Apenas administradores podem remover credenciais e chaves de API.', { ref })
     }
     const request = parseRequest('credentials.unset', unsetRequestSchema, { ref })
     const branded = credentialRef(request.ref)

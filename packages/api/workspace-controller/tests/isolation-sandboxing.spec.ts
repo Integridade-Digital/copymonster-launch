@@ -7,6 +7,7 @@ import { WorkspaceCommands } from '../src/commands.ts'
 import {
   ensureUserSandboxDirectory,
   resolveUserSandboxRoot,
+  WorkspaceId,
 } from '@deepseek-ai/dsh-workspace'
 
 const roots: Context[] = []
@@ -125,13 +126,9 @@ describe('DirectoryPicker and Workspace Tenant Isolation', () => {
     const userId = 'user-789'
     const userSandbox = resolveUserSandboxRoot(tenantId, userId)
 
-    let _createdPath = ''
     ctx.provide('workspaceRegistry', {
       resolveByPath: async (_p: string) => undefined,
-      create: async (p: string) => {
-        _createdPath = p
-        return { id: 'ws-new', title: 'New', path: p, sessionIds: [] }
-      },
+      create: async (p: string) => ({ id: 'ws-new', title: 'New', path: p, sessionIds: [] }),
       get: (id: string) => {
         if (id === 'ws-mine') {
           return { id: 'ws-mine', title: 'Mine', path: `${userSandbox}/mine`, sessionIds: [] }
@@ -158,7 +155,7 @@ describe('DirectoryPicker and Workspace Tenant Isolation', () => {
     expect(created.workspace.path).toContain(userSandbox)
 
     // Attempt to delete foreign workspace throws forbidden
-    await expect(commands.delete({ workspaceId: 'ws-foreign' })).rejects.toThrow(
+    await expect(commands.delete({ workspaceId: WorkspaceId('ws-foreign') })).rejects.toThrow(
       /Access denied: cannot delete workspace outside authorized sandbox/,
     )
   })

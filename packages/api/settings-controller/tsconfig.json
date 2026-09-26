@@ -15,6 +15,9 @@
       "path": "../../../vendor/schemastery"
     },
     {
+      "path": "../auth-context/tsconfig.host.json"
+    },
+    {
       "path": "../../preset/agent-presets"
     },
     {

@@ -37,7 +37,7 @@ export function resolveUserSandboxRoot(tenantId: string, userId: string): string
 /**
  * Validates that a requested path strictly resides within the user sandbox root.
  * Throws an error if path traversal or access outside the sandbox is attempted.
- * 
+ *
  * @param requestedPath Absolute or relative path requested
  * @param sandboxRoot Confined directory root for the user
  * @returns Confined absolute path guaranteed to be inside sandboxRoot

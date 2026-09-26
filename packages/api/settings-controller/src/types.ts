@@ -15,6 +15,11 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
      */
     'settings/rejected': { readonly ns: string }
     /**
+     * The caller lacks administrative privileges for the refused operation. The
+     * details name only the namespace, never a stored value.
+     */
+    'settings/forbidden': { readonly ns: string }
+    /**
      * The stored revision moved after the caller read it. Its own outcome rather
      * than an invalid request: the caller must re-read and re-apply.
      */
@@ -25,6 +30,11 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
      * reference, never the value.
      */
     'credential/rejected': { readonly ref: string }
+    /**
+     * The caller lacks administrative privileges for the refused credential
+     * write. The details name only the reference, never the value.
+     */
+    'credential/forbidden': { readonly ref: string }
   }
 }
 

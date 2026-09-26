@@ -60,7 +60,7 @@ function isClientAdminOrOwner(): boolean {
   try {
     const parts = session.accessToken.split('.')
     if (parts[1]) {
-      const payload = JSON.parse(atob(parts[1]))
+      const payload = JSON.parse(atob(parts[1])) as { user_role?: string; role?: string }
       const role = payload.user_role || payload.role
       if (role) return role === 'owner' || role === 'admin'
     }
@@ -70,9 +70,8 @@ function isClientAdminOrOwner(): boolean {
 
 function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelProps) {
   const isPrivileged = isClientAdminOrOwner()
-  const visibleRows = isPrivileged ? rows : rows.filter(r => r.id !== "models")
+  const visibleRows = isPrivileged ? rows : rows.filter(r => r.id !== 'models')
   const active = visibleRows.find(r => r.id === activeId)?.id ?? visibleRows[0]?.id
-  const activeRow = visibleRows.find(r => r.id === active)
   // Entries can unmount underneath the requested id, so the render-time
   // projection falls back to the first row when the id is gone.
   const titleId = useId()

@@ -32,6 +32,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'workspace/invalid-path': { readonly path: string }
     /** Another Workspace already uses the requested name. */
     'workspace/name-conflict': { readonly name: string }
+    /** The Workspace resolves outside the sandbox the caller's identity authorizes. */
+    'workspace/forbidden': { readonly workspaceId: WorkspaceId }
     /** The Session or its anchor is not in the Workspace's manual order. */
     'workspace/move-invalid': {
       readonly workspaceId: WorkspaceId

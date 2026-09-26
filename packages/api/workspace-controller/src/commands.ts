@@ -48,7 +48,7 @@ export class WorkspaceCommands {
       try {
         let targetPath = request.path
         const identity = this.ctx.authIdentity
-        if (identity?.tenantId && identity?.userId) {
+        if (identity?.tenantId && identity.userId) {
           const sandboxRoot = await ensureUserSandboxDirectory(identity.tenantId, identity.userId)
           if (!isAbsolute(targetPath)) {
             targetPath = resolve(sandboxRoot, targetPath)
@@ -87,7 +87,7 @@ export class WorkspaceCommands {
     return this.enqueue(async () => {
       const workspace = this.requireWorkspace(request.workspaceId)
       const identity = this.ctx.authIdentity
-      if (identity?.tenantId && identity?.userId) {
+      if (identity?.tenantId && identity.userId) {
         const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
         try {
           assertPathInSandbox(workspace.path, sandboxRoot)
@@ -126,7 +126,7 @@ export class WorkspaceCommands {
         throw workspaceNotFound(request.workspaceId)
       }
       const identity = this.ctx.authIdentity
-      if (identity?.tenantId && identity?.userId) {
+      if (identity?.tenantId && identity.userId) {
         const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
         try {
           assertPathInSandbox(workspace.path, sandboxRoot)

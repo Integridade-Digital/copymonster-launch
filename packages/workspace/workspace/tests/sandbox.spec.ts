@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
   assertPathInSandbox,
-  getCopyMonsterDataDir,
   resolveUserSandboxRoot,
 } from '../src/sandbox.ts'
 

@@ -74,7 +74,7 @@ export class WorkspaceFeed {
   baseline(): WorkspaceBaseline {
     const all = this.ctx.workspaceRegistry.list()
     const identity = this.ctx.authIdentity
-    if (!identity?.tenantId || !identity?.userId) {
+    if (!identity?.tenantId || !identity.userId) {
       return {
         items: all.map(workspaceView),
         archivedSessionIds: [...this.ctx.workspaceRegistry.archivedSessionIds],
@@ -155,7 +155,7 @@ export class WorkspaceFeed {
 
   private publish(frame: Exclude<WorkspaceFollowFrame, { readonly type: 'baseline' }>): void {
     const identity = this.ctx.authIdentity
-    if (identity?.tenantId && identity?.userId && frame.type === 'upsert') {
+    if (identity?.tenantId && identity.userId && frame.type === 'upsert') {
       const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
       try {
         assertPathInSandbox(frame.workspace.path, sandboxRoot)

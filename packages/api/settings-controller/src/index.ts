@@ -12,6 +12,8 @@ import { Context } from '@deepseek-ai/cordis'
 import Schema from '@deepseek-ai/schemastery'
 // Type-only: resolves the `agentPresets` Context augmentation this controller reads.
 import type {} from '@deepseek-ai/dsh-agent-presets'
+// Type-only: resolves the `authIdentity` Context augmentation this controller reads.
+import type {} from '@deepseek-ai/dsh-api-auth-context'
 import {
   canOpenNativePath,
   openNativePath,
@@ -91,11 +93,17 @@ function isProtectedNamespace(ns: string): boolean {
   return ns.startsWith('llm-') || ns === 'llm' || ns.includes('model')
 }
 
-/** Asserts that the authenticated caller has administrative privileges. */
-function assertAdminRole(ctx: Context, action: string): void {
+/**
+ * Asserts that the authenticated caller has administrative privileges.
+ * @param ctx - Host context carrying the caller's identity.
+ * @param action - Portuguese clause completing the refusal message.
+ * @param ns - namespace the caller may not configure.
+ * @throws RemoteError `settings/forbidden` for a non-administrative caller.
+ */
+function assertAdminRole(ctx: Context, action: string, ns: string): void {
   const identity = ctx.authIdentity
   if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin') {
-    throw new RemoteError('settings/forbidden', `Apenas administradores podem ${action}.`)
+    throw new RemoteError('settings/forbidden', `Apenas administradores podem ${action}.`, { ns })
   }
 }
 
@@ -167,7 +175,7 @@ export class SettingsController extends TypertRemoteService {
     expectedRevision: number | undefined,
   ): Promise<SettingsNamespaceView> {
     if (isProtectedNamespace(ns)) {
-      assertAdminRole(this.ctx, 'configurar provedores de IA')
+      assertAdminRole(this.ctx, 'configurar provedores de IA', ns)
     }
     return this.write(ns, 'update', patch, expectedRevision)
   }
@@ -187,7 +195,7 @@ export class SettingsController extends TypertRemoteService {
     expectedRevision: number | undefined,
   ): Promise<SettingsNamespaceView> {
     if (isProtectedNamespace(ns)) {
-      assertAdminRole(this.ctx, 'configurar provedores de IA')
+      assertAdminRole(this.ctx, 'configurar provedores de IA', ns)
     }
     return this.write(ns, 'replace', section, expectedRevision)
   }
@@ -209,7 +217,7 @@ export class SettingsController extends TypertRemoteService {
     expectedRevision: number | undefined,
   ): Promise<SettingsNamespaceView> {
     if (isProtectedNamespace(ns)) {
-      assertAdminRole(this.ctx, 'configurar provedores de IA')
+      assertAdminRole(this.ctx, 'configurar provedores de IA', ns)
     }
     return this.write(ns, 'mutate', ops, expectedRevision)
   }
@@ -222,7 +230,7 @@ export class SettingsController extends TypertRemoteService {
    */
   @Remote
   async openSettingsDocument(signal: AbortSignal): Promise<SettingsDocumentOpenValue> {
-    assertAdminRole(this.ctx, 'abrir o documento de configurações do servidor')
+    assertAdminRole(this.ctx, 'abrir o documento de configurações do servidor', 'document')
     const settings = this.provider()
     if (isAborted(signal)) throw new RemoteError('gateway/cancelled', 'settings document open was aborted', {})
     let path: string | undefined

@@ -81,7 +81,7 @@ export class DirectoryPickerController extends TypertRemoteService {
       let targetPath = path
       let sandboxRoot: string | undefined
       const identity = this.ctx.authIdentity
-      if (identity?.tenantId && identity?.userId) {
+      if (identity?.tenantId && identity.userId) {
         sandboxRoot = await ensureUserSandboxDirectory(identity.tenantId, identity.userId)
         if (targetPath === undefined || targetPath === '') {
           targetPath = sandboxRoot
@@ -91,8 +91,8 @@ export class DirectoryPickerController extends TypertRemoteService {
           } catch (error: unknown) {
             throw new RemoteError(
               'directory-picker/unreadable',
-              `Access denied: "${path}" is outside the authorized sandbox.`,
-              { path },
+              `Access denied: "${targetPath}" is outside the authorized sandbox.`,
+              { path: targetPath },
               { cause: error },
             )
           }
@@ -155,7 +155,7 @@ export class DirectoryPickerController extends TypertRemoteService {
 
     let parentPath = request.data.path
     const identity = this.ctx.authIdentity
-    if (identity?.tenantId && identity?.userId) {
+    if (identity?.tenantId && identity.userId) {
       const sandboxRoot = await ensureUserSandboxDirectory(identity.tenantId, identity.userId)
       try {
         parentPath = assertPathInSandbox(parentPath, sandboxRoot)

@@ -1,57 +1,121 @@
 /*
- * CopyMonster auth screens.
+ * CopyMonster auth screens & application viewport constraints.
  *
- * These render before the Harness client plugins (and therefore before the
- * `--dsw-*` theme tokens) exist, so every value here is self-contained with a
- * token fallback. Scoped to `.cm-auth-*` and `#dsh-web-root` so nothing leaks
- * into the Harness shell.
+ * Scoped styling with tokens aligned to DeepSuite / CopyMonster official theme
+ * (--dsw-static-deepseek-* and --dsw-static-neutral-bluish-* tokens).
  */
 
 :root {
-  --cm-auth-primary: var(--dsw-color-primary, #2563eb);
-  --cm-auth-primary-hover: #1d4ed8;
-  --cm-auth-bg: #f8fafc;
-  --cm-auth-text: #0f172a;
-  --cm-auth-muted: #64748b;
-  --cm-auth-border: #e2e8f0;
-  --cm-auth-error-bg: #fef2f2;
-  --cm-auth-error-text: #b91c1c;
-  --cm-auth-error-border: #fecaca;
-  --cm-auth-success-bg: #f0fdf4;
-  --cm-auth-success-text: #15803d;
+  /* Brand colors (DeepSeek / CopyMonster official blue) */
+  --cm-auth-primary: var(--dsw-static-deepseek-500, #4176e6);
+  --cm-auth-primary-hover: var(--dsw-static-deepseek-400, #5686fe);
+  --cm-auth-primary-active: var(--dsw-static-deepseek-600, #345ebd);
+  --cm-auth-primary-focus-ring: rgba(65, 118, 230, 0.2);
+
+  /* Backgrounds & surfaces */
+  --cm-auth-bg: var(--dsw-static-neutral-bluish-60, #f5f6f7);
+  --cm-auth-card-bg: var(--dsw-static-neutral-bluish-00, #ffffff);
+  --cm-auth-card-border: var(--dsw-static-neutral-bluish-150, #e2e6eb);
+
+  /* Typography */
+  --cm-auth-text: var(--dsw-static-neutral-bluish-1000, #0f1115);
+  --cm-auth-muted: var(--dsw-static-neutral-bluish-700, #61666b);
+  --cm-auth-caption: var(--dsw-static-neutral-bluish-500, #81858c);
+
+  /* Form inputs */
+  --cm-auth-input-bg: var(--dsw-static-neutral-bluish-00, #ffffff);
+  --cm-auth-input-border: var(--dsw-static-neutral-bluish-300, #cfd3d6);
+  --cm-auth-input-border-hover: var(--dsw-static-neutral-bluish-400, #adb2b8);
+
+  /* Status messages */
+  --cm-auth-error-bg: var(--dsw-static-red-50, #fef2f2);
+  --cm-auth-error-text: var(--dsw-static-red-600, #dc2626);
+  --cm-auth-error-border: var(--dsw-static-red-100, #fee2e2);
+  --cm-auth-success-bg: var(--dsw-static-green-100, #f0fdf4);
+  --cm-auth-success-text: var(--dsw-static-green-500, #15803d);
   --cm-auth-success-border: #bbf7d0;
+
+  /* Card shadow */
+  --cm-auth-card-shadow: 0 4px 20px -2px rgba(15, 17, 21, 0.08), 0 1px 4px rgba(15, 17, 21, 0.04);
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --cm-auth-bg: #0b1220;
-    --cm-auth-text: #e2e8f0;
-    --cm-auth-muted: #94a3b8;
-    --cm-auth-border: #1e293b;
-    --cm-auth-error-bg: #2a1215;
+    --cm-auth-primary: var(--dsw-static-deepseek-400, #679efe);
+    --cm-auth-primary-hover: var(--dsw-static-deepseek-300, #8db5fe);
+    --cm-auth-primary-active: var(--dsw-static-deepseek-500, #4176e6);
+    --cm-auth-primary-focus-ring: rgba(103, 158, 254, 0.25);
+
+    --cm-auth-bg: var(--dsw-static-neutral-bluish-950, #151517);
+    --cm-auth-card-bg: var(--dsw-static-neutral-bluish-875, #232324);
+    --cm-auth-card-border: var(--dsw-static-neutral-bluish-800, #353638);
+
+    --cm-auth-text: var(--dsw-static-neutral-00, #f9fafb);
+    --cm-auth-muted: var(--dsw-static-neutral-bluish-400, #adb2b8);
+    --cm-auth-caption: var(--dsw-static-neutral-bluish-600, #81858c);
+
+    --cm-auth-input-bg: var(--dsw-static-neutral-bluish-900, #1b1b1c);
+    --cm-auth-input-border: var(--dsw-static-neutral-bluish-800, #353638);
+    --cm-auth-input-border-hover: var(--dsw-static-neutral-bluish-700, #494c50);
+
+    --cm-auth-error-bg: rgba(239, 68, 68, 0.12);
     --cm-auth-error-text: #fca5a5;
-    --cm-auth-error-border: #7f1d1d;
-    --cm-auth-success-bg: #0d2818;
+    --cm-auth-error-border: rgba(239, 68, 68, 0.28);
+    --cm-auth-success-bg: rgba(34, 197, 94, 0.12);
     --cm-auth-success-text: #86efac;
-    --cm-auth-success-border: #14532d;
+    --cm-auth-success-border: rgba(34, 197, 94, 0.28);
+
+    --cm-auth-card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.2);
   }
+}
+
+/*
+ * Shell & Viewport constraints:
+ * Ensures the DSH frame (.frame { height: 100% }) resolves against an exact 100% height container.
+ * Without this, #dsh-web-root collapses or stretches to auto-height, causing the entire window to
+ * scroll and the chat composer/transcript to slip downwards.
+ */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+#dsh-web-root {
+  height: 100%;
+  width: 100%;
+  overflow: hidden;
+  position: relative;
 }
 
 .cm-auth-boot {
   display: flex;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 100%;
+  width: 100%;
   align-items: center;
   justify-content: center;
   gap: 0.75rem;
   background: var(--cm-auth-bg);
   color: var(--cm-auth-muted);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 .cm-auth-spinner {
   width: 1.25rem;
   height: 1.25rem;
-  border: 2px solid var(--cm-auth-border);
+  border: 2px solid var(--cm-auth-card-border);
   border-top-color: var(--cm-auth-primary);
   border-radius: 50%;
   animation: cm-auth-spin 0.7s linear infinite;
@@ -63,42 +127,82 @@
 
 .cm-auth-page {
   display: flex;
-  min-height: 100vh;
+  height: 100%;
+  min-height: 100%;
+  width: 100%;
+  box-sizing: border-box;
   align-items: center;
   justify-content: center;
-  padding: 3rem 1rem;
+  padding: 2.5rem 1rem;
   background: var(--cm-auth-bg);
   color: var(--cm-auth-text);
-  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  overflow-y: auto;
 }
 
 .cm-auth-card {
   width: 100%;
-  max-width: 26rem;
+  max-width: 27.5rem;
+  box-sizing: border-box;
+  padding: 2.5rem 2.25rem;
+  background: var(--cm-auth-card-bg);
+  border: 1px solid var(--cm-auth-card-border);
+  border-radius: 16px;
+  box-shadow: var(--cm-auth-card-shadow);
+}
+
+.cm-auth-brand {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  margin-bottom: 1.5rem;
+}
+
+.cm-auth-brand-logo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+}
+
+@media (prefers-color-scheme: dark) {
+  .cm-auth-brand-logo {
+    filter: invert(1) brightness(1.2);
+  }
+}
+
+.cm-auth-brand-title {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--cm-auth-text);
 }
 
 .cm-auth-header {
   text-align: center;
-  margin-bottom: 2rem;
+  margin-bottom: 1.75rem;
 }
 
 .cm-auth-title {
   margin: 0;
-  font-size: 1.75rem;
+  font-size: 1.5rem;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.015em;
+  color: var(--cm-auth-text);
 }
 
 .cm-auth-subtitle {
   margin: 0.5rem 0 0;
   font-size: 0.875rem;
   color: var(--cm-auth-muted);
+  line-height: 1.4;
 }
 
 .cm-auth-link {
   color: var(--cm-auth-primary);
   font-weight: 500;
   text-decoration: none;
+  transition: opacity 0.15s ease;
 }
 
 .cm-auth-link:hover {
@@ -108,7 +212,7 @@
 .cm-auth-form {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 1.125rem;
 }
 
 .cm-auth-field {
@@ -118,37 +222,50 @@
 }
 
 .cm-auth-label {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
+  color: var(--cm-auth-text);
 }
 
 .cm-auth-input {
   width: 100%;
+  height: 40px;
   box-sizing: border-box;
-  padding: 0.6rem 0.75rem;
+  padding: 0 0.875rem;
   font-size: 0.9rem;
   color: var(--cm-auth-text);
-  background: transparent;
-  border: 1px solid var(--cm-auth-border);
-  border-radius: 0.5rem;
+  background: var(--cm-auth-input-bg);
+  border: 1px solid var(--cm-auth-input-border);
+  border-radius: 8px;
   outline: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.cm-auth-input:hover:not(:focus) {
+  border-color: var(--cm-auth-input-border-hover);
 }
 
 .cm-auth-input:focus {
   border-color: var(--cm-auth-primary);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--cm-auth-primary) 25%, transparent);
+  box-shadow: 0 0 0 3px var(--cm-auth-primary-focus-ring);
+}
+
+.cm-auth-input::placeholder {
+  color: var(--cm-auth-caption);
 }
 
 .cm-auth-hint {
   font-size: 0.75rem;
-  color: var(--cm-auth-muted);
+  color: var(--cm-auth-caption);
+  line-height: 1.35;
 }
 
 .cm-auth-alert {
   padding: 0.75rem 1rem;
-  border-radius: 0.5rem;
+  border-radius: 8px;
   font-size: 0.875rem;
   border: 1px solid transparent;
+  line-height: 1.4;
 }
 
 .cm-auth-alert--error {
@@ -168,38 +285,42 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  padding: 0.65rem 1rem;
+  height: 40px;
+  padding: 0 1.25rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #fff;
+  color: #ffffff;
   background: var(--cm-auth-primary);
   border: none;
-  border-radius: 0.5rem;
+  border-radius: 20px;
   cursor: pointer;
+  transition: background-color 0.15s ease, opacity 0.15s ease, transform 0.05s ease;
 }
 
 .cm-auth-button:hover:not(:disabled) {
   background: var(--cm-auth-primary-hover);
 }
 
+.cm-auth-button:active:not(:disabled) {
+  background: var(--cm-auth-primary-active);
+  transform: scale(0.99);
+}
+
 .cm-auth-button:disabled {
-  opacity: 0.6;
+  opacity: 0.55;
   cursor: not-allowed;
 }
 
 .cm-auth-row {
   display: flex;
   justify-content: flex-end;
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
 }
 
 .cm-auth-footer {
   margin-top: 0.5rem;
   text-align: center;
-  font-size: 0.875rem;
-}
-
-/* The Harness shell fills the viewport exactly as before this gate. */
-#dsh-web-root {
-  min-height: 100vh;
+  font-size: 0.8125rem;
+  color: var(--cm-auth-caption);
+  line-height: 1.4;
 }

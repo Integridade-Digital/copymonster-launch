@@ -77,6 +77,11 @@ export function RegisterPage() {
   return (
     <div className="cm-auth-page">
       <div className="cm-auth-card">
+        <div className="cm-auth-brand">
+          <img src="/favicon.svg" alt="CopyMonster" className="cm-auth-brand-logo" />
+          <span className="cm-auth-brand-title">CopyMonster</span>
+        </div>
+
         <div className="cm-auth-header">
           <h1 className="cm-auth-title">Criar sua conta</h1>
           <p className="cm-auth-subtitle">

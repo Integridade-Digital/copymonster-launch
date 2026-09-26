@@ -143,7 +143,7 @@ const LazyWebApp = React.lazy(async () => {
         return () => { void entry.dispose() }
       }, [])
 
-      return <div ref={containerRef} id="dsh-web-root" />
+      return <div ref={containerRef} id="dsh-web-root" style={{ height: '100%', width: '100%', overflow: 'hidden' }} />
     },
   }
 })
@@ -234,7 +234,9 @@ function AppRoutes() {
         path="/billing"
         element={
           <ProtectedRoute>
-            <PlansPage />
+            <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
+              <PlansPage />
+            </div>
           </ProtectedRoute>
         }
       />
@@ -242,7 +244,9 @@ function AppRoutes() {
         path="/plans"
         element={
           <ProtectedRoute>
-            <PlansPage />
+            <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
+              <PlansPage />
+            </div>
           </ProtectedRoute>
         }
       />
@@ -253,7 +257,9 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <RoleGate allowedRoles={['owner', 'admin']} fallback={<Navigate to="/" replace />}>
-              <AdminTenantsPage />
+              <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
+                <AdminTenantsPage />
+              </div>
             </RoleGate>
           </ProtectedRoute>
         }

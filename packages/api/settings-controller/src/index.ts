@@ -85,6 +85,20 @@ declare module '@deepseek-ai/cordis' {
  * and path-addressed operations, and classify every provider refusal as
  * `settings/conflict` or `settings/rejected` with the service's message.
  */
+
+/** Protected namespaces that require administrative privileges (owner or admin). */
+function isProtectedNamespace(ns: string): boolean {
+  return ns.startsWith('llm-') || ns === 'llm' || ns.includes('model')
+}
+
+/** Asserts that the authenticated caller has administrative privileges. */
+function assertAdminRole(ctx: Context, action: string): void {
+  const identity = ctx.authIdentity
+  if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin') {
+    throw new RemoteError('settings/forbidden', `Apenas administradores podem ${action}.`)
+  }
+}
+
 export class SettingsController extends TypertRemoteService {
   static Config: Schema<Config> = Schema.object({ nativeOpen: Schema.boolean() })
 
@@ -116,10 +130,16 @@ export class SettingsController extends TypertRemoteService {
   @Remote
   describe(): SettingsDescribeValue {
     const settings = this.provider()
+    const identity = this.ctx.authIdentity
+    const isNonAdmin = identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin'
+    let descriptors = settings.describe({ redactSecrets: true })
+    if (isNonAdmin) {
+      descriptors = descriptors.filter(d => !isProtectedNamespace(String(d.ns)))
+    }
     return {
-      writable: settings.writable,
-      hasDocument: settings.documentPath !== undefined,
-      namespaces: settings.describe({ redactSecrets: true }).map(namespaceView),
+      writable: isNonAdmin ? false : settings.writable,
+      hasDocument: isNonAdmin ? false : settings.documentPath !== undefined,
+      namespaces: descriptors.map(namespaceView),
     }
   }
 
@@ -141,11 +161,14 @@ export class SettingsController extends TypertRemoteService {
    * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
    */
   @Remote
-  update(
+  async update(
     ns: string,
     patch: Record<string, JsonValue>,
     expectedRevision: number | undefined,
   ): Promise<SettingsNamespaceView> {
+    if (isProtectedNamespace(ns)) {
+      assertAdminRole(this.ctx, 'configurar provedores de IA')
+    }
     return this.write(ns, 'update', patch, expectedRevision)
   }
 
@@ -158,11 +181,14 @@ export class SettingsController extends TypertRemoteService {
    * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
    */
   @Remote
-  replace(
+  async replace(
     ns: string,
     section: Record<string, JsonValue>,
     expectedRevision: number | undefined,
   ): Promise<SettingsNamespaceView> {
+    if (isProtectedNamespace(ns)) {
+      assertAdminRole(this.ctx, 'configurar provedores de IA')
+    }
     return this.write(ns, 'replace', section, expectedRevision)
   }
 
@@ -182,6 +208,9 @@ export class SettingsController extends TypertRemoteService {
     ops: SettingsPathOpView[],
     expectedRevision: number | undefined,
   ): Promise<SettingsNamespaceView> {
+    if (isProtectedNamespace(ns)) {
+      assertAdminRole(this.ctx, 'configurar provedores de IA')
+    }
     return this.write(ns, 'mutate', ops, expectedRevision)
   }
 
@@ -193,6 +222,7 @@ export class SettingsController extends TypertRemoteService {
    */
   @Remote
   async openSettingsDocument(signal: AbortSignal): Promise<SettingsDocumentOpenValue> {
+    assertAdminRole(this.ctx, 'abrir o documento de configurações do servidor')
     const settings = this.provider()
     if (isAborted(signal)) throw new RemoteError('gateway/cancelled', 'settings document open was aborted', {})
     let path: string | undefined

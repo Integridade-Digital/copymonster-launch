@@ -24,6 +24,7 @@ interface DesktopBootGlobal {
 /** Session facts the Typert `auth` Client Context adapter reads from the page. */
 interface ClientAuthSession {
   accessToken?: string
+  role?: string
 }
 
 /** Page global carrying {@link ClientAuthSession}. */
@@ -34,14 +35,25 @@ interface ClientAuthGlobal {
 const clientAuth = globalThis as ClientAuthGlobal
 
 /**
- * Publish the signed-in Supabase access token where the Typert `auth` Client
- * Context adapter reads it. The adapter holds no session of its own and
- * re-reads this global on every Remote call, so a sign-out or a token refresh
- * takes effect without a reload.
+ * Publish the signed-in Supabase access token and role where Typert client
+ * adapters and UI role gates read it.
  */
 function publishClientAuthSession(): void {
   supabaseClient.auth.onAuthStateChange((_event, current) => {
-    clientAuth.__DSH_AUTH__ = { accessToken: current?.access_token }
+    let role: string | undefined
+    if (current?.access_token) {
+      try {
+        const parts = current.access_token.split('.')
+        if (parts[1]) {
+          const payload = JSON.parse(atob(parts[1]))
+          role = payload.user_role || payload.role
+        }
+      } catch {}
+    }
+    clientAuth.__DSH_AUTH__ = {
+      accessToken: current?.access_token,
+      role,
+    }
   })
 }
 

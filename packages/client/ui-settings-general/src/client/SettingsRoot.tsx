@@ -50,10 +50,31 @@ type PanelProps = {
  * header button, a mask click, and document-level Escape (mounted only while
  * open, so the listener lifetime is the panel's).
  */
+
+/** Checks whether current client context belongs to an admin or owner. Defaults to true in single-user desktop. */
+function isClientAdminOrOwner(): boolean {
+  if (typeof globalThis === 'undefined') return true
+  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; role?: string } }).__DSH_AUTH__
+  if (!session || !session.accessToken) return true
+  if (session.role) return session.role === 'owner' || session.role === 'admin'
+  try {
+    const parts = session.accessToken.split('.')
+    if (parts[1]) {
+      const payload = JSON.parse(atob(parts[1]))
+      const role = payload.user_role || payload.role
+      if (role) return role === 'owner' || role === 'admin'
+    }
+  } catch {}
+  return false
+}
+
 function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelProps) {
+  const isPrivileged = isClientAdminOrOwner()
+  const visibleRows = isPrivileged ? rows : rows.filter(r => r.id !== "models")
+  const active = visibleRows.find(r => r.id === activeId)?.id ?? visibleRows[0]?.id
+  const activeRow = visibleRows.find(r => r.id === active)
   // Entries can unmount underneath the requested id, so the render-time
   // projection falls back to the first row when the id is gone.
-  const active = rows.find(r => r.id === activeId)?.id ?? rows[0]?.id
   const titleId = useId()
 
   useEffect(() => {
@@ -75,7 +96,7 @@ function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelP
         <nav className={css.nav}>
           <div className={css.navTitle} id={titleId}>{renderSlot('settings.header', {})}</div>
           <div className={css.navList}>
-            {rows.map(row => (
+            {visibleRows.map(row => (
               <button
                 key={row.id}
                 type="button"
@@ -146,13 +167,15 @@ export function SettingsRoot(props: SettingsRootComponentProps) {
   const connectionState = useConnectionState(state => state)
   const previousConnectionState = useRef(connectionState)
   const onboardingSteps = useOnboardingSteps(s => s)
+  const isPrivileged = isClientAdminOrOwner()
+  const filteredSteps = isPrivileged ? onboardingSteps : onboardingSteps.filter(s => s.id !== 'deepseek-official')
   const onboardingActive = useSessions((state) => {
     const main = Object.values(state.byId)
       .find(session => (session.retainedBy.mainView ?? 0) > 0)
     return state.phase === 'ready' && (main === undefined || main.blank)
   })
   const onboardingStep = onboardingActive
-    ? onboardingSteps.find(step => !completedOnboarding.has(step.id))
+    ? filteredSteps.find(step => !completedOnboarding.has(step.id))
     : undefined
 
   useEffect(() => {

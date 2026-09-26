@@ -54,6 +54,12 @@ declare module '@deepseek-ai/cordis' {
   interface Context {
     /** Host owner of the `credentials` Remote namespace. */
     credentialsController: CredentialsController
+    /** Set on the child Context returned by auth service. */
+    authIdentity?: {
+      readonly userId: string
+      readonly tenantId: string
+      readonly role: 'owner' | 'admin' | 'member' | 'anonymous'
+    }
   }
 }
 
@@ -82,10 +88,17 @@ export class CredentialsController extends TypertRemoteService {
   @Remote
   async describe(refs: string[]): Promise<Record<string, CredentialInfo>> {
     const request = parseRequest('credentials.describe', describeRequestSchema, { refs })
+    const identity = this.ctx.authIdentity
+    const isNonAdmin = identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin'
     const branded = request.refs.map(ref => [ref, credentialRef(ref)] as const)
     const credentials = this.provider()
-    const entries = await Promise.all(branded.map(async ([ref, key]) =>
-      [ref, projectCredentialInfo(await credentials.describe(key))] as const))
+    const entries = await Promise.all(branded.map(async ([ref, key]) => {
+      const info = projectCredentialInfo(await credentials.describe(key))
+      if (isNonAdmin) {
+        return [ref, { ...info, writable: false }] as const
+      }
+      return [ref, info] as const
+    }))
     return Object.fromEntries(entries)
   }
 
@@ -98,6 +111,10 @@ export class CredentialsController extends TypertRemoteService {
    */
   @Remote
   async set(ref: string, value: string): Promise<void> {
+    const identity = this.ctx.authIdentity
+    if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin') {
+      throw new RemoteError('credential/forbidden', 'Apenas administradores podem configurar credenciais e chaves de API.')
+    }
     const request = parseRequest('credentials.set', setRequestSchema, { ref, value })
     const branded = credentialRef(request.ref)
     const credentials = this.provider()
@@ -111,6 +128,10 @@ export class CredentialsController extends TypertRemoteService {
    */
   @Remote
   async unset(ref: string): Promise<void> {
+    const identity = this.ctx.authIdentity
+    if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin') {
+      throw new RemoteError('credential/forbidden', 'Apenas administradores podem remover credenciais e chaves de API.')
+    }
     const request = parseRequest('credentials.unset', unsetRequestSchema, { ref })
     const branded = credentialRef(request.ref)
     const credentials = this.provider()

@@ -192,7 +192,34 @@ export function providerCopy(template: string, target: ProviderIdentity): string
  * @param props - slot-delivered injected dependencies.
  * @returns the section, or null while the shell has not injected yet.
  */
+
+function isClientAdminOrOwner(): boolean {
+  if (typeof globalThis === 'undefined') return true
+  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; role?: string } }).__DSH_AUTH__
+  if (!session || !session.accessToken) return true
+  if (session.role) return session.role === 'owner' || session.role === 'admin'
+  try {
+    const parts = session.accessToken.split('.')
+    if (parts[1]) {
+      const payload = JSON.parse(atob(parts[1]))
+      const role = payload.user_role || payload.role
+      if (role) return role === 'owner' || role === 'admin'
+    }
+  } catch {}
+  return false
+}
+
 export function ModelsSection(props: ModelsSectionProps): ReactNode {
+  if (!isClientAdminOrOwner()) {
+    return (
+      <div className={styles.section} style={{ padding: "2.5rem 1.5rem", textAlign: "center" }}>
+        <div style={{ maxWidth: "440px", margin: "0 auto", padding: "1.75rem", borderRadius: "8px", border: "1px solid var(--dsh-color-border-subtle, rgba(255, 255, 255, 0.1))", backgroundColor: "var(--dsh-color-bg-secondary, rgba(255, 255, 255, 0.04))" }}>
+          <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1.05rem", fontWeight: 600 }}>Acesso Restrito</h3>
+          <p style={{ margin: 0, fontSize: "0.875rem", opacity: 0.85, lineHeight: 1.5 }}>As configurações de provedores de IA e modelos são gerenciadas exclusivamente pelo administrador da sua organização.</p>
+        </div>
+      </div>
+    )
+  }
   const { controller, useSnapshot, operations, schema, t, renderSlot } = props
   if (
     controller === undefined || useSnapshot === undefined || operations === undefined

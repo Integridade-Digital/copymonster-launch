@@ -1,13 +1,17 @@
 /** Browser entry for the Web client. */
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import { MemoryRouter, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppWebEntry, applyIndexInjections } from '@deepseek-ai/dsh-client-web'
 import { AppWrapper, supabaseClient, useAuth } from './lib/auth'
+import { ProtectedRoute, PublicRoute } from './lib/auth/protected-route'
+import { RoleGate } from './components/auth/RoleGate'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
+import { AdminTenantsPage } from './pages/admin/AdminTenantsPage'
+import { PlansPage } from './pages/billing/PlansPage'
 import './auth.css'
 
 interface DesktopBootGlobal {
@@ -80,30 +84,12 @@ function WebApp() {
   return <div ref={containerRef} id="dsh-web-root" />
 }
 
-/** CopyMonster auth screens, addressed by the current pathname. */
-function AuthRoutes() {
-  const initial = `${window.location.pathname}${window.location.search}`
-  return (
-    <MemoryRouter initialEntries={[initial]}>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/forgot-password" element={<ForgotPasswordPage />} />
-        <Route path="/reset-password" element={<ResetPasswordPage />} />
-        {/* Unauthenticated visitors land on registration, per the SaaS flow. */}
-        <Route path="/register" element={<RegisterPage />} />
-        <Route path="*" element={<RegisterPage />} />
-      </Routes>
-    </MemoryRouter>
-  )
-}
-
 /**
- * Authentication gate: the Harness shell mounts only for a signed-in session.
- * Keeping the shell unmounted while signed out is the security boundary this
- * phase provides — there is no composer or RPC surface to reach unauthenticated.
+ * Top-level application routes using HTML5 browser history (BrowserRouter).
+ * Handles public auth flows, protected workspace shell, and SaaS management views.
  */
-function Root() {
-  const { user, isLoading } = useAuth()
+function AppRoutes() {
+  const { isLoading } = useAuth()
 
   if (isLoading) {
     return (
@@ -114,8 +100,94 @@ function Root() {
     )
   }
 
-  if (user === null) return <AuthRoutes />
-  return <WebApp />
+  return (
+    <Routes>
+      {/* Rotas Públicas de Autenticação */}
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <LoginPage />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <PublicRoute>
+            <RegisterPage />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <PublicRoute>
+            <ForgotPasswordPage />
+          </PublicRoute>
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          <PublicRoute>
+            <ResetPasswordPage />
+          </PublicRoute>
+        }
+      />
+
+      {/* Rotas Protegidas - SaaS Billing e Planos */}
+      <Route
+        path="/billing"
+        element={
+          <ProtectedRoute>
+            <PlansPage />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/plans"
+        element={
+          <ProtectedRoute>
+            <PlansPage />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Rota Protegida - Painel Administrativo de Tenants (owner/admin) */}
+      <Route
+        path="/admin"
+        element={
+          <ProtectedRoute>
+            <RoleGate allowedRoles={['owner', 'admin']} fallback={<Navigate to="/" replace />}>
+              <AdminTenantsPage />
+            </RoleGate>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Rota Principal - DSH Web Workspace Shell */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <WebApp />
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Rota Fallback */}
+      <Route path="*" element={<Navigate to="/" replace />} />
+    </Routes>
+  )
+}
+
+function Root() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
+    </BrowserRouter>
+  )
 }
 
 try {

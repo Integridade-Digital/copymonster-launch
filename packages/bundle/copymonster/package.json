@@ -39,6 +39,6 @@
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
-    "typescript": "^5.3.0"
+    "typescript": "^6.0.3"
   }
 }

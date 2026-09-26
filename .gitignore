@@ -1,4 +1,3 @@
-```
 # Dependencies
 node_modules/
 .pnpm-store/
@@ -75,4 +74,3 @@ nbproject/
 ehthumbs.db
 Thumbs.db
 Icon?
-```

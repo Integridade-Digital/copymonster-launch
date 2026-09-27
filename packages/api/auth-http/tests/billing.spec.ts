@@ -41,33 +41,31 @@ function createMockReq(options: {
       }
     },
   })
-  ;(stream as any).method = options.method || 'GET'
-  ;(stream as any).headers = options.headers || {}
+  ;(stream as unknown as { method: string }).method = options.method || 'GET'
+  ;(stream as unknown as { headers: Record<string, string> }).headers = (options.headers as Record<string, string>) || {}
   return stream as unknown as IncomingMessage
 }
 
 interface MockResponse extends ServerResponse {
   statusCode: number
-  headers: Record<string, any>
+  headers: Record<string, unknown>
   body: string
-  json: () => any
+  json: () => unknown
 }
 
 function createMockRes(): MockResponse {
-  let statusCode = 200
-  const headers: Record<string, any> = {}
+  const headers: Record<string, unknown> = {}
   let body = ''
 
   const res = {
     statusCode: 200,
     headers,
     body: '',
-    writeHead: vi.fn((status: number, hdrs?: Record<string, any>) => {
-      statusCode = status
+    writeHead: vi.fn((status: number, hdrs?: Record<string, unknown>) => {
       res.statusCode = status
       if (hdrs) Object.assign(headers, hdrs)
     }),
-    end: vi.fn((chunk?: any) => {
+    end: vi.fn((chunk?: unknown) => {
       if (chunk) {
         body += chunk.toString()
         res.body = body
@@ -88,7 +86,7 @@ function generateStripeSignature(payload: string | Buffer, secret: string, times
 
 describe('Stripe Billing & Webhooks Integration Tests', () => {
   const originalEnv = process.env
-  let mockContext: any
+  let mockContext: unknown
   let originalFetch: typeof globalThis.fetch
 
   beforeEach(() => {
@@ -298,7 +296,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
 
       // Mock Stripe API calls
       const fetchCalls: Array<{ url: string; body: string }> = []
-      globalThis.fetch = vi.fn().mockImplementation(async (url: string, init: any) => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string, init?: { body?: string; headers?: Record<string, string> }) => {
         fetchCalls.push({ url, body: init.body })
         if (url.endsWith('/customers')) {
           return {
@@ -339,14 +337,14 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       })
 
       // Verify customer was created
-      expect(fetchCalls[0].url).toContain('/customers')
-      expect(fetchCalls[0].body).toContain('email=user%40copymonster.ai')
+      expect(fetchCalls[0]?.url).toContain('/customers')
+      expect(fetchCalls[0]?.body).toContain('email=user%40copymonster.ai')
       // Verify tenant was updated with customer ID
       expect(mockTenantUpdate.update).toHaveBeenCalledWith({ stripe_customer_id: 'cus_created_123' })
       // Verify checkout session creation
-      expect(fetchCalls[1].url).toContain('/checkout/sessions')
-      expect(fetchCalls[1].body).toContain('customer=cus_created_123')
-      expect(fetchCalls[1].body).toContain('line_items%5B0%5D%5Bprice%5D=price_1SqRe4RiKNxooUH0tYyprM4P')
+      expect(fetchCalls[1]?.url).toContain('/checkout/sessions')
+      expect(fetchCalls[1]?.body).toContain('customer=cus_created_123')
+      expect(fetchCalls[1]?.body).toContain('line_items%5B0%5D%5Bprice%5D=price_1SqRe4RiKNxooUH0tYyprM4P')
     })
 
     it('should reuse existing stripe_customer_id if already saved on tenant', async () => {
@@ -455,7 +453,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
         }),
       })
 
-      globalThis.fetch = vi.fn().mockImplementation(async (url: string, init: any) => {
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string, init?: { body?: string; headers?: Record<string, string> }) => {
         expect(url).toContain('/billing_portal/sessions')
         expect(init.body).toContain('customer=cus_registered_777')
         return {
@@ -559,7 +557,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
           stripe_subscription_id: 'sub_active_123',
           subscription_status: 'active',
           trial_used: true,
-        })
+        }),
       )
       expect(eqMock).toHaveBeenCalledWith('id', 'ten_001')
     })
@@ -627,7 +625,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
           cancel_at_period_end: false,
           subscription_interval: 'month',
           plan_id: 'plan_pro',
-        })
+        }),
       )
       expect(tenantEqMock).toHaveBeenCalledWith('stripe_customer_id', 'cus_tenant_abc')
     })
@@ -664,7 +662,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       expect(updateMock).toHaveBeenCalledWith(
         expect.objectContaining({
           subscription_status: 'canceled',
-        })
+        }),
       )
       expect(eqMock).toHaveBeenCalledWith('stripe_customer_id', 'cus_tenant_canceling')
     })
@@ -702,7 +700,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       expect(updateMock).toHaveBeenCalledWith(
         expect.objectContaining({
           current_period_tokens_used: 0,
-        })
+        }),
       )
       expect(eqMock).toHaveBeenCalledWith('stripe_customer_id', 'cus_tenant_renewal')
     })
@@ -739,7 +737,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       expect(updateMock).toHaveBeenCalledWith(
         expect.objectContaining({
           subscription_status: 'past_due',
-        })
+        }),
       )
       expect(eqMock).toHaveBeenCalledWith('stripe_customer_id', 'cus_tenant_delinquent')
     })

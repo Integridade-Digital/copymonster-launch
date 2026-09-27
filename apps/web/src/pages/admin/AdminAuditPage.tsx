@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase/client'
 
@@ -9,8 +9,8 @@ interface AuditLog {
   action: string
   resource_type: string | null
   resource_id: string | null
-  old_value: any | null
-  new_value: any | null
+  old_value: unknown | null
+  new_value: unknown | null
   ip_address: string | null
   user_agent: string | null
   created_at: string
@@ -99,7 +99,7 @@ export function AdminAuditPage() {
             type="text"
             placeholder="Filtrar por ação (ex: CREATE)..."
             value={actionFilter}
-            onChange={e => {
+            onChange={(e) => {
               setActionFilter(e.target.value)
               setPage(0)
             }}

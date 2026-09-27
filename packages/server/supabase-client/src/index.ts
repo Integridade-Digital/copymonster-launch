@@ -11,4 +11,4 @@ export {
   getUserRole,
 } from './supabase.client.ts'
 export { default as supabase } from './supabase.client.ts'
-export type { Database, UserIdentity, SupabaseClientType } from './supabase.types.ts'
+export type { Database, UserIdentity, SupabaseClientType, Json } from './supabase.types.ts'

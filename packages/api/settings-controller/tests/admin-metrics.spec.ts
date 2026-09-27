@@ -1,7 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import z from '@deepseek-ai/schemastery'
-import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import SettingsController from '../src/index.ts'
 import { MemorySettings } from '../../../settings/settings/tests/memory.ts'
 import { MemoryCredentials } from '../../../credentials/credentials/tests/memory.ts'
@@ -66,7 +64,7 @@ const mockAuditLogs = [
   },
 ]
 
-let rpcCalls: any[] = []
+let rpcCalls: Array<{ fn: string; params: unknown }> = []
 
 vi.mock('@deepseek-ai/dsh-supabase-client', () => {
   return {
@@ -76,7 +74,7 @@ vi.mock('@deepseek-ai/dsh-supabase-client', () => {
           return {
             select: () => ({
               order: () => Promise.resolve({ data: mockTenants, error: null }),
-              eq: (col: string, val: string) => ({
+              eq: (_col: string, val: string) => ({
                 single: () => {
                   const t = mockTenants.find(item => item.id === val)
                   return Promise.resolve({ data: t ?? null, error: t ? null : new Error('Not found') })
@@ -88,7 +86,7 @@ vi.mock('@deepseek-ai/dsh-supabase-client', () => {
         if (table === 'plans') {
           return {
             select: () => ({
-              eq: (col: string, val: string) => ({
+              eq: (_col: string, _val: string) => ({
                 single: () => Promise.resolve({ data: mockPlan, error: null }),
               }),
             }),
@@ -101,7 +99,7 @@ vi.mock('@deepseek-ai/dsh-supabase-client', () => {
                 range: () => Promise.resolve({ data: mockAuditLogs, error: null }),
               }),
             }),
-            insert: (items: any[]) => ({
+            insert: (_items: unknown[]) => ({
               select: () => ({
                 single: () => Promise.resolve({ data: { id: 'log_new_001' }, error: null }),
               }),
@@ -112,7 +110,7 @@ vi.mock('@deepseek-ai/dsh-supabase-client', () => {
           select: () => Promise.resolve({ data: [], error: null }),
         }
       },
-      rpc: (fn: string, params: any) => {
+      rpc: (fn: string, params: unknown) => {
         rpcCalls.push({ fn, params })
         return Promise.resolve({ data: null, error: null })
       },
@@ -140,12 +138,12 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
 
     const tenants = await ctx.settingsController.listTenants()
     expect(tenants).toHaveLength(2)
-    expect(tenants[0].id).toBe('ten_001')
-    expect(tenants[0].subscription_status).toBe('trialing')
+    expect(tenants[0]?.id).toBe('ten_001')
+    expect(tenants[0]?.subscription_status).toBe('trialing')
 
     const auditLogs = await ctx.settingsController.listAuditLogs()
     expect(auditLogs).toHaveLength(1)
-    expect(auditLogs[0].action).toBe('SETTINGS_UPDATE')
+    expect(auditLogs[0]?.action).toBe('SETTINGS_UPDATE')
   })
 
   it('bloqueia membros comuns de listar tenants e logs de auditoria', async () => {

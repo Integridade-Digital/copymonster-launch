@@ -1,11 +1,11 @@
 /**
- * CopyMonster HTTP auth surface: node:http routes registered on `ctx.webServer`.
+ * CopyMonster HTTP auth and billing surface: node:http routes registered on `ctx.webServer`.
  *
- * - `GET /api/auth/me` reports the caller identity behind a bearer token.
- * - `GET /enter` redirects to the DSH authenticated URL, so a person reaches
- *   the Web GUI from a stable bookmark instead of transcribing the per-process
- *   launch token by hand. Named routes bypass the index trust fence, so this
- *   route needs no token of its own.
+ * - `GET /api/auth/me`: reports the caller identity behind a bearer token.
+ * - `GET /enter`: redirects to the DSH authenticated URL.
+ * - `POST /api/billing/checkout`: creates a Stripe Checkout session.
+ * - `POST /api/billing/portal`: creates a Stripe Customer Portal session.
+ * - `POST /api/billing/webhook`: receives and handles Stripe webhooks with raw stream signature verification.
  *
  * A Cordis function plugin: `inject` waits for the webserver, auth service, and
  * connection, and `apply` registers routes through `ctx.effect(...)` so they
@@ -20,8 +20,10 @@ import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-api-auth-context'
 import { BEARER_PREFIX } from '@deepseek-ai/dsh-constants'
 import type { AuthIdentityResponse, AuthErrorResponse } from './types.ts'
+import { handleCheckout, handlePortal, handleWebhook } from './billing.ts'
 
 export type { AuthErrorResponse, AuthIdentityResponse } from './types.ts'
+export { handleCheckout, handlePortal, handleWebhook, readRawBody, verifyStripeSignature } from './billing.ts'
 
 /** Stable Cordis plugin name. */
 export const name = 'auth-http'
@@ -34,6 +36,11 @@ const ME_PATH = '/api/auth/me'
 
 /** Stable-bookmark entry that redirects to the authenticated GUI URL. */
 const ENTER_PATH = '/enter'
+
+/** Billing paths */
+const BILLING_CHECKOUT_PATH = '/api/billing/checkout'
+const BILLING_PORTAL_PATH = '/api/billing/portal'
+const BILLING_WEBHOOK_PATH = '/api/billing/webhook'
 
 /** Extract the bearer token from an Authorization header value. */
 function bearerToken(header: string | string[] | undefined): string | undefined {
@@ -87,10 +94,6 @@ async function handleMe(ctx: Context, req: IncomingMessage, res: ServerResponse)
 
 /**
  * Handle `GET /enter`: redirect to the process's authenticated GUI URL.
- *
- * The forwarded scheme is honored so the redirect stays https behind the
- * Cloudflare tunnel; the browser receives the launch token and mints the
- * session cookie without the visitor ever typing it.
  * @param ctx - plugin Context carrying the connection service.
  * @param req - the incoming request.
  * @param res - the redirect response.
@@ -119,7 +122,7 @@ function handleEnter(ctx: Context, req: IncomingMessage, res: ServerResponse): v
 }
 
 /**
- * Register the CopyMonster HTTP auth routes on the composing webserver.
+ * Register the CopyMonster HTTP auth and billing routes on the composing webserver.
  * @param ctx - plugin Context carrying `webServer`, `auth`, and `connection`.
  */
 export function apply(ctx: Context): void {
@@ -134,4 +137,22 @@ export function apply(ctx: Context): void {
     path: ENTER_PATH,
     handler: (req, res) => { handleEnter(ctx, req, res) },
   }), `auth-http: ${ENTER_PATH}`)
+
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: BILLING_CHECKOUT_PATH,
+    handler: (req, res) => { handleCheckout(ctx, req, res) },
+  }), `auth-http: ${BILLING_CHECKOUT_PATH}`)
+
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: BILLING_PORTAL_PATH,
+    handler: (req, res) => { handlePortal(ctx, req, res) },
+  }), `auth-http: ${BILLING_PORTAL_PATH}`)
+
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: BILLING_WEBHOOK_PATH,
+    handler: (req, res) => { handleWebhook(ctx, req, res) },
+  }), `auth-http: ${BILLING_WEBHOOK_PATH}`)
 }

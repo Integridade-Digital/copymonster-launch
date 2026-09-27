@@ -17,7 +17,7 @@ import type {
 // The seam owns the listing declaration; the generator requires the reference
 // site to name that package rather than this package's re-export of it.
 import type { DirectoryListing } from '@deepseek-ai/dsh-host-directory-picker/types'
-import { Remote, RemoteError, TypertRemoteService, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
+import { RemoteScope, RemoteError, TypertRemoteService, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import type { RemoteErrorCode } from '@deepseek-ai/dsh-typert-protocol'
 
 const createDirectoryRequestSchema = z.object({
@@ -56,7 +56,7 @@ export class DirectoryPickerController extends TypertRemoteService {
    * @param signal - caller lifetime; abort terminates the chooser.
    * @returns the chosen absolute path, or null when the operator cancels.
    */
-  @Remote('pick')
+  @RemoteScope('auth', 'pick')
   async pick(signal: AbortSignal): Promise<string | null> {
     const capability = this.requireCapability('native', 'pick')
     try {
@@ -74,7 +74,7 @@ export class DirectoryPickerController extends TypertRemoteService {
    *   letting it outlive a disconnected caller.
    * @returns the level's listing with its ancestry.
    */
-  @Remote('list')
+  @RemoteScope('auth', 'list')
   async list(path: string | undefined, signal: AbortSignal): Promise<DirectoryListing> {
     const capability = this.requireCapability('browse', 'list')
     try {
@@ -142,7 +142,7 @@ export class DirectoryPickerController extends TypertRemoteService {
    * @param name - single non-blank path segment.
    * @returns the created directory's absolute path.
    */
-  @Remote('createDirectory')
+  @RemoteScope('auth', 'createDirectory')
   async createDirectory(path: string, name: string): Promise<string> {
     const request = createDirectoryRequestSchema.safeParse({ path, name })
     if (!request.success) {

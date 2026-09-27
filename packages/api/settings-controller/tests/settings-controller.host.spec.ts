@@ -82,6 +82,11 @@ describe('the settings Remote namespace a configuration page calls', () => {
       { method: 'mutate', invocation: { kind: 'direct' } },
       { method: 'openSettingsDocument', invocation: { kind: 'direct' } },
       { method: 'openAgentPresetDirectory', invocation: { kind: 'direct' } },
+      { method: 'listTenants', invocation: { kind: 'context', context: 'auth' } },
+      { method: 'getTenantMetrics', invocation: { kind: 'context', context: 'auth' } },
+      { method: 'listAuditLogs', invocation: { kind: 'context', context: 'auth' } },
+      { method: 'recordAuditLog', invocation: { kind: 'context', context: 'auth' } },
+      { method: 'recordTokenUsage', invocation: { kind: 'context', context: 'auth' } },
     ])
   })
 

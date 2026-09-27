@@ -4,7 +4,7 @@
   "license": "MIT",
   "private": true,
   "type": "module",
-  "description": "CopyMonster HTTP auth routes registered on the DSH webserver",
+  "description": "CopyMonster HTTP auth and billing routes registered on the DSH webserver",
   "main": "lib/index.js",
   "types": "lib/types/index.d.ts",
   "exports": {
@@ -16,11 +16,16 @@
       "types": "./lib/types/types.d.ts",
       "default": "./lib/types/types.js"
     },
+    "./billing": {
+      "types": "./lib/types/billing.d.ts",
+      "default": "./lib/billing.js"
+    },
     "./src/*": "./src/*",
     "./package.json": "./package.json"
   },
   "files": [
     "lib/index.js",
+    "lib/billing.js",
     "lib/types/**/*.d.ts",
     "lib/types/**/*.js"
   ],
@@ -32,7 +37,8 @@
   "dependencies": {
     "@deepseek-ai/dsh-api-auth-context": "workspace:*",
     "@deepseek-ai/dsh-constants": "workspace:*",
-    "@deepseek-ai/dsh-host-webserver": "workspace:*"
+    "@deepseek-ai/dsh-host-webserver": "workspace:*",
+    "@deepseek-ai/dsh-supabase-client": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "*",

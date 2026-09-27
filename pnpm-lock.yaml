@@ -953,6 +953,9 @@ importers:
       '@deepseek-ai/dsh-host-webserver':
         specifier: workspace:*
         version: link:../../host/webserver
+      '@deepseek-ai/dsh-supabase-client':
+        specifier: workspace:*
+        version: link:../../server/supabase-client
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -1266,6 +1269,9 @@ importers:
 
   packages/api/settings-controller:
     dependencies:
+      '@deepseek-ai/dsh-supabase-client':
+        specifier: workspace:*
+        version: link:../../server/supabase-client
       '@deepseek-ai/schemastery':
         specifier: link:../../../vendor/schemastery
         version: link:../../../vendor/schemastery

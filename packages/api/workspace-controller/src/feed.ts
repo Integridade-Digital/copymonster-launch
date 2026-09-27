@@ -5,6 +5,7 @@ import {
 /** Reconnect-safe Workspace baseline and increment producer. */
 
 import type { Context } from '@deepseek-ai/cordis'
+import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
 import { Deque } from '@deepseek-ai/dsh-deque'
 import type { DomainChanged } from '@deepseek-ai/dsh-storage-domain'
 import type { Workspace, WorkspaceRecord } from '@deepseek-ai/dsh-workspace'
@@ -71,17 +72,17 @@ export class WorkspaceFeed {
    * Read the complete current projection synchronously.
    * @returns all active Workspaces and archived Session identities.
    */
-  baseline(): WorkspaceBaseline {
+  baseline(identity?: UserIdentity): WorkspaceBaseline {
     const all = this.ctx.workspaceRegistry.list()
-    const identity = this.ctx.authIdentity
-    if (!identity?.tenantId || !identity.userId) {
+    const resolvedIdentity = identity ?? this.ctx.authIdentity
+    if (!resolvedIdentity?.tenantId || !resolvedIdentity.userId) {
       return {
         items: all.map(workspaceView),
         archivedSessionIds: [...this.ctx.workspaceRegistry.archivedSessionIds],
       }
     }
 
-    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    const sandboxRoot = resolveUserSandboxRoot(resolvedIdentity.tenantId, resolvedIdentity.userId)
     const allowed = all.filter((ws) => {
       try {
         assertPathInSandbox(ws.path, sandboxRoot)
@@ -102,12 +103,12 @@ export class WorkspaceFeed {
    * @param signal - generation cancellation.
    * @returns baseline followed by ordered Workspace increments.
    */
-  async *follow(signal: AbortSignal): AsyncIterable<WorkspaceFollowFrame> {
+  async *follow(signal: AbortSignal, identity?: UserIdentity): AsyncIterable<WorkspaceFollowFrame> {
     signal.throwIfAborted()
     const follower = new WorkspaceFollower()
     this.followers.add(follower)
     try {
-      yield { type: 'baseline', value: this.baseline() }
+      yield { type: 'baseline', value: this.baseline(identity) }
       yield* follower.read(signal)
     } finally {
       this.followers.delete(follower)

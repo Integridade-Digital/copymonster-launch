@@ -25,7 +25,7 @@
   color: var(--dsw-alias-label-primary);
 }
 
-/* Selector pill (figma 'Selector': h36 r18, fill #F5F6F7, pad 0/14, gap 12). */
+/* Selector pill (figma 'Selector': h36 r18, fill #FBF0DA, pad 0/14, gap 12). */
 .selector {
   display: inline-flex;
   align-items: center;

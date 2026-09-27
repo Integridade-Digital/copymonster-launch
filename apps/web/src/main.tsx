@@ -11,7 +11,10 @@ import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { AdminTenantsPage } from './pages/admin/AdminTenantsPage'
+import { AdminAuditPage } from './pages/admin/AdminAuditPage'
 import { PlansPage } from './pages/billing/PlansPage'
+import { BillingSuccessPage } from './pages/billing/BillingSuccessPage'
+import { BillingCancelPage } from './pages/billing/BillingCancelPage'
 import './auth.css'
 
 interface DesktopBootGlobal {
@@ -262,6 +265,26 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route
+        path="/billing/success"
+        element={
+          <ProtectedRoute>
+            <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
+              <BillingSuccessPage />
+            </div>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/billing/cancel"
+        element={
+          <ProtectedRoute>
+            <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
+              <BillingCancelPage />
+            </div>
+          </ProtectedRoute>
+        }
+      />
 
       {/* Rota Protegida - Painel Administrativo de Tenants (owner/admin) */}
       <Route
@@ -271,6 +294,20 @@ function AppRoutes() {
             <RoleGate allowedRoles={['owner', 'admin']} fallback={<Navigate to="/" replace />}>
               <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
                 <AdminTenantsPage />
+              </div>
+            </RoleGate>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Rota Protegida - Painel Administrativo de Auditoria (owner/admin) */}
+      <Route
+        path="/admin/audit"
+        element={
+          <ProtectedRoute>
+            <RoleGate allowedRoles={['owner', 'admin']} fallback={<Navigate to="/" replace />}>
+              <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
+                <AdminAuditPage />
               </div>
             </RoleGate>
           </ProtectedRoute>

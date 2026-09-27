@@ -10,11 +10,13 @@
   "exports": {
     ".": {
       "types": "./lib/types/index.d.ts",
-      "default": "./lib/index.js"
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
     },
     "./types": {
       "types": "./lib/types/supabase.types.d.ts",
-      "default": "./lib/types/supabase.types.js"
+      "import": "./src/supabase.types.ts",
+      "default": "./src/supabase.types.ts"
     },
     "./src/*": "./src/*",
     "./package.json": "./package.json"

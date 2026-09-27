@@ -1,12 +1,14 @@
 import { isAbsolute, resolve } from 'node:path'
 import {
   assertPathInSandbox,
+  ensureInitialUserWorkspace,
   ensureUserSandboxDirectory,
   resolveUserSandboxRoot,
 } from '@deepseek-ai/dsh-workspace'
 /** Workspace command implementation and stable Remote failure mapping. */
 
 import type { Context } from '@deepseek-ai/cordis'
+import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
 import type { Workspace } from '@deepseek-ai/dsh-workspace'
 import {
   WorkspaceId,
@@ -43,13 +45,13 @@ export class WorkspaceCommands {
    * @param request - directory path to register.
    * @returns the Workspace and whether this call created it.
    */
-  create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue> {
+  create(request: WorkspaceCreateRequest, identity?: UserIdentity): Promise<WorkspaceCreateValue> {
     return this.enqueue(async () => {
       try {
         let targetPath = request.path
-        const identity = this.ctx.authIdentity
-        if (identity?.tenantId && identity.userId) {
-          const sandboxRoot = await ensureUserSandboxDirectory(identity.tenantId, identity.userId)
+        const resolvedIdentity = identity ?? this.ctx.authIdentity
+        if (resolvedIdentity?.tenantId && resolvedIdentity.userId) {
+          const sandboxRoot = await ensureUserSandboxDirectory(resolvedIdentity.tenantId, resolvedIdentity.userId)
           if (!isAbsolute(targetPath)) {
             targetPath = resolve(sandboxRoot, targetPath)
           } else {
@@ -79,16 +81,16 @@ export class WorkspaceCommands {
    * @param request - Workspace identity and proposed title.
    * @returns the updated Workspace projection.
    */
-  rename(request: WorkspaceRenameRequest): Promise<WorkspaceValue> {
+  rename(request: WorkspaceRenameRequest, identity?: UserIdentity): Promise<WorkspaceValue> {
     const title = request.title.trim()
     if (title === '') {
       return Promise.reject(new RemoteError('gateway/bad-request', 'Workspace rename requires a non-blank title', {}))
     }
     return this.enqueue(async () => {
       const workspace = this.requireWorkspace(request.workspaceId)
-      const identity = this.ctx.authIdentity
-      if (identity?.tenantId && identity.userId) {
-        const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+      const resolvedIdentity = identity ?? this.ctx.authIdentity
+      if (resolvedIdentity?.tenantId && resolvedIdentity.userId) {
+        const sandboxRoot = resolveUserSandboxRoot(resolvedIdentity.tenantId, resolvedIdentity.userId)
         try {
           assertPathInSandbox(workspace.path, sandboxRoot)
         } catch {
@@ -119,15 +121,15 @@ export class WorkspaceCommands {
    * @param request - Workspace identity to remove.
    * @returns deletion confirmation.
    */
-  delete(request: WorkspaceDeleteRequest): Promise<WorkspaceDeleteValue> {
+  delete(request: WorkspaceDeleteRequest, identity?: UserIdentity): Promise<WorkspaceDeleteValue> {
     return this.enqueue(async () => {
       const workspace = this.ctx.workspaceRegistry.get(WorkspaceId(request.workspaceId))
       if (workspace === undefined) {
         throw workspaceNotFound(request.workspaceId)
       }
-      const identity = this.ctx.authIdentity
-      if (identity?.tenantId && identity.userId) {
-        const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+      const resolvedIdentity = identity ?? this.ctx.authIdentity
+      if (resolvedIdentity?.tenantId && resolvedIdentity.userId) {
+        const sandboxRoot = resolveUserSandboxRoot(resolvedIdentity.tenantId, resolvedIdentity.userId)
         try {
           assertPathInSandbox(workspace.path, sandboxRoot)
         } catch {
@@ -217,6 +219,23 @@ export class WorkspaceCommands {
   async unarchiveSession(request: WorkspaceUnarchiveSessionRequest): Promise<WorkspaceArchiveValue> {
     await this.ctx.workspaceRegistry.unarchiveSession(request.sessionId)
     return { archivedSessionIds: [...this.ctx.workspaceRegistry.archivedSessionIds] }
+  }
+
+
+  /**
+   * Auto-provisions or retrieves the initial workspace for the authenticated user.
+   */
+  async ensureInitialWorkspace(identity?: UserIdentity): Promise<WorkspaceCreateValue> {
+    const resolvedIdentity = identity ?? this.ctx.authIdentity
+    if (!resolvedIdentity?.tenantId || !resolvedIdentity.userId) {
+      throw new RemoteError(
+        'workspace/unauthorized',
+        'Authentication required to ensure initial workspace',
+        {},
+      )
+    }
+    await ensureInitialUserWorkspace(resolvedIdentity.tenantId, resolvedIdentity.userId)
+    return this.create({ path: 'default' }, resolvedIdentity)
   }
 
   private requireWorkspace(workspaceId: WorkspaceId): Workspace {

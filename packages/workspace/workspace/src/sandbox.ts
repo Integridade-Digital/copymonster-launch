@@ -63,3 +63,18 @@ export async function ensureUserSandboxDirectory(tenantId: string, userId: strin
   await mkdir(root, { recursive: true })
   return await realpath(root)
 }
+
+/**
+ * Ensures the initial user workspace directory exists (default subfolder) and returns its path.
+ */
+export async function ensureInitialUserWorkspace(
+  tenantId: string,
+  userId: string,
+  initialName: string = 'default',
+): Promise<string> {
+  const root = await ensureUserSandboxDirectory(tenantId, userId)
+  const sanitizedName = initialName.replace(/[^a-zA-Z0-9_-]/g, '') || 'default'
+  const initialPath = resolve(root, sanitizedName)
+  await mkdir(initialPath, { recursive: true })
+  return await realpath(initialPath)
+}

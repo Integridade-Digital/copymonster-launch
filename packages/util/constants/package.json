@@ -10,7 +10,8 @@
   "exports": {
     ".": {
       "types": "./lib/types/index.d.ts",
-      "default": "./lib/index.js"
+      "import": "./src/index.ts",
+      "default": "./src/index.ts"
     },
     "./src/*": "./src/*",
     "./package.json": "./package.json"

@@ -23,11 +23,23 @@ import type { SettingsDescriptor, SettingsPathOp, SettingsProvider } from '@deep
 import type {
   SettingsDescribeValue, SettingsNamespaceView, SettingsPathOpView,
 } from '@deepseek-ai/dsh-settings/types'
-import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { Remote, RemoteScope, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
+import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
 import { z } from 'zod'
 import { CredentialsController } from './credentials.ts'
-import type { AgentPresetDirectoryOpenValue, SettingsDocumentOpenValue } from './types.ts'
+import type {
+  AgentPresetDirectoryOpenValue,
+  AuditLogQueryRequest,
+  AuditLogRecordRequest,
+  AuditLogView,
+  SettingsDocumentOpenValue,
+  TenantAdminView,
+  TenantMetricsView,
+  TenantPlanDetails,
+  TokenUsageRecordRequest,
+  TokenUsageRecordValue,
+} from './types.ts'
 
 export { CredentialsController } from './credentials.ts'
 export type * from './types.ts'
@@ -80,14 +92,6 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
-/**
- * Host service backing the generated `ctx.remote.settings` namespace. Every
- * remote read uses `redactSecrets: true`, so a `role('secret')` field cannot
- * ride a response. Writes expose the settings service's merge, replacement,
- * and path-addressed operations, and classify every provider refusal as
- * `settings/conflict` or `settings/rejected` with the service's message.
- */
-
 /** Protected namespaces that require administrative privileges (owner or admin). */
 function isProtectedNamespace(ns: string): boolean {
   return ns.startsWith('llm-') || ns === 'llm' || ns.includes('model')
@@ -104,6 +108,22 @@ function assertAdminRole(ctx: Context, action: string, ns: string): void {
   const identity = ctx.authIdentity
   if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin') {
     throw new RemoteError('settings/forbidden', `Apenas administradores podem ${action}.`, { ns })
+  }
+}
+
+/**
+ * Asserts that the caller is authenticated and holds administrative privileges (owner or admin).
+ * @param ctx - Host context carrying the caller's identity.
+ * @param action - Portuguese clause completing the refusal message.
+ * @throws RemoteError `settings/unauthorized` if unauthenticated, or `settings/forbidden` if not admin.
+ */
+function assertAdminOrOwnerAuth(ctx: Context, action: string): void {
+  const identity = ctx.authIdentity
+  if (identity === undefined) {
+    throw new RemoteError('settings/unauthorized', 'Autenticação necessária para acessar recursos administrativos.', {})
+  }
+  if (identity.role !== 'owner' && identity.role !== 'admin') {
+    throw new RemoteError('settings/forbidden', `Apenas administradores podem ${action}.`, { ns: 'admin' })
   }
 }
 
@@ -292,6 +312,219 @@ export class SettingsController extends TypertRemoteService {
     } catch (error: unknown) {
       if (signal.aborted) throw new RemoteError('gateway/cancelled', 'path open was aborted', {})
       throw new RemoteError('gateway/internal', `path open failed: ${messageOf(error)}`, {}, { cause: error })
+    }
+  }
+
+  /**
+   * List tenants with their plan, subscription status, and token usage for admin users.
+   * Restricted to callers with role 'owner' or 'admin'.
+   */
+  @RemoteScope('auth', 'listTenants')
+  async listTenants(): Promise<TenantAdminView[]> {
+    assertAdminOrOwnerAuth(this.ctx, 'listar tenants')
+    const { data, error } = await supabaseAdminClient
+      .from('tenants')
+      .select('id, name, slug, status, subscription_status, plan_id, trial_ends_at, trial_used, trial_tokens_used, current_period_tokens_used, created_at')
+      .order('created_at', { ascending: false })
+
+    if (error !== null) {
+      throw new RemoteError('gateway/internal', `Erro ao listar tenants: ${error.message}`, {})
+    }
+
+    return (data || []).map(t => ({
+      id: t.id,
+      name: t.name,
+      slug: t.slug,
+      status: t.status,
+      subscription_status: t.subscription_status || 'trialing',
+      plan_id: t.plan_id ?? null,
+      trial_ends_at: t.trial_ends_at ?? null,
+      trial_used: Boolean(t.trial_used),
+      trial_tokens_used: Number(t.trial_tokens_used ?? 0),
+      current_period_tokens_used: Number(t.current_period_tokens_used ?? 0),
+      created_at: t.created_at,
+    }))
+  }
+
+  /**
+   * Fetch token consumption metrics, trial status, and plan allowances for a tenant.
+   * Regular members query their own tenant; administrators may query any tenant.
+   */
+  @RemoteScope('auth', 'getTenantMetrics')
+  async getTenantMetrics(request?: { tenantId?: string }): Promise<TenantMetricsView> {
+    const identity = this.ctx.authIdentity
+    if (identity === undefined) {
+      throw new RemoteError('settings/unauthorized', 'Autenticação necessária para consultar métricas.', {})
+    }
+
+    let targetTenantId = identity.tenantId
+    if (request?.tenantId !== undefined && request.tenantId !== identity.tenantId) {
+      if (identity.role !== 'owner' && identity.role !== 'admin') {
+        throw new RemoteError('settings/forbidden', 'Acesso negado: impossível consultar métricas de outro tenant.', { ns: 'metrics' })
+      }
+      targetTenantId = request.tenantId
+    }
+
+    const { data: tenant, error: tenantErr } = await supabaseAdminClient
+      .from('tenants')
+      .select('id, subscription_status, plan_id, trial_ends_at, trial_used, trial_tokens_used, current_period_tokens_used')
+      .eq('id', targetTenantId)
+      .single()
+
+    if (tenantErr !== null || tenant === null) {
+      throw new RemoteError('gateway/bad-request', `Tenant não encontrado: ${targetTenantId}`, {})
+    }
+
+    let planData: TenantPlanDetails | null = null
+    if (tenant.plan_id) {
+      const { data: plan } = await supabaseAdminClient
+        .from('plans')
+        .select('id, name, slug, monthly_price_cents, annual_price_cents, token_limit_input, token_limit_output, max_workspaces, max_sessions, storage_gb, ai_tier')
+        .eq('id', tenant.plan_id)
+        .single()
+      if (plan) {
+        planData = plan
+      }
+    }
+
+    const trialEndsAt = tenant.trial_ends_at ? new Date(tenant.trial_ends_at) : null
+    const now = new Date()
+    const daysLeft = trialEndsAt ? Math.max(0, Math.ceil((trialEndsAt.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))) : 0
+    const maxTrialTokens = 1000000
+    const trialTokensUsed = Number(tenant.trial_tokens_used ?? 0)
+    const isExpired = tenant.subscription_status === 'trial_expired' || (trialEndsAt !== null && trialEndsAt < now) || trialTokensUsed >= maxTrialTokens
+
+    const totalLimit = (Number(planData?.token_limit_input ?? 0) + Number(planData?.token_limit_output ?? 0)) || 3000000
+
+    return {
+      tenantId: tenant.id,
+      subscriptionStatus: tenant.subscription_status || 'trialing',
+      plan: planData,
+      trial: {
+        trialEndsAt: tenant.trial_ends_at ?? null,
+        trialUsed: Boolean(tenant.trial_used),
+        trialTokensUsed,
+        maxTrialTokens,
+        isExpired,
+        daysLeft,
+      },
+      usage: {
+        currentPeriodTokensUsed: Number(tenant.current_period_tokens_used ?? 0),
+        totalTokensLimit: totalLimit,
+      },
+    }
+  }
+
+  /**
+   * Query the tenant audit trail. Restricted to administrators.
+   */
+  @RemoteScope('auth', 'listAuditLogs')
+  async listAuditLogs(request?: AuditLogQueryRequest): Promise<AuditLogView[]> {
+    assertAdminOrOwnerAuth(this.ctx, 'consultar logs de auditoria')
+    const limit = Math.min(request?.limit ?? 50, 100)
+    const offset = request?.offset ?? 0
+
+    let query = supabaseAdminClient
+      .from('audit_logs')
+      .select('id, tenant_id, user_id, action, resource_type, resource_id, old_value, new_value, ip_address, user_agent, created_at')
+      .order('created_at', { ascending: false })
+      .range(offset, offset + limit - 1)
+
+    if (request?.tenantId) {
+      query = query.eq('tenant_id', request.tenantId)
+    }
+    if (request?.action) {
+      query = query.eq('action', request.action)
+    }
+
+    const { data, error } = await query
+    if (error !== null) {
+      throw new RemoteError('gateway/internal', `Erro ao buscar logs de auditoria: ${error.message}`, {})
+    }
+
+    return (data || []).map(row => ({
+      id: row.id,
+      tenantId: row.tenant_id,
+      userId: row.user_id,
+      action: row.action,
+      resourceType: row.resource_type,
+      resourceId: row.resource_id,
+      oldValue: row.old_value,
+      newValue: row.new_value,
+      ipAddress: row.ip_address,
+      userAgent: row.user_agent,
+      createdAt: row.created_at,
+    }))
+  }
+
+  /**
+   * Record an action into the audit trail.
+   */
+  @RemoteScope('auth', 'recordAuditLog')
+  async recordAuditLog(request: AuditLogRecordRequest): Promise<{ recorded: true; id: string }> {
+    const identity = this.ctx.authIdentity
+    if (identity === undefined) {
+      throw new RemoteError('settings/unauthorized', 'Autenticação necessária para registrar auditoria.', {})
+    }
+
+    const { data, error } = await supabaseAdminClient
+      .from('audit_logs')
+      .insert([
+        {
+          tenant_id: identity.tenantId,
+          user_id: identity.userId,
+          action: request.action,
+          resource_type: request.resourceType ?? null,
+          resource_id: request.resourceId ?? null,
+          old_value: (request.oldValue as unknown) ?? null,
+          new_value: (request.newValue as unknown) ?? null,
+        },
+      ])
+      .select('id')
+      .single()
+
+    if (error !== null) {
+      throw new RemoteError('gateway/internal', `Erro ao gravar log de auditoria: ${error.message}`, {})
+    }
+
+    return { recorded: true, id: data.id }
+  }
+
+  /**
+   * Increment token usage for the caller's tenant via the atomic database RPC.
+   */
+  @RemoteScope('auth', 'recordTokenUsage')
+  async recordTokenUsage(request: TokenUsageRecordRequest): Promise<TokenUsageRecordValue> {
+    const identity = this.ctx.authIdentity
+    if (identity === undefined) {
+      throw new RemoteError('settings/unauthorized', 'Autenticação necessária para registrar consumo.', {})
+    }
+
+    let targetTenantId = identity.tenantId
+    if (request.tenantId && request.tenantId !== identity.tenantId) {
+      if (identity.role !== 'owner' && identity.role !== 'admin') {
+        throw new RemoteError('settings/forbidden', 'Não autorizado: impossível alterar consumo de outro tenant.', { ns: 'usage' })
+      }
+      targetTenantId = request.tenantId
+    }
+
+    if (!Number.isFinite(request.tokens) || request.tokens <= 0) {
+      throw new RemoteError('gateway/bad-request', 'Quantidade de tokens deve ser um número positivo.', {})
+    }
+
+    const { error } = await supabaseAdminClient.rpc('increment_tenant_token_usage', {
+      p_tenant_id: targetTenantId,
+      p_tokens: Math.round(request.tokens),
+    })
+
+    if (error !== null) {
+      throw new RemoteError('gateway/internal', `Erro ao registrar consumo de tokens: ${error.message}`, {})
+    }
+
+    return {
+      recorded: true,
+      tenantId: targetTenantId,
+      tokensAdded: Math.round(request.tokens),
     }
   }
 

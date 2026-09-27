@@ -7,13 +7,13 @@
 
 :root {
   /* Brand colors (DeepSeek / CopyMonster official blue) */
-  --cm-auth-primary: var(--dsw-static-deepseek-500, #4176e6);
-  --cm-auth-primary-hover: var(--dsw-static-deepseek-400, #5686fe);
-  --cm-auth-primary-active: var(--dsw-static-deepseek-600, #345ebd);
-  --cm-auth-primary-focus-ring: rgba(65, 118, 230, 0.2);
+  --cm-auth-primary: var(--dsw-static-deepseek-500, #D8AE5F);
+  --cm-auth-primary-hover: var(--dsw-static-deepseek-400, #E7BF73);
+  --cm-auth-primary-active: var(--dsw-static-deepseek-600, #B0955E);
+  --cm-auth-primary-focus-ring: rgba(216, 174, 95, 0.2);
 
   /* Backgrounds & surfaces */
-  --cm-auth-bg: var(--dsw-static-neutral-bluish-60, #f5f6f7);
+  --cm-auth-bg: var(--dsw-static-neutral-bluish-60, #FBF0DA);
   --cm-auth-card-bg: var(--dsw-static-neutral-bluish-00, #ffffff);
   --cm-auth-card-border: var(--dsw-static-neutral-bluish-150, #e2e6eb);
 
@@ -43,7 +43,7 @@
   :root {
     --cm-auth-primary: var(--dsw-static-deepseek-400, #679efe);
     --cm-auth-primary-hover: var(--dsw-static-deepseek-300, #8db5fe);
-    --cm-auth-primary-active: var(--dsw-static-deepseek-500, #4176e6);
+    --cm-auth-primary-active: var(--dsw-static-deepseek-500, #D8AE5F);
     --cm-auth-primary-focus-ring: rgba(103, 158, 254, 0.25);
 
     --cm-auth-bg: var(--dsw-static-neutral-bluish-950, #151517);

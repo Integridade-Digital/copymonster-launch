@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase/client'
 
 interface Tenant {
@@ -77,6 +78,24 @@ export function AdminTenantsPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
+      {/* Navigation Tabs */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="-mb-px flex space-x-8">
+          <Link
+            to="/admin"
+            className="border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+          >
+            🏢 Gestão de Tenants
+          </Link>
+          <Link
+            to="/admin/audit"
+            className="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+          >
+            📜 Trilha de Auditoria
+          </Link>
+        </nav>
+      </div>
+
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-900">Gestão de Tenants</h1>
         <button

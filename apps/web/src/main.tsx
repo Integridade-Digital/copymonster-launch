@@ -11,6 +11,7 @@ import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { AdminTenantsPage } from './pages/admin/AdminTenantsPage'
+import { AdminAuditPage } from './pages/admin/AdminAuditPage'
 import { PlansPage } from './pages/billing/PlansPage'
 import { BillingSuccessPage } from './pages/billing/BillingSuccessPage'
 import { BillingCancelPage } from './pages/billing/BillingCancelPage'
@@ -293,6 +294,20 @@ function AppRoutes() {
             <RoleGate allowedRoles={['owner', 'admin']} fallback={<Navigate to="/" replace />}>
               <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
                 <AdminTenantsPage />
+              </div>
+            </RoleGate>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Rota Protegida - Painel Administrativo de Auditoria (owner/admin) */}
+      <Route
+        path="/admin/audit"
+        element={
+          <ProtectedRoute>
+            <RoleGate allowedRoles={['owner', 'admin']} fallback={<Navigate to="/" replace />}>
+              <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
+                <AdminAuditPage />
               </div>
             </RoleGate>
           </ProtectedRoute>

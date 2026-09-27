@@ -80,6 +80,48 @@ export interface Database {
         };
         Relationships: [];
       };
+      audit_logs: {
+        Row: {
+          id: string;
+          tenant_id: string | null;
+          user_id: string | null;
+          action: string;
+          resource_type: string | null;
+          resource_id: string | null;
+          old_value: any | null;
+          new_value: any | null;
+          ip_address: string | null;
+          user_agent: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          tenant_id?: string | null;
+          user_id?: string | null;
+          action: string;
+          resource_type?: string | null;
+          resource_id?: string | null;
+          old_value?: any | null;
+          new_value?: any | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          tenant_id?: string | null;
+          user_id?: string | null;
+          action?: string;
+          resource_type?: string | null;
+          resource_id?: string | null;
+          old_value?: any | null;
+          new_value?: any | null;
+          ip_address?: string | null;
+          user_agent?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       plans: {
         Row: {
           id: string;

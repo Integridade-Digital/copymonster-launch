@@ -74,3 +74,8 @@ nbproject/
 ehthumbs.db
 Thumbs.db
 Icon?
+backups/
+lib/
+
+# Build outputs (per-package)
+lib/

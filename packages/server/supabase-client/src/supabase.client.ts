@@ -13,9 +13,11 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import { DEFAULT_TENANT_SLUG } from '@deepseek-ai/dsh-constants'
 import type { Database } from './supabase.types.ts'
 
-const SUPABASE_URL = process.env.SUPABASE_URL
-const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY
-const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY
+const isTest = Boolean(process.env.VITEST || process.env.NODE_ENV === 'test')
+
+const SUPABASE_URL = process.env.SUPABASE_URL ?? (isTest ? 'https://placeholder.supabase.co' : undefined)
+const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY ?? (isTest ? 'placeholder-anon-key' : undefined)
+const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY ?? (isTest ? 'placeholder-service-role-key' : undefined)
 
 if (SUPABASE_URL === undefined || SUPABASE_URL === '') {
   throw new Error('supabase-client: SUPABASE_URL is required')

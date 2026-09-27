@@ -33,6 +33,12 @@ export interface Database {
           current_period_end: string | null
           plan_id: string | null
           usage_data: Json
+          trial_ends_at?: string | null
+          trial_used?: boolean
+          trial_tokens_used?: number
+          current_period_tokens_used?: number
+          subscription_interval?: string | null
+          cancel_at_period_end?: boolean | null
         }
         Insert: {
           id?: string
@@ -48,6 +54,12 @@ export interface Database {
           current_period_end?: string | null
           plan_id?: string | null
           usage_data?: Json
+          trial_ends_at?: string | null
+          trial_used?: boolean
+          trial_tokens_used?: number
+          current_period_tokens_used?: number
+          subscription_interval?: string | null
+          cancel_at_period_end?: boolean | null
         }
         Update: {
           id?: string
@@ -63,6 +75,12 @@ export interface Database {
           current_period_end?: string | null
           plan_id?: string | null
           usage_data?: Json
+          trial_ends_at?: string | null
+          trial_used?: boolean
+          trial_tokens_used?: number
+          current_period_tokens_used?: number
+          subscription_interval?: string | null
+          cancel_at_period_end?: boolean | null
         }
         Relationships: []
       }
@@ -123,7 +141,7 @@ export interface Database {
           id?: string
           user_id?: string
           tenant_id?: string
-          role?: 'owner' | 'admin' | 'member' | 'anonymous'
+          role: 'owner' | 'admin' | 'member' | 'anonymous'
           created_at?: string
           updated_at?: string
         }
@@ -167,6 +185,16 @@ export interface Database {
           price_cents: number
           currency: string
           stripe_price_id: string | null
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_annual?: string | null
+          monthly_price_cents?: number | null
+          annual_price_cents?: number | null
+          token_limit_input?: number | null
+          token_limit_output?: number | null
+          max_workspaces?: number | null
+          max_sessions?: number | null
+          storage_gb?: number | null
+          ai_tier?: string | null
           limits: Json
           features: string[]
           is_active: boolean
@@ -179,6 +207,16 @@ export interface Database {
           price_cents?: number
           currency?: string
           stripe_price_id?: string | null
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_annual?: string | null
+          monthly_price_cents?: number | null
+          annual_price_cents?: number | null
+          token_limit_input?: number | null
+          token_limit_output?: number | null
+          max_workspaces?: number | null
+          max_sessions?: number | null
+          storage_gb?: number | null
+          ai_tier?: string | null
           limits?: Json
           features?: string[]
           is_active?: boolean
@@ -191,9 +229,82 @@ export interface Database {
           price_cents?: number
           currency?: string
           stripe_price_id?: string | null
+          stripe_price_id_monthly?: string | null
+          stripe_price_id_annual?: string | null
+          monthly_price_cents?: number | null
+          annual_price_cents?: number | null
+          token_limit_input?: number | null
+          token_limit_output?: number | null
+          max_workspaces?: number | null
+          max_sessions?: number | null
+          storage_gb?: number | null
+          ai_tier?: string | null
           limits?: Json
           features?: string[]
           is_active?: boolean
+          created_at?: string
+        }
+        Relationships: []
+      }
+      audit_logs: {
+        Row: {
+          id: string
+          tenant_id: string | null
+          user_id: string | null
+          action: string
+          resource_type: string | null
+          resource_id: string | null
+          old_value: Json | null
+          new_value: Json | null
+          ip_address: string | null
+          user_agent: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          tenant_id?: string | null
+          user_id?: string | null
+          action: string
+          resource_type?: string | null
+          resource_id?: string | null
+          old_value?: Json | null
+          new_value?: Json | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          tenant_id?: string | null
+          user_id?: string | null
+          action?: string
+          resource_type?: string | null
+          resource_id?: string | null
+          old_value?: Json | null
+          new_value?: Json | null
+          ip_address?: string | null
+          user_agent?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      trial_rate_limits: {
+        Row: {
+          id: string
+          ip: string
+          tenant_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          ip: string
+          tenant_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          ip?: string
+          tenant_id?: string | null
           created_at?: string
         }
         Relationships: []
@@ -212,6 +323,13 @@ export interface Database {
       is_admin_or_owner: {
         Args: Record<string, never>
         Returns: boolean
+      }
+      increment_tenant_token_usage: {
+        Args: {
+          p_tenant_id: string
+          p_tokens: number
+        }
+        Returns: void
       }
     }
     Enums: Record<string, never>

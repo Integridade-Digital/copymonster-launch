@@ -1,3 +1,4 @@
+import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 /**
  * Browser-safe failure vocabulary of the configuration surfaces this package
  * serves. The redacted views themselves live with their seam in
@@ -72,14 +73,14 @@ export interface TenantPlanDetails {
   readonly id: string
   readonly name: string
   readonly slug: string
-  readonly monthly_price_cents?: number | null
-  readonly annual_price_cents?: number | null
-  readonly token_limit_input?: number | null
-  readonly token_limit_output?: number | null
-  readonly max_workspaces?: number | null
-  readonly max_sessions?: number | null
-  readonly storage_gb?: number | null
-  readonly ai_tier?: string | null
+  readonly monthly_price_cents?: number | null | undefined
+  readonly annual_price_cents?: number | null | undefined
+  readonly token_limit_input?: number | null | undefined
+  readonly token_limit_output?: number | null | undefined
+  readonly max_workspaces?: number | null | undefined
+  readonly max_sessions?: number | null | undefined
+  readonly storage_gb?: number | null | undefined
+  readonly ai_tier?: string | null | undefined
 }
 
 /** Real-time metrics view of token consumption and trial limits. */
@@ -109,8 +110,8 @@ export interface AuditLogView {
   readonly action: string
   readonly resourceType: string | null
   readonly resourceId: string | null
-  readonly oldValue: unknown
-  readonly newValue: unknown
+  readonly oldValue: JsonValue | null
+  readonly newValue: JsonValue | null
   readonly ipAddress: string | null
   readonly userAgent: string | null
   readonly createdAt: string
@@ -129,8 +130,8 @@ export interface AuditLogRecordRequest {
   readonly action: string
   readonly resourceType?: string
   readonly resourceId?: string
-  readonly oldValue?: unknown
-  readonly newValue?: unknown
+  readonly oldValue?: JsonValue | null
+  readonly newValue?: JsonValue | null
 }
 
 /** Request payload for recording incremental token consumption. */

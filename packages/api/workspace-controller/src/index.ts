@@ -56,7 +56,7 @@ export class WorkspaceController extends TypertRemoteService {
    * @param request - directory path to register.
    * @returns the Workspace and whether this call created it.
    */
-  @RemoteScope('auth', 'create')
+  @Remote('create')
   create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue> {
     return this.commands.create(request, this.ctx.authIdentity)
   }
@@ -76,7 +76,7 @@ export class WorkspaceController extends TypertRemoteService {
     return this.commands.ensureInitialWorkspace(this.ctx.authIdentity)
   }
 
-  @RemoteScope('auth', 'rename')
+  @Remote('rename')
   rename(request: WorkspaceRenameRequest): Promise<WorkspaceValue> {
     return this.commands.rename(request, this.ctx.authIdentity)
   }
@@ -86,7 +86,7 @@ export class WorkspaceController extends TypertRemoteService {
    * @param request - Workspace identity to remove.
    * @returns deletion confirmation.
    */
-  @RemoteScope('auth', 'delete')
+  @Remote('delete')
   delete(request: WorkspaceDeleteRequest): Promise<WorkspaceDeleteValue> {
     return this.commands.delete(request, this.ctx.authIdentity)
   }
@@ -96,7 +96,7 @@ export class WorkspaceController extends TypertRemoteService {
    * @param request - moved Workspace and optional anchor.
    * @returns the complete resulting Workspace order.
    */
-  @RemoteScope('auth', 'insertBefore')
+  @Remote('insertBefore')
   insertBefore(request: WorkspaceInsertBeforeRequest): Promise<WorkspaceOrderValue> {
     return this.commands.insertBefore(request)
   }
@@ -106,7 +106,7 @@ export class WorkspaceController extends TypertRemoteService {
    * @param request - Workspace, Session, and optional anchor identities.
    * @returns the updated Workspace projection.
    */
-  @RemoteScope('auth', 'insertSessionBefore')
+  @Remote('insertSessionBefore')
   insertSessionBefore(request: WorkspaceInsertSessionBeforeRequest): Promise<WorkspaceValue> {
     return this.commands.insertSessionBefore(request)
   }
@@ -116,7 +116,7 @@ export class WorkspaceController extends TypertRemoteService {
    * @param request - Session identity to archive.
    * @returns the complete resulting archive set.
    */
-  @RemoteScope('auth', 'archiveSession')
+  @Remote('archiveSession')
   archiveSession(request: WorkspaceArchiveSessionRequest): Promise<WorkspaceArchiveValue> {
     return this.commands.archiveSession(request)
   }
@@ -126,7 +126,7 @@ export class WorkspaceController extends TypertRemoteService {
    * @param request - Session identity to unarchive.
    * @returns the complete resulting archive set.
    */
-  @RemoteScope('auth', 'unarchiveSession')
+  @Remote('unarchiveSession')
   unarchiveSession(request: WorkspaceUnarchiveSessionRequest): Promise<WorkspaceArchiveValue> {
     return this.commands.unarchiveSession(request)
   }

@@ -25,7 +25,7 @@ import type {
 } from '@deepseek-ai/dsh-settings/types'
 import { Remote, RemoteScope, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
-import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
+import { supabaseAdminClient, type Json } from '@deepseek-ai/dsh-supabase-client'
 import { z } from 'zod'
 import { CredentialsController } from './credentials.ts'
 import type {
@@ -383,7 +383,19 @@ export class SettingsController extends TypertRemoteService {
         .eq('id', tenant.plan_id)
         .single()
       if (plan) {
-        planData = plan
+        planData = {
+          id: plan.id,
+          name: plan.name,
+          slug: plan.slug,
+          monthly_price_cents: plan.monthly_price_cents ?? null,
+          annual_price_cents: plan.annual_price_cents ?? null,
+          token_limit_input: plan.token_limit_input ?? null,
+          token_limit_output: plan.token_limit_output ?? null,
+          max_workspaces: plan.max_workspaces ?? null,
+          max_sessions: plan.max_sessions ?? null,
+          storage_gb: plan.storage_gb ?? null,
+          ai_tier: plan.ai_tier ?? null,
+        }
       }
     }
 
@@ -449,8 +461,8 @@ export class SettingsController extends TypertRemoteService {
       action: row.action,
       resourceType: row.resource_type,
       resourceId: row.resource_id,
-      oldValue: row.old_value,
-      newValue: row.new_value,
+      oldValue: (row.old_value ?? null) as unknown as JsonValue,
+      newValue: (row.new_value ?? null) as unknown as JsonValue,
       ipAddress: row.ip_address,
       userAgent: row.user_agent,
       createdAt: row.created_at,
@@ -476,8 +488,8 @@ export class SettingsController extends TypertRemoteService {
           action: request.action,
           resource_type: request.resourceType ?? null,
           resource_id: request.resourceId ?? null,
-          old_value: (request.oldValue as unknown) ?? null,
-          new_value: (request.newValue as unknown) ?? null,
+          old_value: (request.oldValue ?? null) as unknown as Json,
+          new_value: (request.newValue ?? null) as unknown as Json,
         },
       ])
       .select('id')

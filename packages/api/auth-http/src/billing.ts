@@ -7,7 +7,7 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import crypto from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
-import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
+import { supabaseAdminClient, type Database } from '@deepseek-ai/dsh-supabase-client'
 import { BEARER_PREFIX } from '@deepseek-ai/dsh-constants'
 
 const STRIPE_API_BASE = 'https://api.stripe.com/v1'
@@ -30,7 +30,7 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
 export function readRawBody(req: IncomingMessage): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = []
-    req.on('data', chunk => {
+    req.on('data', (chunk) => {
       chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
     })
     req.on('end', () => resolve(Buffer.concat(chunks)))
@@ -42,8 +42,8 @@ export function readRawBody(req: IncomingMessage): Promise<Buffer> {
 async function callStripe(
   endpoint: string,
   params: Record<string, string | number | boolean | undefined>,
-  stripeKey: string
-): Promise<any> {
+  stripeKey: string,
+): Promise<Record<string, unknown>> {
   const formBody: string[] = []
   for (const [key, val] of Object.entries(params)) {
     if (val !== undefined) {
@@ -75,7 +75,7 @@ export function verifyStripeSignature(
   rawBody: Buffer,
   signatureHeader: string,
   webhookSecret: string,
-  toleranceSeconds = 300
+  toleranceSeconds = 300,
 ): boolean {
   try {
     const parts = signatureHeader.split(',')
@@ -142,7 +142,7 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
     return
   }
 
-  let body: any
+  let body: Record<string, unknown> = {}
   try {
     const raw = await readRawBody(req)
     body = JSON.parse(raw.toString('utf8'))
@@ -182,7 +182,7 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
 
       await supabaseAdminClient
         .from('tenants')
-        .update({ stripe_customer_id: customerId })
+        .update({ stripe_customer_id: customer.id as string })
         .eq('id', identity.tenantId)
     }
 
@@ -193,7 +193,7 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
 
     // 2. Create Checkout Session
     const session = await callStripe('/checkout/sessions', {
-      customer: customerId,
+      customer: customerId ?? undefined,
       mode: 'subscription',
       'payment_method_types[0]': 'card',
       'line_items[0][price]': priceId,
@@ -206,8 +206,9 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
     }, stripeKey)
 
     sendJson(res, 200, { url: session.url, sessionId: session.id })
-  } catch (err: any) {
-    sendJson(res, 500, { error: err.message || 'failed_to_create_checkout_session' })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    sendJson(res, 500, { error: message || 'failed_to_create_checkout_session' })
   }
 }
 
@@ -238,7 +239,7 @@ export async function handlePortal(ctx: Context, req: IncomingMessage, res: Serv
     return
   }
 
-  let body: any = {}
+  let body: Record<string, unknown> = {}
   try {
     const raw = await readRawBody(req)
     if (raw.length > 0) body = JSON.parse(raw.toString('utf8'))
@@ -268,8 +269,9 @@ export async function handlePortal(ctx: Context, req: IncomingMessage, res: Serv
     }, stripeKey)
 
     sendJson(res, 200, { url: portal.url })
-  } catch (err: any) {
-    sendJson(res, 500, { error: err.message || 'failed_to_create_portal_session' })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    sendJson(res, 500, { error: message || 'failed_to_create_portal_session' })
   }
 }
 
@@ -294,7 +296,7 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
     }
   }
 
-  let event: any
+  let event: Record<string, unknown> = {}
   try {
     event = JSON.parse(rawBody.toString('utf8'))
   } catch {
@@ -343,7 +345,7 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
           if (matchedPlan) planId = matchedPlan.id
         }
 
-        const updates: Record<string, any> = {
+        const updates: Database['public']['Tables']['tenants']['Update'] = {
           subscription_status: status,
           cancel_at_period_end: cancelAtPeriodEnd,
           subscription_interval: interval,
@@ -403,7 +405,8 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
     }
 
     sendJson(res, 200, { received: true })
-  } catch (err: any) {
-    sendJson(res, 500, { error: err.message || 'webhook_processing_failed' })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    sendJson(res, 500, { error: message || 'webhook_processing_failed' })
   }
 }

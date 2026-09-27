@@ -2,6 +2,8 @@ import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 import { Readable } from 'node:stream'
 import crypto from 'node:crypto'
 import type { IncomingMessage, ServerResponse } from 'node:http'
+import type { Context } from '@deepseek-ai/cordis'
+import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context/types'
 import {
   handleCheckout,
   handlePortal,
@@ -48,20 +50,20 @@ function createMockReq(options: {
 
 interface MockResponse extends ServerResponse {
   statusCode: number
-  headers: Record<string, unknown>
+  headers: Record<string, string>
   body: string
-  json: () => unknown
+  json: () => Record<string, unknown> | null
 }
 
 function createMockRes(): MockResponse {
-  const headers: Record<string, unknown> = {}
+  const headers: Record<string, string> = {}
   let body = ''
 
   const res = {
     statusCode: 200,
     headers,
     body: '',
-    writeHead: vi.fn((status: number, hdrs?: Record<string, unknown>) => {
+    writeHead: vi.fn((status: number, hdrs?: Record<string, string>) => {
       res.statusCode = status
       if (hdrs) Object.assign(headers, hdrs)
     }),
@@ -71,10 +73,21 @@ function createMockRes(): MockResponse {
         res.body = body
       }
     }),
-    json: () => (body ? JSON.parse(body) : null),
+    json: (): Record<string, unknown> | null => (body ? JSON.parse(body) : null),
   }
 
   return res as unknown as MockResponse
+}
+
+/** Build a complete identity, overriding only the fields a case cares about. */
+function identity(overrides: Partial<UserIdentity> = {}): UserIdentity {
+  return {
+    userId: 'user-1',
+    tenantId: 'tenant-1',
+    role: 'owner',
+    email: 'user@copymonster.ai',
+    ...overrides,
+  }
 }
 
 function generateStripeSignature(payload: string | Buffer, secret: string, timestamp?: number): string {
@@ -86,16 +99,14 @@ function generateStripeSignature(payload: string | Buffer, secret: string, times
 
 describe('Stripe Billing & Webhooks Integration Tests', () => {
   const originalEnv = process.env
-  let mockContext: unknown
+  const resolveIdentity = vi.fn<[token: string], Promise<UserIdentity | undefined>>()
+  let mockContext: Context
   let originalFetch: typeof globalThis.fetch
 
   beforeEach(() => {
     process.env = { ...originalEnv }
-    mockContext = {
-      auth: {
-        resolveIdentity: vi.fn(),
-      },
-    }
+    resolveIdentity.mockReset()
+    mockContext = { auth: { resolveIdentity } } as unknown as Context
     originalFetch = globalThis.fetch
     vi.clearAllMocks()
   })
@@ -177,7 +188,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
     })
 
     it('should reject invalid identity with 401', async () => {
-      mockContext.auth.resolveIdentity.mockResolvedValue(null)
+      resolveIdentity.mockResolvedValue(undefined)
       const req = createMockReq({
         method: 'POST',
         headers: { authorization: 'Bearer invalid_token' },
@@ -190,10 +201,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
 
     it('should return 500 if STRIPE_SECRET_KEY is missing', async () => {
       delete process.env.STRIPE_SECRET_KEY
-      mockContext.auth.resolveIdentity.mockResolvedValue({
-        tenantId: 'tenant-1',
-        userId: 'user-1',
-      })
+      resolveIdentity.mockResolvedValue(identity())
       const req = createMockReq({
         method: 'POST',
         headers: { authorization: 'Bearer valid_token' },
@@ -205,10 +213,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
     })
 
     it('should reject invalid json body with 400', async () => {
-      mockContext.auth.resolveIdentity.mockResolvedValue({
-        tenantId: 'tenant-1',
-        userId: 'user-1',
-      })
+      resolveIdentity.mockResolvedValue(identity())
       const req = createMockReq({
         method: 'POST',
         headers: { authorization: 'Bearer valid_token' },
@@ -221,10 +226,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
     })
 
     it('should reject missing priceId with 400', async () => {
-      mockContext.auth.resolveIdentity.mockResolvedValue({
-        tenantId: 'tenant-1',
-        userId: 'user-1',
-      })
+      resolveIdentity.mockResolvedValue(identity())
       const req = createMockReq({
         method: 'POST',
         headers: { authorization: 'Bearer valid_token' },
@@ -237,10 +239,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
     })
 
     it('should return 404 if tenant is not found in Supabase', async () => {
-      mockContext.auth.resolveIdentity.mockResolvedValue({
-        tenantId: 'tenant-nonexistent',
-        userId: 'user-1',
-      })
+      resolveIdentity.mockResolvedValue(identity({ tenantId: 'tenant-nonexistent' }))
 
       const mockQueryBuilder = {
         select: vi.fn().mockReturnThis(),
@@ -261,12 +260,11 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
     })
 
     it('should create Stripe customer if not present and create checkout session', async () => {
-      mockContext.auth.resolveIdentity.mockResolvedValue({
+      resolveIdentity.mockResolvedValue(identity({
         tenantId: 'tenant-123',
         userId: 'user-123',
-        email: 'user@copymonster.ai',
         fullName: 'Adriano Vieira',
-      })
+      }))
 
       // Supabase mock: tenant has no stripe_customer_id initially
       const mockTenantSelect = {
@@ -297,7 +295,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       // Mock Stripe API calls
       const fetchCalls: Array<{ url: string; body: string }> = []
       globalThis.fetch = vi.fn().mockImplementation(async (url: string, init?: { body?: string; headers?: Record<string, string> }) => {
-        fetchCalls.push({ url, body: init.body })
+        fetchCalls.push({ url, body: init?.body ?? '' })
         if (url.endsWith('/customers')) {
           return {
             ok: true,
@@ -348,10 +346,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
     })
 
     it('should reuse existing stripe_customer_id if already saved on tenant', async () => {
-      mockContext.auth.resolveIdentity.mockResolvedValue({
-        tenantId: 'tenant-123',
-        userId: 'user-123',
-      })
+      resolveIdentity.mockResolvedValue(identity({ tenantId: 'tenant-123', userId: 'user-123' }))
 
       mockSupabase.from.mockReturnValue({
         select: vi.fn().mockReturnThis(),
@@ -386,7 +381,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       await handleCheckout(mockContext, req, res)
 
       expect(res.statusCode).toBe(200)
-      expect(res.json().sessionId).toBe('cs_existing_customer_session')
+      expect(res.json()?.sessionId).toBe('cs_existing_customer_session')
       // Customer creation should NOT have been called
       expect(globalThis.fetch).toHaveBeenCalledTimes(1)
     })
@@ -414,10 +409,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
     })
 
     it('should return 400 if tenant has no stripe_customer_id', async () => {
-      mockContext.auth.resolveIdentity.mockResolvedValue({
-        tenantId: 'tenant-no-billing',
-        userId: 'user-1',
-      })
+      resolveIdentity.mockResolvedValue(identity({ tenantId: 'tenant-no-billing' }))
 
       mockSupabase.from.mockReturnValue({
         select: vi.fn().mockReturnThis(),
@@ -439,10 +431,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
     })
 
     it('should create billing portal session for customer and return portal URL', async () => {
-      mockContext.auth.resolveIdentity.mockResolvedValue({
-        tenantId: 'tenant-billing',
-        userId: 'user-1',
-      })
+      resolveIdentity.mockResolvedValue(identity({ tenantId: 'tenant-billing' }))
 
       mockSupabase.from.mockReturnValue({
         select: vi.fn().mockReturnThis(),
@@ -455,7 +444,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
 
       globalThis.fetch = vi.fn().mockImplementation(async (url: string, init?: { body?: string; headers?: Record<string, string> }) => {
         expect(url).toContain('/billing_portal/sessions')
-        expect(init.body).toContain('customer=cus_registered_777')
+        expect(init?.body).toContain('customer=cus_registered_777')
         return {
           ok: true,
           status: 200,

@@ -38,6 +38,57 @@ export function readRawBody(req: IncomingMessage): Promise<Buffer> {
   })
 }
 
+/**
+ * Narrow one parsed JSON value to a JSON object.
+ * @param value - a value read from a parsed request or webhook payload.
+ * @returns the value as an object, or an empty object when it is not one.
+ */
+function asObject(value: unknown): Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {}
+}
+
+/** Read a nested JSON object from a parsed payload. */
+function objectField(source: Record<string, unknown>, key: string): Record<string, unknown> {
+  return asObject(source[key])
+}
+
+/** Read a nested JSON array from a parsed payload. */
+function arrayField(source: Record<string, unknown>, key: string): unknown[] {
+  const value = source[key]
+  return Array.isArray(value) ? value : []
+}
+
+/** Read a non-empty string field from a parsed payload. */
+function optionalString(source: Record<string, unknown>, key: string): string | undefined {
+  const value = source[key]
+  return typeof value === 'string' && value !== '' ? value : undefined
+}
+
+/** Read a boolean field from a parsed payload. */
+function optionalBoolean(source: Record<string, unknown>, key: string): boolean | undefined {
+  const value = source[key]
+  return typeof value === 'boolean' ? value : undefined
+}
+
+/**
+ * Parse a request body as a JSON object.
+ * @param raw - the raw request body.
+ * @returns the parsed object, or undefined when the body is empty, malformed, or not a JSON object.
+ */
+function parseJsonObject(raw: Buffer): Record<string, unknown> | undefined {
+  if (raw.length === 0) return undefined
+  let parsed: unknown
+  try {
+    parsed = JSON.parse(raw.toString('utf8')) as unknown
+  } catch {
+    return undefined
+  }
+  if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) return undefined
+  return parsed as Record<string, unknown>
+}
+
 /** Helper to make authenticated requests to Stripe REST API. */
 async function callStripe(
   endpoint: string,
@@ -142,17 +193,14 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
     return
   }
 
-  let body: Record<string, unknown> = {}
-  try {
-    const raw = await readRawBody(req)
-    body = JSON.parse(raw.toString('utf8'))
-  } catch {
+  const body = parseJsonObject(await readRawBody(req))
+  if (body === undefined) {
     sendJson(res, 400, { error: 'invalid_json_body' })
     return
   }
 
-  const { priceId, successUrl, cancelUrl } = body
-  if (!priceId || typeof priceId !== 'string') {
+  const priceId = optionalString(body, 'priceId')
+  if (priceId === undefined) {
     sendJson(res, 400, { error: 'missing_price_id' })
     return
   }
@@ -178,11 +226,16 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
         'metadata[tenant_id]': identity.tenantId,
         'metadata[user_id]': identity.userId,
       }, stripeKey)
-      customerId = customer.id
+      const createdCustomerId = optionalString(customer, 'id')
+      if (createdCustomerId === undefined) {
+        sendJson(res, 502, { error: 'stripe_customer_id_missing' })
+        return
+      }
+      customerId = createdCustomerId
 
       await supabaseAdminClient
         .from('tenants')
-        .update({ stripe_customer_id: customer.id as string })
+        .update({ stripe_customer_id: createdCustomerId })
         .eq('id', identity.tenantId)
     }
 
@@ -193,13 +246,13 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
 
     // 2. Create Checkout Session
     const session = await callStripe('/checkout/sessions', {
-      customer: customerId ?? undefined,
+      customer: customerId,
       mode: 'subscription',
       'payment_method_types[0]': 'card',
       'line_items[0][price]': priceId,
       'line_items[0][quantity]': 1,
-      success_url: successUrl || defaultSuccess,
-      cancel_url: cancelUrl || defaultCancel,
+      success_url: optionalString(body, 'successUrl') ?? defaultSuccess,
+      cancel_url: optionalString(body, 'cancelUrl') ?? defaultCancel,
       'metadata[tenant_id]': identity.tenantId,
       'metadata[user_id]': identity.userId,
       'subscription_data[metadata][tenant_id]': identity.tenantId,
@@ -239,13 +292,7 @@ export async function handlePortal(ctx: Context, req: IncomingMessage, res: Serv
     return
   }
 
-  let body: Record<string, unknown> = {}
-  try {
-    const raw = await readRawBody(req)
-    if (raw.length > 0) body = JSON.parse(raw.toString('utf8'))
-  } catch {
-    // optional body
-  }
+  const body = parseJsonObject(await readRawBody(req)) ?? {}
 
   try {
     const { data: tenant, error: tenantErr } = await supabaseAdminClient
@@ -265,7 +312,7 @@ export async function handlePortal(ctx: Context, req: IncomingMessage, res: Serv
 
     const portal = await callStripe('/billing_portal/sessions', {
       customer: tenant.stripe_customer_id,
-      return_url: body.returnUrl || defaultReturn,
+      return_url: optionalString(body, 'returnUrl') ?? defaultReturn,
     }, stripeKey)
 
     sendJson(res, 200, { url: portal.url })
@@ -296,28 +343,27 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
     }
   }
 
-  let event: Record<string, unknown> = {}
-  try {
-    event = JSON.parse(rawBody.toString('utf8'))
-  } catch {
+  const payload = parseJsonObject(rawBody)
+  if (payload === undefined) {
     sendJson(res, 400, { error: 'invalid_payload' })
     return
   }
+  const object = objectField(objectField(payload, 'data'), 'object')
+  const eventType = optionalString(payload, 'type') ?? ''
 
   try {
-    switch (event.type) {
+    switch (eventType) {
       case 'checkout.session.completed': {
-        const session = event.data.object
-        const tenantId = session.metadata?.tenant_id || session.subscription_data?.metadata?.tenant_id
-        const customerId = session.customer
-        const subscriptionId = session.subscription
+        const subscriptionData = objectField(object, 'subscription_data')
+        const tenantId = optionalString(objectField(object, 'metadata'), 'tenant_id')
+          ?? optionalString(objectField(subscriptionData, 'metadata'), 'tenant_id')
 
-        if (tenantId) {
+        if (tenantId !== undefined) {
           await supabaseAdminClient
             .from('tenants')
             .update({
-              stripe_customer_id: customerId,
-              stripe_subscription_id: subscriptionId,
+              stripe_customer_id: optionalString(object, 'customer') ?? null,
+              stripe_subscription_id: optionalString(object, 'subscription') ?? null,
               subscription_status: 'active',
               trial_used: true,
               updated_at: new Date().toISOString(),
@@ -328,15 +374,12 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
       }
 
       case 'customer.subscription.updated': {
-        const sub = event.data.object
-        const customerId = sub.customer
-        const status = sub.status
-        const cancelAtPeriodEnd = sub.cancel_at_period_end
-        const interval = sub.items?.data?.[0]?.price?.recurring?.interval || 'month'
-        const priceId = sub.items?.data?.[0]?.price?.id
+        const [firstItem] = arrayField(objectField(object, 'items'), 'data')
+        const price = objectField(asObject(firstItem), 'price')
+        const priceId = optionalString(price, 'id')
 
         let planId: string | undefined
-        if (priceId) {
+        if (priceId !== undefined) {
           const { data: matchedPlan } = await supabaseAdminClient
             .from('plans')
             .select('id')
@@ -346,39 +389,44 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
         }
 
         const updates: Database['public']['Tables']['tenants']['Update'] = {
-          subscription_status: status,
-          cancel_at_period_end: cancelAtPeriodEnd,
-          subscription_interval: interval,
           updated_at: new Date().toISOString(),
         }
-        if (planId) updates.plan_id = planId
+        const status = optionalString(object, 'status')
+        if (status !== undefined) updates.subscription_status = status
+        const cancelAtPeriodEnd = optionalBoolean(object, 'cancel_at_period_end')
+        if (cancelAtPeriodEnd !== undefined) updates.cancel_at_period_end = cancelAtPeriodEnd
+        const interval = optionalString(objectField(price, 'recurring'), 'interval')
+        if (interval !== undefined) updates.subscription_interval = interval
+        if (planId !== undefined) updates.plan_id = planId
 
-        await supabaseAdminClient
-          .from('tenants')
-          .update(updates)
-          .eq('stripe_customer_id', customerId)
+        const customerId = optionalString(object, 'customer')
+        if (customerId !== undefined) {
+          await supabaseAdminClient
+            .from('tenants')
+            .update(updates)
+            .eq('stripe_customer_id', customerId)
+        }
         break
       }
 
       case 'customer.subscription.deleted': {
-        const sub = event.data.object
-        const customerId = sub.customer
-
-        await supabaseAdminClient
-          .from('tenants')
-          .update({
-            subscription_status: 'canceled',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('stripe_customer_id', customerId)
+        const customerId = optionalString(object, 'customer')
+        if (customerId !== undefined) {
+          await supabaseAdminClient
+            .from('tenants')
+            .update({
+              subscription_status: 'canceled',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('stripe_customer_id', customerId)
+        }
         break
       }
 
       case 'invoice.payment_succeeded': {
-        const invoice = event.data.object
         // On recurring subscription cycle renewal, reset current cycle token meter
-        if (invoice.billing_reason === 'subscription_cycle') {
-          const customerId = invoice.customer
+        const customerId = optionalString(object, 'customer')
+        if (optionalString(object, 'billing_reason') === 'subscription_cycle' && customerId !== undefined) {
           await supabaseAdminClient
             .from('tenants')
             .update({
@@ -391,17 +439,22 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
       }
 
       case 'invoice.payment_failed': {
-        const invoice = event.data.object
-        const customerId = invoice.customer
-        await supabaseAdminClient
-          .from('tenants')
-          .update({
-            subscription_status: 'past_due',
-            updated_at: new Date().toISOString(),
-          })
-          .eq('stripe_customer_id', customerId)
+        const customerId = optionalString(object, 'customer')
+        if (customerId !== undefined) {
+          await supabaseAdminClient
+            .from('tenants')
+            .update({
+              subscription_status: 'past_due',
+              updated_at: new Date().toISOString(),
+            })
+            .eq('stripe_customer_id', customerId)
+        }
         break
       }
+
+      default:
+        // Event types this handler does not act on are acknowledged so Stripe stops retrying them.
+        break
     }
 
     sendJson(res, 200, { received: true })

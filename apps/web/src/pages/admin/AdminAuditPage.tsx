@@ -9,11 +9,23 @@ interface AuditLog {
   action: string
   resource_type: string | null
   resource_id: string | null
-  old_value: unknown | null
-  new_value: unknown | null
+  old_value: unknown
+  new_value: unknown
   ip_address: string | null
   user_agent: string | null
   created_at: string
+}
+
+/** Render one audit payload as indented JSON, or nothing when the column is empty. */
+function AuditValueBlock({ label, value }: { label: string; value: unknown }) {
+  const json = value === null || value === undefined ? '' : JSON.stringify(value, null, 2)
+  if (!json) return null
+  return (
+    <div>
+      <h4 className="font-semibold text-gray-700 mb-1">{label}</h4>
+      <pre className="p-3 bg-gray-50 border rounded text-gray-800 overflow-x-auto">{json}</pre>
+    </div>
+  )
 }
 
 export function AdminAuditPage() {
@@ -232,22 +244,8 @@ export function AdminAuditPage() {
               </button>
             </div>
             <div className="space-y-4 text-xs font-mono">
-              {selectedLog.old_value && (
-                <div>
-                  <h4 className="font-semibold text-gray-700 mb-1">Estado Anterior (old_value):</h4>
-                  <pre className="p-3 bg-gray-50 border rounded text-gray-800 overflow-x-auto">
-                    {JSON.stringify(selectedLog.old_value, null, 2)}
-                  </pre>
-                </div>
-              )}
-              {selectedLog.new_value && (
-                <div>
-                  <h4 className="font-semibold text-gray-700 mb-1">Novo Estado (new_value):</h4>
-                  <pre className="p-3 bg-gray-50 border rounded text-gray-800 overflow-x-auto">
-                    {JSON.stringify(selectedLog.new_value, null, 2)}
-                  </pre>
-                </div>
-              )}
+              <AuditValueBlock label="Estado Anterior (old_value):" value={selectedLog.old_value} />
+              <AuditValueBlock label="Novo Estado (new_value):" value={selectedLog.new_value} />
             </div>
             <div className="mt-6 flex justify-end">
               <button

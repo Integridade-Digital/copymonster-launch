@@ -129,30 +129,30 @@ export function apply(ctx: Context): void {
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: ME_PATH,
-    handler: (req, res) => handleMe(ctx, req, res),
+    handler: (req: IncomingMessage, res: ServerResponse) => handleMe(ctx, req, res),
   }), `auth-http: ${ME_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: ENTER_PATH,
-    handler: (req, res) => { handleEnter(ctx, req, res) },
+    handler: (req: IncomingMessage, res: ServerResponse) => { handleEnter(ctx, req, res) },
   }), `auth-http: ${ENTER_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: BILLING_CHECKOUT_PATH,
-    handler: (req, res) => { handleCheckout(ctx, req, res) },
+    handler: (req: IncomingMessage, res: ServerResponse) => { handleCheckout(ctx, req, res) },
   }), `auth-http: ${BILLING_CHECKOUT_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: BILLING_PORTAL_PATH,
-    handler: (req, res) => { handlePortal(ctx, req, res) },
+    handler: (req: IncomingMessage, res: ServerResponse) => { handlePortal(ctx, req, res) },
   }), `auth-http: ${BILLING_PORTAL_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: BILLING_WEBHOOK_PATH,
-    handler: (req, res) => { handleWebhook(ctx, req, res) },
+    handler: (req: IncomingMessage, res: ServerResponse) => { handleWebhook(ctx, req, res) },
   }), `auth-http: ${BILLING_WEBHOOK_PATH}`)
 }

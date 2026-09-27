@@ -84,8 +84,8 @@ export function verifyStripeSignature(
 
     for (const part of parts) {
       const [k, v] = part.trim().split('=')
-      if (k === 't') timestamp = v
-      if (k === 'v1') signatures.push(v)
+      if (k === 't' && v !== undefined) timestamp = v
+      if (k === 'v1' && v !== undefined) signatures.push(v)
     }
 
     if (!timestamp || signatures.length === 0) return false

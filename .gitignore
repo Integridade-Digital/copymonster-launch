@@ -79,3 +79,5 @@ lib/
 
 # Build outputs (per-package)
 lib/
+*.bak
+.dsh-build/

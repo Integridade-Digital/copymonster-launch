@@ -55,7 +55,11 @@ export function apply(ctx: Context): void {
   const schema = new SettingsSchemaService(ctx)
   // Resolved once here, where `remote` is declared in this plugin's own
   // `inject`; the binder hands the same answer to every scope it binds.
-  const persistence = ctx.remote.$host.isLoopback ? 'host' : 'memory'
+  // In addition to loopback hosts, authenticated remote deployments (carrying
+  // a published accessToken in __DSH_AUTH__) persist settings through the Host.
+  const hasPublishedAuth = typeof (globalThis as { __DSH_AUTH__?: { accessToken?: string } }).__DSH_AUTH__?.accessToken === 'string'
+    && ((globalThis as { __DSH_AUTH__?: { accessToken?: string } }).__DSH_AUTH__?.accessToken?.length ?? 0) > 0
+  const persistence = (ctx.remote.$host.isLoopback || hasPublishedAuth) ? 'host' : 'memory'
   const mirror = new SettingsDescribeMirror(ctx, persistence)
   ctx.effect(() => {
     const disposers = [

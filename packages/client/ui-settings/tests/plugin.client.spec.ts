@@ -38,6 +38,45 @@ describe('settings domain base plugin', () => {
     await vi.waitFor(() => { expect(describeCall).toHaveBeenCalledTimes(3) })
   })
 
+  it('enables host persistence when remote is non-loopback but __DSH_AUTH__ publishes an access token', async () => {
+    const describeCall = vi.fn().mockResolvedValue({
+      ok: true, value: { writable: true, hasDocument: true, namespaces: [] },
+    })
+    const ctx = new Context()
+    const remote = new TestRemote(ctx, { settings: { describe: describeCall } })
+    remote.$host = { home: undefined, isLoopback: false }
+    const authGlobal = globalThis as { __DSH_AUTH__?: { accessToken?: string } }
+    authGlobal.__DSH_AUTH__ = { accessToken: 'sb.jwt.token' }
+    try {
+      const fiber = ctx.plugin({ inject: [...inject], apply })
+      await fiber.await()
+      const scope = ctx.get('settingsScope')
+      expect(scope).toBeInstanceOf(SettingsScopeBinder)
+      await vi.waitFor(() => { expect(describeCall).toHaveBeenCalledTimes(1) })
+      await fiber.dispose()
+    } finally {
+      delete authGlobal.__DSH_AUTH__
+    }
+  })
+
+  it('keeps memory persistence when remote is non-loopback and __DSH_AUTH__ is missing', async () => {
+    const describeCall = vi.fn().mockResolvedValue({
+      ok: true, value: { writable: true, hasDocument: true, namespaces: [] },
+    })
+    const ctx = new Context()
+    const remote = new TestRemote(ctx, { settings: { describe: describeCall } })
+    remote.$host = { home: undefined, isLoopback: false }
+    const authGlobal = globalThis as { __DSH_AUTH__?: { accessToken?: string } }
+    delete authGlobal.__DSH_AUTH__
+    const fiber = ctx.plugin({ inject: [...inject], apply })
+    await fiber.await()
+    const scope = ctx.get('settingsScope')
+    expect(scope).toBeInstanceOf(SettingsScopeBinder)
+    // In memory mode, describe is never called over the wire
+    expect(describeCall).not.toHaveBeenCalled()
+    await fiber.dispose()
+  })
+
   it('fiber disposal retires the service and its invalidation subscriptions', async () => {
     const { ctx, describeCall, remote, fiber } = bench()
     await fiber.await()

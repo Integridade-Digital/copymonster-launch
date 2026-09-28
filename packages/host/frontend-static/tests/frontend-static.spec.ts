@@ -2,8 +2,9 @@
  * REAL-composition coverage: a test-only cordis.yml booted through the
  * vendored Loader mounts the webserver and frontend-static rows, and every
  * assertion observes the served HTTP surface — asset serving, explicit index
- * entry points with index taps, 404 misses, traversal rejection, 405 on non-
- * GET/HEAD, and seat release on fiber disposal (HMR safety).
+ * entry points with index taps, client-side routes rendered as the shell behind
+ * browser authentication, 404 misses, traversal rejection, 405 on non-GET/HEAD,
+ * and seat release on fiber disposal (HMR safety).
  */
 
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -139,9 +140,11 @@ describe('real Loader composition', () => {
     // Unknown extension ships as octet-stream.
     expect(await request(port, '/blob.bin')).toMatchObject({ status: 200, type: 'application/octet-stream', body: 'BLOB' })
 
-    // Only the root and index path render index.html through registered taps.
+    // The root, the index path, and client routes render index.html through
+    // registered taps, anchored at the site root so a deep route's relative
+    // asset URLs still resolve.
     const untap = server.tapIndex(html => html.replace('<head>', '<head><script>window.__T__=1</script>'))
-    for (const path of ['/', '/index.html', '/?view=test']) {
+    for (const path of ['/', '/index.html', '/?view=test', '/admin', '/admin/audit', '/billing/success']) {
       const got = await request(port, path, authenticated())
       expect(got.status).toBe(200)
       expect(got.type).toBe('text/html; charset=utf-8')
@@ -156,19 +159,44 @@ describe('real Loader composition', () => {
     untap()
     expect((await request(port, '/', authenticated())).body).not.toContain('__T__')
 
-    // A missing configured index follows the same empty-404 contract for both
-    // of its public entry paths and for both supported methods.
+    // A client route is authenticated like the root: without the browser cookie
+    // it is refused, and it answers the shell for GET and HEAD once admitted.
+    expect(await request(port, '/admin/audit')).toMatchObject({
+      status: 401,
+      type: 'text/plain; charset=utf-8',
+      body: 'dsh web authentication required; reopen the URL printed by dsh web.\n',
+    })
+    const clientRoute = await request(port, '/admin/audit', authenticated())
+    expect(clientRoute.status).toBe(200)
+    expect(clientRoute.type).toBe('text/html; charset=utf-8')
+    expect(clientRoute.body).toContain('shell')
+    expect(await request(port, '/admin/audit', authenticated({ method: 'HEAD' }))).toEqual({
+      status: 200,
+      type: 'text/html; charset=utf-8',
+      body: '',
+    })
+
+    // A path the dist holds as a directory, or a file addressed as one, names no
+    // extension either, so the shell answers and the SPA resolves the route.
+    for (const path of ['/empty', '/app.js/child']) {
+      const got = await request(port, path, authenticated())
+      expect(got.status).toBe(200)
+      expect(got.type).toBe('text/html; charset=utf-8')
+      expect(got.body).toContain('shell')
+    }
+
+    // A missing configured index follows the same empty-404 contract for every
+    // path that renders the shell, and for both supported methods.
     await rm(join(root!, 'dist', 'index.html'))
-    for (const path of ['/', '/index.html']) {
+    for (const path of ['/', '/index.html', '/admin/audit']) {
       const get = await request(port, path, authenticated())
       const head = await request(port, path, authenticated({ method: 'HEAD' }))
       expect(get).toEqual({ status: 404, type: null, body: '' })
       expect(head).toEqual(get)
     }
 
-    // Ordinary unknown paths and static-resource misses are empty 404s for
-    // both GET and HEAD; neither class can be mistaken for the HTML shell.
-    const ordinaryMisses = ['/no/such/route', '/empty', '/app.js/child']
+    // Static-resource misses are empty 404s for both GET and HEAD; a missing
+    // asset can never be mistaken for the HTML shell.
     const assetMisses = [
       '/missing.js',
       '/missing.css',
@@ -177,12 +205,13 @@ describe('real Loader composition', () => {
       '/missing.webmanifest',
       '/missing.manifest',
     ]
-    for (const path of [...ordinaryMisses, ...assetMisses]) {
+    for (const path of assetMisses) {
       const get = await request(port, path)
       const head = await request(port, path, { method: 'HEAD' })
       expect(get).toEqual({ status: 404, type: null, body: '' })
       expect(head).toEqual(get)
     }
+
     expect(await request(port, '/api/no/such/route', authenticated())).toEqual({
       status: 404,
       type: 'text/plain;charset=UTF-8',

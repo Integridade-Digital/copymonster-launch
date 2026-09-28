@@ -1,5 +1,5 @@
 ---
-description: "SPA dist server for the Web shell: claims the webserver fallback seat and serves the built frontend with traversal rejection and SPA index fallback."
+description: "SPA dist server for the Web shell: claims the webserver fallback seat and serves the built frontend with traversal rejection and an extensionless client-route fallback."
 kind: "package-reference"
 ---
 
@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Serve the built Web shell to browsers from its configured distribution directory. The root and configured index path render the bootstrapped index; existing assets are served directly, while missing or non-file paths return 404, traversal returns 403, and unsupported methods return 405. Index access requires a valid process token or browser cookie, but static assets remain public. Only one instance can handle unmatched routes at a time; a second activation fails, and unloading the active instance makes unmatched requests return 404.
+Serve the built Web shell to browsers from its configured distribution directory. The root, the configured index path, and client-side routes render the bootstrapped index; existing assets are served directly, while a missing asset or non-file path returns 404, traversal returns 403, and unsupported methods return 405. Every index response requires a valid process token or browser cookie, but static assets remain public. Only one instance can handle unmatched routes at a time; a second activation fails, and unloading the active instance makes unmatched requests return 404.
 
 ## Table of Contents
 
@@ -39,13 +39,13 @@ Compose this plugin in a browser-facing host that serves the built Web shell: it
 
 ### What the server enforces
 
-Requests are served from the dist root (the directory containing `distIndex`). The dist root and the configured index path render `index.html` with HTTP 200; any other existing file is served directly with its MIME type, and unknown extensions ship as `application/octet-stream`. A path that resolves outside the root is rejected with 403, so a crafted path cannot read files above the dist. An absent or non-file target inside the dist root — a missing file, a directory, or a missing configured index — returns an empty 404. Non-GET/HEAD requests without a matching named route are answered 405. Every successful index response is rendered through the webserver's `renderIndex`, so the boot manifest reaches the page on `/` and on the configured index path.
+Requests are served from the dist root (the directory containing `distIndex`). The dist root, the configured index path, and client-side routes render `index.html` with HTTP 200; any other existing file is served directly with its MIME type, and unknown extensions ship as `application/octet-stream`. A client-side route is a path whose last segment names no file extension, so `/admin/audit` renders the shell while `/missing.js` stays a 404 that the browser cannot mistake for a bundle. A path that resolves outside the root is rejected with 403, so a crafted path cannot read files above the dist. A missing configured index returns an empty 404. Non-GET/HEAD requests without a matching named route are answered 405. Every successful index response is rendered through the webserver's `renderIndex`, so the boot manifest reaches the page on `/`, on the configured index path, and on every client route.
 
-Root and configured-index responses call `ctx.connection.authorizeIndex` before reading HTML. A valid process token receives a 303 redirect plus the persistent browser cookie; an existing valid cookie serves the index; every other index request receives the Connection-owned 401 response. Non-index files remain public static assets. Connection owns the token, cookie, expiry, and signing-record semantics.
+Root, configured-index, and client-route responses call `ctx.connection.authorizeIndex` before reading HTML, so reaching a route directly through a bookmark or a refresh is authenticated exactly like the root. A valid process token receives a 303 redirect plus the persistent browser cookie; an existing valid cookie serves the index; every other index request receives the Connection-owned 401 response. Non-index files remain public static assets. Connection owns the token, cookie, expiry, and signing-record semantics.
 
 ### Observable failures
 
-Traversal returns 403 rather than an error page. An absent or non-file target inside the dist root returns an empty 404, so a stale link or a mistyped pathname is an explicit failure rather than a silent SPA fallback. Claiming the seat twice throws, and while the seat is unclaimed the webserver answers 404 — which is what a browser sees if this plugin's fiber is disposed.
+Traversal returns 403 rather than an error page. A missing asset returns an empty 404, so a stale asset URL is an explicit failure and never answers with HTML. Claiming the seat twice throws, and while the seat is unclaimed the webserver answers 404 — which is what a browser sees if this plugin's fiber is disposed.
 
 -----
 
@@ -102,7 +102,7 @@ None; this package neither assembles nor sends a provider request.
 These limits define when a served asset class is not yet covered. They are current package constraints, not a task backlog.
 
 - **The starter MIME table is minimal** — it covers the Vite-emitted asset set plus the shipped PWA manifest; other extensions fall back to `application/octet-stream` until an asset class ships.
-- **Pathname routing is explicit** — the current client enters through the root or configured index path and has no History API pathname routes. Adding one requires an explicit server rule and real-composition coverage rather than a broad fallback for every miss.
+- **Client routes are recognized by their last segment** — the fallback keys on the absence of a file extension, so a route whose final segment contains a dot (for example `/v1.2/plans`) is answered 404 and needs a named route instead. A path a named route claims, such as the `/api` prefix, never reaches this fallback.
 
 <a id="dev-note"></a>
 ### Dev Note

@@ -1,0 +1,12 @@
+{
+  "formatVersion": 1,
+  "environment": {
+    "DSH_CLIENT_COMMIT_HASH": "97925c2",
+    "DSH_CLIENT_GIT_DIRTY": "true",
+    "DSH_CLIENT_VERSION": "0.1.6-alpha.2"
+  },
+  "artifacts": {
+    "fileCount": 253,
+    "sha256": "5093599c5591c5a12f3f8539db9e7a93e1c758d2497148849d57f2c4674a2b93"
+  }
+}

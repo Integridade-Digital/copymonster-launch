@@ -116,15 +116,27 @@ describe('real Loader composition', () => {
       return { ...init, headers }
     }
 
-    expect(await request(port, '/')).toMatchObject({
+    // Anonymous request to the root receives 200 with the public HTML shell (no boot injection)
+    expect(await request(port, '/')).toEqual({
+      status: 200,
+      type: 'text/html; charset=utf-8',
+      body: '<head><base href="/"></head><body>shell</body>',
+    })
+
+    // Invalid launch token query is still refused with 401 by Connection
+    expect(await request(port, '/?token=invalid-token')).toEqual({
       status: 401,
       type: 'text/plain; charset=utf-8',
       body: 'dsh web authentication required; reopen the URL printed by dsh web.\n',
     })
 
     // Real assets with their MIME types; a live rebuild is served on the next read.
-    expect(await request(port, '/app.js')).toMatchObject({ status: 200, type: 'text/javascript; charset=utf-8', body: 'export {}' })
-    expect(await request(port, '/manifest.webmanifest')).toMatchObject({
+    expect(await request(port, '/app.js')).toEqual({
+      status: 200,
+      type: 'text/javascript; charset=utf-8',
+      body: 'export {}',
+    })
+    expect(await request(port, '/manifest.webmanifest')).toEqual({
       status: 200,
       type: 'application/manifest+json',
       body: '{}',
@@ -135,10 +147,18 @@ describe('real Loader composition', () => {
       body: '',
     })
     await writeFile(join(root!, 'dist', 'app.js'), 'export const rebuilt = true')
-    expect(await request(port, '/app.js')).toMatchObject({ status: 200, body: 'export const rebuilt = true' })
+    expect(await request(port, '/app.js')).toEqual({
+      status: 200,
+      type: 'text/javascript; charset=utf-8',
+      body: 'export const rebuilt = true',
+    })
 
     // Unknown extension ships as octet-stream.
-    expect(await request(port, '/blob.bin')).toMatchObject({ status: 200, type: 'application/octet-stream', body: 'BLOB' })
+    expect(await request(port, '/blob.bin')).toEqual({
+      status: 200,
+      type: 'application/octet-stream',
+      body: 'BLOB',
+    })
 
     // The root, the index path, and client routes render index.html through
     // registered taps, anchored at the site root so a deep route's relative
@@ -159,13 +179,35 @@ describe('real Loader composition', () => {
     untap()
     expect((await request(port, '/', authenticated())).body).not.toContain('__T__')
 
-    // A client route is authenticated like the root: without the browser cookie
-    // it is refused, and it answers the shell for GET and HEAD once admitted.
-    expect(await request(port, '/admin/audit')).toMatchObject({
-      status: 401,
-      type: 'text/plain; charset=utf-8',
-      body: 'dsh web authentication required; reopen the URL printed by dsh web.\n',
+    // Anonymous requests to client-side routes (e.g. /admin, /admin/audit):
+    // 1. Receive 200 with the public HTML shell (allowing the React SPA router to redirect to /login)
+    // 2. Contain <base href="/"> and the React shell
+    // 3. Do NOT contain __DSH_BOOT__, 'plugin', or 'boot'
+    const anonymousAdmin = await request(port, '/admin')
+    expect(anonymousAdmin).toEqual({
+      status: 200,
+      type: 'text/html; charset=utf-8',
+      body: '<head><base href="/"></head><body>shell</body>',
     })
+    expect(anonymousAdmin.body).toContain('<base href="/">')
+    expect(anonymousAdmin.body).toContain('shell')
+    expect(anonymousAdmin.body).not.toContain('__DSH_BOOT__')
+    expect(anonymousAdmin.body).not.toContain('plugin')
+    expect(anonymousAdmin.body).not.toContain('boot')
+
+    const anonymousAudit = await request(port, '/admin/audit')
+    expect(anonymousAudit).toEqual({
+      status: 200,
+      type: 'text/html; charset=utf-8',
+      body: '<head><base href="/"></head><body>shell</body>',
+    })
+    expect(anonymousAudit.body).toContain('<base href="/">')
+    expect(anonymousAudit.body).toContain('shell')
+    expect(anonymousAudit.body).not.toContain('__DSH_BOOT__')
+    expect(anonymousAudit.body).not.toContain('plugin')
+    expect(anonymousAudit.body).not.toContain('boot')
+
+    // Authenticated client routes receive the injected shell for GET and HEAD
     const clientRoute = await request(port, '/admin/audit', authenticated())
     expect(clientRoute.status).toBe(200)
     expect(clientRoute.type).toBe('text/html; charset=utf-8')
@@ -212,6 +254,14 @@ describe('real Loader composition', () => {
       expect(head).toEqual(get)
     }
 
+    // API endpoints without authentication remain protected: returns 401
+    expect(await request(port, '/api/no/such/route')).toEqual({
+      status: 401,
+      type: null,
+      body: 'unauthorized',
+    })
+
+    // Authenticated API request reaches the router and returns 404
     expect(await request(port, '/api/no/such/route', authenticated())).toEqual({
       status: 404,
       type: 'text/plain;charset=UTF-8',

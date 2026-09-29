@@ -1,3 +1,4 @@
+import { AppFrame } from './components/layout/AppFrame'
 /** Browser entry for the Web client. */
 import React from 'react'
 import { createRoot } from 'react-dom/client'
@@ -250,7 +251,7 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
-              <PlansPage />
+              <AppFrame><PlansPage /></AppFrame>
             </div>
           </ProtectedRoute>
         }
@@ -260,7 +261,7 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
-              <PlansPage />
+              <AppFrame><PlansPage /></AppFrame>
             </div>
           </ProtectedRoute>
         }

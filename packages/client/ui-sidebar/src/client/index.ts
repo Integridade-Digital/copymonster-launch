@@ -1,3 +1,4 @@
+import { SidebarPlansAction } from './SidebarPlansAction.tsx'
 /** Registers the sidebar shell and global panel navigation. */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'

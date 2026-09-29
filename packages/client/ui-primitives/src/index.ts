@@ -35,6 +35,7 @@ export type { ReferenceIconKind, ReferenceIconProps } from './ReferenceIcon.tsx'
 export { LinkIcon, classifyLinkPath } from './LinkIcon.tsx'
 export type { LinkIconKind, LinkIconProps } from './LinkIcon.tsx'
 export { FileTypeIcon, classifyFileType, fileExtension } from './FileTypeIcon.tsx'
+export { IconPlanOutline14 } from './icons/index.tsx'
 export type {
   CodeFileType, FileType, FileTypeIconProps, FileTypeKind, FileTypeProjectContext,
 } from './FileTypeIcon.tsx'

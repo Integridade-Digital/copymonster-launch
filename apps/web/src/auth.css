@@ -6,7 +6,7 @@
  */
 
 :root {
-  /* Brand colors (DeepSeek / CopyMonster official blue) */
+  /* Brand colors (CopyMonster official institutional gold) */
   --cm-auth-primary: var(--dsw-static-deepseek-500, #D8AE5F);
   --cm-auth-primary-hover: var(--dsw-static-deepseek-400, #E7BF73);
   --cm-auth-primary-active: var(--dsw-static-deepseek-600, #B0955E);
@@ -41,10 +41,10 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --cm-auth-primary: var(--dsw-static-deepseek-400, #679efe);
-    --cm-auth-primary-hover: var(--dsw-static-deepseek-300, #8db5fe);
+    --cm-auth-primary: var(--dsw-static-deepseek-400, #E7BF73);
+    --cm-auth-primary-hover: var(--dsw-static-deepseek-300, #FBF0DA);
     --cm-auth-primary-active: var(--dsw-static-deepseek-500, #D8AE5F);
-    --cm-auth-primary-focus-ring: rgba(103, 158, 254, 0.25);
+    --cm-auth-primary-focus-ring: rgba(231, 191, 115, 0.25);
 
     --cm-auth-bg: var(--dsw-static-neutral-bluish-950, #151517);
     --cm-auth-card-bg: var(--dsw-static-neutral-bluish-875, #232324);

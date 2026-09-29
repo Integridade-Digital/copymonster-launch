@@ -272,6 +272,8 @@ export interface AuthContextType {
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   updateUser: (data: Partial<AuthUser>) => Promise<{ error: Error | null }>;
+  updatePassword: (password: string) => Promise<{ error: Error | null }>;
+  updateProfile: (data: { fullName?: string; whatsapp?: string }) => Promise<{ error: Error | null }>;
 }
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;

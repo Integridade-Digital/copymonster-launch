@@ -211,6 +211,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user]);
 
+  const updatePassword = useCallback(async (newPassword: string): Promise<{ error: Error | null }> => {
+    try {
+      const { error } = await supabaseClient.auth.updateUser({
+        password: newPassword,
+      });
+      if (error) throw error;
+      return { error: null };
+    } catch (error: unknown) {
+      return { error: asError(error) };
+    }
+  }, []);
+
+  const updateProfile = useCallback(async (data: { fullName?: string; whatsapp?: string }): Promise<{ error: Error | null }> => {
+    try {
+      if (!user) throw new Error('Usuário não autenticado');
+
+      const { error: authError } = await supabaseClient.auth.updateUser({
+        data: {
+          ...data.fullName !== undefined ? { full_name: data.fullName } : {},
+          ...data.whatsapp !== undefined ? { whatsapp: data.whatsapp } : {},
+        },
+      });
+      if (authError) throw authError;
+
+      const updatePayload: { full_name?: string; whatsapp?: string } = {};
+      if (data.fullName !== undefined) updatePayload.full_name = data.fullName;
+      if (data.whatsapp !== undefined) updatePayload.whatsapp = data.whatsapp;
+
+      if (Object.keys(updatePayload).length > 0) {
+        const { error: dbError } = await supabaseClient
+          .from('users')
+          .update(updatePayload)
+          .eq('id', user.id);
+        if (dbError) {
+          console.warn('Erro ao atualizar public.users diretamente:', dbError);
+        }
+      }
+
+      const updatedProfile = await getUserFullProfile(user.id);
+      setUser(updatedProfile);
+      return { error: null };
+    } catch (error: unknown) {
+      return { error: asError(error) };
+    }
+  }, [user]);
+
   const value = useMemo<AuthContextType>(() => ({
     user,
     isLoading,
@@ -222,7 +268,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signOut,
     resetPassword,
     updateUser,
-  }), [user, isLoading, authError, retryAuth, signIn, signUp, signOut, resetPassword, updateUser]);
+    updatePassword,
+    updateProfile,
+  }), [user, isLoading, authError, retryAuth, signIn, signUp, signOut, resetPassword, updateUser, updatePassword, updateProfile]);
+
+  useEffect(() => {
+    const handleRemoteLogout = () => {
+      void signOut();
+    };
+    window.addEventListener('copymonster:logout', handleRemoteLogout);
+    return () => {
+      window.removeEventListener('copymonster:logout', handleRemoteLogout);
+    };
+  }, [signOut]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

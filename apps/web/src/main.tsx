@@ -1,3 +1,4 @@
+import { ProfilePage } from './pages/ProfilePage'
 import { AppFrame } from './components/layout/AppFrame'
 /** Browser entry for the Web client. */
 import React from 'react'
@@ -337,6 +338,16 @@ function AppRoutes() {
       />
 
       {/* Rota Fallback */}
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <Suspense fallback={<div className="p-6 text-gray-400">Carregando perfil...</div>}>
+              <AppFrame><ProfilePage /></AppFrame>
+            </Suspense>
+          </ProtectedRoute>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )

@@ -1,4 +1,3 @@
-import { SidebarPlansAction } from './SidebarPlansAction.tsx'
 /** Registers the sidebar shell and global panel navigation. */
 import type { Context as ClientContext } from '@deepseek-ai/cordis'
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
@@ -15,6 +14,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SidebarPanelMetadata, SidebarRootInjected } from './contract/slots.ts'
 import { HeaderLeadingControls } from './HeaderLeadingControls.tsx'
 import { SidebarRoot } from './SidebarRoot.tsx'
+import { SidebarPlansAction } from './SidebarPlansAction.tsx'
+import { SidebarUserAction } from './SidebarUserAction.tsx'
 import { en, zh, type SidebarKey } from './locales.ts'
 
 export type {
@@ -65,8 +66,6 @@ export function apply(ctx: ClientContext): void {
   ctx.effect(() => ctx.locale.subscribe(syncPanels), 'ui-sidebar: panel labels')
 
   const injectProps = (): SidebarRootInjected => ({
-    // The shell's New Session button rides the Workspace UI's shared action
-    // (current Session Workspace, then recent Workspace).
     startSession: (workspaceId) => { workspaceNavigation.startSession(workspaceId) },
     toggleSidebar: () => { ctx.layout.toggleSidebar() },
     selectPanel: (id) => { ctx.layout.selectPanel(id) },
@@ -86,10 +85,13 @@ export function apply(ctx: ClientContext): void {
     },
     inject: injectProps,
   }, SidebarRoot))
-  // macOS desktop hides the collapsed sidebar entirely, so the open/New
-  // Session controls move into the conversation header's leading seat; the
-  // occupant reuses the shell's injected actions and shows itself purely
-  // through CSS against the AppFrame's data-sidebar-collapsed attribute.
+
+  // Registro efetivo dos ocupantes do slot footer.action com options.id
+  ctx.slots.inject('sidebar.footer.action', function* () {
+    yield ctx.slots.register({ name: 'sidebar.footer.action', id: 'plans', locale: NS }, SidebarPlansAction)
+    yield ctx.slots.register({ name: 'sidebar.footer.action', id: 'user', locale: NS }, SidebarUserAction)
+  })
+
   ctx.slots.inject('conversation.session.header.leading', () => ctx.slots.register({
     name: 'conversation.session.header.leading',
     locale: NS,

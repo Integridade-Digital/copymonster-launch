@@ -63,7 +63,44 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
         <div
           data-slot="sidebar.footer.action"
           style="display: contents;"
-        />
+        >
+          <div
+            class="actionItem"
+          >
+            <button
+              aria-label="Plans"
+              class="railButton"
+              title="Plans"
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                class="actionIcon"
+              >
+                <svg
+                  data-content="6aaf59e1"
+                  fill="none"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  width="14"
+                  xmlns="http://www.w3.org/2000/svg"
+                />
+              </span>
+            </button>
+          </div>
+          <div
+            class="userItem"
+          >
+            <button
+              aria-label="Profile"
+              class="railUserButton"
+              title="Profile"
+              type="button"
+            >
+              U
+            </button>
+          </div>
+        </div>
       </div>
       <div
         class="settingsArea"
@@ -193,7 +230,73 @@ exports[`sidebar shell snapshots > renders Windows caption controls in expanded 
         <div
           data-slot="sidebar.footer.action"
           style="display: contents;"
-        />
+        >
+          <div
+            class="actionItem"
+          >
+            <button
+              aria-label="Plans"
+              class="wideButton"
+              title="Plans"
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                class="actionIcon"
+              >
+                <svg
+                  data-content="6aaf59e1"
+                  fill="none"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  width="14"
+                  xmlns="http://www.w3.org/2000/svg"
+                />
+              </span>
+              <span
+                class="actionLabel"
+              >
+                Plans
+              </span>
+            </button>
+          </div>
+          <div
+            class="userItem"
+          >
+            <div
+              class="wideUserContainer"
+            >
+              <div
+                class="userInfo"
+                role="button"
+                tabindex="0"
+                title="Profile"
+              >
+                <div
+                  class="userAvatar"
+                >
+                  U
+                </div>
+                <span
+                  class="userLabel"
+                >
+                  Profile
+                </span>
+              </div>
+              <div
+                class="userActions"
+              >
+                <button
+                  class="logoutButton"
+                  title="Log out"
+                  type="button"
+                >
+                  Log out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div
         class="settingsArea"
@@ -289,7 +392,44 @@ exports[`sidebar shell snapshots > renders the collapsed rail after the crossfad
         <div
           data-slot="sidebar.footer.action"
           style="display: contents;"
-        />
+        >
+          <div
+            class="actionItem"
+          >
+            <button
+              aria-label="Plans"
+              class="railButton"
+              title="Plans"
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                class="actionIcon"
+              >
+                <svg
+                  data-content="6aaf59e1"
+                  fill="none"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  width="14"
+                  xmlns="http://www.w3.org/2000/svg"
+                />
+              </span>
+            </button>
+          </div>
+          <div
+            class="userItem"
+          >
+            <button
+              aria-label="Profile"
+              class="railUserButton"
+              title="Profile"
+              type="button"
+            >
+              U
+            </button>
+          </div>
+        </div>
       </div>
       <div
         class="settingsArea"
@@ -419,7 +559,73 @@ exports[`sidebar shell snapshots > renders the expanded column (wordmark, capsul
         <div
           data-slot="sidebar.footer.action"
           style="display: contents;"
-        />
+        >
+          <div
+            class="actionItem"
+          >
+            <button
+              aria-label="Plans"
+              class="wideButton"
+              title="Plans"
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                class="actionIcon"
+              >
+                <svg
+                  data-content="6aaf59e1"
+                  fill="none"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  width="14"
+                  xmlns="http://www.w3.org/2000/svg"
+                />
+              </span>
+              <span
+                class="actionLabel"
+              >
+                Plans
+              </span>
+            </button>
+          </div>
+          <div
+            class="userItem"
+          >
+            <div
+              class="wideUserContainer"
+            >
+              <div
+                class="userInfo"
+                role="button"
+                tabindex="0"
+                title="Profile"
+              >
+                <div
+                  class="userAvatar"
+                >
+                  U
+                </div>
+                <span
+                  class="userLabel"
+                >
+                  Profile
+                </span>
+              </div>
+              <div
+                class="userActions"
+              >
+                <button
+                  class="logoutButton"
+                  title="Log out"
+                  type="button"
+                >
+                  Log out
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div
         class="settingsArea"
@@ -549,7 +755,73 @@ exports[`sidebar shell snapshots > renders the expanded column in the default lo
         <div
           data-slot="sidebar.footer.action"
           style="display: contents;"
-        />
+        >
+          <div
+            class="actionItem"
+          >
+            <button
+              aria-label="套餐计划"
+              class="wideButton"
+              title="套餐计划"
+              type="button"
+            >
+              <span
+                aria-hidden="true"
+                class="actionIcon"
+              >
+                <svg
+                  data-content="6aaf59e1"
+                  fill="none"
+                  height="14"
+                  viewBox="0 0 14 14"
+                  width="14"
+                  xmlns="http://www.w3.org/2000/svg"
+                />
+              </span>
+              <span
+                class="actionLabel"
+              >
+                套餐计划
+              </span>
+            </button>
+          </div>
+          <div
+            class="userItem"
+          >
+            <div
+              class="wideUserContainer"
+            >
+              <div
+                class="userInfo"
+                role="button"
+                tabindex="0"
+                title="个人资料"
+              >
+                <div
+                  class="userAvatar"
+                >
+                  U
+                </div>
+                <span
+                  class="userLabel"
+                >
+                  个人资料
+                </span>
+              </div>
+              <div
+                class="userActions"
+              >
+                <button
+                  class="logoutButton"
+                  title="退出登录"
+                  type="button"
+                >
+                  退出登录
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
       <div
         class="settingsArea"

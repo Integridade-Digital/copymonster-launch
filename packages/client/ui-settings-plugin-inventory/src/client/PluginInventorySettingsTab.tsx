@@ -12,6 +12,7 @@ import {
 import type { StateDotState, TagTone } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PluginInventoryLocaleKey } from './locales.ts'
+import { resolvePluginCopy } from './plugin-catalog.ts'
 import css from './PluginInventorySettingsTab.module.css'
 
 type PluginInventoryEntry = PluginInventorySnapshot['entries'][number]
@@ -75,10 +76,21 @@ function entrySubtitle(entryId: string): string {
 }
 
 /** Whether one row's module name or entry id matches the catalog query. */
-function matches(moduleName: string, entryId: string | null, normalizedQuery: string): boolean {
+function matches(
+  moduleName: string,
+  entryId: string | null,
+  friendlyTitle: string,
+  friendlyDesc: string | undefined,
+  normalizedQuery: string,
+): boolean {
   if (normalizedQuery.length === 0) return true
-  return [moduleName, ...entryId === null ? [] : [entryId]]
-    .some(value => value.toLocaleLowerCase().includes(normalizedQuery))
+  const candidates = [
+    moduleName,
+    ...entryId === null ? [] : [entryId],
+    friendlyTitle,
+    ...friendlyDesc === undefined ? [] : [friendlyDesc],
+  ]
+  return candidates.some(value => value.toLocaleLowerCase().includes(normalizedQuery))
 }
 
 /** The roster row shown when the preset switcher has no explicit choice. */
@@ -95,9 +107,10 @@ function presetLabel(preset: AgentPresetGroup, t: Translate, presetName: (preset
 }
 
 /** One expandable plugin card; the caller owns the trailing status content. */
-function PluginCard({ rowKey, moduleName, entryId, trailing, ariaLabel, failed, expanded, onToggle, children }: {
+function PluginCard({ rowKey, moduleName, displayTitle, entryId, trailing, ariaLabel, failed, expanded, onToggle, children }: {
   readonly rowKey: string
   readonly moduleName: string
+  readonly displayTitle: string
   readonly entryId: string | null
   readonly trailing: ReactNode
   readonly ariaLabel: string
@@ -125,7 +138,7 @@ function PluginCard({ rowKey, moduleName, entryId, trailing, ariaLabel, failed, 
         onClick={() => { onToggle(rowKey) }}
       >
         <span className={css.cardMainRow}>
-          <strong className={css.cardTitle} title={moduleName}>{moduleShortName(moduleName)}</strong>
+          <strong className={css.cardTitle} title={moduleName}>{displayTitle}</strong>
           <span className={css.cardTrailing}>
             {trailing}
             <IconChevronDownOutline14 className={css.chevron} size={12} aria-hidden="true" />
@@ -262,8 +275,14 @@ export function PluginInventorySettingsTab(
     else regularEntries.push(entry)
   }
 
-  const entryMatch = (entry: PluginInventoryEntry): boolean => matches(entry.moduleName, entry.entryId, normalizedQuery)
-  const rowMatch = (row: AgentPresetRow): boolean => matches(row.moduleName, row.entryId, normalizedQuery)
+  const entryMatch = (entry: PluginInventoryEntry): boolean => {
+    const copy = resolvePluginCopy(entry.moduleName, entry.entryId, moduleShortName(entry.moduleName), t)
+    return matches(entry.moduleName, entry.entryId, copy.title, copy.description, normalizedQuery)
+  }
+  const rowMatch = (row: AgentPresetRow): boolean => {
+    const copy = resolvePluginCopy(row.moduleName, row.entryId, moduleShortName(row.moduleName), t)
+    return matches(row.moduleName, row.entryId, copy.title, copy.description, normalizedQuery)
+  }
   const filteredFailed = failedEntries.filter(entryMatch)
   const filteredRegular = regularEntries.filter(entryMatch)
   const globalCount = filteredFailed.length + filteredRegular.length
@@ -291,7 +310,8 @@ export function PluginInventorySettingsTab(
   /** Trailing status and detail facts for one row of the selected preset. */
   const presetRowCard = (preset: AgentPresetGroup, row: AgentPresetRow, index: number): ReactNode => {
     const key = `preset:${preset.id}:${String(index)}`
-    const title = moduleShortName(row.moduleName)
+    const shortName = moduleShortName(row.moduleName)
+    const copy = resolvePluginCopy(row.moduleName, row.entryId, shortName, t)
     const failed = row.fiberPhase === 'failed'
     const stateText = failed
       ? t('failedTag')
@@ -302,11 +322,12 @@ export function PluginInventorySettingsTab(
         key={key}
         rowKey={key}
         moduleName={row.moduleName}
+        displayTitle={copy.title}
         entryId={row.entryId}
         failed={failed}
         expanded={expanded}
         onToggle={toggleRow}
-        ariaLabel={`${title}${row.entryId === null ? '' : `, ${row.entryId}`}, ${stateText}`}
+        ariaLabel={`${shortName}${row.entryId === null ? '' : `, ${row.entryId}`}, ${stateText}`}
         trailing={(
           <>
             {row.enabled === true && showsPhaseDot(row.fiberPhase)
@@ -321,6 +342,7 @@ export function PluginInventorySettingsTab(
           moduleLabel={t('moduleLabel')}
           entryId={row.entryId}
           facts={[
+            ...copy.description === undefined ? [] : [[t('pluginDescriptionLabel'), copy.description] as const],
             [t('fromPreset'), presetName(preset)],
             [t('configuration'), stateText],
             ...row.fiberPhase === null ? [] : [[t('runtime'), phaseLabel(row.fiberPhase, t)] as const],
@@ -337,7 +359,8 @@ export function PluginInventorySettingsTab(
     providers?: readonly [AgentPresetGroup, ...AgentPresetGroup[]],
   ): ReactNode => {
     const key = `global:${entry.entryId}`
-    const title = moduleShortName(entry.moduleName)
+    const shortName = moduleShortName(entry.moduleName)
+    const copy = resolvePluginCopy(entry.moduleName, entry.entryId, shortName, t)
     const failed = entry.fiberPhase === 'failed'
     const stateText = failed
       ? t('failedTag')
@@ -348,11 +371,12 @@ export function PluginInventorySettingsTab(
         key={key}
         rowKey={key}
         moduleName={entry.moduleName}
+        displayTitle={copy.title}
         entryId={entry.entryId}
         failed={failed}
         expanded={expanded}
         onToggle={toggleRow}
-        ariaLabel={`${title}, ${entry.entryId}, ${stateText}`}
+        ariaLabel={`${shortName}, ${entry.entryId}, ${stateText}`}
         trailing={(
           <>
             {entry.enabled && showsPhaseDot(entry.fiberPhase)
@@ -368,6 +392,7 @@ export function PluginInventorySettingsTab(
           entryId={entry.entryId}
           facts={providers !== undefined
             ? [
+              ...copy.description === undefined ? [] : [[t('pluginDescriptionLabel'), copy.description] as const],
               [t('configuration'), t('presetProvidedDetail')],
               [t('enabledIn'), (
                 <span className={css.enabledIn}>
@@ -383,6 +408,7 @@ export function PluginInventorySettingsTab(
               )],
             ]
             : [
+              ...copy.description === undefined ? [] : [[t('pluginDescriptionLabel'), copy.description] as const],
               [t('configuration'), t(entry.enabled ? 'enabledTag' : 'disabledTag')],
               ...entry.enabled ? [[t('runtime'), phaseLabel(entry.fiberPhase, t)] as const] : [],
             ]}

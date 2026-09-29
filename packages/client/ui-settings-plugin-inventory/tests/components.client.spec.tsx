@@ -196,7 +196,7 @@ describe('PluginInventorySettingsTab', () => {
     const secondary = screen.getByRole('button', { name: `tool-subagent, ${longId}, Disabled` })
     expect(secondary.getAttribute('aria-expanded')).toBe('false')
     expect(secondary.children).toHaveLength(2)
-    expect(secondary.children[0]?.textContent).toContain('tool-subagent')
+    expect(secondary.children[0]?.textContent).toContain('Subagents Manager')
     expect(secondary.children[0]?.textContent).toContain('Disabled')
     expect(secondary.children[1]?.textContent).toBe(subtitle)
     expect(screen.getByTitle(longId).textContent).toBe(subtitle)
@@ -426,6 +426,21 @@ describe('PluginInventorySettingsTab', () => {
     const pendingFailure = render(<PluginInventorySettingsTab {...props(() => deferredFailure.promise)} />)
     pendingFailure.unmount()
     await act(async () => { deferredFailure.reject(new Error('late failure')) })
+  })
+  it('renders friendly title and localized description and supports searching by friendly name', async () => {
+    await renderReady({
+      entries: [
+        { entryId: 'hmr', moduleName: '@deepseek-ai/cordis-plugin-hmr', enabled: true, fiberPhase: 'active' },
+      ],
+    } as unknown as Snapshot)
+
+    fireEvent.click(globalToggle())
+    expect(screen.getByText('Hot Reload Engine')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'hmr, hmr, Enabled' }))
+    expect(screen.getByText('Live reload and updates for system components')).toBeTruthy()
+
+    fireEvent.change(screen.getByRole('searchbox', { name: en.search }), { target: { value: 'Hot Reload' } })
+    expect(screen.getByText('Hot Reload Engine')).toBeTruthy()
   })
 })
 

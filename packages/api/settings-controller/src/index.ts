@@ -13,7 +13,7 @@ import Schema from '@deepseek-ai/schemastery'
 // Type-only: resolves the `agentPresets` Context augmentation this controller reads.
 import type {} from '@deepseek-ai/dsh-agent-presets'
 // Type-only: resolves the `authIdentity` Context augmentation this controller reads.
-import type {} from '@deepseek-ai/dsh-api-auth-context'
+import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
 import {
   canOpenNativePath,
   openNativePath,
@@ -92,6 +92,17 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
+/**
+ * Safely extracts the authenticated user identity from the Context without
+ * triggering the Cordis Proxy 'without inject' trap when authIdentity is absent.
+ */
+function getAuthIdentity(ctx: Context): UserIdentity | undefined {
+  if (Reflect.has(ctx, 'authIdentity')) {
+    return (ctx as unknown as { authIdentity?: UserIdentity }).authIdentity
+  }
+  return undefined
+}
+
 /** Protected namespaces that require administrative privileges (owner or admin). */
 function isProtectedNamespace(ns: string): boolean {
   return ns.startsWith('llm-') || ns === 'llm' || ns.includes('model')
@@ -105,7 +116,7 @@ function isProtectedNamespace(ns: string): boolean {
  * @throws RemoteError `settings/forbidden` for a non-administrative caller.
  */
 function assertAdminRole(ctx: Context, action: string, ns: string): void {
-  const identity = ctx.authIdentity
+  const identity = getAuthIdentity(ctx)
   if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin') {
     throw new RemoteError('settings/forbidden', `Apenas administradores podem ${action}.`, { ns })
   }
@@ -118,7 +129,7 @@ function assertAdminRole(ctx: Context, action: string, ns: string): void {
  * @throws RemoteError `settings/unauthorized` if unauthenticated, or `settings/forbidden` if not admin.
  */
 function assertAdminOrOwnerAuth(ctx: Context, action: string): void {
-  const identity = ctx.authIdentity
+  const identity = getAuthIdentity(ctx)
   if (identity === undefined) {
     throw new RemoteError('settings/unauthorized', 'Autenticação necessária para acessar recursos administrativos.', {})
   }
@@ -158,7 +169,7 @@ export class SettingsController extends TypertRemoteService {
   @Remote
   describe(): SettingsDescribeValue {
     const settings = this.provider()
-    const identity = this.ctx.authIdentity
+    const identity = getAuthIdentity(this.ctx)
     const isNonAdmin = identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin'
     let descriptors = settings.describe({ redactSecrets: true })
     if (isNonAdmin) {
@@ -352,7 +363,7 @@ export class SettingsController extends TypertRemoteService {
    */
   @RemoteScope('auth', 'getTenantMetrics')
   async getTenantMetrics(request?: { tenantId?: string }): Promise<TenantMetricsView> {
-    const identity = this.ctx.authIdentity
+    const identity = getAuthIdentity(this.ctx)
     if (identity === undefined) {
       throw new RemoteError('settings/unauthorized', 'Autenticação necessária para consultar métricas.', {})
     }
@@ -474,7 +485,7 @@ export class SettingsController extends TypertRemoteService {
    */
   @RemoteScope('auth', 'recordAuditLog')
   async recordAuditLog(request: AuditLogRecordRequest): Promise<{ recorded: true; id: string }> {
-    const identity = this.ctx.authIdentity
+    const identity = getAuthIdentity(this.ctx)
     if (identity === undefined) {
       throw new RemoteError('settings/unauthorized', 'Autenticação necessária para registrar auditoria.', {})
     }
@@ -507,7 +518,7 @@ export class SettingsController extends TypertRemoteService {
    */
   @RemoteScope('auth', 'recordTokenUsage')
   async recordTokenUsage(request: TokenUsageRecordRequest): Promise<TokenUsageRecordValue> {
-    const identity = this.ctx.authIdentity
+    const identity = getAuthIdentity(this.ctx)
     if (identity === undefined) {
       throw new RemoteError('settings/unauthorized', 'Autenticação necessária para registrar consumo.', {})
     }

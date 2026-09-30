@@ -16,7 +16,9 @@ import { getStaticModules } from './seed.ts'
 import './base.css'
 
 /** Module transport hook replaced by jsdom tests. */
-export type BootSeams = Pick<ClientModuleCreateOptions, 'loadBundle'>
+export type BootSeams = Pick<ClientModuleCreateOptions, 'loadBundle'> & {
+  onBoot?: (ctx: Context) => void | Promise<void>
+}
 
 /** Browser boot entry consumed by `apps/web`. */
 export class AppWebEntry {
@@ -87,6 +89,9 @@ export class AppWebEntry {
           if (onFailure === undefined || state !== 'failed') this.page.setState(name, state)
         },
       })
+      if (this.seams?.onBoot !== undefined) {
+        await this.seams.onBoot(ctx)
+      }
       await mountClient(ctx, this.container)
     } catch (reason) {
       console.error(reason)

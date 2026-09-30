@@ -14,8 +14,6 @@ import type {} from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type { SidebarPanelMetadata, SidebarRootInjected } from './contract/slots.ts'
 import { HeaderLeadingControls } from './HeaderLeadingControls.tsx'
 import { SidebarRoot } from './SidebarRoot.tsx'
-import { SidebarPlansAction } from './SidebarPlansAction.tsx'
-import { SidebarUserAction } from './SidebarUserAction.tsx'
 import { en, zh, type SidebarKey } from './locales.ts'
 
 export type {
@@ -86,11 +84,7 @@ export function apply(ctx: ClientContext): void {
     inject: injectProps,
   }, SidebarRoot))
 
-  // Registro efetivo dos ocupantes do slot footer.action com options.id
-  ctx.slots.inject('sidebar.footer.action', function* () {
-    yield ctx.slots.register({ name: 'sidebar.footer.action', id: 'plans', locale: NS }, SidebarPlansAction)
-    yield ctx.slots.register({ name: 'sidebar.footer.action', id: 'user', locale: NS }, SidebarUserAction)
-  })
+  // Slot sidebar.footer.action agora é ocupado por FooterActionsRoot registrado pelo apps/web
 
   ctx.slots.inject('conversation.session.header.leading', () => ctx.slots.register({
     name: 'conversation.session.header.leading',

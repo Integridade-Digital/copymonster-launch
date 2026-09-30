@@ -1,0 +1,60 @@
+import { useEffect, useRef } from 'react'
+import { ProfilePage } from '../../pages/ProfilePage'
+import css from './FooterActionsRoot.module.css'
+
+interface ProfileModalProps {
+  isOpen: boolean
+  onClose: () => void
+  triggerRef?: React.RefObject<HTMLButtonElement | null>
+}
+
+export function ProfileModal({ isOpen, onClose, triggerRef }: ProfileModalProps) {
+  const panelRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!isOpen) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.stopPropagation()
+        onClose()
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    panelRef.current?.focus()
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      triggerRef?.current?.focus()
+    }
+  }, [isOpen, onClose, triggerRef])
+
+  if (!isOpen) return null
+
+  return (
+    <div className={css.overlay} role="presentation">
+      <div className={css.mask} onClick={onClose} aria-hidden="true" />
+      <div
+        ref={panelRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Meu Perfil"
+        tabIndex={-1}
+        className={css.panel}
+      >
+        <button
+          type="button"
+          className={css.closeButton}
+          onClick={onClose}
+          aria-label="Fechar painel de perfil"
+        >
+          ✕
+        </button>
+        <div className={css.content}>
+          <ProfilePage />
+        </div>
+      </div>
+    </div>
+  )
+}

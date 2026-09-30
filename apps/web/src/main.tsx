@@ -1,5 +1,4 @@
-import { ProfilePage } from './pages/ProfilePage'
-import { AppFrame } from './components/layout/AppFrame'
+import { FooterActionsRoot } from './components/layout/FooterActionsRoot'
 /** Browser entry for the Web client. */
 import React from 'react'
 import { createRoot } from 'react-dom/client'
@@ -12,9 +11,6 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
-import { AdminTenantsPage } from './pages/admin/AdminTenantsPage'
-import { AdminAuditPage } from './pages/admin/AdminAuditPage'
-import { PlansPage } from './pages/billing/PlansPage'
 import { BillingSuccessPage } from './pages/billing/BillingSuccessPage'
 import { BillingCancelPage } from './pages/billing/BillingCancelPage'
 import './auth.css'
@@ -137,7 +133,16 @@ const LazyWebApp = React.lazy(async () => {
 
       React.useEffect(() => {
         if (!containerRef.current) return
-        const entry = new AppWebEntry(containerRef.current)
+        const entry = new AppWebEntry(containerRef.current, {
+          onBoot: (ctx) => {
+            ctx.slots.inject('sidebar.footer.action', function* () {
+              yield ctx.slots.register(
+                { name: 'sidebar.footer.action', id: 'copymonster-footer-actions' },
+                FooterActionsRoot
+              )
+            })
+          },
+        })
 
         if (desktop !== undefined) {
           const gate = (globalThis as { __DSH_BOOT_READY__?: PromiseWithResolvers<void> }).__DSH_BOOT_READY__
@@ -170,38 +175,12 @@ const LazyWebApp = React.lazy(async () => {
  * Handles public auth flows, protected workspace shell, and SaaS management views.
  */
 
-type ActiveModalType = 'plans' | 'profile' | 'admin' | 'admin_audit' | null
-
 /**
- * Shell autenticado do workspace. Mantém o LazyWebApp permanentemente montado
- * e renderiza painéis de gerenciamento (Planos, Perfil, Admin) como modais sobrepostos,
- * evitando a desmontagem do shell e o consequente erro de reboot do ModuleLoader.
+ * Shell autenticado do workspace. Mantém o LazyWebApp permanentemente montado.
+ * Os painéis Plans, Profile e Admin são agora abertos diretamente a partir do slot
+ * sidebar.footer.action (FooterActionsRoot), seguindo o padrão Settings (estado local + overlay).
  */
 function AuthenticatedWorkspace() {
-  const [activeModal, setActiveModal] = React.useState<ActiveModalType>(null)
-
-  React.useEffect(() => {
-    const handleModalEvent = (event: Event) => {
-      const customEvent = event as CustomEvent<ActiveModalType>
-      setActiveModal(customEvent.detail ?? null)
-    }
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setActiveModal(null)
-      }
-    }
-
-    window.addEventListener('copymonster:modal', handleModalEvent)
-    window.addEventListener('keydown', handleKeyDown)
-    return () => {
-      window.removeEventListener('copymonster:modal', handleModalEvent)
-      window.removeEventListener('keydown', handleKeyDown)
-    }
-  }, [])
-
-  const closeModal = () => setActiveModal(null)
-
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       <WebAppErrorBoundary>
@@ -216,71 +195,6 @@ function AuthenticatedWorkspace() {
           <LazyWebApp />
         </React.Suspense>
       </WebAppErrorBoundary>
-
-      {activeModal !== null && (
-        <div
-          role="presentation"
-          style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 9999,
-            display: 'flex',
-            flexDirection: 'column',
-          }}
-        >
-          <div
-            onClick={closeModal}
-            aria-hidden="true"
-            style={{
-              position: 'fixed',
-              inset: 0,
-              backgroundColor: 'rgba(0, 0, 0, 0.7)',
-              backdropFilter: 'blur(3px)',
-            }}
-          />
-          <div
-            role="dialog"
-            aria-modal="true"
-            style={{
-              position: 'relative',
-              width: '100%',
-              height: '100%',
-              zIndex: 1,
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-            }}
-          >
-            {activeModal === 'plans' && (
-              <AppFrame title="Planos e Faturamento" onClose={closeModal}>
-                <PlansPage />
-              </AppFrame>
-            )}
-
-            {activeModal === 'profile' && (
-              <AppFrame title="Meu Perfil" onClose={closeModal}>
-                <ProfilePage />
-              </AppFrame>
-            )}
-
-            {activeModal === 'admin' && (
-              <RoleGate allowedRoles={['owner', 'admin']} fallback={<div style={{ padding: 24, color: '#fff' }}>Acesso restrito a administradores.</div>}>
-                <AppFrame title="Painel Administrativo" onClose={closeModal}>
-                  <AdminTenantsPage />
-                </AppFrame>
-              </RoleGate>
-            )}
-
-            {activeModal === 'admin_audit' && (
-              <RoleGate allowedRoles={['owner', 'admin']} fallback={<div style={{ padding: 24, color: '#fff' }}>Acesso restrito a administradores.</div>}>
-                <AppFrame title="Trilha de Auditoria" onClose={closeModal}>
-                  <AdminAuditPage />
-                </AppFrame>
-              </RoleGate>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   )
 }

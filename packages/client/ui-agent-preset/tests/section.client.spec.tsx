@@ -29,6 +29,7 @@ const READY: AgentPresetSectionState = {
     { id: 'mine', trust: 'user', isDefault: false },
   ],
   copy: null,
+  wizard: null,
   view: null,
   pendingDelete: null,
   deleting: false,

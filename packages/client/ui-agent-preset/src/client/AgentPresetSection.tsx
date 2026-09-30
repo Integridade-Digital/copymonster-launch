@@ -18,7 +18,8 @@ import {
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
-import { draftBlocker, type AgentPresetSectionState } from './section-store.ts'
+import { draftBlocker, type AgentPresetSectionState, type WizardDraft } from './section-store.ts'
+import { PresetWizard } from './PresetWizard.tsx'
 import { presetDisplayText, type AgentPresetSettingsKey } from './locales.ts'
 import css from './AgentPresetSection.module.css'
 
@@ -38,6 +39,16 @@ export interface AgentPresetSectionInjected {
   beginCopy: (from: string) => void
   /** Close the copy dialog, discarding the draft. */
   cancelCopy: () => void
+  /** Begin creating a new preset via wizard. */
+  beginWizard?: (basePreset?: string) => void
+  /** Dismiss the wizard. */
+  cancelWizard?: () => void
+  /** Change the wizard active step. */
+  setWizardStep?: (step: 1 | 2) => void
+  /** Patch the wizard draft fields. */
+  updateWizard?: (patch: Partial<WizardDraft>) => void
+  /** Submit the wizard to create the new preset. */
+  confirmWizard?: () => Promise<void>
   /** Name the preset the copy creates. */
   setCopyId: (id: string) => void
   /** Name the copy's display name. */
@@ -236,6 +247,17 @@ export function AgentPresetSection(props: AgentPresetSectionProps): ReactNode {
     <div className={css.section}>
       <h2 className={css.title}>{t('nav')}</h2>
       <p className={css.intro}>{t('sectionIntro')}</p>
+      <div>
+        <Button
+          variant="primary"
+          disabled={!state.authorable}
+          title={state.authorable ? undefined : t('duplicateUnavailable')}
+          onClick={() => { props.beginWizard?.() }}
+        >
+          <IconPlusOutline16 size={14} />
+          {t('createPresetButton')}
+        </Button>
+      </div>
       <div className={css.pickerPreference}>
         <div className={css.pickerPreferenceCopy}>
           <span className={css.pickerPreferenceTitleRow}>
@@ -481,6 +503,17 @@ export function AgentPresetSection(props: AgentPresetSectionProps): ReactNode {
           </>
         )}
       />
+      {state.wizard ? (
+        <PresetWizard
+          draft={state.wizard}
+          rows={state.rows}
+          t={t}
+          onStepChange={props.setWizardStep ?? (() => {})}
+          onUpdate={props.updateWizard ?? (() => {})}
+          onConfirm={props.confirmWizard ?? (() => Promise.resolve())}
+          onCancel={props.cancelWizard ?? (() => {})}
+        />
+      ) : null}
     </div>
   )
 }

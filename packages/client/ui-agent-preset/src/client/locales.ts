@@ -20,6 +20,8 @@ export type AgentPresetSettingsKey =
   | 'deleteTitle' | 'deleteDescription' | 'deleteConfirm' | 'deleting'
   | 'showPicker' | 'showPickerBeta' | 'showPickerDescription'
   | 'enablePickerToSetDefault' | 'enablePickerToCreate'
+  | 'createPresetButton' | 'wizardTitle' | 'wizardStepIdentity' | 'wizardStepReview'
+  | 'wizardBasePreset' | 'wizardReviewIntro' | 'wizardNext' | 'wizardPrevious' | 'wizardConfirm'
 
 /** English copy. */
 export const en: Record<AgentPresetSettingsKey, string> = {
@@ -93,6 +95,16 @@ export const en: Record<AgentPresetSettingsKey, string> = {
     'When enabled, new tasks can choose Standard Monster, PTC Monster, Creator Monster, Minimal Monster, SDR Monster, and custom modes. When disabled, all new tasks use the default mode (Standard Monster by default; configurable). Only affects new tasks.',
   enablePickerToSetDefault: 'Turn on Agent mode selection to choose a default',
   enablePickerToCreate: 'Turn on Agent mode selection to start Creator Monster',
+  createPresetButton: 'Create new preset',
+  wizardTitle: 'Create preset',
+  wizardStepIdentity: '1. Identity',
+  wizardStepReview: '2. Review',
+  wizardBasePreset: 'Base preset',
+  wizardReviewIntro:
+    'The preset will be created by copying the base preset. After creation, its directory will open so you can customize its files directly.',
+  wizardNext: 'Next',
+  wizardPrevious: 'Previous',
+  wizardConfirm: 'Create preset',
 }
 
 /** Simplified Chinese copy. */
@@ -156,6 +168,15 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   showPickerDescription: '开启后，新任务可选择标准 Monster、PTC Monster、创作者 Monster、极简 Monster、SDR Monster 及自定义模式；关闭后统一使用默认模式（默认为标准 Monster，可自定义）。仅影响新任务。',
   enablePickerToSetDefault: '请先开启 Agent 模式选择，再设置默认模式',
   enablePickerToCreate: '请先开启 Agent 模式选择，再启动创作者 Monster',
+  createPresetButton: '创建新预设',
+  wizardTitle: '创建预设',
+  wizardStepIdentity: '1. 身份',
+  wizardStepReview: '2. 确认',
+  wizardBasePreset: '基础预设',
+  wizardReviewIntro: '将通过复制基础预设创建该预设。创建完成后将打开其目录，便于您直接自定义文件。',
+  wizardNext: '下一步',
+  wizardPrevious: '上一步',
+  wizardConfirm: '创建预设',
 }
 
 // The resolution itself is the shared fold in `dsh-agent-presets/display`,

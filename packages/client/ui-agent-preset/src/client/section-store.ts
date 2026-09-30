@@ -62,6 +62,15 @@ export interface CopyDraft {
   error: string | null
 }
 
+export interface WizardDraft {
+  step: 1 | 2
+  basePreset: string
+  id: string
+  name: string
+  saving: boolean
+  error: string | null
+}
+
 /** The read-only composition viewer over one shipped preset. */
 export interface PresetView {
   /** The preset whose composition is shown. */
@@ -89,6 +98,8 @@ export interface AgentPresetSectionState {
   rows: readonly PresetRow[]
   /** The open copy dialog, or null. */
   copy: CopyDraft | null
+  /** The open creation wizard, or null. */
+  wizard: WizardDraft | null
   /** The open read-only viewer, or null. */
   view: PresetView | null
   /** The preset awaiting delete confirmation. */
@@ -111,6 +122,7 @@ const INITIAL: AgentPresetSectionState = {
   policySaving: false,
   rows: [],
   copy: null,
+  wizard: null,
   view: null,
   pendingDelete: null,
   deleting: false,
@@ -125,6 +137,13 @@ const INITIAL: AgentPresetSectionState = {
  * @param rows - the roster, for the collision check.
  * @returns the blocking reason's locale key, or undefined when submittable.
  */
+export function wizardBlocker(
+  draft: WizardDraft,
+  rows: readonly PresetRow[],
+): 'idRequired' | 'idInvalid' | 'idTaken' | undefined {
+  return draftBlocker(draft, rows)
+}
+
 export function draftBlocker(
   draft: CopyDraft,
   rows: readonly PresetRow[],
@@ -305,6 +324,70 @@ export class AgentPresetSectionController {
   }
 
   /** Close the copy dialog, discarding whatever was typed. */
+  beginWizard(basePreset?: string): void {
+    const rows = this.store.getSnapshot().rows
+    const fallbackBase = rows.find(r => r.trust === 'system')?.id ?? rows[0]?.id ?? 'standard'
+    const chosenBase = basePreset ?? fallbackBase
+    this.set({
+      error: null,
+      wizard: {
+        step: 1,
+        basePreset: chosenBase,
+        id: '',
+        name: '',
+        saving: false,
+        error: null,
+      },
+    })
+  }
+
+  cancelWizard(): void {
+    this.set({ wizard: null })
+  }
+
+  setWizardStep(step: 1 | 2): void {
+    const state = this.store.getSnapshot()
+    if (!state.wizard) return
+    const updated: WizardDraft = { ...state.wizard, step }
+    this.set({ wizard: updated })
+  }
+
+  updateWizard(patch: Partial<WizardDraft>): void {
+    const state = this.store.getSnapshot()
+    if (!state.wizard) return
+    const updated: WizardDraft = {
+      ...state.wizard,
+      ...patch,
+      id: patch.id !== undefined ? patch.id : state.wizard.id,
+      step: patch.step !== undefined ? patch.step : state.wizard.step,
+    }
+    this.set({ wizard: updated })
+  }
+
+  async confirmWizard(): Promise<void> {
+    const state = this.store.getSnapshot()
+    if (!state.wizard) return
+    const draft = state.wizard
+    if (draft.saving) return
+    if (wizardBlocker(draft, state.rows) !== undefined) return
+    this.updateWizard({ saving: true, error: null })
+    const name = draft.name.trim()
+    const result = await this.ctx.remote.agentPresets.copy(
+      draft.basePreset,
+      draft.id.trim(),
+      name === '' ? undefined : name,
+    )
+    if (!result.ok) {
+      this.updateWizard({ saving: false, error: result.error.message })
+      return
+    }
+    const createdId = draft.id.trim()
+    this.set({ wizard: null })
+    await this.load()
+    this.rosterChanged()
+    await this.openLocation(createdId)
+  }
+
   cancelCopy(): void {
     this.set({ copy: null })
   }

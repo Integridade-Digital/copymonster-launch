@@ -1,14 +1,20 @@
 import React from 'react'
-import { useNavigate } from 'react-router-dom'
 import './AppFrame.css'
 
 interface AppFrameProps {
   title?: string
   children: React.ReactNode
+  onClose?: () => void
 }
 
-export function AppFrame({ title = 'Planos e Faturamento', children }: AppFrameProps) {
-  const navigate = useNavigate()
+export function AppFrame({ title = 'Planos e Faturamento', children, onClose }: AppFrameProps) {
+  const handleClose = () => {
+    if (onClose) {
+      onClose()
+    } else if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('copymonster:modal', { detail: null }))
+    }
+  }
 
   return (
     <div className="cm-app-frame">
@@ -21,7 +27,7 @@ export function AppFrame({ title = 'Planos e Faturamento', children }: AppFrameP
         <button
           type="button"
           className="cm-back-to-chat-btn"
-          onClick={() => navigate('/')}
+          onClick={handleClose}
         >
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M19 12H5" />

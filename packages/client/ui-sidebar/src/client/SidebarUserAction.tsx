@@ -12,8 +12,7 @@ export function SidebarUserAction({ wide, t }: SidebarUserActionProps) {
   const handleProfileClick = (e: MouseEvent) => {
     e.preventDefault()
     if (typeof window !== 'undefined') {
-      window.history.pushState({}, '', '/profile')
-      window.dispatchEvent(new PopStateEvent('popstate'))
+      window.dispatchEvent(new CustomEvent('copymonster:modal', { detail: 'profile' }))
     }
   }
 

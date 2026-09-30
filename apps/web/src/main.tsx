@@ -169,6 +169,122 @@ const LazyWebApp = React.lazy(async () => {
  * Top-level application routes using HTML5 browser history (BrowserRouter).
  * Handles public auth flows, protected workspace shell, and SaaS management views.
  */
+
+type ActiveModalType = 'plans' | 'profile' | 'admin' | 'admin_audit' | null
+
+/**
+ * Shell autenticado do workspace. Mantém o LazyWebApp permanentemente montado
+ * e renderiza painéis de gerenciamento (Planos, Perfil, Admin) como modais sobrepostos,
+ * evitando a desmontagem do shell e o consequente erro de reboot do ModuleLoader.
+ */
+function AuthenticatedWorkspace() {
+  const [activeModal, setActiveModal] = React.useState<ActiveModalType>(null)
+
+  React.useEffect(() => {
+    const handleModalEvent = (event: Event) => {
+      const customEvent = event as CustomEvent<ActiveModalType>
+      setActiveModal(customEvent.detail ?? null)
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setActiveModal(null)
+      }
+    }
+
+    window.addEventListener('copymonster:modal', handleModalEvent)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => {
+      window.removeEventListener('copymonster:modal', handleModalEvent)
+      window.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [])
+
+  const closeModal = () => setActiveModal(null)
+
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+      <WebAppErrorBoundary>
+        <React.Suspense
+          fallback={
+            <div className="cm-auth-boot" role="status" aria-live="polite">
+              <span className="cm-auth-spinner" aria-hidden="true" />
+              <span>Carregando ambiente de trabalho…</span>
+            </div>
+          }
+        >
+          <LazyWebApp />
+        </React.Suspense>
+      </WebAppErrorBoundary>
+
+      {activeModal !== null && (
+        <div
+          role="presentation"
+          style={{
+            position: 'fixed',
+            inset: 0,
+            zIndex: 9999,
+            display: 'flex',
+            flexDirection: 'column',
+          }}
+        >
+          <div
+            onClick={closeModal}
+            aria-hidden="true"
+            style={{
+              position: 'fixed',
+              inset: 0,
+              backgroundColor: 'rgba(0, 0, 0, 0.7)',
+              backdropFilter: 'blur(3px)',
+            }}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            style={{
+              position: 'relative',
+              width: '100%',
+              height: '100%',
+              zIndex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              overflow: 'hidden',
+            }}
+          >
+            {activeModal === 'plans' && (
+              <AppFrame title="Planos e Faturamento" onClose={closeModal}>
+                <PlansPage />
+              </AppFrame>
+            )}
+
+            {activeModal === 'profile' && (
+              <AppFrame title="Meu Perfil" onClose={closeModal}>
+                <ProfilePage />
+              </AppFrame>
+            )}
+
+            {activeModal === 'admin' && (
+              <RoleGate allowedRoles={['owner', 'admin']} fallback={<div style={{ padding: 24, color: '#fff' }}>Acesso restrito a administradores.</div>}>
+                <AppFrame title="Painel Administrativo" onClose={closeModal}>
+                  <AdminTenantsPage />
+                </AppFrame>
+              </RoleGate>
+            )}
+
+            {activeModal === 'admin_audit' && (
+              <RoleGate allowedRoles={['owner', 'admin']} fallback={<div style={{ padding: 24, color: '#fff' }}>Acesso restrito a administradores.</div>}>
+                <AppFrame title="Trilha de Auditoria" onClose={closeModal}>
+                  <AdminAuditPage />
+                </AppFrame>
+              </RoleGate>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 function AppRoutes() {
   const { isLoading, authError, retryAuth, user } = useAuth()
 
@@ -246,27 +362,7 @@ function AppRoutes() {
         }
       />
 
-      {/* Rotas Protegidas - SaaS Billing e Planos */}
-      <Route
-        path="/billing"
-        element={
-          <ProtectedRoute>
-            <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
-              <AppFrame><PlansPage /></AppFrame>
-            </div>
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/plans"
-        element={
-          <ProtectedRoute>
-            <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
-              <AppFrame><PlansPage /></AppFrame>
-            </div>
-          </ProtectedRoute>
-        }
-      />
+      {/* Stripe Checkout Redirects (standalone routes) */}
       <Route
         path="/billing/success"
         element={
@@ -288,67 +384,15 @@ function AppRoutes() {
         }
       />
 
-      {/* Rota Protegida - Painel Administrativo de Tenants (owner/admin) */}
+      {/* Rota Principal - DSH Web Workspace Shell com LazyWebApp permanentemente montado e Modais */}
       <Route
-        path="/admin"
+        path="/*"
         element={
           <ProtectedRoute>
-            <RoleGate allowedRoles={['owner', 'admin']} fallback={<Navigate to="/" replace />}>
-              <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
-                <AdminTenantsPage />
-              </div>
-            </RoleGate>
+            <AuthenticatedWorkspace />
           </ProtectedRoute>
         }
       />
-
-      {/* Rota Protegida - Painel Administrativo de Auditoria (owner/admin) */}
-      <Route
-        path="/admin/audit"
-        element={
-          <ProtectedRoute>
-            <RoleGate allowedRoles={['owner', 'admin']} fallback={<Navigate to="/" replace />}>
-              <div style={{ height: '100%', width: '100%', overflowY: 'auto' }}>
-                <AdminAuditPage />
-              </div>
-            </RoleGate>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Rota Principal - DSH Web Workspace Shell com Lazy Loading cercada por ErrorBoundary */}
-      <Route
-        path="/"
-        element={
-          <ProtectedRoute>
-            <WebAppErrorBoundary>
-              <React.Suspense
-                fallback={
-                  <div className="cm-auth-boot" role="status" aria-live="polite">
-                    <span className="cm-auth-spinner" aria-hidden="true" />
-                    <span>Carregando ambiente de trabalho…</span>
-                  </div>
-                }
-              >
-                <LazyWebApp />
-              </React.Suspense>
-            </WebAppErrorBoundary>
-          </ProtectedRoute>
-        }
-      />
-
-      {/* Rota Fallback */}
-      <Route
-        path="/profile"
-        element={
-          <ProtectedRoute>
-            <Suspense fallback={<div className="p-6 text-gray-400">Carregando perfil...</div>}>
-              <AppFrame><ProfilePage /></AppFrame>
-            </Suspense>
-          </ProtectedRoute>
-        }
-      />
-      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   )
 }

@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
 import { supabase } from '../../lib/supabase/client'
 
 interface AuditLog {
@@ -84,18 +83,19 @@ export function AdminAuditPage() {
       {/* Navigation Tabs */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="-mb-px flex space-x-8">
-          <Link
-            to="/admin"
-            className="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('copymonster:modal', { detail: 'admin' }))}
+            className="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm bg-transparent cursor-pointer"
           >
             🏢 Gestão de Tenants
-          </Link>
-          <Link
-            to="/admin/audit"
-            className="border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm"
+          </button>
+          <button
+            type="button"
+            className="border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm bg-transparent cursor-pointer"
           >
             📜 Trilha de Auditoria
-          </Link>
+          </button>
         </nav>
       </div>
 

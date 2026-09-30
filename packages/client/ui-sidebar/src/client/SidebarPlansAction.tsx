@@ -13,8 +13,7 @@ export function SidebarPlansAction({ wide, t }: SidebarPlansActionProps) {
   const handleClick = (e: MouseEvent) => {
     e.preventDefault()
     if (typeof window !== 'undefined') {
-      window.history.pushState({}, '', '/plans')
-      window.dispatchEvent(new PopStateEvent('popstate'))
+      window.dispatchEvent(new CustomEvent('copymonster:modal', { detail: 'plans' }))
     }
   }
 

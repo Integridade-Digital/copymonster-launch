@@ -69,27 +69,27 @@ export function AdminTenantsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#E7BF73]"></div>
       </div>
     )
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto text-[#f0f6fc]">
       {/* Navigation Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-[#30363d] mb-6">
         <nav className="-mb-px flex space-x-8">
           <button
             type="button"
-            className="border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm bg-transparent cursor-pointer"
+            className="border-[#E7BF73] text-[#E7BF73] whitespace-nowrap py-4 px-1 border-b-2 font-semibold text-sm bg-transparent cursor-pointer"
           >
             🏢 Gestão de Tenants
           </button>
           <button
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent('copymonster:modal', { detail: 'admin_audit' }))}
-            className="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm bg-transparent cursor-pointer"
+            className="border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm bg-transparent cursor-pointer transition-colors"
           >
             📜 Trilha de Auditoria
           </button>
@@ -97,81 +97,90 @@ export function AdminTenantsPage() {
       </div>
 
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-gray-900">Gestão de Tenants</h1>
+        <div>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Gestão de Tenants</h1>
+          <p className="text-sm text-gray-400 mt-1">
+            Controle de organizações cadastradas, planos ativos e estado de acesso.
+          </p>
+        </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          className="px-4 py-2.5 bg-[#E7BF73] hover:bg-[#D8AE5F] text-[#0f1115] font-semibold text-sm rounded-lg shadow-md transition-all duration-150 cursor-pointer"
         >
           Novo Tenant
         </button>
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+        <div className="mb-4 p-4 bg-red-950/60 border border-red-800 text-red-200 rounded-lg text-sm">
           {error}
         </div>
       )}
 
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+      <div className="bg-[#161b22] border border-[#30363d] shadow-xl overflow-hidden rounded-xl">
+        <table className="min-w-full divide-y divide-[#30363d]">
+          <thead className="bg-[#0d1117]">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Nome
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Slug
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Status
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Assinatura
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Criado Em
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">
                 Ações
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-[#161b22] divide-y divide-[#30363d]">
             {tenants.map(tenant => (
-              <tr key={tenant.id}>
+              <tr key={tenant.id} className="hover:bg-[#1f242c] transition-colors">
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm font-medium text-gray-900">{tenant.name}</div>
+                  <div className="text-sm font-medium text-white">{tenant.name}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{tenant.slug}</div>
+                  <div className="text-xs text-gray-400 font-mono">{tenant.slug}</div>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                    tenant.status === 'active' ? 'bg-green-100 text-green-800' :
-                      tenant.status === 'suspended' ? 'bg-yellow-100 text-yellow-800' :
-                        'bg-red-100 text-red-800'
+                  <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full border ${
+                    tenant.status === 'active'
+                      ? 'bg-emerald-950/70 border-emerald-700/50 text-emerald-300'
+                      : tenant.status === 'suspended'
+                        ? 'bg-amber-950/70 border-amber-700/50 text-amber-300'
+                        : 'bg-rose-950/70 border-rose-700/50 text-rose-300'
                   }`}>
                     {tenant.status}
                   </span>
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap">
-                  <div className="text-sm text-gray-500">{tenant.subscription_status || 'trial'}</div>
+                  <div className="text-xs text-gray-300 font-mono capitalize">
+                    {tenant.subscription_status || 'trial'}
+                  </div>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-400">
                   {new Date(tenant.created_at).toLocaleDateString('pt-BR')}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
                   {tenant.status === 'active' ? (
                     <button
                       onClick={() => handleSuspendTenant(tenant.id)}
-                      className="text-yellow-600 hover:text-yellow-900 mr-3"
+                      className="text-amber-400 hover:text-amber-300 mr-3 cursor-pointer text-xs font-medium transition-colors"
                     >
                       Suspender
                     </button>
                   ) : (
                     <button
                       onClick={() => handleActivateTenant(tenant.id)}
-                      className="text-green-600 hover:text-green-900 mr-3"
+                      className="text-emerald-400 hover:text-emerald-300 mr-3 cursor-pointer text-xs font-medium transition-colors"
                     >
                       Ativar
                     </button>
@@ -217,42 +226,52 @@ function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCrea
   }
 
   return (
-    <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full">
-      <div className="relative top-20 mx-auto p-5 border w-96 shadow-lg rounded-md bg-white">
-        <h3 className="text-lg font-medium text-gray-900 mb-4">Criar Novo Tenant</h3>
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+      <div className="relative p-6 border border-[#30363d] w-full max-w-md shadow-2xl rounded-xl bg-[#161b22] text-[#f0f6fc]">
+        <div className="flex justify-between items-center mb-5 pb-3 border-b border-[#30363d]">
+          <h3 className="text-lg font-bold text-white">Criar Novo Tenant</h3>
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-white text-xl font-bold cursor-pointer"
+          >
+            &times;
+          </button>
+        </div>
         <form onSubmit={handleSubmit}>
           <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">Nome</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="Ex: Agência Alpha"
+              className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-white placeholder-gray-500 text-sm focus:outline-none focus:border-[#E7BF73] focus:ring-1 focus:ring-[#E7BF73] transition-colors"
               required
             />
           </div>
-          <div className="mb-4">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Slug</label>
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-300 mb-1.5">Slug</label>
             <input
               type="text"
               value={slug}
               onChange={e => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+              placeholder="ex: agencia-alpha"
+              className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-white placeholder-gray-500 text-sm font-mono focus:outline-none focus:border-[#E7BF73] focus:ring-1 focus:ring-[#E7BF73] transition-colors"
               required
             />
           </div>
-          <div className="flex justify-end space-x-2">
+          <div className="flex justify-end space-x-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+              className="px-4 py-2 border border-[#30363d] rounded-lg text-sm text-gray-300 hover:bg-[#21262d] transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isCreating}
-              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+              className="px-4 py-2 bg-[#E7BF73] hover:bg-[#D8AE5F] text-[#0f1115] font-semibold text-sm rounded-lg disabled:opacity-50 transition-colors cursor-pointer"
             >
               {isCreating ? 'Criando...' : 'Criar'}
             </button>

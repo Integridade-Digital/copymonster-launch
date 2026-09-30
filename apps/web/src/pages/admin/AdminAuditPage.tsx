@@ -21,8 +21,8 @@ function AuditValueBlock({ label, value }: { label: string; value: unknown }) {
   if (!json) return null
   return (
     <div>
-      <h4 className="font-semibold text-gray-700 mb-1">{label}</h4>
-      <pre className="p-3 bg-gray-50 border rounded text-gray-800 overflow-x-auto">{json}</pre>
+      <h4 className="font-semibold text-gray-300 mb-1.5 text-xs uppercase tracking-wider">{label}</h4>
+      <pre className="p-3 bg-[#0d1117] border border-[#30363d] rounded-lg text-emerald-400 overflow-x-auto text-xs font-mono">{json}</pre>
     </div>
   )
 }
@@ -67,32 +67,32 @@ export function AdminAuditPage() {
   function getActionBadgeClass(action: string) {
     const act = action.toUpperCase()
     if (act.includes('DELETE') || act.includes('REMOVE') || act.includes('SUSPEND')) {
-      return 'bg-red-100 text-red-800'
+      return 'bg-rose-950/70 border border-rose-700/50 text-rose-300'
     }
     if (act.includes('CREATE') || act.includes('INSERT') || act.includes('ACTIVATE')) {
-      return 'bg-green-100 text-green-800'
+      return 'bg-emerald-950/70 border border-emerald-700/50 text-emerald-300'
     }
     if (act.includes('UPDATE') || act.includes('CHANGE')) {
-      return 'bg-yellow-100 text-yellow-800'
+      return 'bg-amber-950/70 border border-amber-700/50 text-amber-300'
     }
-    return 'bg-blue-100 text-blue-800'
+    return 'bg-indigo-950/70 border border-indigo-700/50 text-indigo-300'
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 max-w-7xl mx-auto text-[#f0f6fc]">
       {/* Navigation Tabs */}
-      <div className="border-b border-gray-200 mb-6">
+      <div className="border-b border-[#30363d] mb-6">
         <nav className="-mb-px flex space-x-8">
           <button
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent('copymonster:modal', { detail: 'admin' }))}
-            className="border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm bg-transparent cursor-pointer"
+            className="border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm bg-transparent cursor-pointer transition-colors"
           >
             🏢 Gestão de Tenants
           </button>
           <button
             type="button"
-            className="border-blue-500 text-blue-600 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm bg-transparent cursor-pointer"
+            className="border-[#E7BF73] text-[#E7BF73] whitespace-nowrap py-4 px-1 border-b-2 font-semibold text-sm bg-transparent cursor-pointer"
           >
             📜 Trilha de Auditoria
           </button>
@@ -101,8 +101,8 @@ export function AdminAuditPage() {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Logs de Auditoria</h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <h1 className="text-3xl font-bold text-white tracking-tight">Logs de Auditoria</h1>
+          <p className="text-sm text-gray-400 mt-1">
             Rastreamento de operações administrativas, eventos de segurança e alterações de estado.
           </p>
         </div>
@@ -115,11 +115,11 @@ export function AdminAuditPage() {
               setActionFilter(e.target.value)
               setPage(0)
             }}
-            className="px-3 py-2 border border-gray-300 rounded-lg text-sm shadow-sm focus:ring-blue-500 focus:border-blue-500"
+            className="px-3.5 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-white placeholder-gray-500 shadow-sm focus:outline-none focus:border-[#E7BF73] focus:ring-1 focus:ring-[#E7BF73] transition-colors"
           />
           <button
             onClick={() => loadAuditLogs()}
-            className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm font-medium"
+            className="px-4 py-2 bg-[#21262d] text-gray-200 border border-[#30363d] rounded-lg hover:bg-[#30363d] text-sm font-medium transition-colors cursor-pointer"
           >
             Atualizar
           </button>
@@ -127,66 +127,66 @@ export function AdminAuditPage() {
       </div>
 
       {error && (
-        <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-lg">
+        <div className="mb-4 p-4 bg-red-950/60 border border-red-800 text-red-200 rounded-lg text-sm">
           {error}
         </div>
       )}
 
       {isLoading ? (
         <div className="flex items-center justify-center p-12">
-          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#E7BF73]"></div>
         </div>
       ) : logs.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-8 text-center text-gray-500">
+        <div className="bg-[#161b22] border border-[#30363d] rounded-xl shadow-xl p-8 text-center text-gray-400">
           Nenhum registro de auditoria encontrado.
         </div>
       ) : (
-        <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-          <table className="min-w-full divide-y divide-gray-200 text-left">
-            <thead className="bg-gray-50">
+        <div className="bg-[#161b22] border border-[#30363d] shadow-xl overflow-hidden rounded-xl">
+          <table className="min-w-full divide-y divide-[#30363d] text-left">
+            <thead className="bg-[#0d1117]">
               <tr>
-                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   Data / Hora
                 </th>
-                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   Ação
                 </th>
-                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   Recurso
                 </th>
-                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   Tenant / Usuário
                 </th>
-                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3.5 text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   Origem (IP)
                 </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-400 uppercase tracking-wider">
                   Detalhes
                 </th>
               </tr>
             </thead>
-            <tbody className="bg-white divide-y divide-gray-200 text-sm">
+            <tbody className="bg-[#161b22] divide-y divide-[#30363d] text-sm">
               {logs.map(log => (
-                <tr key={log.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-600 font-mono text-xs">
+                <tr key={log.id} className="hover:bg-[#1f242c] transition-colors">
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-300 font-mono text-xs">
                     {new Date(log.created_at).toLocaleString('pt-BR')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`px-2 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${getActionBadgeClass(log.action)}`}>
+                    <span className={`px-2.5 py-0.5 inline-flex text-xs leading-5 font-semibold rounded-full ${getActionBadgeClass(log.action)}`}>
                       {log.action}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-gray-700">
+                  <td className="px-6 py-4 whitespace-nowrap text-gray-200">
                     <div>{log.resource_type || '-'}</div>
                     {log.resource_id && (
                       <div className="text-xs text-gray-400 font-mono truncate max-w-[120px]">{log.resource_id}</div>
                     )}
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500 font-mono">
+                  <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-400 font-mono">
                     <div>Tenant: {log.tenant_id ? log.tenant_id.slice(0, 8) + '...' : '-'}</div>
                     <div>User: {log.user_id ? log.user_id.slice(0, 8) + '...' : '-'}</div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-500">
+                  <td className="px-6 py-4 whitespace-nowrap text-xs text-gray-400">
                     <div>{log.ip_address || '-'}</div>
                     {log.user_agent && (
                       <div className="text-gray-400 truncate max-w-[150px]" title={log.user_agent}>{log.user_agent}</div>
@@ -196,12 +196,12 @@ export function AdminAuditPage() {
                     {(log.old_value || log.new_value) ? (
                       <button
                         onClick={() => setSelectedLog(log)}
-                        className="text-blue-600 hover:text-blue-900 font-medium text-xs bg-blue-50 px-2.5 py-1 rounded hover:bg-blue-100"
+                        className="text-[#E7BF73] hover:text-[#fbf0da] font-medium text-xs bg-[#21262d] border border-[#30363d] hover:border-[#E7BF73]/40 px-2.5 py-1 rounded transition-colors cursor-pointer"
                       >
                         Ver Carga
                       </button>
                     ) : (
-                      <span className="text-gray-400 text-xs">-</span>
+                      <span className="text-gray-500 text-xs">-</span>
                     )}
                   </td>
                 </tr>
@@ -210,19 +210,19 @@ export function AdminAuditPage() {
           </table>
 
           {/* Pagination Controls */}
-          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 flex items-center justify-between">
+          <div className="px-6 py-4 bg-[#0d1117] border-t border-[#30363d] flex items-center justify-between">
             <button
               onClick={() => setPage(p => Math.max(0, p - 1))}
               disabled={page === 0}
-              className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              className="px-3 py-1.5 border border-[#30363d] rounded text-sm text-gray-300 bg-[#161b22] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#21262d] transition-colors cursor-pointer"
             >
               Anterior
             </button>
-            <span className="text-sm text-gray-600">Página {page + 1}</span>
+            <span className="text-sm text-gray-400">Página {page + 1}</span>
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={logs.length < pageSize}
-              className="px-3 py-1.5 border border-gray-300 rounded text-sm text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
+              className="px-3 py-1.5 border border-[#30363d] rounded text-sm text-gray-300 bg-[#161b22] disabled:opacity-40 disabled:cursor-not-allowed hover:bg-[#21262d] transition-colors cursor-pointer"
             >
               Próxima
             </button>

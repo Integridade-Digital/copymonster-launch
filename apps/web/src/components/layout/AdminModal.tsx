@@ -1,7 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { RoleGate } from '../auth/RoleGate'
-import { AdminTenantsPage } from '../../pages/admin/AdminTenantsPage'
-import { AdminAuditPage } from '../../pages/admin/AdminAuditPage'
+import { AdminOverviewTab } from '../../pages/admin/tabs/AdminOverviewTab'
+import { AdminUsersTab } from '../../pages/admin/tabs/AdminUsersTab'
+import { AdminTenantsTab } from '../../pages/admin/tabs/AdminTenantsTab'
+import { AdminLLMProvidersTab } from '../../pages/admin/tabs/AdminLLMProvidersTab'
+import { AdminModelsTab } from '../../pages/admin/tabs/AdminModelsTab'
+import { AdminSystemTab } from '../../pages/admin/tabs/AdminSystemTab'
+import { AdminSessionsTab } from '../../pages/admin/tabs/AdminSessionsTab'
+import { AdminAuditTab } from '../../pages/admin/tabs/AdminAuditTab'
+import { AdminBillingTab } from '../../pages/admin/tabs/AdminBillingTab'
 import css from './FooterActionsRoot.module.css'
 
 interface AdminModalProps {
@@ -10,9 +17,32 @@ interface AdminModalProps {
   triggerRef?: React.RefObject<HTMLElement | null>
 }
 
+type AdminTabKey =
+  | 'overview'
+  | 'users'
+  | 'tenants'
+  | 'llm_providers'
+  | 'models'
+  | 'system'
+  | 'sessions'
+  | 'audit'
+  | 'billing'
+
+const ADMIN_TABS: { key: AdminTabKey; label: string }[] = [
+  { key: 'overview', label: 'Visão Geral' },
+  { key: 'users', label: 'Usuários' },
+  { key: 'tenants', label: 'Tenants' },
+  { key: 'llm_providers', label: 'Provedores LLM' },
+  { key: 'models', label: 'Modelos' },
+  { key: 'system', label: 'Configuração' },
+  { key: 'sessions', label: 'Sessões' },
+  { key: 'audit', label: 'Auditoria' },
+  { key: 'billing', label: 'Faturamento' },
+]
+
 export function AdminModal({ isOpen, onClose, triggerRef }: AdminModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
-  const [activeTab, setActiveTab] = useState<'tenants' | 'audit'>('tenants')
+  const [activeTab, setActiveTab] = useState<AdminTabKey>('overview')
 
   useEffect(() => {
     if (!isOpen) return
@@ -57,27 +87,30 @@ export function AdminModal({ isOpen, onClose, triggerRef }: AdminModalProps) {
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-
         <RoleGate allowedRoles={['owner', 'admin']} fallback={<div className={css.adminRestricted}>Acesso restrito a administradores.</div>}>
           <div className={css.adminContainer}>
             <div className={css.adminTabBar}>
-              <button
-                type="button"
-                onClick={() => setActiveTab('tenants')}
-                className={`${css.adminTab} ${activeTab === 'tenants' ? css.adminTabActive : ''}`}
-              >
-                Tenants
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab('audit')}
-                className={`${css.adminTab} ${activeTab === 'audit' ? css.adminTabActive : ''}`}
-              >
-                Trilha de Auditoria
-              </button>
+              {ADMIN_TABS.map(tab => (
+                <button
+                  key={tab.key}
+                  type="button"
+                  onClick={() => setActiveTab(tab.key)}
+                  className={`${css.adminTab} ${activeTab === tab.key ? css.adminTabActive : ''}`}
+                >
+                  {tab.label}
+                </button>
+              ))}
             </div>
             <div className={css.adminContent}>
-              {activeTab === 'tenants' ? <AdminTenantsPage /> : <AdminAuditPage />}
+              {activeTab === 'overview' && <AdminOverviewTab />}
+              {activeTab === 'users' && <AdminUsersTab />}
+              {activeTab === 'tenants' && <AdminTenantsTab />}
+              {activeTab === 'llm_providers' && <AdminLLMProvidersTab />}
+              {activeTab === 'models' && <AdminModelsTab />}
+              {activeTab === 'system' && <AdminSystemTab />}
+              {activeTab === 'sessions' && <AdminSessionsTab />}
+              {activeTab === 'audit' && <AdminAuditTab />}
+              {activeTab === 'billing' && <AdminBillingTab />}
             </div>
           </div>
         </RoleGate>

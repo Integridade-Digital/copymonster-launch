@@ -52,49 +52,31 @@ export function AdminModal({ isOpen, onClose, triggerRef }: AdminModalProps) {
           onClick={onClose}
           aria-label="Fechar painel admin"
         >
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18" />
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
 
-        <RoleGate allowedRoles={['owner', 'admin']} fallback={<div style={{ padding: 24, color: '#fff' }}>Acesso restrito a administradores.</div>}>
-          <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
-            <div style={{ display: 'flex', borderBottom: '1px solid rgba(231, 191, 115, 0.2)', padding: '12px 24px 0 24px', gap: 16, background: '#181818' }}>
+        <RoleGate allowedRoles={['owner', 'admin']} fallback={<div className={css.adminRestricted}>Acesso restrito a administradores.</div>}>
+          <div className={css.adminContainer}>
+            <div className={css.adminTabBar}>
               <button
                 type="button"
                 onClick={() => setActiveTab('tenants')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: activeTab === 'tenants' ? '2px solid #e7bf73' : '2px solid transparent',
-                  color: activeTab === 'tenants' ? '#e7bf73' : '#a0a0a0',
-                  padding: '8px 12px',
-                  cursor: 'pointer',
-                  fontWeight: activeTab === 'tenants' ? 600 : 400,
-                  fontSize: 14,
-                }}
+                className={`${css.adminTab} ${activeTab === 'tenants' ? css.adminTabActive : ''}`}
               >
                 Tenants
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('audit')}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  borderBottom: activeTab === 'audit' ? '2px solid #e7bf73' : '2px solid transparent',
-                  color: activeTab === 'audit' ? '#e7bf73' : '#a0a0a0',
-                  padding: '8px 12px',
-                  cursor: 'pointer',
-                  fontWeight: activeTab === 'audit' ? 600 : 400,
-                  fontSize: 14,
-                }}
+                className={`${css.adminTab} ${activeTab === 'audit' ? css.adminTabActive : ''}`}
               >
                 Trilha de Auditoria
               </button>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto' }}>
+            <div className={css.adminContent}>
               {activeTab === 'tenants' ? <AdminTenantsPage /> : <AdminAuditPage />}
             </div>
           </div>

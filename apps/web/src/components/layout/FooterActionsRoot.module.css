@@ -42,12 +42,16 @@
   position: fixed;
   inset: 0;
   z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .mask {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.7);
+  background: rgba(13, 17, 23, 0.75);
+  backdrop-filter: blur(4px);
 }
 
 .panel {
@@ -56,25 +60,27 @@
   width: 800px;
   max-width: calc(100vw - 48px);
   height: min(800px, calc(100vh - 48px));
-  margin: 0 auto;
-  margin-top: calc((100vh - min(800px, calc(100vh - 48px))) / 2);
-  background: #181818;
-  border: 1px solid rgba(231, 191, 115, 0.2);
-  border-radius: 12px;
+  background: #161b22;
+  border: 1px solid rgba(231, 191, 115, 0.18);
+  border-radius: 16px;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
   overflow: hidden;
   outline: none;
+  display: flex;
+  flex-direction: column;
 }
 
 .content {
-  height: 100%;
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 
 .closeButton {
   position: absolute;
-  top: 12px;
-  right: 12px;
-  z-index: 2;
+  top: 14px;
+  right: 14px;
+  z-index: 10;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -82,12 +88,65 @@
   height: 28px;
   background: transparent;
   border: none;
-  border-radius: 6px;
-  color: #a0a0a0;
+  border-radius: 50%;
+  color: #8b949e;
   cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
 }
 
 .closeButton:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #fff;
+  background: rgba(231, 191, 115, 0.12);
+  color: #f0f6fc;
+}
+
+/* Admin modal sub-layout and tabs */
+.adminContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.adminTabBar {
+  display: flex;
+  align-items: center;
+  border-bottom: 1px solid rgba(231, 191, 115, 0.18);
+  padding: 12px 24px 0 24px;
+  gap: 16px;
+  background: #161b22;
+  flex-shrink: 0;
+}
+
+.adminTab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: #8b949e;
+  padding: 8px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 400;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.adminTab:hover {
+  color: #f0f6fc;
+}
+
+.adminTabActive {
+  border-bottom-color: #e7bf73;
+  color: #e7bf73;
+  font-weight: 600;
+}
+
+.adminContent {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.adminRestricted {
+  padding: 24px;
+  color: #f0f6fc;
 }

@@ -1,13 +1,13 @@
 .cm-profile-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 40px 24px 80px;
+  padding: 24px 20px 40px;
   color: #f3f4f6;
   font-family: inherit;
 }
 
 .cm-profile-header {
-  margin-bottom: 32px;
+  margin-bottom: 24px;
 }
 
 .cm-profile-title {
@@ -25,11 +25,11 @@
 }
 
 .cm-profile-card {
-  background: #12141c;
+  background: #161b22;
   border: 1px solid rgba(231, 191, 115, 0.2);
   border-radius: 12px;
-  padding: 28px;
-  margin-bottom: 32px;
+  padding: 24px;
+  margin-bottom: 24px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
 }
 

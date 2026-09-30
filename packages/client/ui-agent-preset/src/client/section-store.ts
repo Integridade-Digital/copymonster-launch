@@ -138,10 +138,13 @@ const INITIAL: AgentPresetSectionState = {
  * @returns the blocking reason's locale key, or undefined when submittable.
  */
 export function wizardBlocker(
-  draft: WizardDraft,
-  rows: readonly PresetRow[],
+  draft: WizardDraft | null | undefined,
+  rows: readonly PresetRow[] = [],
 ): 'idRequired' | 'idInvalid' | 'idTaken' | undefined {
-  return draftBlocker(draft, rows)
+  if (!draft || draft.id.trim() === '') return 'idRequired'
+  if (!PRESET_ID.test(draft.id)) return 'idInvalid'
+  if (rows.some(row => row.id === draft.id)) return 'idTaken'
+  return undefined
 }
 
 export function draftBlocker(

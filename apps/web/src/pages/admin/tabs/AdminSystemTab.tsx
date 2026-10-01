@@ -24,17 +24,40 @@ export interface WorkspaceItem {
   updated_at: string
 }
 
+export interface StoragePathsData {
+  paths: {
+    workspaces_root: string
+    uploads_root: string
+    logs_root: string
+  }
+  workspaces: Array<{
+    id: string
+    workspace_id: string
+    title: string
+    relative_path: string
+    full_path: string
+    tenant_id: string
+    tenant_name: string
+    created_at: string
+  }>
+}
+
 export function AdminSystemTab() {
   const [configs, setConfigs] = useState<SystemConfigItem[]>([])
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([])
+  const [storageData, setStorageData] = useState<StoragePathsData | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Feedback de cópia
+  const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
   // Filtros
   const [flagSearchQuery, setFlagSearchQuery] = useState<string>('')
   const [limitSearchQuery, setLimitSearchQuery] = useState<string>('')
   const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState<string>('')
+  const [storageWsSearchQuery, setStorageWsSearchQuery] = useState<string>('')
 
   // Modais
   const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false)
@@ -53,18 +76,38 @@ export function AdminSystemTab() {
   const [formError, setFormError] = useState<string | null>(null)
   const [isMutating, setIsMutating] = useState<boolean>(false)
 
+  // Função para copiar texto para o clipboard com feedback
+  const handleCopyText = (text: string, key: string) => {
+    if (!navigator?.clipboard?.writeText) return
+    navigator.clipboard.writeText(text).then(() => {
+      setCopiedKey(key)
+      setTimeout(() => {
+        setCopiedKey(prev => (prev === key ? null : prev))
+      }, 1500)
+    }).catch((err) => {
+      console.error('Falha ao copiar:', err)
+    })
+  }
+
   // Carregar dados
   const loadData = useCallback(async (isSilent = false) => {
     if (!isSilent) setIsLoading(true)
     setError(null)
     try {
-      const [configsRes, workspacesRes] = await Promise.all([
+      const [configsRes, workspacesRes, storageRes] = await Promise.all([
         (supabase.rpc as any)('get_admin_system_config'),
         (supabase.rpc as any)('get_admin_workspaces'),
+        (supabase.rpc as any)('get_admin_storage_paths'),
       ])
 
       if (configsRes.error) throw new Error(configsRes.error.message)
       if (workspacesRes.error) throw new Error(workspacesRes.error.message)
+      // storageRes pode não existir ainda se a migration 017 não tiver sido rodada, tratar graciosamente
+      if (!storageRes.error && storageRes.data) {
+        setStorageData(storageRes.data as StoragePathsData)
+      } else if (storageRes.error) {
+        console.warn('get_admin_storage_paths ainda não disponível ou erro:', storageRes.error.message)
+      }
 
       setConfigs((configsRes.data as SystemConfigItem[]) || [])
       setWorkspaces((workspacesRes.data as WorkspaceItem[]) || [])
@@ -88,11 +131,11 @@ export function AdminSystemTab() {
 
   // Segmentação de configs
   const featureFlags = useMemo(() => {
-    return configs.filter((c) => c.key.startsWith('feature.'))
+    return configs.filter(c => c.key.startsWith('feature.'))
   }, [configs])
 
   const limitConfigs = useMemo(() => {
-    return configs.filter((c) => c.key.startsWith('limit.') || c.key.startsWith('quota.'))
+    return configs.filter(c => c.key.startsWith('limit.') || c.key.startsWith('quota.'))
   }, [configs])
 
   // KPIs
@@ -140,7 +183,7 @@ export function AdminSystemTab() {
     setSelectedConfig(item)
     setFormKey(item.key)
     setFormValueStr(
-      typeof item.value === 'object' ? JSON.stringify(item.value, null, 2) : String(item.value)
+      typeof item.value === 'object' ? JSON.stringify(item.value, null, 2) : String(item.value),
     )
     setFormDescription(item.description || '')
     setFormError(null)
@@ -216,12 +259,10 @@ export function AdminSystemTab() {
       return
     }
 
-    // Parse do valor
     let parsedValue: any
     try {
       parsedValue = JSON.parse(formValueStr)
     } catch {
-      // Se não for JSON válido, salvar como string pura caso não seja objeto requerido
       parsedValue = formValueStr
     }
 
@@ -292,7 +333,7 @@ export function AdminSystemTab() {
     const q = flagSearchQuery.toLowerCase().trim()
     if (!q) return featureFlags
     return featureFlags.filter(
-      (f) => f.key.toLowerCase().includes(q) || (f.description && f.description.toLowerCase().includes(q))
+      f => f.key.toLowerCase().includes(q) || (f.description && f.description.toLowerCase().includes(q)),
     )
   }, [featureFlags, flagSearchQuery])
 
@@ -300,7 +341,7 @@ export function AdminSystemTab() {
     const q = limitSearchQuery.toLowerCase().trim()
     if (!q) return limitConfigs
     return limitConfigs.filter(
-      (l) => l.key.toLowerCase().includes(q) || (l.description && l.description.toLowerCase().includes(q))
+      l => l.key.toLowerCase().includes(q) || (l.description && l.description.toLowerCase().includes(q)),
     )
   }, [limitConfigs, limitSearchQuery])
 
@@ -308,13 +349,32 @@ export function AdminSystemTab() {
     const q = workspaceSearchQuery.toLowerCase().trim()
     if (!q) return workspaces
     return workspaces.filter(
-      (w) =>
+      w =>
         w.title.toLowerCase().includes(q) ||
         w.workspace_id.toLowerCase().includes(q) ||
         w.tenant_name.toLowerCase().includes(q) ||
-        (w.user_email && w.user_email.toLowerCase().includes(q))
+        (w.user_email && w.user_email.toLowerCase().includes(q)),
     )
   }, [workspaces, workspaceSearchQuery])
+
+  const storageWorkspaces = useMemo(() => {
+    const list = storageData?.workspaces || []
+    const q = storageWsSearchQuery.toLowerCase().trim()
+    if (!q) return list
+    return list.filter(
+      w =>
+        w.title.toLowerCase().includes(q) ||
+        w.workspace_id.toLowerCase().includes(q) ||
+        w.tenant_name.toLowerCase().includes(q) ||
+        w.relative_path.toLowerCase().includes(q) ||
+        w.full_path.toLowerCase().includes(q),
+    )
+  }, [storageData, storageWsSearchQuery])
+
+  const workspacesRootPath = storageData?.paths.workspaces_root || '/var/dsh/workspaces'
+  const uploadsRootPath = storageData?.paths.uploads_root || '/var/dsh/uploads'
+  const logsRootPath = storageData?.paths.logs_root || '/var/dsh/logs'
+  const sshExampleCommand = `ssh operador@servidor "cd ${workspacesRootPath} && ls -la"`
 
   return (
     <div className="space-y-6">
@@ -328,7 +388,7 @@ export function AdminSystemTab() {
             </span>
           </div>
           <p className="text-xs text-[#8b949e] mt-1">
-            Parâmetros globais do servidor, feature flags ativas, cotas e gerenciamento de workspaces multi-tenant.
+            Parâmetros globais do servidor, feature flags ativas, cotas, diretórios e workspaces multi-tenant.
           </p>
         </div>
 
@@ -428,7 +488,7 @@ export function AdminSystemTab() {
             <input
               type="text"
               value={flagSearchQuery}
-              onChange={(e) => setFlagSearchQuery(e.target.value)}
+              onChange={e => setFlagSearchQuery(e.target.value)}
               placeholder="Buscar flag..."
               className="px-2.5 py-1 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] placeholder-[#8b949e]/50 focus:border-[#e7bf73] focus:outline-none"
             />
@@ -545,7 +605,7 @@ export function AdminSystemTab() {
             <input
               type="text"
               value={limitSearchQuery}
-              onChange={(e) => setLimitSearchQuery(e.target.value)}
+              onChange={e => setLimitSearchQuery(e.target.value)}
               placeholder="Buscar limite..."
               className="px-2.5 py-1 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] placeholder-[#8b949e]/50 focus:border-[#e7bf73] focus:outline-none"
             />
@@ -580,7 +640,7 @@ export function AdminSystemTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#30363d]/60">
-                {filteredLimits.map((item) => (
+                {filteredLimits.map(item => (
                   <tr key={item.key} className="hover:bg-[#0d1117]/30 transition">
                     <td className="py-2.5 px-3 font-mono font-medium text-[#f0f6fc]">
                       {item.key}
@@ -639,7 +699,7 @@ export function AdminSystemTab() {
             <input
               type="text"
               value={workspaceSearchQuery}
-              onChange={(e) => setWorkspaceSearchQuery(e.target.value)}
+              onChange={e => setWorkspaceSearchQuery(e.target.value)}
               placeholder="Buscar workspace ou tenant..."
               className="px-2.5 py-1 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] placeholder-[#8b949e]/50 focus:border-[#e7bf73] focus:outline-none"
             />
@@ -669,22 +729,16 @@ export function AdminSystemTab() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#30363d]/60">
-                {filteredWorkspaces.map((ws) => (
+                {filteredWorkspaces.map(ws => (
                   <tr key={ws.id} className="hover:bg-[#0d1117]/30 transition">
-                    <td className="py-2.5 px-3 font-medium text-[#f0f6fc]">
-                      {ws.title}
-                    </td>
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-[#c9d1d9]">
-                      {ws.workspace_id}
-                    </td>
+                    <td className="py-2.5 px-3 font-medium text-[#f0f6fc]">{ws.title}</td>
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-[#c9d1d9]">{ws.workspace_id}</td>
                     <td className="py-2.5 px-3">
                       <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-medium bg-[#30363d]/50 text-[#f0f6fc] border border-[#30363d]">
                         {ws.tenant_name}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-[#8b949e]">
-                      {ws.user_email || '—'}
-                    </td>
+                    <td className="py-2.5 px-3 text-[#8b949e]">{ws.user_email || '—'}</td>
                     <td className="py-2.5 px-3 font-mono text-[11px] text-[#8b949e] max-w-xs truncate">
                       {ws.relative_path}
                     </td>
@@ -708,7 +762,189 @@ export function AdminSystemTab() {
         )}
       </div>
 
-      {/* Modal 1: Criar / Editar Configuração (Padrão Settings) */}
+      {/* Seção 5 — Armazenamento & Paths (Vitrine de Armazenamento - Bloco 7.5 Parte B) */}
+      <div className="p-4 rounded-xl border border-[#30363d] bg-[#161b22] space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#30363d]/60">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="text-[#e7bf73] text-sm">💾</span>
+              <h3 className="text-sm font-semibold text-[#f0f6fc]">Armazenamento & Paths do Host</h3>
+            </div>
+            <p className="text-xs text-[#8b949e] mt-0.5">
+              Raízes operacionais no filesystem do servidor e mapeamento absoluto de workspaces ativos.
+            </p>
+          </div>
+          <span className="px-2.5 py-1 rounded text-[11px] font-medium bg-[#0d1117] text-[#e7bf73] border border-[#e7bf73]/30">
+            Somente Leitura
+          </span>
+        </div>
+
+        {/* 3 Cards de Raízes */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          {/* Card 1: Workspaces Root */}
+          <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#0d1117]/80 flex flex-col justify-between gap-3">
+            <div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-[#8b949e] font-medium">Workspaces Root</span>
+                <span className="text-[10px] text-[#e7bf73]/80 font-mono">storage.workspaces_root</span>
+              </div>
+              <div className="font-mono text-xs text-[#f0f6fc] bg-[#161b22] p-2 rounded-lg border border-[#30363d]/80 mt-2 break-all">
+                {workspacesRootPath}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleCopyText(workspacesRootPath, 'ws-root')}
+              className="w-full py-1.5 px-3 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/40 text-xs font-medium text-[#c9d1d9] hover:text-[#f0f6fc] transition flex items-center justify-center gap-1.5"
+            >
+              {copiedKey === 'ws-root' ? (
+                <span className="text-emerald-400 font-semibold">✓ Copiado!</span>
+              ) : (
+                <span>📋 Copiar path</span>
+              )}
+            </button>
+          </div>
+
+          {/* Card 2: Uploads Root */}
+          <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#0d1117]/80 flex flex-col justify-between gap-3">
+            <div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-[#8b949e] font-medium">Uploads Root</span>
+                <span className="text-[10px] text-[#e7bf73]/80 font-mono">storage.uploads_root</span>
+              </div>
+              <div className="font-mono text-xs text-[#f0f6fc] bg-[#161b22] p-2 rounded-lg border border-[#30363d]/80 mt-2 break-all">
+                {uploadsRootPath}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleCopyText(uploadsRootPath, 'up-root')}
+              className="w-full py-1.5 px-3 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/40 text-xs font-medium text-[#c9d1d9] hover:text-[#f0f6fc] transition flex items-center justify-center gap-1.5"
+            >
+              {copiedKey === 'up-root' ? (
+                <span className="text-emerald-400 font-semibold">✓ Copiado!</span>
+              ) : (
+                <span>📋 Copiar path</span>
+              )}
+            </button>
+          </div>
+
+          {/* Card 3: Logs Root */}
+          <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#0d1117]/80 flex flex-col justify-between gap-3">
+            <div>
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-[#8b949e] font-medium">Logs Root</span>
+                <span className="text-[10px] text-[#e7bf73]/80 font-mono">storage.logs_root</span>
+              </div>
+              <div className="font-mono text-xs text-[#f0f6fc] bg-[#161b22] p-2 rounded-lg border border-[#30363d]/80 mt-2 break-all">
+                {logsRootPath}
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => handleCopyText(logsRootPath, 'log-root')}
+              className="w-full py-1.5 px-3 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/40 text-xs font-medium text-[#c9d1d9] hover:text-[#f0f6fc] transition flex items-center justify-center gap-1.5"
+            >
+              {copiedKey === 'log-root' ? (
+                <span className="text-emerald-400 font-semibold">✓ Copiado!</span>
+              ) : (
+                <span>📋 Copiar path</span>
+              )}
+            </button>
+          </div>
+        </div>
+
+        {/* Card: Acesso Seguro ao Servidor */}
+        <div className="p-4 rounded-xl border border-[#e7bf73]/30 bg-gradient-to-r from-[#161b22] via-[#0d1117] to-[#161b22] space-y-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <span className="text-[#e7bf73]">🔒</span>
+              <h4 className="text-xs font-semibold text-[#f0f6fc]">Acesso Seguro ao Servidor</h4>
+            </div>
+            <span className="text-[11px] text-[#8b949e]">
+              O filesystem do host não é exposto pelo painel. Use SSH/SFTP.
+            </span>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2.5 rounded-lg border border-[#30363d] bg-[#0d1117]">
+            <div className="font-mono text-xs text-[#e7bf73] break-all select-all">
+              {sshExampleCommand}
+            </div>
+            <button
+              type="button"
+              onClick={() => handleCopyText(sshExampleCommand, 'ssh-cmd')}
+              className="shrink-0 py-1 px-3 rounded-md bg-[#e7bf73]/15 text-[#e7bf73] hover:bg-[#e7bf73]/25 border border-[#e7bf73]/40 text-xs font-semibold transition"
+            >
+              {copiedKey === 'ssh-cmd' ? '✓ Copiado!' : 'Copiar comando'}
+            </button>
+          </div>
+        </div>
+
+        {/* Tabela Workspaces e Paths Absolutos */}
+        <div className="space-y-3 pt-2">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <h4 className="text-xs font-semibold text-[#f0f6fc] flex items-center gap-2">
+              <span>📂</span> Mapeamento de Workspaces e Paths Absolutos
+            </h4>
+            <input
+              type="text"
+              value={storageWsSearchQuery}
+              onChange={e => setStorageWsSearchQuery(e.target.value)}
+              placeholder="Buscar workspace ou path..."
+              className="px-2.5 py-1 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] placeholder-[#8b949e]/50 focus:border-[#e7bf73] focus:outline-none"
+            />
+          </div>
+
+          {isLoading ? (
+            <div className="p-6 text-center text-xs text-[#8b949e]">
+              <span className="inline-block animate-spin mr-2">↻</span> Carregando mapeamento de paths...
+            </div>
+          ) : storageWorkspaces.length === 0 ? (
+            <div className="p-6 text-center rounded-lg border border-dashed border-[#30363d] bg-[#0d1117]/30 text-xs text-[#8b949e]">
+              Nenhum workspace registrado com mapeamento de path ativo.
+            </div>
+          ) : (
+            <div className="overflow-x-auto rounded-lg border border-[#30363d]">
+              <table className="w-full text-left text-xs border-collapse">
+                <thead>
+                  <tr className="border-b border-[#30363d] bg-[#0d1117]/60 text-[#8b949e]">
+                    <th className="py-2.5 px-3 font-medium">Título</th>
+                    <th className="py-2.5 px-3 font-medium">Workspace ID</th>
+                    <th className="py-2.5 px-3 font-medium">Tenant</th>
+                    <th className="py-2.5 px-3 font-medium">Caminho Relativo</th>
+                    <th className="py-2.5 px-3 font-medium">Caminho Completo (Host)</th>
+                    <th className="py-2.5 px-3 font-medium text-right">Criado em</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-[#30363d]/60">
+                  {storageWorkspaces.map(ws => (
+                    <tr key={ws.id} className="hover:bg-[#0d1117]/30 transition">
+                      <td className="py-2.5 px-3 font-medium text-[#f0f6fc]">{ws.title}</td>
+                      <td className="py-2.5 px-3 font-mono text-[11px] text-[#c9d1d9]">{ws.workspace_id}</td>
+                      <td className="py-2.5 px-3">
+                        <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-medium bg-[#30363d]/50 text-[#f0f6fc] border border-[#30363d]">
+                          {ws.tenant_name}
+                        </span>
+                      </td>
+                      <td className="py-2.5 px-3 font-mono text-[11px] text-[#8b949e]">
+                        {ws.relative_path}
+                      </td>
+                      <td className="py-2.5 px-3 font-mono text-[11px] text-[#e7bf73] break-all">
+                        {ws.full_path}
+                      </td>
+                      <td className="py-2.5 px-3 text-[#8b949e] whitespace-nowrap text-right">
+                        {new Date(ws.created_at).toLocaleDateString('pt-BR')}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Modal 1: Criar / Editar Configuração */}
       {isConfigModalOpen && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-[#0d1117]/80 backdrop-blur-sm" onClick={closeModals} />
@@ -716,7 +952,7 @@ export function AdminSystemTab() {
             role="dialog"
             aria-modal="true"
             tabIndex={-1}
-            ref={(el) => el?.focus()}
+            ref={el => el?.focus()}
             onKeyDown={(e) => {
               if (e.key === 'Escape' && !isMutating) {
                 e.stopPropagation()
@@ -748,7 +984,7 @@ export function AdminSystemTab() {
                   required
                   disabled={Boolean(selectedConfig) || isMutating}
                   value={formKey}
-                  onChange={(e) => setFormKey(e.target.value)}
+                  onChange={e => setFormKey(e.target.value)}
                   placeholder="Ex: feature.export_pdf, limit.max_tokens..."
                   className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] font-mono focus:border-[#e7bf73] focus:outline-none disabled:opacity-60"
                 />
@@ -761,12 +997,12 @@ export function AdminSystemTab() {
                   required
                   disabled={isMutating}
                   value={formValueStr}
-                  onChange={(e) => setFormValueStr(e.target.value)}
+                  onChange={e => setFormValueStr(e.target.value)}
                   placeholder='Ex: {"enabled": true} ou 1000'
                   className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] font-mono focus:border-[#e7bf73] focus:outline-none"
                 />
                 <span className="text-[10px] text-[#8b949e]">
-                  Dica: Para feature flags simples, utilize <code>{"{\"enabled\": true}"}</code> ou <code>true</code>.
+                  Dica: Para feature flags simples, utilize <code>{'{"enabled": true}'}</code> ou <code>true</code>.
                 </span>
               </div>
 
@@ -776,7 +1012,7 @@ export function AdminSystemTab() {
                   type="text"
                   disabled={isMutating}
                   value={formDescription}
-                  onChange={(e) => setFormDescription(e.target.value)}
+                  onChange={e => setFormDescription(e.target.value)}
                   placeholder="Finalidade ou documento de referência deste parâmetro"
                   className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] focus:border-[#e7bf73] focus:outline-none"
                 />
@@ -818,7 +1054,7 @@ export function AdminSystemTab() {
             role="dialog"
             aria-modal="true"
             tabIndex={-1}
-            ref={(el) => el?.focus()}
+            ref={el => el?.focus()}
             onKeyDown={(e) => {
               if (e.key === 'Escape' && !isMutating) {
                 e.stopPropagation()
@@ -874,7 +1110,7 @@ export function AdminSystemTab() {
             role="dialog"
             aria-modal="true"
             tabIndex={-1}
-            ref={(el) => el?.focus()}
+            ref={el => el?.focus()}
             onKeyDown={(e) => {
               if (e.key === 'Escape' && !isMutating) {
                 e.stopPropagation()
@@ -896,7 +1132,8 @@ export function AdminSystemTab() {
             </p>
 
             <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs text-amber-300">
-              <strong>Nota de Segurança:</strong> Esta ação realiza um arquivamento lógico (soft delete). A pasta física de arquivos no servidor <strong>NÃO</strong> é excluída.
+              <strong>Nota de Segurança:</strong> Esta ação realiza um arquivamento lógico (soft delete).
+              A pasta física de arquivos no servidor <strong>NÃO</strong> é excluída.
             </div>
 
             {formError && (

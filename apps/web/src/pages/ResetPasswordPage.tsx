@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabaseClient } from '../lib/auth'
 
-/** Redefinição de senha, acessada pelo link do e-mail de recuperação. */
+/** Password reset, accessed via the recovery email link. */
 export function ResetPasswordPage() {
   const navigate = useNavigate()
 
@@ -18,7 +18,7 @@ export function ResetPasswordPage() {
       const hash = window.location.hash
 
       if (!hash || !hash.includes('access_token')) {
-        setError('Link de recuperação inválido ou expirado')
+        setError('Invalid or expired reset link')
         setIsVerifying(false)
         return
       }
@@ -26,7 +26,7 @@ export function ResetPasswordPage() {
       const { data: { session }, error: sessionError } = await supabaseClient.auth.getSession()
 
       if (sessionError || !session) {
-        setError('Sessão inválida. Solicite um novo link de recuperação.')
+        setError('Invalid session. Please request a new reset link.')
         setIsVerifying(false)
         return
       }
@@ -43,12 +43,12 @@ export function ResetPasswordPage() {
     setSuccessMessage(null)
 
     if (password !== confirmPassword) {
-      setError('As senhas não coincidem')
+      setError('Passwords do not match')
       return
     }
 
     if (password.length < 8 || !/[0-9]/.test(password) || !/[A-Za-z]/.test(password)) {
-      setError('A senha deve ter ao menos 8 caracteres, 1 número e 1 letra')
+      setError('Password must be at least 8 characters, with 1 number and 1 letter')
       return
     }
 
@@ -58,10 +58,10 @@ export function ResetPasswordPage() {
       const { error: updateError } = await supabaseClient.auth.updateUser({ password })
       if (updateError) throw updateError
 
-      setSuccessMessage('Senha redefinida! Redirecionando para o login…')
+      setSuccessMessage('Password reset! Redirecting to sign in…')
       setTimeout(() => { navigate('/login') }, 2000)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erro ao redefinir senha')
+      setError(err instanceof Error ? err.message : 'Error resetting password')
     } finally {
       setIsLoading(false)
     }
@@ -71,7 +71,7 @@ export function ResetPasswordPage() {
     return (
       <div className="cm-auth-boot" role="status" aria-live="polite">
         <span className="cm-auth-spinner" aria-hidden="true" />
-        <span>Verificando link de recuperação…</span>
+        <span>Verifying reset link…</span>
       </div>
     )
   }
@@ -85,8 +85,8 @@ export function ResetPasswordPage() {
         </div>
 
         <div className="cm-auth-header">
-          <h1 className="cm-auth-title">Redefinir senha</h1>
-          <p className="cm-auth-subtitle">Digite sua nova senha abaixo.</p>
+          <h1 className="cm-auth-title">Reset password</h1>
+          <p className="cm-auth-subtitle">Enter your new password below.</p>
         </div>
 
         <form className="cm-auth-form" onSubmit={handleSubmit}>
@@ -98,17 +98,17 @@ export function ResetPasswordPage() {
           )}
 
           <div className="cm-auth-field">
-            <label htmlFor="password" className="cm-auth-label">Nova senha</label>
+            <label htmlFor="password" className="cm-auth-label">New password</label>
             <input
               id="password" name="password" type="password" autoComplete="new-password" required
               value={password} onChange={e => setPassword(e.target.value)}
               className="cm-auth-input" placeholder="••••••••"
             />
-            <span className="cm-auth-hint">Mínimo 8 caracteres, com 1 número e 1 letra.</span>
+            <span className="cm-auth-hint">Minimum 8 characters, with 1 number and 1 letter.</span>
           </div>
 
           <div className="cm-auth-field">
-            <label htmlFor="confirmPassword" className="cm-auth-label">Confirmar nova senha</label>
+            <label htmlFor="confirmPassword" className="cm-auth-label">Confirm new password</label>
             <input
               id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" required
               value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
@@ -117,7 +117,7 @@ export function ResetPasswordPage() {
           </div>
 
           <button type="submit" disabled={isLoading} className="cm-auth-button">
-            {isLoading ? 'Redefinindo…' : 'Redefinir senha'}
+            {isLoading ? 'Resetting…' : 'Reset password'}
           </button>
         </form>
       </div>

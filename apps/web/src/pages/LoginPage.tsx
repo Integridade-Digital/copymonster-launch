@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth, formatAuthError } from '../lib/auth'
 
-/** Login de usuário existente. */
+/** Existing user login. */
 export function LoginPage() {
   const navigate = useNavigate()
   const { signIn } = useAuth()
@@ -26,7 +26,7 @@ export function LoginPage() {
       if (signInError) throw signInError
       navigate('/')
     } catch (err: unknown) {
-      setError(formatAuthError(err, 'E-mail ou senha inválidos. Tente novamente.'))
+      setError(formatAuthError(err, 'Invalid email or password. Please try again.'))
     } finally {
       setIsLoading(false)
     }
@@ -41,10 +41,10 @@ export function LoginPage() {
         </div>
 
         <div className="cm-auth-header">
-          <h1 className="cm-auth-title">Acesse sua conta</h1>
+          <h1 className="cm-auth-title">Sign in to your account</h1>
           <p className="cm-auth-subtitle">
-            Não tem uma conta?{' '}
-            <Link to="/register" className="cm-auth-link">Crie agora</Link>
+            Don't have an account?{' '}
+            <Link to="/register" className="cm-auth-link">Sign up now</Link>
           </p>
         </div>
 
@@ -54,16 +54,16 @@ export function LoginPage() {
           )}
 
           <div className="cm-auth-field">
-            <label htmlFor="email" className="cm-auth-label">E-mail</label>
+            <label htmlFor="email" className="cm-auth-label">Email</label>
             <input
               id="email" name="email" type="email" autoComplete="email" required
               value={formData.email} onChange={handleChange}
-              className="cm-auth-input" placeholder="seu@email.com"
+              className="cm-auth-input" placeholder="you@example.com"
             />
           </div>
 
           <div className="cm-auth-field">
-            <label htmlFor="password" className="cm-auth-label">Senha</label>
+            <label htmlFor="password" className="cm-auth-label">Password</label>
             <input
               id="password" name="password" type="password" autoComplete="current-password" required
               value={formData.password} onChange={handleChange}
@@ -72,11 +72,11 @@ export function LoginPage() {
           </div>
 
           <div className="cm-auth-row">
-            <Link to="/forgot-password" className="cm-auth-link">Esqueceu a senha?</Link>
+            <Link to="/forgot-password" className="cm-auth-link">Forgot password?</Link>
           </div>
 
           <button type="submit" disabled={isLoading} className="cm-auth-button">
-            {isLoading ? 'Entrando…' : 'Entrar'}
+            {isLoading ? 'Signing in…' : 'Sign in'}
           </button>
         </form>
       </div>

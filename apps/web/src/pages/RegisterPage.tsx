@@ -3,8 +3,8 @@ import { useNavigate, Link } from 'react-router-dom'
 import { useAuth, formatAuthError } from '../lib/auth'
 
 /**
- * Registro de novo usuário.
- * Campos: Nome, E-mail, WhatsApp (formato internacional), Senha.
+ * New user registration.
+ * Fields: Full name, Email, WhatsApp (international format), Password.
  */
 export function RegisterPage() {
   const navigate = useNavigate()
@@ -33,23 +33,23 @@ export function RegisterPage() {
     setSuccessMessage(null)
 
     if (!formData.fullName || !formData.email || !formData.whatsapp || !formData.password) {
-      setError('Preencha todos os campos obrigatórios')
+      setError('Please fill in all required fields')
       return
     }
 
     if (formData.password !== formData.confirmPassword) {
-      setError('As senhas não coincidem')
+      setError('Passwords do not match')
       return
     }
 
     if (formData.password.length < 8 || !/[0-9]/.test(formData.password) || !/[A-Za-z]/.test(formData.password)) {
-      setError('A senha deve ter ao menos 8 caracteres, 1 número e 1 letra')
+      setError('Password must be at least 8 characters, with 1 number and 1 letter')
       return
     }
 
     const whatsappRegex = /^\+[1-9]\d{9,14}$/
     if (!whatsappRegex.test(formData.whatsapp)) {
-      setError('WhatsApp deve estar no formato internacional (ex: +5511999999999)')
+      setError('WhatsApp must be in international format (e.g. +1234567890)')
       return
     }
 
@@ -65,10 +65,10 @@ export function RegisterPage() {
 
       if (signUpError) throw signUpError
 
-      setSuccessMessage('Conta criada! Verifique seu e-mail para confirmar o registro.')
+      setSuccessMessage('Account created! Check your email to confirm registration.')
       setTimeout(() => { navigate('/login') }, 3000)
     } catch (err: unknown) {
-      setError(formatAuthError(err, 'Erro ao criar conta. Tente novamente.'))
+      setError(formatAuthError(err, 'Error creating account. Please try again.'))
     } finally {
       setIsLoading(false)
     }
@@ -83,10 +83,10 @@ export function RegisterPage() {
         </div>
 
         <div className="cm-auth-header">
-          <h1 className="cm-auth-title">Criar sua conta</h1>
+          <h1 className="cm-auth-title">Create your account</h1>
           <p className="cm-auth-subtitle">
-            Já tem uma conta?{' '}
-            <Link to="/login" className="cm-auth-link">Faça login</Link>
+            Already have an account?{' '}
+            <Link to="/login" className="cm-auth-link">Sign in</Link>
           </p>
         </div>
 
@@ -99,45 +99,45 @@ export function RegisterPage() {
           )}
 
           <div className="cm-auth-field">
-            <label htmlFor="fullName" className="cm-auth-label">Nome completo</label>
+            <label htmlFor="fullName" className="cm-auth-label">Full name</label>
             <input
               id="fullName" name="fullName" type="text" required
               value={formData.fullName} onChange={handleChange}
-              className="cm-auth-input" placeholder="Seu nome completo"
+              className="cm-auth-input" placeholder="Your full name"
             />
           </div>
 
           <div className="cm-auth-field">
-            <label htmlFor="email" className="cm-auth-label">E-mail</label>
+            <label htmlFor="email" className="cm-auth-label">Email</label>
             <input
               id="email" name="email" type="email" autoComplete="email" required
               value={formData.email} onChange={handleChange}
-              className="cm-auth-input" placeholder="seu@email.com"
+              className="cm-auth-input" placeholder="you@example.com"
             />
           </div>
 
           <div className="cm-auth-field">
-            <label htmlFor="whatsapp" className="cm-auth-label">WhatsApp (formato internacional)</label>
+            <label htmlFor="whatsapp" className="cm-auth-label">WhatsApp (international format)</label>
             <input
               id="whatsapp" name="whatsapp" type="tel" required
               value={formData.whatsapp} onChange={handleChange}
-              className="cm-auth-input" placeholder="+5511999999999"
+              className="cm-auth-input" placeholder="+1234567890"
             />
-            <span className="cm-auth-hint">Exemplo: +5511999999999 (país + DDD + número)</span>
+            <span className="cm-auth-hint">Example: +1234567890 (country code + area code + number)</span>
           </div>
 
           <div className="cm-auth-field">
-            <label htmlFor="password" className="cm-auth-label">Senha</label>
+            <label htmlFor="password" className="cm-auth-label">Password</label>
             <input
               id="password" name="password" type="password" autoComplete="new-password" required
               value={formData.password} onChange={handleChange}
               className="cm-auth-input" placeholder="••••••••"
             />
-            <span className="cm-auth-hint">Mínimo 8 caracteres, com 1 número e 1 letra.</span>
+            <span className="cm-auth-hint">Minimum 8 characters, with 1 number and 1 letter.</span>
           </div>
 
           <div className="cm-auth-field">
-            <label htmlFor="confirmPassword" className="cm-auth-label">Confirmar senha</label>
+            <label htmlFor="confirmPassword" className="cm-auth-label">Confirm password</label>
             <input
               id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" required
               value={formData.confirmPassword} onChange={handleChange}
@@ -146,11 +146,11 @@ export function RegisterPage() {
           </div>
 
           <button type="submit" disabled={isLoading} className="cm-auth-button">
-            {isLoading ? 'Criando…' : 'Criar conta'}
+            {isLoading ? 'Creating account…' : 'Create account'}
           </button>
 
           <p className="cm-auth-footer">
-            Ao criar a conta você concorda com os Termos de Uso.
+            By creating an account, you agree to the Terms of Service.
           </p>
         </form>
       </div>

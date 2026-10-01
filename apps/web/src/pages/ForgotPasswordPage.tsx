@@ -2,7 +2,7 @@ import React, { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 
-/** Recuperação de senha por e-mail. */
+/** Password recovery via email. */
 export function ForgotPasswordPage() {
   const { resetPassword } = useAuth()
 
@@ -20,10 +20,10 @@ export function ForgotPasswordPage() {
     try {
       const { error: resetError } = await resetPassword(email)
       if (resetError) throw resetError
-      setSuccessMessage('E-mail de recuperação enviado! Verifique sua caixa de entrada.')
+      setSuccessMessage('Password reset link sent! Check your inbox.')
       setEmail('')
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Erro ao enviar e-mail de recuperação')
+      setError(err instanceof Error ? err.message : 'Error sending password reset email')
     } finally {
       setIsLoading(false)
     }
@@ -38,9 +38,9 @@ export function ForgotPasswordPage() {
         </div>
 
         <div className="cm-auth-header">
-          <h1 className="cm-auth-title">Recuperar senha</h1>
+          <h1 className="cm-auth-title">Forgot password</h1>
           <p className="cm-auth-subtitle">
-            Digite seu e-mail e enviaremos instruções para redefinir sua senha.
+            Enter your email and we'll send you instructions to reset your password.
           </p>
         </div>
 
@@ -53,20 +53,20 @@ export function ForgotPasswordPage() {
           )}
 
           <div className="cm-auth-field">
-            <label htmlFor="email" className="cm-auth-label">E-mail</label>
+            <label htmlFor="email" className="cm-auth-label">Email</label>
             <input
               id="email" name="email" type="email" autoComplete="email" required
               value={email} onChange={e => setEmail(e.target.value)}
-              className="cm-auth-input" placeholder="seu@email.com"
+              className="cm-auth-input" placeholder="you@example.com"
             />
           </div>
 
           <button type="submit" disabled={isLoading} className="cm-auth-button">
-            {isLoading ? 'Enviando…' : 'Enviar e-mail de recuperação'}
+            {isLoading ? 'Sending…' : 'Send reset link'}
           </button>
 
           <p className="cm-auth-footer">
-            <Link to="/login" className="cm-auth-link">Voltar para o login</Link>
+            <Link to="/login" className="cm-auth-link">Back to sign in</Link>
           </p>
         </form>
       </div>

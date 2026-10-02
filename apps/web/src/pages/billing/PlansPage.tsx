@@ -324,7 +324,7 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
           className="cm-billing-portal-btn"
           title="Open official Stripe Customer Billing Portal"
         >
-          <svg fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+          <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
           </svg>
           <span>Customer Billing Portal</span>
@@ -512,31 +512,31 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
                 <h3 className="cm-plan-features-title">Plan Specifications & Limits</h3>
                 <ul className="cm-plan-features-list">
                   <li className="cm-plan-feature-item">
-                    <svg className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <svg width="14" height="14" className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                     <span><strong>Token Quota:</strong> {plan.totalTokensMonthly}</span>
                   </li>
                   <li className="cm-plan-feature-item">
-                    <svg className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <svg width="14" height="14" className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                     <span><strong>Workspaces:</strong> {plan.maxWorkspaces}</span>
                   </li>
                   <li className="cm-plan-feature-item">
-                    <svg className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <svg width="14" height="14" className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                     <span><strong>Concurrency:</strong> {plan.maxSessions}</span>
                   </li>
                   <li className="cm-plan-feature-item">
-                    <svg className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <svg width="14" height="14" className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                     <span><strong>Storage:</strong> {plan.storage}</span>
                   </li>
                   <li className="cm-plan-feature-item">
-                    <svg className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                    <svg width="14" height="14" className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                     </svg>
                     <span><strong>AI Architecture:</strong> {plan.aiTier}</span>
@@ -544,7 +544,7 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
 
                   {plan.features.map((feature, idx) => (
                     <li key={idx} className="cm-plan-feature-item">
-                      <svg className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                      <svg width="14" height="14" className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
                       </svg>
                       <span>{feature}</span>
@@ -563,7 +563,7 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
         <details className="cm-billing-faq-item">
           <summary className="cm-billing-faq-summary">
             <span>How does the 7-day Free Trial work?</span>
-            <svg className="cm-billing-faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg width="14" height="14" className="cm-billing-faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </summary>
@@ -577,7 +577,7 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
         <details className="cm-billing-faq-item">
           <summary className="cm-billing-faq-summary">
             <span>Can I manage or cancel my subscription at any time?</span>
-            <svg className="cm-billing-faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg width="14" height="14" className="cm-billing-faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </summary>
@@ -590,7 +590,7 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
         <details className="cm-billing-faq-item">
           <summary className="cm-billing-faq-summary">
             <span>What happens when I reach my monthly token quota?</span>
-            <svg className="cm-billing-faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg width="14" height="14" className="cm-billing-faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </summary>
@@ -604,7 +604,7 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
         <details className="cm-billing-faq-item">
           <summary className="cm-billing-faq-summary">
             <span>Are workspaces strictly isolated between tenants?</span>
-            <svg className="cm-billing-faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+            <svg width="14" height="14" className="cm-billing-faq-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
           </summary>

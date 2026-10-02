@@ -363,7 +363,7 @@ export function AdminUsersTab() {
             className="px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-xs font-medium text-[#f0f6fc] transition flex items-center gap-1.5 disabled:opacity-50"
             title="Atualizar lista"
           >
-            <svg
+            <svg width="14" height="14"
               className={`w-3.5 h-3.5 text-[#8b949e] ${isLoading ? 'animate-spin' : ''}`}
               fill="none"
               viewBox="0 0 24 24"
@@ -424,7 +424,7 @@ export function AdminUsersTab() {
               placeholder="Search by e-mail ou nome..."
               className="w-full px-3 py-2 pl-9 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] placeholder-[#8b949e] focus:outline-none focus:border-[#e7bf73] transition"
             />
-            <svg
+            <svg width="14" height="14"
               className="w-4 h-4 text-[#8b949e] absolute left-2.5 top-2.5"
               fill="none"
               viewBox="0 0 24 24"
@@ -504,7 +504,7 @@ export function AdminUsersTab() {
       {error && (
         <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-400 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg width="14" height="14" className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
             </svg>
             <span>{error}</span>
@@ -635,7 +635,7 @@ export function AdminUsersTab() {
                           className="p-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/60 text-[#8b949e] hover:text-[#f0f6fc] transition"
                           title="Actions do usuário"
                         >
-                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <svg width="14" height="14" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path
                               strokeLinecap="round"
                               strokeLinejoin="round"
@@ -658,7 +658,7 @@ export function AdminUsersTab() {
                               disabled={!user.membership_id}
                               className="w-full px-3 py-2 hover:bg-[#30363d]/40 flex items-center gap-2 text-left transition disabled:opacity-40"
                             >
-                              <svg className="w-3.5 h-3.5 text-[#e7bf73]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <svg width="14" height="14" className="w-3.5 h-3.5 text-[#e7bf73]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                               </svg>
                               <span>Alterar Role</span>
@@ -675,14 +675,14 @@ export function AdminUsersTab() {
                             >
                               {user.user_status === 'suspended' ? (
                                 <>
-                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg width="14" height="14" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                                   </svg>
                                   <span>Reativar Conta</span>
                                 </>
                               ) : (
                                 <>
-                                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <svg width="14" height="14" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
                                   </svg>
                                   <span>Suspender Conta</span>
@@ -697,7 +697,7 @@ export function AdminUsersTab() {
                               }}
                               className="w-full px-3 py-2 hover:bg-[#30363d]/40 flex items-center gap-2 text-left transition text-[#f0f6fc]"
                             >
-                              <svg className="w-3.5 h-3.5 text-[#b0955e]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <svg width="14" height="14" className="w-3.5 h-3.5 text-[#b0955e]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                               </svg>
                               <span>Resetar Senha</span>

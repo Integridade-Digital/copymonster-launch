@@ -267,7 +267,7 @@ export function AdminBillingTab() {
             rel="noopener noreferrer"
             className="px-3 py-1.5 rounded-lg border border-[#b0955e]/50 bg-[#161b22] hover:bg-[#b0955e]/20 text-xs font-semibold text-[#e7bf73] transition flex items-center gap-1.5 shadow-sm"
           >
-            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg width="14" height="14" className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
             </svg>
             <span>Open Stripe Dashboard</span>
@@ -279,7 +279,7 @@ export function AdminBillingTab() {
             className="px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-xs font-medium text-[#f0f6fc] transition flex items-center gap-1.5 disabled:opacity-50"
             title="Refresh billing data"
           >
-            <svg
+            <svg width="14" height="14"
               className={`w-3.5 h-3.5 text-[#8b949e] ${isRefreshing ? 'animate-spin' : ''}`}
               fill="none"
               stroke="currentColor"
@@ -362,7 +362,7 @@ export function AdminBillingTab() {
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full px-3 py-2 pl-9 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f0f6fc] placeholder-[#8b949e] focus:outline-none focus:border-[#e7bf73] transition"
             />
-            <svg
+            <svg width="14" height="14"
               className="w-4 h-4 text-[#8b949e] absolute left-3 top-2.5"
               fill="none"
               stroke="currentColor"
@@ -489,7 +489,7 @@ export function AdminBillingTab() {
                 <tr>
                   <td colSpan={7} className="px-4 py-12 text-center text-[#8b949e]">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <svg className="w-6 h-6 animate-spin text-[#e7bf73]" fill="none" viewBox="0 0 24 24">
+                      <svg width="14" height="14" className="w-6 h-6 animate-spin text-[#e7bf73]" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" stroke="currentColor" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                       </svg>
@@ -771,7 +771,7 @@ export function AdminBillingTab() {
               <div className="p-4 rounded-xl border border-[#b0955e]/40 bg-[#161b22] space-y-3">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2 text-xs font-semibold text-[#e7bf73] uppercase tracking-wider">
-                    <svg className="w-4 h-4 text-[#e7bf73]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <svg width="14" height="14" className="w-4 h-4 text-[#e7bf73]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
                     Stripe Customer & Subscription IDs
@@ -784,7 +784,7 @@ export function AdminBillingTab() {
                       className="px-2.5 py-1 rounded bg-[#b0955e]/20 hover:bg-[#b0955e]/30 border border-[#b0955e]/40 text-[#e7bf73] text-xs font-medium transition flex items-center gap-1"
                     >
                       <span>Open in Stripe</span>
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <svg width="14" height="14" className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                       </svg>
                     </a>

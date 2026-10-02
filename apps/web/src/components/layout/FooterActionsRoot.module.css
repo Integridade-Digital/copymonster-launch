@@ -46,6 +46,20 @@
   color: #c9d1d9;
 }
 
+/* Guard: explicit sizing for all icons and SVGs */
+.icon svg,
+.tabIcon svg,
+.placeholderIcon svg,
+.railIcon svg,
+.closeButton svg,
+.bodyScroll svg {
+  width: 14px;
+  height: 14px;
+  max-width: 16px;
+  max-height: 16px;
+  flex-shrink: 0;
+}
+
 /* Modal overlay — Settings pattern matching SettingsRoot */
 .overlay {
   position: fixed;
@@ -77,6 +91,7 @@
   border: 1px solid #30363d;
   box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
   color: #c9d1d9;
+  font-family: inherit;
 }
 
 /* Vertical Nav Rail on Left */
@@ -212,6 +227,130 @@
   min-height: 0;
   padding: 20px;
   overflow-y: auto;
+}
+
+/* Typography and element normalization matching Settings exactly */
+.bodyScroll h2,
+.bodyScroll h3 {
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  color: #f0f6fc !important;
+  margin: 0 0 8px 0 !important;
+  line-height: 20px !important;
+}
+
+.bodyScroll p,
+.bodyScroll .subtitle {
+  font-size: 13px !important;
+  line-height: 18px !important;
+  color: #8b949e !important;
+  margin: 0 0 12px 0 !important;
+}
+
+.bodyScroll label {
+  display: block;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  color: #8b949e !important;
+  margin-bottom: 6px !important;
+  white-space: nowrap;
+}
+
+.bodyScroll input[type="text"],
+.bodyScroll input[type="email"],
+.bodyScroll input[type="password"],
+.bodyScroll input[type="number"],
+.bodyScroll input[type="search"],
+.bodyScroll select {
+  height: 32px !important;
+  font-size: 13px !important;
+  line-height: 20px !important;
+  background: #0d1117 !important;
+  border: 1px solid #30363d !important;
+  border-radius: 6px !important;
+  padding: 0 12px !important;
+  color: #f0f6fc !important;
+  box-sizing: border-box !important;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.bodyScroll input:focus,
+.bodyScroll select:focus {
+  border-color: #E7BF73 !important;
+}
+
+.bodyScroll button.primary,
+.bodyScroll button[type="submit"]:not(.secondary) {
+  height: 32px !important;
+  font-size: 13px !important;
+  font-weight: 500 !important;
+  background: #E7BF73 !important;
+  color: #0d1117 !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 0 16px !important;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: opacity 0.15s ease;
+}
+
+.bodyScroll button.primary:hover,
+.bodyScroll button[type="submit"]:not(.secondary):hover {
+  opacity: 0.9;
+}
+
+.bodyScroll button.secondary {
+  height: 32px !important;
+  font-size: 13px !important;
+  background: transparent !important;
+  border: 1px solid #30363d !important;
+  color: #f0f6fc !important;
+  border-radius: 6px !important;
+  padding: 0 16px !important;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.bodyScroll button.secondary:hover {
+  background: rgba(255, 255, 255, 0.05) !important;
+  border-color: #8b949e !important;
+}
+
+/* Tables in admin tabs */
+.bodyScroll table {
+  width: 100% !important;
+  border-collapse: collapse !important;
+  font-size: 13px !important;
+  line-height: 18px !important;
+}
+
+.bodyScroll th {
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  color: #8b949e !important;
+  text-align: left !important;
+  padding: 8px 12px !important;
+  border-bottom: 1px solid #30363d !important;
+  background: #161b22 !important;
+  white-space: nowrap !important;
+}
+
+.bodyScroll td {
+  padding: 8px 12px !important;
+  border-bottom: 1px solid #21262d !important;
+  color: #c9d1d9 !important;
+  vertical-align: middle !important;
+}
+
+.bodyScroll tr:hover td {
+  background: rgba(255, 255, 255, 0.02) !important;
 }
 
 /* Single-section panel without rail (e.g. Plans) */

@@ -338,7 +338,7 @@ export function AdminSessionsTab() {
             className="px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-xs font-medium text-[#f0f6fc] transition flex items-center gap-1.5 disabled:opacity-50"
             title="Atualizar dados"
           >
-            <svg
+            <svg width="14" height="14"
               className={`w-3.5 h-3.5 text-[#8b949e] ${isRefreshing ? 'animate-spin' : ''}`}
               fill="none"
               stroke="currentColor"
@@ -413,7 +413,7 @@ export function AdminSessionsTab() {
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full px-3 py-2 pl-9 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f0f6fc] placeholder-[#8b949e] focus:outline-none focus:border-[#e7bf73] transition"
             />
-            <svg
+            <svg width="14" height="14"
               className="w-4 h-4 text-[#8b949e] absolute left-3 top-2.5"
               fill="none"
               stroke="currentColor"
@@ -559,7 +559,7 @@ export function AdminSessionsTab() {
                 <tr>
                   <td colSpan={8} className="px-4 py-12 text-center text-[#8b949e]">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <svg className="w-6 h-6 animate-spin text-[#e7bf73]" fill="none" viewBox="0 0 24 24">
+                      <svg width="14" height="14" className="w-6 h-6 animate-spin text-[#e7bf73]" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                       </svg>
@@ -814,7 +814,7 @@ export function AdminSessionsTab() {
               {/* Card Informativo do Filesystem */}
               <div className="p-4 rounded-xl border border-[#b0955e]/40 bg-[#161b22] space-y-2.5">
                 <div className="flex items-center gap-2 text-xs font-semibold text-[#e7bf73] uppercase tracking-wider">
-                  <svg className="w-4 h-4 text-[#e7bf73]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg width="14" height="14" className="w-4 h-4 text-[#e7bf73]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   Transcript no Filesystem (.jsonl)
@@ -916,7 +916,7 @@ export function AdminSessionsTab() {
               >
                 {isSubmittingAction ? (
                   <>
-                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                    <svg width="14" height="14" className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                     </svg>

@@ -3,6 +3,7 @@ import { supabaseClient } from '../../lib/auth/supabase.client'
 import { PlansModal } from './PlansModal'
 import { ProfileModal } from './ProfileModal'
 import { AdminModal } from './AdminModal'
+import { t, getActiveLocale } from '../../locales'
 import type { PlansUser } from '../../pages/billing/PlansPage'
 import type { ProfileUser } from '../../pages/ProfilePage'
 import css from './FooterActionsRoot.module.css'
@@ -18,6 +19,7 @@ export interface FooterUser extends PlansUser, ProfileUser {
 export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
   const [activeModal, setActiveModal] = useState<'plans' | 'profile' | 'admin' | null>(null)
   const [currentUser, setCurrentUser] = useState<FooterUser | null>(null)
+  const lang = getActiveLocale()
 
   const plansBtnRef = useRef<HTMLButtonElement>(null)
   const profileBtnRef = useRef<HTMLButtonElement>(null)
@@ -75,16 +77,20 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
 
   const isAdmin = currentUser?.role === 'owner' || currentUser?.role === 'admin'
 
+  const plansLabel = lang === 'zh' ? '计划 (Plans)' : 'Plans'
+  const profileLabel = lang === 'zh' ? '个人资料 (Profile)' : 'Profile'
+  const adminLabel = lang === 'zh' ? '管理员 (Admin)' : 'Admin'
+
   return (
     <>
       <div className={css.container}>
-        {/* Linha 1: Plans */}
+        {/* Row 1: Plans */}
         <button
           ref={plansBtnRef}
           type="button"
           className={css.actionButton}
           onClick={() => setActiveModal('plans')}
-          title={wide ? undefined : 'Planos e Faturamento'}
+          title={wide ? undefined : t('common.plans')}
           aria-haspopup="dialog"
         >
           <span className={css.icon} aria-hidden="true">
@@ -92,16 +98,16 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
             </svg>
           </span>
-          {wide && <span className={css.label}>Planos</span>}
+          {wide && <span className={css.label}>{plansLabel}</span>}
         </button>
 
-        {/* Linha 2: Profile */}
+        {/* Row 2: Profile */}
         <button
           ref={profileBtnRef}
           type="button"
           className={css.actionButton}
           onClick={() => setActiveModal('profile')}
-          title={wide ? undefined : 'Meu Perfil'}
+          title={wide ? undefined : t('common.profile')}
           aria-haspopup="dialog"
         >
           <span className={css.icon} aria-hidden="true">
@@ -110,17 +116,17 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
               <circle cx="12" cy="7" r="4" />
             </svg>
           </span>
-          {wide && <span className={css.label}>Meu Perfil</span>}
+          {wide && <span className={css.label}>{profileLabel}</span>}
         </button>
 
-        {/* Linha 3: Admin (Direto: owner | admin) */}
+        {/* Row 3: Admin */}
         {isAdmin && (
           <button
             ref={adminBtnRef}
             type="button"
             className={css.actionButton}
             onClick={() => setActiveModal('admin')}
-            title={wide ? undefined : 'Painel Admin'}
+            title={wide ? undefined : t('common.admin')}
             aria-haspopup="dialog"
           >
             <span className={css.icon} aria-hidden="true">
@@ -131,12 +137,11 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
                 <rect x="3" y="14" width="7" height="7" />
               </svg>
             </span>
-            {wide && <span className={css.label}>Admin</span>}
+            {wide && <span className={css.label}>{adminLabel}</span>}
           </button>
         )}
       </div>
 
-      {/* Modais independentes usando o padrão Settings */}
       <PlansModal
         isOpen={activeModal === 'plans'}
         onClose={closeModal}

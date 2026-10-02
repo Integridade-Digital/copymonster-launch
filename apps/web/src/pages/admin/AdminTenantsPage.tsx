@@ -49,7 +49,7 @@ export function AdminTenantsPage() {
       if (error) throw error
       loadTenants()
     } catch (err: unknown) {
-      alert('Erro ao suspender tenant: ' + (err instanceof Error ? err.message : String(err)))
+      alert('Error suspending tenant: ' + (err instanceof Error ? err.message : String(err)))
     }
   }
 
@@ -63,7 +63,7 @@ export function AdminTenantsPage() {
       if (error) throw error
       loadTenants()
     } catch (err: unknown) {
-      alert('Erro ao ativar tenant: ' + (err instanceof Error ? err.message : String(err)))
+      alert('Error activating tenant: ' + (err instanceof Error ? err.message : String(err)))
     }
   }
 
@@ -83,7 +83,7 @@ export function AdminTenantsPage() {
         <div>
           <h1 className="text-3xl font-bold text-white tracking-tight">Gestão de Tenants</h1>
           <p className="text-sm text-gray-400 mt-1">
-            Controle de organizações cadastradas, planos ativos e estado de acesso.
+            Control registered organizations, active plans, and access states.
           </p>
         </div>
         <button
@@ -202,7 +202,7 @@ function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCrea
       if (error) throw error
       onCreated()
     } catch (err: unknown) {
-      alert('Erro ao criar tenant: ' + (err instanceof Error ? err.message : String(err)))
+      alert('Error creating tenant: ' + (err instanceof Error ? err.message : String(err)))
     } finally {
       setIsCreating(false)
     }
@@ -249,7 +249,7 @@ function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCrea
               onClick={onClose}
               className="px-4 py-2 border border-[#30363d] rounded-lg text-sm text-gray-300 hover:bg-[#21262d] transition-colors cursor-pointer"
             >
-              Cancelar
+              Cancel
             </button>
             <button
               type="submit"

@@ -98,7 +98,7 @@ export function AdminOverviewTab() {
             model: d.model,
             session_count: Number(d.session_count) || 0,
             tokens_sum: Number(d.tokens_sum) || 0,
-          }))
+          })),
         )
       } else {
         setModelStats([])
@@ -124,7 +124,7 @@ export function AdminOverviewTab() {
       }
       await loadOverviewData()
     } catch (err: any) {
-      setError(err?.message || 'Erro ao recalcular métricas diárias.')
+      setError(err?.message || 'Error ao recalcular métricas diárias.')
     } finally {
       setIsRefreshing(false)
     }
@@ -162,7 +162,7 @@ export function AdminOverviewTab() {
       {/* Header com Status de Saúde e Botão de Atualizar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#30363d]">
         <div>
-          <h3 className="text-lg font-semibold text-[#f0f6fc]">Visão Geral da Plataforma</h3>
+          <h3 className="text-lg font-semibold text-[#f0f6fc]">Overview da Plataforma</h3>
           <p className="text-xs text-[#8b949e] mt-0.5">
             Métricas consolidadas de receita, uso de infraestrutura e saúde dos serviços.
           </p>
@@ -234,9 +234,9 @@ export function AdminOverviewTab() {
           </p>
         </div>
 
-        {/* KPI: Usuários Ativos */}
+        {/* KPI: Users Ativos */}
         <div className="p-4 rounded-xl bg-[#161b22] border border-[#30363d] space-y-1">
-          <span className="text-xs font-medium text-[#8b949e] uppercase tracking-wider">Usuários Ativos (Hoje)</span>
+          <span className="text-xs font-medium text-[#8b949e] uppercase tracking-wider">Users Ativos (Hoje)</span>
           <div className="text-xl font-bold text-[#f0f6fc]">
             {formatNumber(latestMetrics?.active_users || 0)}
           </div>
@@ -256,9 +256,9 @@ export function AdminOverviewTab() {
           </p>
         </div>
 
-        {/* KPI: Sessões Indexadas */}
+        {/* KPI: Sessions Indexadas */}
         <div className="p-4 rounded-xl bg-[#161b22] border border-[#30363d] space-y-1">
-          <span className="text-xs font-medium text-[#8b949e] uppercase tracking-wider">Sessões Totais</span>
+          <span className="text-xs font-medium text-[#8b949e] uppercase tracking-wider">Sessions Totais</span>
           <div className="text-xl font-bold text-[#f0f6fc]">
             {formatNumber(totalSessions)}
           </div>
@@ -274,7 +274,7 @@ export function AdminOverviewTab() {
         <div className="p-4 rounded-xl bg-[#161b22] border border-[#30363d] flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-[#f0f6fc]">Modelos Mais Utilizados</h4>
+              <h4 className="text-sm font-semibold text-[#f0f6fc]">Models Mais Utilizados</h4>
               <span className="text-[11px] text-[#8b949e]">Top 10 por volume</span>
             </div>
 
@@ -326,13 +326,13 @@ export function AdminOverviewTab() {
                 <thead>
                   <tr className="border-b border-[#30363d] text-[#8b949e]">
                     <th className="pb-2 font-medium">Data</th>
-                    <th className="pb-2 font-medium">Usuários</th>
+                    <th className="pb-2 font-medium">Users</th>
                     <th className="pb-2 font-medium">Tokens</th>
                     <th className="pb-2 font-medium">MRR</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-[#30363d]/50">
-                  {history.map((row) => (
+                  {history.map(row => (
                     <tr key={row.date} className="text-[#f0f6fc]">
                       <td className="py-2 font-mono text-[11px]">{row.date}</td>
                       <td className="py-2">{formatNumber(row.active_users)}</td>

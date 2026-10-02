@@ -76,7 +76,7 @@ export function AdminSystemTab() {
   const [formError, setFormError] = useState<string | null>(null)
   const [isMutating, setIsMutating] = useState<boolean>(false)
 
-  // Função para copiar texto para o clipboard com feedback
+  // Role para copiar texto para o clipboard com feedback
   const handleCopyText = (text: string, key: string) => {
     if (!navigator?.clipboard?.writeText) return
     navigator.clipboard.writeText(text).then(() => {
@@ -112,7 +112,7 @@ export function AdminSystemTab() {
       setConfigs((configsRes.data as SystemConfigItem[]) || [])
       setWorkspaces((workspacesRes.data as WorkspaceItem[]) || [])
     } catch (err: any) {
-      console.error('Erro ao carregar configurações do sistema:', err)
+      console.error('Error ao carregar configurações do sistema:', err)
       setError(err?.message || 'Falha ao buscar configurações do sistema e workspaces.')
     } finally {
       if (!isSilent) setIsLoading(false)
@@ -155,7 +155,7 @@ export function AdminSystemTab() {
   // Mascaramento da Supabase URL
   const maskedSupabaseUrl = useMemo(() => {
     const rawUrl = (import.meta as any).env?.VITE_SUPABASE_URL || ''
-    if (!rawUrl) return 'Não configurada'
+    if (!rawUrl) return 'Not configured'
     try {
       const url = new URL(rawUrl)
       return `${url.protocol}//${url.hostname.slice(0, 8)}...${url.hostname.slice(-8)}`
@@ -240,7 +240,7 @@ export function AdminSystemTab() {
       if (saveErr) throw new Error(saveErr.message)
       loadData(true)
     } catch (err: any) {
-      alert(err?.message || 'Erro ao alterar feature flag.')
+      alert(err?.message || 'Error ao alterar feature flag.')
     }
   }
 
@@ -279,7 +279,7 @@ export function AdminSystemTab() {
       closeModals()
       loadData(true)
     } catch (err: any) {
-      console.error('Erro ao salvar configuração:', err)
+      console.error('Error ao salvar configuração:', err)
       setFormError(err?.message || 'Falha ao salvar configuração.')
     } finally {
       setIsMutating(false)
@@ -300,7 +300,7 @@ export function AdminSystemTab() {
       closeModals()
       loadData(true)
     } catch (err: any) {
-      console.error('Erro ao excluir chave:', err)
+      console.error('Error ao excluir chave:', err)
       setFormError(err?.message || 'Falha ao excluir chave do sistema.')
     } finally {
       setIsMutating(false)
@@ -321,7 +321,7 @@ export function AdminSystemTab() {
       closeModals()
       loadData(true)
     } catch (err: any) {
-      console.error('Erro ao arquivar workspace:', err)
+      console.error('Error ao arquivar workspace:', err)
       setFormError(err?.message || 'Falha ao arquivar workspace.')
     } finally {
       setIsMutating(false)
@@ -423,7 +423,7 @@ export function AdminSystemTab() {
         </div>
       </div>
 
-      {/* Estado Geral de Erro */}
+      {/* Estado Geral de Error */}
       {error && (
         <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-xs text-red-400 flex items-center justify-between">
           <span>{error}</span>
@@ -519,7 +519,7 @@ export function AdminSystemTab() {
                   <th className="py-2.5 px-3 font-medium">Valor / Estado</th>
                   <th className="py-2.5 px-3 font-medium">Descrição</th>
                   <th className="py-2.5 px-3 font-medium">Atualizado em</th>
-                  <th className="py-2.5 px-3 font-medium text-right">Ações</th>
+                  <th className="py-2.5 px-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#30363d]/60">
@@ -636,7 +636,7 @@ export function AdminSystemTab() {
                   <th className="py-2.5 px-3 font-medium">Valor</th>
                   <th className="py-2.5 px-3 font-medium">Descrição</th>
                   <th className="py-2.5 px-3 font-medium">Atualizado em</th>
-                  <th className="py-2.5 px-3 font-medium text-right">Ações</th>
+                  <th className="py-2.5 px-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#30363d]/60">
@@ -722,10 +722,10 @@ export function AdminSystemTab() {
                   <th className="py-2.5 px-3 font-medium">Título</th>
                   <th className="py-2.5 px-3 font-medium">Workspace ID</th>
                   <th className="py-2.5 px-3 font-medium">Tenant</th>
-                  <th className="py-2.5 px-3 font-medium">Proprietário</th>
+                  <th className="py-2.5 px-3 font-medium">Owner</th>
                   <th className="py-2.5 px-3 font-medium">Caminho Relativo</th>
                   <th className="py-2.5 px-3 font-medium">Criado em</th>
-                  <th className="py-2.5 px-3 font-medium text-right">Ações</th>
+                  <th className="py-2.5 px-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[#30363d]/60">
@@ -798,9 +798,9 @@ export function AdminSystemTab() {
               className="w-full py-1.5 px-3 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/40 text-xs font-medium text-[#c9d1d9] hover:text-[#f0f6fc] transition flex items-center justify-center gap-1.5"
             >
               {copiedKey === 'ws-root' ? (
-                <span className="text-emerald-400 font-semibold">✓ Copiado!</span>
+                <span className="text-emerald-400 font-semibold">✓ Copied!</span>
               ) : (
-                <span>📋 Copiar path</span>
+                <span>📋 Copy path</span>
               )}
             </button>
           </div>
@@ -822,9 +822,9 @@ export function AdminSystemTab() {
               className="w-full py-1.5 px-3 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/40 text-xs font-medium text-[#c9d1d9] hover:text-[#f0f6fc] transition flex items-center justify-center gap-1.5"
             >
               {copiedKey === 'up-root' ? (
-                <span className="text-emerald-400 font-semibold">✓ Copiado!</span>
+                <span className="text-emerald-400 font-semibold">✓ Copied!</span>
               ) : (
-                <span>📋 Copiar path</span>
+                <span>📋 Copy path</span>
               )}
             </button>
           </div>
@@ -846,9 +846,9 @@ export function AdminSystemTab() {
               className="w-full py-1.5 px-3 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/40 text-xs font-medium text-[#c9d1d9] hover:text-[#f0f6fc] transition flex items-center justify-center gap-1.5"
             >
               {copiedKey === 'log-root' ? (
-                <span className="text-emerald-400 font-semibold">✓ Copiado!</span>
+                <span className="text-emerald-400 font-semibold">✓ Copied!</span>
               ) : (
-                <span>📋 Copiar path</span>
+                <span>📋 Copy path</span>
               )}
             </button>
           </div>
@@ -875,7 +875,7 @@ export function AdminSystemTab() {
               onClick={() => handleCopyText(sshExampleCommand, 'ssh-cmd')}
               className="shrink-0 py-1 px-3 rounded-md bg-[#e7bf73]/15 text-[#e7bf73] hover:bg-[#e7bf73]/25 border border-[#e7bf73]/40 text-xs font-semibold transition"
             >
-              {copiedKey === 'ssh-cmd' ? '✓ Copiado!' : 'Copiar comando'}
+              {copiedKey === 'ssh-cmd' ? '✓ Copied!' : 'Copy comando'}
             </button>
           </div>
         </div>
@@ -944,7 +944,7 @@ export function AdminSystemTab() {
         </div>
       </div>
 
-      {/* Modal 1: Criar / Editar Configuração */}
+      {/* Modal 1: Criar / Editar Settings */}
       {isConfigModalOpen && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-[#0d1117]/80 backdrop-blur-sm" onClick={closeModals} />
@@ -1031,14 +1031,14 @@ export function AdminSystemTab() {
                   disabled={isMutating}
                   className="px-3.5 py-1.5 rounded-lg border border-[#30363d] text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] transition font-medium"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isMutating}
                   className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#e7bf73] to-[#d8ae5f] text-[#0d1117] font-semibold hover:brightness-105 transition disabled:opacity-50"
                 >
-                  {isMutating ? 'Salvando...' : 'Salvar Parâmetro'}
+                  {isMutating ? 'Saving...' : 'Salvar Parâmetro'}
                 </button>
               </div>
             </form>
@@ -1087,7 +1087,7 @@ export function AdminSystemTab() {
                 disabled={isMutating}
                 className="px-3.5 py-1.5 rounded-lg border border-[#30363d] text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] transition text-xs font-medium"
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 type="button"
@@ -1095,7 +1095,7 @@ export function AdminSystemTab() {
                 disabled={isMutating}
                 className="px-4 py-1.5 rounded-lg bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 transition text-xs font-semibold disabled:opacity-50"
               >
-                {isMutating ? 'Excluindo...' : 'Confirmar Exclusão'}
+                {isMutating ? 'Deleting...' : 'Confirm Deletion'}
               </button>
             </div>
           </div>
@@ -1149,7 +1149,7 @@ export function AdminSystemTab() {
                 disabled={isMutating}
                 className="px-3.5 py-1.5 rounded-lg border border-[#30363d] text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] transition text-xs font-medium"
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 type="button"
@@ -1157,7 +1157,7 @@ export function AdminSystemTab() {
                 disabled={isMutating}
                 className="px-4 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition text-xs font-semibold disabled:opacity-50"
               >
-                {isMutating ? 'Arquivando...' : 'Confirmar Arquivamento'}
+                {isMutating ? 'Arquivando...' : 'Confirm Arquivamento'}
               </button>
             </div>
           </div>

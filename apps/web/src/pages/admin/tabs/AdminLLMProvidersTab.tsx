@@ -119,15 +119,15 @@ export function AdminLLMProvidersTab() {
   const handleTypeChange = (newType: string) => {
     setFormType(newType)
     // Se não tiver URL preenchida ou se for a URL default do tipo anterior, sugere a default
-    const matched = PROVIDER_TYPES.find((t) => t.value === newType)
-    if (matched && (!formBaseUrl || PROVIDER_TYPES.some((t) => t.defaultUrl === formBaseUrl))) {
+    const matched = PROVIDER_TYPES.find(t => t.value === newType)
+    if (matched && (!formBaseUrl || PROVIDER_TYPES.some(t => t.defaultUrl === formBaseUrl))) {
       setFormBaseUrl(matched.defaultUrl)
     }
   }
 
   const handlePlanToggle = (planId: string) => {
-    setFormAllowedPlans((prev) =>
-      prev.includes(planId) ? prev.filter((p) => p !== planId) : [...prev, planId]
+    setFormAllowedPlans(prev =>
+      prev.includes(planId) ? prev.filter(p => p !== planId) : [...prev, planId],
     )
   }
 
@@ -144,26 +144,26 @@ export function AdminLLMProvidersTab() {
       })
       if (rpcError) throw rpcError
 
-      setProviders((prev) =>
-        prev.map((item) => (item.id === p.id ? { ...item, is_active: nextStatus } : item))
+      setProviders(prev =>
+        prev.map(item => (item.id === p.id ? { ...item, is_active: nextStatus } : item)),
       )
       setGlobalBanner({
         type: 'success',
-        message: `Provedor "${p.name}" ${nextStatus ? 'ativado' : 'desativado'} com sucesso.`,
+        message: `Provider "${p.name}" ${nextStatus ? 'activated' : 'deactivated'} successfully.`,
       })
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Erro ao alterar status do provedor.'
+      const msg = err instanceof Error ? err.message : 'Error ao alterar status do provedor.'
       setGlobalBanner({ type: 'error', message: msg })
     } finally {
       setTogglingId(null)
     }
   }
 
-  // Salvar (criação ou edição)
+  // Save (criação ou edição)
   const handleSaveProvider = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formName.trim()) {
-      setModalFeedback({ type: 'error', message: 'O nome do provedor é obrigatório.' })
+      setModalFeedback({ type: 'error', message: 'Provider name is required.' })
       return
     }
     if (formAllowedPlans.length === 0) {
@@ -190,7 +190,7 @@ export function AdminLLMProvidersTab() {
 
       setModalFeedback({
         type: 'success',
-        message: selectedProvider ? 'Provedor atualizado com sucesso!' : 'Provedor cadastrado com sucesso!',
+        message: selectedProvider ? 'Provider updated successfully!' : 'Provider registered successfully!',
       })
 
       setTimeout(() => {
@@ -205,7 +205,7 @@ export function AdminLLMProvidersTab() {
     }
   }
 
-  // Excluir provedor
+  // Delete provider
   const handleDeleteProvider = async () => {
     if (!selectedProvider) return
     setIsMutating(true)
@@ -219,19 +219,19 @@ export function AdminLLMProvidersTab() {
 
       setGlobalBanner({
         type: 'success',
-        message: `Provedor "${selectedProvider.name}" excluído com sucesso.`,
+        message: `Provider "${selectedProvider.name}" deleted successfully.`,
       })
       closeModals()
       loadProviders(true)
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Falha ao excluir provedor.'
+      const msg = err instanceof Error ? err.message : 'Failed to delete provider.'
       setModalFeedback({ type: 'error', message: msg })
     } finally {
       setIsMutating(false)
     }
   }
 
-  const activeCount = providers.filter((p) => p.is_active).length
+  const activeCount = providers.filter(p => p.is_active).length
 
   const getProviderBadge = (type: string) => {
     switch (type.toLowerCase()) {
@@ -264,7 +264,7 @@ export function AdminLLMProvidersTab() {
             </span>
           </div>
           <p className="text-xs text-[#8b949e] mt-1">
-            Gerencie as conexões de inteligência artificial, credenciais criptografadas e limites por plano.
+            Manage AI connections, encrypted credentials, and plan limits.
           </p>
         </div>
 
@@ -278,7 +278,7 @@ export function AdminLLMProvidersTab() {
             className="px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-xs font-medium text-[#f0f6fc] transition disabled:opacity-50 flex items-center gap-1.5"
           >
             <span className={isRefreshing ? 'animate-spin' : ''}>🔄</span>
-            <span>Atualizar</span>
+            <span>Refresh</span>
           </button>
 
           <button
@@ -286,7 +286,7 @@ export function AdminLLMProvidersTab() {
             className="px-3.5 py-1.5 rounded-lg border border-[#e7bf73]/30 bg-[#e7bf73] hover:bg-[#d8ae5f] text-[#0d1117] text-xs font-semibold transition flex items-center gap-1.5 shadow-sm"
           >
             <span>+</span>
-            <span>Novo Provedor</span>
+            <span>New Provider</span>
           </button>
         </div>
       </div>
@@ -307,15 +307,15 @@ export function AdminLLMProvidersTab() {
         </div>
       )}
 
-      {/* Estados: Loading, Erro, Vazio */}
+      {/* Estados: Loading, Error, Vazio */}
       {isLoading ? (
         <div className="py-16 text-center space-y-3">
           <div className="w-6 h-6 border-2 border-[#e7bf73] border-t-transparent rounded-full animate-spin mx-auto" />
-          <p className="text-xs text-[#8b949e]">Carregando catálogo de provedores...</p>
+          <p className="text-xs text-[#8b949e]">Loading providers catalog...</p>
         </div>
       ) : error ? (
         <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs space-y-2">
-          <p className="font-semibold">Erro ao carregar provedores:</p>
+          <p className="font-semibold">Error ao carregar provedores:</p>
           <p>{error}</p>
           <button
             onClick={() => loadProviders()}
@@ -329,7 +329,7 @@ export function AdminLLMProvidersTab() {
           <div className="text-2xl">🤖</div>
           <h3 className="text-sm font-semibold text-[#f0f6fc]">Nenhum provedor cadastrado</h3>
           <p className="text-xs text-[#8b949e] max-w-sm mx-auto">
-            Configure seu primeiro provedor de LLM para começar a conectar modelos de IA aos planos da plataforma.
+            Configure your first LLM provider to start connecting AI models to platform plans.
           </p>
           <button
             onClick={openCreateModal}
@@ -362,7 +362,7 @@ export function AdminLLMProvidersTab() {
                     {/* Toggle Rápido Ativo / Inativo */}
                     <button
                       type="button"
-                      onClick={(e) => handleToggleActive(p, e)}
+                      onClick={e => handleToggleActive(p, e)}
                       disabled={isToggling}
                       title={p.is_active ? 'Clique para desativar' : 'Clique para ativar'}
                       className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none disabled:opacity-50 ${
@@ -381,16 +381,16 @@ export function AdminLLMProvidersTab() {
                   <h3 className="text-sm font-semibold text-[#f0f6fc] truncate" title={p.name}>
                     {p.name}
                   </h3>
-                  <p className="text-[11px] text-[#8b949e] font-mono truncate mt-0.5" title={p.base_url || 'URL padrão'}>
+                  <p className="text-[11px] text-[#8b949e] font-mono truncate mt-0.5" title={p.base_url || 'Default URL'}>
                     {p.base_url || 'https://api...'}
                   </p>
                 </div>
 
-                {/* Status da Chave & Planos Permitidos */}
+                {/* Status da Chave & Allowed Plans */}
                 <div className="space-y-2 pt-2 border-t border-[#30363d]/60 text-xs">
                   {/* Status da API Key */}
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-[#8b949e]">Chave de API:</span>
+                    <span className="text-[#8b949e]">API Key:</span>
                     {p.has_api_key ? (
                       <span className="flex items-center gap-1 font-mono text-emerald-400">
                         <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
@@ -399,17 +399,17 @@ export function AdminLLMProvidersTab() {
                     ) : (
                       <span className="flex items-center gap-1 text-amber-400 font-medium">
                         <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
-                        Não configurada
+                        Not configured
                       </span>
                     )}
                   </div>
 
-                  {/* Planos Permitidos */}
+                  {/* Allowed Plans */}
                   <div className="flex items-center justify-between text-[11px]">
-                    <span className="text-[#8b949e]">Planos:</span>
+                    <span className="text-[#8b949e]">Plans:</span>
                     <div className="flex gap-1 flex-wrap justify-end">
                       {p.allowed_plans && p.allowed_plans.length > 0 ? (
-                        p.allowed_plans.map((pl) => (
+                        p.allowed_plans.map(pl => (
                           <span
                             key={pl}
                             className="px-1.5 py-0.2 rounded bg-[#0d1117] border border-[#30363d] text-[10px] text-[#e7bf73] uppercase font-mono"
@@ -424,35 +424,35 @@ export function AdminLLMProvidersTab() {
                   </div>
                 </div>
 
-                {/* Ações do Card */}
+                {/* Actions do Card */}
                 <div className="pt-2 border-t border-[#30363d] flex items-center justify-between gap-1.5">
                   {/* Botão Testar Conectividade DESABILITADO com tooltip */}
                   <button
                     type="button"
                     disabled
-                    title="Disponível em bloco futuro"
+                    title="Available in a future release"
                     className="flex-1 px-2 py-1.5 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#8b949e] text-[11px] font-medium opacity-50 cursor-not-allowed flex items-center justify-center gap-1"
                   >
                     <span>⚡</span>
-                    <span className="truncate">Testar Conexão</span>
+                    <span className="truncate">Test Connection</span>
                   </button>
 
-                  {/* Botão Editar */}
+                  {/* Edit Button */}
                   <button
                     type="button"
                     onClick={() => openEditModal(p)}
                     className="px-2.5 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-[#f0f6fc] text-[11px] font-medium transition"
                   >
-                    Editar
+                    Edit
                   </button>
 
-                  {/* Botão Excluir */}
+                  {/* Delete Button */}
                   <button
                     type="button"
                     onClick={() => openDeleteModal(p)}
                     className="px-2.5 py-1.5 rounded-lg border border-rose-500/20 bg-rose-500/10 hover:bg-rose-500/20 text-rose-300 text-[11px] font-medium transition"
                   >
-                    Excluir
+                    Delete
                   </button>
                 </div>
               </div>
@@ -461,7 +461,7 @@ export function AdminLLMProvidersTab() {
         </div>
       )}
 
-      {/* Modal 1: Criar / Editar Provedor (Padrão Settings) */}
+      {/* Modal 1: Criar / Edit Provider (Padrão Settings) */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-[#0d1117]/80 backdrop-blur-sm" onClick={closeModals} />
@@ -469,7 +469,7 @@ export function AdminLLMProvidersTab() {
             role="dialog"
             aria-modal="true"
             tabIndex={-1}
-            ref={(el) => el?.focus()}
+            ref={el => el?.focus()}
             onKeyDown={(e) => {
               if (e.key === 'Escape' && !isMutating) {
                 e.stopPropagation()
@@ -482,7 +482,7 @@ export function AdminLLMProvidersTab() {
             {/* Header do Modal */}
             <div className="flex items-center justify-between pb-3 border-b border-[#30363d]">
               <h3 className="text-sm font-semibold text-[#f0f6fc]">
-                {selectedProvider ? 'Editar Provedor de IA' : 'Novo Provedor de IA'}
+                {selectedProvider ? 'Edit Provider de IA' : 'New Provider de IA'}
               </h3>
               <button
                 type="button"
@@ -498,28 +498,28 @@ export function AdminLLMProvidersTab() {
             <form onSubmit={handleSaveProvider} className="space-y-4 text-xs">
               {/* Campo Nome */}
               <div className="space-y-1">
-                <label className="text-[#8b949e] font-medium">Nome de Exibição *</label>
+                <label className="text-[#8b949e] font-medium">Display Name *</label>
                 <input
                   type="text"
                   required
                   value={formName}
-                  onChange={(e) => setFormName(e.target.value)}
+                  onChange={e => setFormName(e.target.value)}
                   placeholder="Ex: OpenAI Principal, DeepSeek v3..."
                   disabled={isMutating}
                   className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] placeholder-[#8b949e]/50 focus:border-[#e7bf73] focus:outline-none"
                 />
               </div>
 
-              {/* Campo Tipo de Provedor */}
+              {/* Campo Provider Type */}
               <div className="space-y-1">
-                <label className="text-[#8b949e] font-medium">Tipo de Provedor *</label>
+                <label className="text-[#8b949e] font-medium">Provider Type *</label>
                 <select
                   value={formType}
-                  onChange={(e) => handleTypeChange(e.target.value)}
+                  onChange={e => handleTypeChange(e.target.value)}
                   disabled={isMutating}
                   className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] focus:border-[#e7bf73] focus:outline-none"
                 >
-                  {PROVIDER_TYPES.map((t) => (
+                  {PROVIDER_TYPES.map(t => (
                     <option key={t.value} value={t.value}>
                       {t.label}
                     </option>
@@ -533,7 +533,7 @@ export function AdminLLMProvidersTab() {
                 <input
                   type="text"
                   value={formBaseUrl}
-                  onChange={(e) => setFormBaseUrl(e.target.value)}
+                  onChange={e => setFormBaseUrl(e.target.value)}
                   placeholder="https://api..."
                   disabled={isMutating}
                   className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] placeholder-[#8b949e]/50 focus:border-[#e7bf73] focus:outline-none font-mono text-[11px]"
@@ -556,7 +556,7 @@ export function AdminLLMProvidersTab() {
                   <input
                     type={showApiKey ? 'text' : 'password'}
                     value={formApiKey}
-                    onChange={(e) => setFormApiKey(e.target.value)}
+                    onChange={e => setFormApiKey(e.target.value)}
                     placeholder={
                       selectedProvider
                         ? 'Deixe em branco para manter a chave atual'
@@ -574,13 +574,13 @@ export function AdminLLMProvidersTab() {
                   </button>
                 </div>
                 <p className="text-[10px] text-[#8b949e]">
-                  🔒 A chave é criptografada com pgcrypto (AES-256) antes de ser gravada e nunca sai em claro.
+                  🔒 The API key is encrypted with pgcrypto (AES-256) and never exposed in plaintext.
                 </p>
               </div>
 
-              {/* Checkboxes de Planos Permitidos */}
+              {/* Checkboxes de Allowed Plans */}
               <div className="space-y-2 pt-1">
-                <label className="text-[#8b949e] font-medium">Planos Autorizados a Usar este Provedor *</label>
+                <label className="text-[#8b949e] font-medium">Plans Autorizados a Usar este Provedor *</label>
                 <div className="flex gap-4">
                   {ALL_PLANS.map((plan) => {
                     const isChecked = formAllowedPlans.includes(plan.id)
@@ -607,7 +607,7 @@ export function AdminLLMProvidersTab() {
               <div className="pt-2 flex items-center justify-between border-t border-[#30363d]">
                 <div>
                   <div className="text-[#f0f6fc] font-medium">Provedor Ativo</div>
-                  <div className="text-[#8b949e] text-[11px]">Habilitar este provedor para inferência no sistema</div>
+                  <div className="text-[#8b949e] text-[11px]">Enable this provider for system inference</div>
                 </div>
                 <button
                   type="button"
@@ -638,7 +638,7 @@ export function AdminLLMProvidersTab() {
                 </div>
               )}
 
-              {/* Ações do Modal */}
+              {/* Actions do Modal */}
               <div className="pt-3 flex gap-2 border-t border-[#30363d]">
                 <button
                   type="button"
@@ -646,7 +646,7 @@ export function AdminLLMProvidersTab() {
                   disabled={isMutating}
                   className="w-1/2 px-4 py-2.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-[#8b949e] hover:text-[#f0f6fc] transition font-medium"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
@@ -656,7 +656,7 @@ export function AdminLLMProvidersTab() {
                   {isMutating && (
                     <div className="w-3.5 h-3.5 border-2 border-[#0d1117] border-t-transparent rounded-full animate-spin" />
                   )}
-                  <span>{selectedProvider ? 'Salvar Alterações' : 'Criar Provedor'}</span>
+                  <span>{selectedProvider ? 'Save Changes' : 'Create Provider'}</span>
                 </button>
               </div>
             </form>
@@ -672,7 +672,7 @@ export function AdminLLMProvidersTab() {
             role="dialog"
             aria-modal="true"
             tabIndex={-1}
-            ref={(el) => el?.focus()}
+            ref={el => el?.focus()}
             onKeyDown={(e) => {
               if (e.key === 'Escape' && !isMutating) {
                 e.stopPropagation()
@@ -683,7 +683,7 @@ export function AdminLLMProvidersTab() {
             className="relative z-10 w-full max-w-md rounded-2xl border border-rose-500/30 bg-[#161b22] p-6 shadow-2xl space-y-5 focus:outline-none"
           >
             <div className="flex items-center justify-between pb-3 border-b border-[#30363d]">
-              <h3 className="text-sm font-semibold text-[#f0f6fc]">Excluir Provedor de IA</h3>
+              <h3 className="text-sm font-semibold text-[#f0f6fc]">Delete Provider de IA</h3>
               <button
                 type="button"
                 onClick={closeModals}
@@ -731,7 +731,7 @@ export function AdminLLMProvidersTab() {
                   disabled={isMutating}
                   className="w-1/2 px-4 py-2.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-[#8b949e] hover:text-[#f0f6fc] transition font-medium"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="button"
@@ -742,7 +742,7 @@ export function AdminLLMProvidersTab() {
                   {isMutating && (
                     <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   )}
-                  <span>Confirmar Exclusão</span>
+                  <span>Confirm Deletion</span>
                 </button>
               </div>
             </div>

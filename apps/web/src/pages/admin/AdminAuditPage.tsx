@@ -84,7 +84,7 @@ export function AdminAuditPage() {
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-white tracking-tight">Logs de Auditoria</h1>
+          <h1 className="text-3xl font-bold text-white tracking-tight">Audit Logs</h1>
           <p className="text-sm text-gray-400 mt-1">
             Rastreamento de operações administrativas, eventos de segurança e alterações de estado.
           </p>
@@ -121,7 +121,7 @@ export function AdminAuditPage() {
         </div>
       ) : logs.length === 0 ? (
         <div className="bg-[#161b22] border border-[#30363d] rounded-xl shadow-xl p-8 text-center text-gray-400">
-          Nenhum registro de auditoria encontrado.
+          No audit records found.
         </div>
       ) : (
         <div className="bg-[#161b22] border border-[#30363d] shadow-xl overflow-hidden rounded-xl">

@@ -102,15 +102,15 @@ export function AdminModelsTab() {
 
       setModels((modelsRes.data as LLMModel[]) || [])
       setProviders(
-        ((providersRes.data as any[]) || []).map((p) => ({
+        ((providersRes.data as any[]) || []).map(p => ({
           id: p.id,
           name: p.name,
           provider_type: p.provider_type,
           is_active: p.is_active,
-        }))
+        })),
       )
     } catch (err: any) {
-      console.error('Erro ao carregar dados de modelos:', err)
+      console.error('Error ao carregar dados de modelos:', err)
       setError(err?.message || 'Falha ao buscar catálogo de modelos.')
     } finally {
       if (!isSilent) setIsLoading(false)
@@ -188,7 +188,7 @@ export function AdminModelsTab() {
 
   // Toggle de capability
   const toggleCapability = (capId: string) => {
-    setFormCapabilities((prev) => ({
+    setFormCapabilities(prev => ({
       ...prev,
       [capId]: !prev[capId],
     }))
@@ -198,10 +198,10 @@ export function AdminModelsTab() {
   const toggleAllowedPlan = (planId: string) => {
     setFormAllowedPlans((prev) => {
       const exists = prev.includes(planId)
-      const next = exists ? prev.filter((p) => p !== planId) : [...prev, planId]
+      const next = exists ? prev.filter(p => p !== planId) : [...prev, planId]
       // Se remover plano permitido, remover de defaults se estiver lá
       if (exists) {
-        setFormDefaultForPlans((defPrev) => defPrev.filter((p) => p !== planId))
+        setFormDefaultForPlans(defPrev => defPrev.filter(p => p !== planId))
       }
       return next
     })
@@ -210,8 +210,8 @@ export function AdminModelsTab() {
   // Toggle de default para plano
   const toggleDefaultForPlan = (planId: string) => {
     if (!formAllowedPlans.includes(planId)) return
-    setFormDefaultForPlans((prev) =>
-      prev.includes(planId) ? prev.filter((p) => p !== planId) : [...prev, planId]
+    setFormDefaultForPlans(prev =>
+      prev.includes(planId) ? prev.filter(p => p !== planId) : [...prev, planId],
     )
   }
 
@@ -269,7 +269,7 @@ export function AdminModelsTab() {
       closeModals()
       loadData(true)
     } catch (err: any) {
-      console.error('Erro ao salvar modelo:', err)
+      console.error('Error ao salvar modelo:', err)
       setFormError(err?.message || 'Falha ao salvar configurações do modelo.')
     } finally {
       setIsMutating(false)
@@ -290,7 +290,7 @@ export function AdminModelsTab() {
       closeModals()
       loadData(true)
     } catch (err: any) {
-      console.error('Erro ao excluir modelo:', err)
+      console.error('Error ao excluir modelo:', err)
       setFormError(err?.message || 'Não foi possível excluir o modelo.')
     } finally {
       setIsMutating(false)
@@ -308,11 +308,11 @@ export function AdminModelsTab() {
       if (toggleErr) throw new Error(toggleErr.message)
       loadData(true)
     } catch (err: any) {
-      alert(err?.message || 'Erro ao alterar status do modelo.')
+      alert(err?.message || 'Error ao alterar status do modelo.')
     }
   }
 
-  // Modelos filtrados
+  // Models filtrados
   const filteredModels = useMemo(() => {
     return models.filter((m) => {
       // Busca
@@ -326,7 +326,7 @@ export function AdminModelsTab() {
       if (selectedProviderFilter !== 'all' && m.provider_id !== selectedProviderFilter) {
         return false
       }
-      // Plano
+      // Plan
       if (selectedPlanFilter !== 'all' && !m.allowed_plans?.includes(selectedPlanFilter)) {
         return false
       }
@@ -340,8 +340,8 @@ export function AdminModelsTab() {
 
   // KPIs
   const totalModels = models.length
-  const activeModels = models.filter((m) => m.is_active && m.provider_is_active).length
-  const providersWithModels = new Set(models.map((m) => m.provider_id)).size
+  const activeModels = models.filter(m => m.is_active && m.provider_is_active).length
+  const providersWithModels = new Set(models.map(m => m.provider_id)).size
 
   return (
     <div className="space-y-6">
@@ -349,7 +349,7 @@ export function AdminModelsTab() {
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#30363d]">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-[#f0f6fc]">Catálogo de Modelos</h2>
+            <h2 className="text-lg font-semibold text-[#f0f6fc]">Catálogo de Models</h2>
             <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#e7bf73]/10 text-[#e7bf73] border border-[#e7bf73]/30">
               {activeModels} ativos / {totalModels} total
             </span>
@@ -382,15 +382,15 @@ export function AdminModelsTab() {
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e]">Total de Modelos</div>
+          <div className="text-xs text-[#8b949e]">Total de Models</div>
           <div className="text-xl font-bold text-[#f0f6fc] mt-1">{totalModels}</div>
         </div>
         <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e]">Modelos Ativos Operacionais</div>
+          <div className="text-xs text-[#8b949e]">Models Ativos Operacionais</div>
           <div className="text-xl font-bold text-[#e7bf73] mt-1">{activeModels}</div>
         </div>
         <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e]">Provedores com Modelos</div>
+          <div className="text-xs text-[#8b949e]">Provedores com Models</div>
           <div className="text-xl font-bold text-[#f0f6fc] mt-1">{providersWithModels}</div>
         </div>
       </div>
@@ -402,8 +402,8 @@ export function AdminModelsTab() {
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Buscar por nome ou model_id..."
+            onChange={e => setSearchQuery(e.target.value)}
+            placeholder="Search by nome ou model_id..."
             className="w-full px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] placeholder-[#8b949e]/60 focus:border-[#e7bf73] focus:outline-none"
           />
         </div>
@@ -412,11 +412,11 @@ export function AdminModelsTab() {
         <div className="w-full sm:w-auto">
           <select
             value={selectedProviderFilter}
-            onChange={(e) => setSelectedProviderFilter(e.target.value)}
+            onChange={e => setSelectedProviderFilter(e.target.value)}
             className="w-full sm:w-auto px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] focus:border-[#e7bf73] focus:outline-none"
           >
             <option value="all">Todos os Provedores</option>
-            {providers.map((p) => (
+            {providers.map(p => (
               <option key={p.id} value={p.id}>
                 {p.name} {!p.is_active ? '(Inativo)' : ''}
               </option>
@@ -424,17 +424,17 @@ export function AdminModelsTab() {
           </select>
         </div>
 
-        {/* Filtro Plano */}
+        {/* Filtro Plan */}
         <div className="w-full sm:w-auto">
           <select
             value={selectedPlanFilter}
-            onChange={(e) => setSelectedPlanFilter(e.target.value)}
+            onChange={e => setSelectedPlanFilter(e.target.value)}
             className="w-full sm:w-auto px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] focus:border-[#e7bf73] focus:outline-none"
           >
-            <option value="all">Todos os Planos</option>
-            {ALL_PLANS.map((plan) => (
+            <option value="all">Todos os Plans</option>
+            {ALL_PLANS.map(plan => (
               <option key={plan.id} value={plan.id}>
-                Plano {plan.label}
+                Plan {plan.label}
               </option>
             ))}
           </select>
@@ -444,11 +444,11 @@ export function AdminModelsTab() {
         <div className="w-full sm:w-auto">
           <select
             value={selectedCapabilityFilter}
-            onChange={(e) => setSelectedCapabilityFilter(e.target.value)}
+            onChange={e => setSelectedCapabilityFilter(e.target.value)}
             className="w-full sm:w-auto px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] focus:border-[#e7bf73] focus:outline-none"
           >
             <option value="all">Todas as Capacidades</option>
-            {CAPABILITY_OPTIONS.map((cap) => (
+            {CAPABILITY_OPTIONS.map(cap => (
               <option key={cap.id} value={cap.id}>
                 {cap.label}
               </option>
@@ -457,7 +457,7 @@ export function AdminModelsTab() {
         </div>
       </div>
 
-      {/* Estados: Loading, Erro, Vazio */}
+      {/* Estados: Loading, Error, Vazio */}
       {isLoading ? (
         <div className="p-12 text-center text-xs text-[#8b949e]">
           <span className="inline-block animate-spin mr-2">↻</span> Carregando catálogo de modelos...
@@ -493,7 +493,7 @@ export function AdminModelsTab() {
           Nenhum modelo corresponde aos filtros selecionados.
         </div>
       ) : (
-        /* Tabela de Modelos */
+        /* Tabela de Models */
         <div className="overflow-x-auto rounded-xl border border-[#30363d] bg-[#161b22]">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
@@ -503,8 +503,8 @@ export function AdminModelsTab() {
                 <th className="py-3 px-4 font-medium">Contexto</th>
                 <th className="py-3 px-4 font-medium">Custos (1k Tokens)</th>
                 <th className="py-3 px-4 font-medium">Capacidades</th>
-                <th className="py-3 px-4 font-medium">Planos & Defaults</th>
-                <th className="py-3 px-4 font-medium text-right">Ações</th>
+                <th className="py-3 px-4 font-medium">Plans & Defaults</th>
+                <th className="py-3 px-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#30363d]/60">
@@ -590,7 +590,7 @@ export function AdminModelsTab() {
                       </div>
                     </td>
 
-                    {/* Planos & Defaults */}
+                    {/* Plans & Defaults */}
                     <td className="py-3.5 px-4">
                       <div className="flex flex-wrap gap-1 items-center">
                         {ALL_PLANS.map((plan) => {
@@ -616,7 +616,7 @@ export function AdminModelsTab() {
                       </div>
                     </td>
 
-                    {/* Ações */}
+                    {/* Actions */}
                     <td className="py-3.5 px-4 text-right">
                       <div className="inline-flex items-center gap-2">
                         <button
@@ -651,7 +651,7 @@ export function AdminModelsTab() {
             role="dialog"
             aria-modal="true"
             tabIndex={-1}
-            ref={(el) => el?.focus()}
+            ref={el => el?.focus()}
             onKeyDown={(e) => {
               if (e.key === 'Escape' && !isMutating) {
                 e.stopPropagation()
@@ -683,14 +683,14 @@ export function AdminModelsTab() {
                 <label className="text-[#8b949e] font-medium">Provedor de IA *</label>
                 <select
                   value={formProviderId}
-                  onChange={(e) => setFormProviderId(e.target.value)}
+                  onChange={e => setFormProviderId(e.target.value)}
                   disabled={isMutating}
                   className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] focus:border-[#e7bf73] focus:outline-none"
                 >
                   {providers.length === 0 ? (
                     <option value="">Nenhum provedor disponível</option>
                   ) : (
-                    providers.map((p) => (
+                    providers.map(p => (
                       <option key={p.id} value={p.id}>
                         {p.name} ({p.provider_type}) {!p.is_active ? '— Inativo' : ''}
                       </option>
@@ -699,15 +699,15 @@ export function AdminModelsTab() {
                 </select>
               </div>
 
-              {/* Nome de Exibição & Model ID */}
+              {/* Display Name & Model ID */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[#8b949e] font-medium">Nome de Exibição *</label>
+                  <label className="text-[#8b949e] font-medium">Display Name *</label>
                   <input
                     type="text"
                     required
                     value={formDisplayName}
-                    onChange={(e) => setFormDisplayName(e.target.value)}
+                    onChange={e => setFormDisplayName(e.target.value)}
                     placeholder="Ex: GPT-4o, Claude 3.5..."
                     disabled={isMutating}
                     className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] placeholder-[#8b949e]/50 focus:border-[#e7bf73] focus:outline-none"
@@ -719,7 +719,7 @@ export function AdminModelsTab() {
                     type="text"
                     required
                     value={formModelId}
-                    onChange={(e) => setFormModelId(e.target.value)}
+                    onChange={e => setFormModelId(e.target.value)}
                     placeholder="Ex: gpt-4o, claude-3-5-sonnet..."
                     disabled={isMutating}
                     className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] font-mono placeholder-[#8b949e]/50 focus:border-[#e7bf73] focus:outline-none"
@@ -736,7 +736,7 @@ export function AdminModelsTab() {
                     required
                     min={1}
                     value={formContextWindow}
-                    onChange={(e) => setFormContextWindow(parseInt(e.target.value, 10) || 0)}
+                    onChange={e => setFormContextWindow(parseInt(e.target.value, 10) || 0)}
                     disabled={isMutating}
                     className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] font-mono focus:border-[#e7bf73] focus:outline-none"
                   />
@@ -747,7 +747,7 @@ export function AdminModelsTab() {
                     type="text"
                     required
                     value={formCostInput}
-                    onChange={(e) => setFormCostInput(e.target.value)}
+                    onChange={e => setFormCostInput(e.target.value)}
                     disabled={isMutating}
                     className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] font-mono focus:border-[#e7bf73] focus:outline-none"
                   />
@@ -758,7 +758,7 @@ export function AdminModelsTab() {
                     type="text"
                     required
                     value={formCostOutput}
-                    onChange={(e) => setFormCostOutput(e.target.value)}
+                    onChange={e => setFormCostOutput(e.target.value)}
                     disabled={isMutating}
                     className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] font-mono focus:border-[#e7bf73] focus:outline-none"
                   />
@@ -769,7 +769,7 @@ export function AdminModelsTab() {
               <div className="space-y-2 pt-2 border-t border-[#30363d]">
                 <label className="text-[#8b949e] font-medium">Capacidades do Modelo</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {CAPABILITY_OPTIONS.map((cap) => (
+                  {CAPABILITY_OPTIONS.map(cap => (
                     <label
                       key={cap.id}
                       className="flex items-center gap-2 p-2 rounded-lg border border-[#30363d] bg-[#0d1117]/60 cursor-pointer hover:border-[#8b949e] transition"
@@ -787,11 +787,11 @@ export function AdminModelsTab() {
                 </div>
               </div>
 
-              {/* Planos Permitidos */}
+              {/* Allowed Plans */}
               <div className="space-y-2 pt-2 border-t border-[#30363d]">
-                <label className="text-[#8b949e] font-medium">Planos com Acesso Liberado</label>
+                <label className="text-[#8b949e] font-medium">Plans com Acesso Liberado</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {ALL_PLANS.map((plan) => (
+                  {ALL_PLANS.map(plan => (
                     <label
                       key={plan.id}
                       className="flex items-center gap-2 p-2 rounded-lg border border-[#30363d] bg-[#0d1117]/60 cursor-pointer hover:border-[#8b949e] transition"
@@ -809,11 +809,11 @@ export function AdminModelsTab() {
                 </div>
               </div>
 
-              {/* Modelo Padrão por Plano */}
+              {/* Modelo Padrão por Plan */}
               <div className="space-y-2 pt-2 border-t border-[#30363d]">
                 <div className="flex items-center justify-between">
                   <label className="text-[#8b949e] font-medium">
-                    Modelo Padrão para os Planos
+                    Modelo Padrão para os Plans
                   </label>
                   <span className="text-[10px] text-[#e7bf73]">★ Exclusivo global por plano</span>
                 </div>
@@ -829,8 +829,8 @@ export function AdminModelsTab() {
                           !isAllowed
                             ? 'opacity-40 border-[#30363d] bg-[#0d1117]/30 cursor-not-allowed'
                             : isDefault
-                            ? 'border-[#e7bf73]/60 bg-[#e7bf73]/10 cursor-pointer'
-                            : 'border-[#30363d] bg-[#0d1117]/60 cursor-pointer hover:border-[#8b949e]'
+                              ? 'border-[#e7bf73]/60 bg-[#e7bf73]/10 cursor-pointer'
+                              : 'border-[#30363d] bg-[#0d1117]/60 cursor-pointer hover:border-[#8b949e]'
                         }`}
                       >
                         <input
@@ -853,7 +853,7 @@ export function AdminModelsTab() {
                   <input
                     type="checkbox"
                     checked={formIsActive}
-                    onChange={(e) => setFormIsActive(e.target.checked)}
+                    onChange={e => setFormIsActive(e.target.checked)}
                     disabled={isMutating}
                     className="rounded border-[#30363d] bg-[#161b22] text-[#e7bf73] focus:ring-[#e7bf73]"
                   />
@@ -861,14 +861,14 @@ export function AdminModelsTab() {
                 </label>
               </div>
 
-              {/* Mensagem de Erro do Formulário */}
+              {/* Mensagem de Error do Formulário */}
               {formError && (
                 <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-400">
                   {formError}
                 </div>
               )}
 
-              {/* Ações do Modal */}
+              {/* Actions do Modal */}
               <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#30363d]">
                 <button
                   type="button"
@@ -876,14 +876,14 @@ export function AdminModelsTab() {
                   disabled={isMutating}
                   className="px-3.5 py-1.5 rounded-lg border border-[#30363d] text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] transition font-medium"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isMutating}
                   className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#e7bf73] to-[#d8ae5f] text-[#0d1117] font-semibold hover:brightness-105 transition disabled:opacity-50"
                 >
-                  {isMutating ? 'Salvando...' : selectedModel ? 'Salvar Alterações' : 'Criar Modelo'}
+                  {isMutating ? 'Saving...' : selectedModel ? 'Save Changes' : 'Criar Modelo'}
                 </button>
               </div>
             </form>
@@ -899,7 +899,7 @@ export function AdminModelsTab() {
             role="dialog"
             aria-modal="true"
             tabIndex={-1}
-            ref={(el) => el?.focus()}
+            ref={el => el?.focus()}
             onKeyDown={(e) => {
               if (e.key === 'Escape' && !isMutating) {
                 e.stopPropagation()
@@ -942,7 +942,7 @@ export function AdminModelsTab() {
                 disabled={isMutating}
                 className="px-3.5 py-1.5 rounded-lg border border-[#30363d] text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] transition text-xs font-medium"
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 type="button"
@@ -950,7 +950,7 @@ export function AdminModelsTab() {
                 disabled={isMutating}
                 className="px-4 py-1.5 rounded-lg bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 transition text-xs font-semibold disabled:opacity-50"
               >
-                {isMutating ? 'Excluindo...' : 'Confirmar Exclusão'}
+                {isMutating ? 'Deleting...' : 'Confirm Deletion'}
               </button>
             </div>
           </div>

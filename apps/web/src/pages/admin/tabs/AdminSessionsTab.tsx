@@ -95,13 +95,13 @@ export function AdminSessionsTab() {
           setWorkspacesRoot(storageData.paths.workspaces_root)
         }
       } catch (err) {
-        console.warn('Erro ao carregar dados auxiliares de sessões:', err)
+        console.warn('Error ao carregar dados auxiliares de sessões:', err)
       }
     }
     loadAuxiliaryData()
   }, [])
 
-  // Buscar Sessões e KPIs
+  // Buscar Sessions e KPIs
   const loadSessionsData = useCallback(async (isRefresh = false) => {
     if (isRefresh) {
       setIsRefreshing(true)
@@ -172,14 +172,14 @@ export function AdminSessionsTab() {
     loadSessionsData()
   }, [loadSessionsData])
 
-  // Ação: Copiar ID da Sessão
+  // Ação: Copy ID da Sessão
   const handleCopyId = (id: string) => {
     navigator.clipboard.writeText(id)
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
   }
 
-  // Ação: Copiar Comando SSH do Transcript
+  // Ação: Copy SSH Command do Transcript
   const handleCopyCommand = (command: string) => {
     navigator.clipboard.writeText(command)
     setCopiedCommand(true)
@@ -289,7 +289,7 @@ export function AdminSessionsTab() {
       case 'error':
         return (
           <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-rose-500/15 text-rose-400 border border-rose-500/30">
-            Erro
+            Error
           </span>
         )
       default:
@@ -303,7 +303,7 @@ export function AdminSessionsTab() {
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
 
-  // Comando SSH para o transcript da sessão em inspeção
+  // SSH Command para o transcript da sessão em inspeção
   const sshTranscriptCommand = useMemo(() => {
     if (!inspectingSession) return ''
     const cleanRoot = workspacesRoot.endsWith('/') ? workspacesRoot.slice(0, -1) : workspacesRoot
@@ -316,7 +316,7 @@ export function AdminSessionsTab() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#30363d]">
         <div>
           <div className="flex items-center gap-2.5">
-            <h2 className="text-xl font-bold tracking-tight text-[#f0f6fc]">Sessões Globais</h2>
+            <h2 className="text-xl font-bold tracking-tight text-[#f0f6fc]">Sessions Globais</h2>
             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#e7bf73]/20 text-[#e7bf73] border border-[#e7bf73]/30">
               Total: {kpis?.total_sessions ?? totalCount}
             </span>
@@ -368,7 +368,7 @@ export function AdminSessionsTab() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e] font-medium">Total de Sessões</div>
+          <div className="text-xs text-[#8b949e] font-medium">Total de Sessions</div>
           <div className="text-xl font-bold text-[#f0f6fc] mt-1">{kpis ? kpis.total_sessions.toLocaleString('pt-BR') : '-'}</div>
         </div>
         <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
@@ -408,7 +408,7 @@ export function AdminSessionsTab() {
           <div className="sm:col-span-4 relative">
             <input
               type="text"
-              placeholder="Buscar por ID, título ou e-mail..."
+              placeholder="Search by ID, título ou e-mail..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               className="w-full px-3 py-2 pl-9 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f0f6fc] placeholder-[#8b949e] focus:outline-none focus:border-[#e7bf73] transition"
@@ -460,7 +460,7 @@ export function AdminSessionsTab() {
               }}
               className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73] transition"
             >
-              <option value="">Todos os Modelos</option>
+              <option value="">Todos os Models</option>
               {availableModels.map(m => (
                 <option key={m} value={m}>
                   {m}
@@ -483,7 +483,7 @@ export function AdminSessionsTab() {
               <option value="active">Ativa</option>
               <option value="completed">Concluída</option>
               <option value="archived">Arquivada</option>
-              <option value="error">Erro</option>
+              <option value="error">Error</option>
             </select>
           </div>
 
@@ -522,11 +522,11 @@ export function AdminSessionsTab() {
         )}
       </div>
 
-      {/* Erro de Carregamento */}
+      {/* Error de Carregamento */}
       {error && (
         <div className="p-4 bg-rose-950/40 border border-rose-500/50 rounded-xl text-rose-300 text-sm flex items-center justify-between">
           <div>
-            <p className="font-semibold">Erro ao carregar sessões</p>
+            <p className="font-semibold">Error ao carregar sessões</p>
             <p className="text-xs text-rose-400 mt-0.5">{error}</p>
           </div>
           <button
@@ -538,7 +538,7 @@ export function AdminSessionsTab() {
         </div>
       )}
 
-      {/* Tabela de Sessões */}
+      {/* Tabela de Sessions */}
       <div className="border border-[#30363d] rounded-xl overflow-hidden bg-[#161b22]/70">
         <div className="overflow-x-auto">
           <table className="w-full text-left text-sm text-[#f0f6fc]">
@@ -551,7 +551,7 @@ export function AdminSessionsTab() {
                 <th className="px-4 py-3 text-right">Tokens</th>
                 <th className="px-4 py-3 text-center">Status</th>
                 <th className="px-4 py-3">Criado em</th>
-                <th className="px-4 py-3 text-right">Ações</th>
+                <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#30363d]/60">
@@ -595,9 +595,9 @@ export function AdminSessionsTab() {
                         <button
                           onClick={() => handleCopyId(row.session_id)}
                           className="text-[10px] text-[#8b949e] hover:text-[#e7bf73] transition"
-                          title="Copiar ID da sessão"
+                          title="Copy ID da sessão"
                         >
-                          {copiedId === row.session_id ? '✓ Copiado' : 'Copiar'}
+                          {copiedId === row.session_id ? '✓ Copied' : 'Copy'}
                         </button>
                       </div>
                     </td>
@@ -646,7 +646,7 @@ export function AdminSessionsTab() {
                       {formatDate(row.created_at)}
                     </td>
 
-                    {/* Ações */}
+                    {/* Actions */}
                     <td className="px-4 py-3 text-right text-xs">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
@@ -752,7 +752,7 @@ export function AdminSessionsTab() {
               <button
                 onClick={() => setInspectingSession(null)}
                 className="text-[#8b949e] hover:text-[#f0f6fc] text-sm p-1 rounded-lg hover:bg-[#30363d]/40 transition"
-                title="Fechar (Esc)"
+                title="Close (Esc)"
               >
                 ✕
               </button>
@@ -772,7 +772,7 @@ export function AdminSessionsTab() {
                     onClick={() => handleCopyId(inspectingSession.session_id)}
                     className="text-xs text-[#8b949e] hover:text-[#e7bf73] transition"
                   >
-                    {copiedId === inspectingSession.session_id ? '✓ ID Copiado' : 'Copiar ID'}
+                    {copiedId === inspectingSession.session_id ? '✓ ID Copied' : 'Copy ID'}
                   </button>
                 </div>
               </div>
@@ -806,7 +806,7 @@ export function AdminSessionsTab() {
                   <span className="text-xs text-[#f0f6fc]">{formatDate(inspectingSession.created_at)}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-[#8b949e] block">Última Atualização</span>
+                  <span className="text-xs text-[#8b949e] block">Last Updated</span>
                   <span className="text-xs text-[#f0f6fc]">{formatDate(inspectingSession.updated_at)}</span>
                 </div>
               </div>
@@ -831,19 +831,19 @@ export function AdminSessionsTab() {
                     onClick={() => handleCopyCommand(sshTranscriptCommand)}
                     className="px-2.5 py-1 text-xs font-medium rounded border border-[#30363d] bg-[#161b22] hover:bg-[#30363d] text-[#f0f6fc] whitespace-nowrap transition"
                   >
-                    {copiedCommand ? '✓ Copiado' : 'Copiar'}
+                    {copiedCommand ? '✓ Copied' : 'Copy'}
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Rodapé do Drawer com Ações */}
+            {/* Rodapé do Drawer com Actions */}
             <div className="px-6 py-4 border-t border-[#30363d] bg-[#0d1117]/60 flex items-center justify-between">
               <button
                 onClick={() => handleCopyId(inspectingSession.session_id)}
                 className="px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-xs font-medium text-[#f0f6fc] transition"
               >
-                {copiedId === inspectingSession.session_id ? '✓ ID Copiado' : 'Copiar ID'}
+                {copiedId === inspectingSession.session_id ? '✓ ID Copied' : 'Copy ID'}
               </button>
 
               <div className="flex items-center gap-2">
@@ -885,7 +885,7 @@ export function AdminSessionsTab() {
               <div className="w-8 h-8 rounded-full bg-rose-950/60 border border-rose-900/60 flex items-center justify-center font-bold">
                 !
               </div>
-              <h3 className="text-base font-bold text-[#f0f6fc]">Confirmar Exclusão (Purge)</h3>
+              <h3 className="text-base font-bold text-[#f0f6fc]">Confirm Deletion (Purge)</h3>
             </div>
 
             <p className="text-xs text-[#8b949e] leading-relaxed">
@@ -907,7 +907,7 @@ export function AdminSessionsTab() {
                 disabled={isSubmittingAction}
                 className="px-3.5 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-xs font-medium text-[#8b949e] hover:text-[#f0f6fc] transition"
               >
-                Cancelar
+                Cancel
               </button>
               <button
                 onClick={handleConfirmPurge}
@@ -923,7 +923,7 @@ export function AdminSessionsTab() {
                     <span>Purgando...</span>
                   </>
                 ) : (
-                  <span>Confirmar Purge</span>
+                  <span>Confirm Purge</span>
                 )}
               </button>
             </div>

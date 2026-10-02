@@ -95,7 +95,7 @@ export function AdminUsersTab() {
       if (error) throw error
       setTenants(data || [])
     } catch (err: unknown) {
-      console.error('[AdminUsersTab] Erro ao carregar tenants:', err)
+      console.error('[AdminUsersTab] Error ao carregar tenants:', err)
     }
   }, [])
 
@@ -114,7 +114,7 @@ export function AdminUsersTab() {
         })
       }
     } catch (err: unknown) {
-      console.error('[AdminUsersTab] Erro ao carregar KPIs de usuários:', err)
+      console.error('[AdminUsersTab] Error ao carregar KPIs de usuários:', err)
     }
   }, [])
 
@@ -164,7 +164,7 @@ export function AdminUsersTab() {
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
       setError(msg)
-      console.error('[AdminUsersTab] Erro ao listar usuários:', err)
+      console.error('[AdminUsersTab] Error ao listar usuários:', err)
     } finally {
       setIsLoading(false)
     }
@@ -340,11 +340,11 @@ export function AdminUsersTab() {
 
   return (
     <div className="space-y-6 text-[#f0f6fc]">
-      {/* Header & Ações */}
+      {/* Header & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#30363d]">
         <div>
           <h2 className="text-xl font-bold tracking-tight text-[#f0f6fc] flex items-center gap-2">
-            <span>Usuários & Membros</span>
+            <span>Users & Members</span>
             <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#e7bf73]/20 text-[#e7bf73] border border-[#e7bf73]/30">
               {totalCount} total
             </span>
@@ -379,7 +379,7 @@ export function AdminUsersTab() {
       {/* Cards de Métricas / KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e] font-medium">Total de Usuários</div>
+          <div className="text-xs text-[#8b949e] font-medium">Total de Users</div>
           <div className="text-xl font-bold text-[#f0f6fc] mt-1">{kpis ? kpis.total : '-'}</div>
         </div>
         <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
@@ -420,8 +420,8 @@ export function AdminUsersTab() {
             <input
               type="text"
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar por e-mail ou nome..."
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Search by e-mail ou nome..."
               className="w-full px-3 py-2 pl-9 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] placeholder-[#8b949e] focus:outline-none focus:border-[#e7bf73] transition"
             />
             <svg
@@ -478,7 +478,7 @@ export function AdminUsersTab() {
               className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73] transition truncate"
             >
               <option value="">Todos os Tenants</option>
-              {tenants.map((t) => (
+              {tenants.map(t => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>
@@ -500,7 +500,7 @@ export function AdminUsersTab() {
         )}
       </div>
 
-      {/* Estado de Erro */}
+      {/* Estado de Error */}
       {error && (
         <div className="p-4 rounded-xl border border-rose-500/30 bg-rose-500/10 text-rose-400 text-xs flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -518,7 +518,7 @@ export function AdminUsersTab() {
         </div>
       )}
 
-      {/* Tabela de Usuários */}
+      {/* Tabela de Users */}
       <div className="border border-[#30363d] rounded-xl overflow-hidden bg-[#0d1117]/60">
         <div className="overflow-x-auto min-h-[300px]">
           <table className="w-full text-left border-collapse text-xs">
@@ -529,7 +529,7 @@ export function AdminUsersTab() {
                 <th className="py-3 px-4">Papel (Role)</th>
                 <th className="py-3 px-4">Status</th>
                 <th className="py-3 px-4">Data Cadastro</th>
-                <th className="py-3 px-4 text-right">Ações</th>
+                <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-[#30363d]/50">
@@ -594,8 +594,8 @@ export function AdminUsersTab() {
                               user.role === 'owner'
                                 ? 'bg-[#e7bf73]/15 text-[#e7bf73] border-[#e7bf73]/30'
                                 : user.role === 'admin'
-                                ? 'bg-[#b0955e]/15 text-[#fbf0da] border-[#b0955e]/30'
-                                : 'bg-[#30363d]/50 text-[#8b949e] border-[#30363d]'
+                                  ? 'bg-[#b0955e]/15 text-[#fbf0da] border-[#b0955e]/30'
+                                  : 'bg-[#30363d]/50 text-[#8b949e] border-[#30363d]'
                             }`}
                           >
                             {user.role}
@@ -633,7 +633,7 @@ export function AdminUsersTab() {
                             setActionMenuOpenRow(isMenuOpen ? null : rowKey)
                           }}
                           className="p-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/60 text-[#8b949e] hover:text-[#f0f6fc] transition"
-                          title="Ações do usuário"
+                          title="Actions do usuário"
                         >
                           <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path
@@ -647,7 +647,7 @@ export function AdminUsersTab() {
 
                         {isMenuOpen && (
                           <div
-                            onClick={(e) => e.stopPropagation()}
+                            onClick={e => e.stopPropagation()}
                             className="absolute right-4 mt-1 w-44 rounded-lg border border-[#30363d] bg-[#161b22] shadow-2xl z-30 py-1 text-left text-xs text-[#f0f6fc]"
                           >
                             <button
@@ -661,7 +661,7 @@ export function AdminUsersTab() {
                               <svg className="w-3.5 h-3.5 text-[#e7bf73]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                               </svg>
-                              <span>Alterar Função</span>
+                              <span>Alterar Role</span>
                             </button>
 
                             <button
@@ -739,14 +739,14 @@ export function AdminUsersTab() {
             </span>
             <div className="flex items-center gap-1">
               <button
-                onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))}
+                onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
                 disabled={currentPage <= 1 || isLoading}
                 className="px-2.5 py-1 rounded border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-[#f0f6fc] disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 Anterior
               </button>
               <button
-                onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))}
+                onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
                 disabled={currentPage >= totalPages || isLoading}
                 className="px-2.5 py-1 rounded border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-[#f0f6fc] disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
@@ -761,7 +761,7 @@ export function AdminUsersTab() {
       {/* MODAIS NO PADRÃO SETTINGS (Estado Local + Fixed Overlay + Escape + X)   */}
       {/* ====================================================================== */}
 
-      {/* Modal 1: Alterar Função (Role) */}
+      {/* Modal 1: Alterar Role (Role) */}
       {activeModalType === 'role' && activeActionUser && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-[#0d1117]/80 backdrop-blur-sm" onClick={closeModal} />
@@ -769,7 +769,7 @@ export function AdminUsersTab() {
             role="dialog"
             aria-modal="true"
             tabIndex={-1}
-            ref={(el) => el?.focus()}
+            ref={el => el?.focus()}
             onKeyDown={(e) => {
               if (e.key === 'Escape' && !isMutating) {
                 e.stopPropagation()
@@ -780,7 +780,7 @@ export function AdminUsersTab() {
             className="relative z-10 w-full max-w-md rounded-2xl border border-[#e7bf73]/25 bg-[#161b22] p-6 shadow-2xl space-y-5 focus:outline-none"
           >
             <div className="flex items-center justify-between pb-3 border-b border-[#30363d]">
-              <h3 className="text-sm font-semibold text-[#f0f6fc]">Alterar Função de Usuário</h3>
+              <h3 className="text-sm font-semibold text-[#f0f6fc]">Alterar Role de Usuário</h3>
               <button
                 onClick={closeModal}
                 disabled={isMutating}
@@ -810,7 +810,7 @@ export function AdminUsersTab() {
                 <label className="text-[#8b949e] block mb-1">Selecione o novo papel:</label>
                 <select
                   value={selectedNewRole}
-                  onChange={(e) => setSelectedNewRole(e.target.value as 'owner' | 'admin' | 'member')}
+                  onChange={e => setSelectedNewRole(e.target.value as 'owner' | 'admin' | 'member')}
                   disabled={isMutating}
                   className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73]"
                 >
@@ -859,7 +859,7 @@ export function AdminUsersTab() {
                   disabled={isMutating}
                   className="w-1/2 px-4 py-2.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-[#8b949e] hover:text-[#f0f6fc] transition font-medium"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   onClick={handleUpdateRole}
@@ -888,7 +888,7 @@ export function AdminUsersTab() {
             role="dialog"
             aria-modal="true"
             tabIndex={-1}
-            ref={(el) => el?.focus()}
+            ref={el => el?.focus()}
             onKeyDown={(e) => {
               if (e.key === 'Escape' && !isMutating) {
                 e.stopPropagation()
@@ -958,7 +958,7 @@ export function AdminUsersTab() {
                   disabled={isMutating}
                   className="w-1/2 px-4 py-2.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-[#8b949e] hover:text-[#f0f6fc] transition font-medium"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   onClick={handleToggleStatus}
@@ -970,7 +970,7 @@ export function AdminUsersTab() {
                   }`}
                 >
                   {isMutating && <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />}
-                  <span>{activeActionUser.user_status === 'suspended' ? 'Confirmar Reativação' : 'Confirmar Suspensão'}</span>
+                  <span>{activeActionUser.user_status === 'suspended' ? 'Confirm Reativação' : 'Confirm Suspensão'}</span>
                 </button>
               </div>
             </div>
@@ -986,7 +986,7 @@ export function AdminUsersTab() {
             role="dialog"
             aria-modal="true"
             tabIndex={-1}
-            ref={(el) => el?.focus()}
+            ref={el => el?.focus()}
             onKeyDown={(e) => {
               if (e.key === 'Escape' && !isMutating) {
                 e.stopPropagation()
@@ -1036,7 +1036,7 @@ export function AdminUsersTab() {
                   disabled={isMutating}
                   className="w-1/2 px-4 py-2.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-[#8b949e] hover:text-[#f0f6fc] transition font-medium"
                 >
-                  Cancelar
+                  Cancel
                 </button>
                 <button
                   onClick={handleResetPassword}

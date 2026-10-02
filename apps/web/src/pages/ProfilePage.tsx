@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabaseClient } from '../lib/auth/supabase.client'
+import { t } from '../locales'
 import './ProfilePage.css'
 
 export function sanitizeToE164(input: string): { e164: string; isValid: boolean; error?: string } {
@@ -25,7 +26,7 @@ export function sanitizeToE164(input: string): { e164: string; isValid: boolean;
     return {
       e164: normalized,
       isValid: false,
-      error: 'Número de WhatsApp inválido. Digite DDD + número (ex: (11) 99999-9999 ou +5511999999999)',
+      error: t('profile.whatsappInvalid'),
     }
   }
 
@@ -39,12 +40,15 @@ export interface ProfileUser {
   whatsapp?: string | undefined
 }
 
+export type ProfileSectionKey = 'account' | 'security'
+
 export interface ProfilePageProps {
   currentUser?: ProfileUser | null | undefined
   onProfileUpdated?: (() => void) | undefined
+  activeSection?: ProfileSectionKey | undefined
 }
 
-export function ProfilePage({ currentUser, onProfileUpdated }: ProfilePageProps = {}) {
+export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'account' }: ProfilePageProps = {}) {
   const [user, setUser] = useState<ProfileUser | null>(currentUser || null)
 
   const [fullName, setFullName] = useState(currentUser?.fullName || '')
@@ -64,211 +68,241 @@ export function ProfilePage({ currentUser, onProfileUpdated }: ProfilePageProps 
       setFullName(currentUser.fullName || '')
       setWhatsapp(currentUser.whatsapp || '')
     } else {
-      void supabaseClient.auth.getUser().then(async ({ data: { user: authUser } }) => {
+      void supabaseClient.auth.getUser().then(({ data: { user: authUser } }) => {
         if (!authUser) return
         const meta = authUser.user_metadata || {}
-        const fetchedUser: ProfileUser = {
+        const fetched: ProfileUser = {
           id: authUser.id,
           email: authUser.email ?? undefined,
           fullName: (meta.full_name || meta.name) ? String(meta.full_name || meta.name) : undefined,
           whatsapp: meta.whatsapp ? String(meta.whatsapp) : undefined,
         }
-        setUser(fetchedUser)
-        setFullName(fetchedUser.fullName || '')
-        setWhatsapp(fetchedUser.whatsapp || '')
+        setUser(fetched)
+        setFullName(fetched.fullName || '')
+        setWhatsapp(fetched.whatsapp || '')
       })
     }
   }, [currentUser])
 
-  const handleProfileSubmit = async (e: React.FormEvent) => {
+  const handleUpdateProfile = async (e: React.FormEvent) => {
     e.preventDefault()
     setProfileMessage(null)
     setWhatsappError(null)
 
     const { e164, isValid, error } = sanitizeToE164(whatsapp)
     if (!isValid) {
-      setWhatsappError(error || 'Número inválido.')
+      setWhatsappError(error || t('profile.whatsappInvalid'))
       return
     }
 
-    setProfileSaving(true)
     try {
-      const { error: authError } = await supabaseClient.auth.updateUser({
+      setProfileSaving(true)
+      const { error: updateError } = await supabaseClient.auth.updateUser({
         data: {
           full_name: fullName.trim(),
+          name: fullName.trim(),
           whatsapp: e164,
         },
       })
-      if (authError) throw authError
 
-      if (user?.id) {
-        await supabaseClient
-          .from('users')
-          .update({ full_name: fullName.trim(), whatsapp: e164 })
-          .eq('id', user.id)
-      }
+      if (updateError) throw updateError
 
-      setWhatsapp(e164)
-      setUser(prev => prev ? { ...prev, fullName: fullName.trim(), whatsapp: e164 } : null)
-      setProfileMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' })
+      setProfileMessage({ type: 'success', text: t('profile.accountSaved') })
       onProfileUpdated?.()
-    } catch (saveError: unknown) {
-      const msg = saveError instanceof Error ? saveError.message : String(saveError)
-      setProfileMessage({ type: 'error', text: `Erro ao salvar perfil: ${msg}` })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setProfileMessage({ type: 'error', text: msg })
     } finally {
       setProfileSaving(false)
     }
   }
 
-  const handlePasswordSubmit = async (e: React.FormEvent) => {
+  const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault()
     setPasswordMessage(null)
 
     if (newPassword.length < 6) {
-      setPasswordMessage({ type: 'error', text: 'A nova senha deve ter no mínimo 6 caracteres.' })
+      setPasswordMessage({ type: 'error', text: t('profile.passwordTooShort') })
       return
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordMessage({ type: 'error', text: 'As senhas não coincidem.' })
+      setPasswordMessage({ type: 'error', text: t('profile.passwordMismatch') })
       return
     }
 
-    setPasswordSaving(true)
     try {
-      const { error: passError } = await supabaseClient.auth.updateUser({
+      setPasswordSaving(true)
+      const { error: updateError } = await supabaseClient.auth.updateUser({
         password: newPassword,
       })
-      if (passError) throw passError
 
-      setPasswordMessage({ type: 'success', text: 'Senha alterada com sucesso!' })
+      if (updateError) throw updateError
+
+      setPasswordMessage({ type: 'success', text: t('profile.passwordSaved') })
       setNewPassword('')
       setConfirmPassword('')
-    } catch (passError: unknown) {
-      const msg = passError instanceof Error ? passError.message : String(passError)
-      setPasswordMessage({ type: 'error', text: `Erro ao alterar senha: ${msg}` })
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setPasswordMessage({ type: 'error', text: msg })
     } finally {
       setPasswordSaving(false)
     }
   }
 
   return (
-    <div className="cm-profile-container">
-      <div className="cm-profile-header">
-        <h1 className="cm-profile-title">Meu Perfil</h1>
-        <p className="cm-profile-subtitle">Gerencie suas informações pessoais e credenciais de acesso</p>
-      </div>
+    <div className="profile-container" style={{ padding: '0 4px' }}>
+      {/* Account Data Section */}
+      {activeSection === 'account' && (
+        <section className="profile-section" style={{ border: 'none', background: 'transparent', padding: 0 }}>
+          <form onSubmit={handleUpdateProfile} className="profile-form">
+            <div className="form-group">
+              <label htmlFor="email" style={{ color: '#8b949e', fontSize: '13px' }}>{t('profile.email')}</label>
+              <input
+                id="email"
+                type="email"
+                value={user?.email || ''}
+                disabled
+                className="input-disabled"
+                style={{ background: '#161b22', border: '1px solid #30363d', color: '#8b949e', fontSize: '13px' }}
+              />
+            </div>
 
-      <div className="cm-profile-card">
-        <h2 className="cm-profile-card-title">Dados da Conta</h2>
+            <div className="form-group">
+              <label htmlFor="fullName" style={{ color: '#8b949e', fontSize: '13px' }}>{t('profile.fullName')}</label>
+              <input
+                id="fullName"
+                type="text"
+                value={fullName}
+                onChange={e => setFullName(e.target.value)}
+                placeholder={t('profile.fullNamePlaceholder')}
+                className="input-text"
+                style={{ background: '#0d1117', border: '1px solid #30363d', color: '#c9d1d9', fontSize: '13px' }}
+              />
+            </div>
 
-        {profileMessage && (
-          <div className={`cm-profile-alert cm-profile-alert-${profileMessage.type}`}>
-            {profileMessage.text}
-          </div>
-        )}
+            <div className="form-group">
+              <label htmlFor="whatsapp" style={{ color: '#8b949e', fontSize: '13px' }}>{t('profile.whatsapp')}</label>
+              <input
+                id="whatsapp"
+                type="text"
+                value={whatsapp}
+                onChange={(e) => {
+                  setWhatsapp(e.target.value)
+                  if (whatsappError) setWhatsappError(null)
+                }}
+                placeholder={t('profile.whatsappPlaceholder')}
+                className={`input-text ${whatsappError ? 'input-error' : ''}`}
+                style={{ background: '#0d1117', border: '1px solid #30363d', color: '#c9d1d9', fontSize: '13px' }}
+              />
+              {whatsappError && <span className="field-error" style={{ fontSize: '12px', color: '#f85149' }}>{whatsappError}</span>}
+            </div>
 
-        <form onSubmit={handleProfileSubmit}>
-          <div className="cm-profile-field">
-            <label className="cm-profile-label">E-mail</label>
-            <input
-              type="email"
-              className="cm-profile-input"
-              value={user?.email || ''}
-              disabled
-              title="O e-mail da conta não pode ser alterado"
-            />
-            <p className="cm-profile-help">O e-mail é o identificador exclusivo da sua conta.</p>
-          </div>
-
-          <div className="cm-profile-field">
-            <label className="cm-profile-label" htmlFor="fullName">Nome Completo</label>
-            <input
-              id="fullName"
-              type="text"
-              className="cm-profile-input"
-              value={fullName}
-              onChange={e => setFullName(e.target.value)}
-              placeholder="Seu nome"
-              required
-            />
-          </div>
-
-          <div className="cm-profile-field">
-            <label className="cm-profile-label" htmlFor="whatsapp">WhatsApp</label>
-            <input
-              id="whatsapp"
-              type="text"
-              className="cm-profile-input"
-              value={whatsapp}
-              onChange={(e) => {
-                setWhatsapp(e.target.value)
-                if (whatsappError) setWhatsappError(null)
-              }}
-              placeholder="(11) 99999-9999"
-            />
-            {whatsappError ? (
-              <p className="cm-profile-error-text">{whatsappError}</p>
-            ) : (
-              <p className="cm-profile-help">Padrão internacional E.164 com tolerância a espaços e traços.</p>
+            {profileMessage && (
+              <div
+                className={`feedback-message ${profileMessage.type}`}
+                style={{
+                  fontSize: '13px',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  backgroundColor: profileMessage.type === 'success' ? 'rgba(46, 160, 67, 0.15)' : 'rgba(248, 81, 73, 0.15)',
+                  border: `1px solid ${profileMessage.type === 'success' ? '#2ea043' : '#f85149'}`,
+                  color: profileMessage.type === 'success' ? '#3fb950' : '#f85149',
+                }}
+              >
+                {profileMessage.text}
+              </div>
             )}
-          </div>
 
-          <button
-            type="submit"
-            className="cm-profile-button"
-            disabled={profileSaving}
-          >
-            {profileSaving ? 'Salvando...' : 'Salvar Alterações'}
-          </button>
-        </form>
-      </div>
+            <button
+              type="submit"
+              disabled={profileSaving}
+              className="btn-primary"
+              style={{
+                alignSelf: 'flex-start',
+                backgroundColor: '#E7BF73',
+                color: '#0d1117',
+                fontWeight: 600,
+                fontSize: '13px',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {profileSaving ? t('common.saving') : t('profile.saveAccount')}
+            </button>
+          </form>
+        </section>
+      )}
 
-      <div className="cm-profile-card">
-        <h2 className="cm-profile-card-title">Segurança & Senha</h2>
+      {/* Security & Password Section */}
+      {activeSection === 'security' && (
+        <section className="profile-section" style={{ border: 'none', background: 'transparent', padding: 0 }}>
+          <form onSubmit={handleUpdatePassword} className="profile-form">
+            <div className="form-group">
+              <label htmlFor="newPassword" style={{ color: '#8b949e', fontSize: '13px' }}>{t('profile.newPassword')}</label>
+              <input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder={t('profile.newPasswordPlaceholder')}
+                className="input-text"
+                style={{ background: '#0d1117', border: '1px solid #30363d', color: '#c9d1d9', fontSize: '13px' }}
+              />
+            </div>
 
-        {passwordMessage && (
-          <div className={`cm-profile-alert cm-profile-alert-${passwordMessage.type}`}>
-            {passwordMessage.text}
-          </div>
-        )}
+            <div className="form-group">
+              <label htmlFor="confirmPassword" style={{ color: '#8b949e', fontSize: '13px' }}>{t('profile.confirmPassword')}</label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                placeholder={t('profile.confirmPasswordPlaceholder')}
+                className="input-text"
+                style={{ background: '#0d1117', border: '1px solid #30363d', color: '#c9d1d9', fontSize: '13px' }}
+              />
+            </div>
 
-        <form onSubmit={handlePasswordSubmit}>
-          <div className="cm-profile-field">
-            <label className="cm-profile-label" htmlFor="newPassword">Nova Senha</label>
-            <input
-              id="newPassword"
-              type="password"
-              className="cm-profile-input"
-              value={newPassword}
-              onChange={e => setNewPassword(e.target.value)}
-              placeholder="No mínimo 6 caracteres"
-              required
-            />
-          </div>
+            {passwordMessage && (
+              <div
+                className={`feedback-message ${passwordMessage.type}`}
+                style={{
+                  fontSize: '13px',
+                  padding: '8px 12px',
+                  borderRadius: '6px',
+                  backgroundColor: passwordMessage.type === 'success' ? 'rgba(46, 160, 67, 0.15)' : 'rgba(248, 81, 73, 0.15)',
+                  border: `1px solid ${passwordMessage.type === 'success' ? '#2ea043' : '#f85149'}`,
+                  color: passwordMessage.type === 'success' ? '#3fb950' : '#f85149',
+                }}
+              >
+                {passwordMessage.text}
+              </div>
+            )}
 
-          <div className="cm-profile-field">
-            <label className="cm-profile-label" htmlFor="confirmPassword">Confirmar Nova Senha</label>
-            <input
-              id="confirmPassword"
-              type="password"
-              className="cm-profile-input"
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              placeholder="Repita a nova senha"
-              required
-            />
-          </div>
-
-          <button
-            type="submit"
-            className="cm-profile-button"
-            disabled={passwordSaving}
-          >
-            {passwordSaving ? 'Atualizando...' : 'Atualizar Senha'}
-          </button>
-        </form>
-      </div>
+            <button
+              type="submit"
+              disabled={passwordSaving}
+              className="btn-primary"
+              style={{
+                alignSelf: 'flex-start',
+                backgroundColor: '#E7BF73',
+                color: '#0d1117',
+                fontWeight: 600,
+                fontSize: '13px',
+                padding: '8px 16px',
+                borderRadius: '6px',
+                border: 'none',
+                cursor: 'pointer',
+              }}
+            >
+              {passwordSaving ? t('common.saving') : t('profile.savePassword')}
+            </button>
+          </form>
+        </section>
+      )}
     </div>
   )
 }

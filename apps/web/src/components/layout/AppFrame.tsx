@@ -7,7 +7,7 @@ interface AppFrameProps {
   onClose?: () => void
 }
 
-export function AppFrame({ title = 'Planos e Faturamento', children, onClose }: AppFrameProps) {
+export function AppFrame({ title = 'Plans & Billing', children, onClose }: AppFrameProps) {
   const handleClose = () => {
     if (onClose) {
       onClose()

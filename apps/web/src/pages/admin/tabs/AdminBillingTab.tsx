@@ -666,7 +666,7 @@ export function AdminBillingTab() {
         </div>
       </div>
 
-      {/* DRAWER / MODAL DE INSPEÇÃO DE FATURAMENTO (READ-ONLY) */}
+      {/* BILLING INSPECTION DRAWER / MODAL (READ-ONLY) */}
       {inspectingTenant && (
         <div
           role="dialog"

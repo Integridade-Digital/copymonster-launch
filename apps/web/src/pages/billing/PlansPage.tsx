@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { useAuth } from '../../lib/auth'
 import { supabase } from '../../lib/supabase/client'
 import './billing.css'
 
@@ -145,8 +144,41 @@ interface CheckoutResponse {
   message?: string
 }
 
-export function PlansPage() {
-  const { user } = useAuth()
+export interface PlansUser {
+  id?: string | undefined
+  email?: string | undefined
+  tenantId?: string | undefined
+  role?: string | undefined
+}
+
+export interface PlansPageProps {
+  currentUser?: PlansUser | null | undefined
+}
+
+export function PlansPage({ currentUser }: PlansPageProps = {}) {
+  const [user, setUser] = useState<PlansUser | null | undefined>(currentUser)
+
+  useEffect(() => {
+    if (currentUser !== undefined) {
+      setUser(currentUser)
+    } else {
+      void supabase.auth.getUser().then(async ({ data: { user: authUser } }) => {
+        if (!authUser) return
+        const { data: roleRow } = await supabase
+          .from('user_tenant_roles')
+          .select('role, tenant_id')
+          .eq('user_id', authUser.id)
+          .limit(1)
+          .maybeSingle()
+        setUser({
+          id: authUser.id,
+          email: authUser.email ?? undefined,
+          role: roleRow?.role ? String(roleRow.role) : undefined,
+          tenantId: roleRow?.tenant_id ? String(roleRow.tenant_id) : undefined,
+        })
+      })
+    }
+  }, [currentUser])
   const [billingCycle, setBillingCycle] = useState<BillingCycle>('annual')
   const [tenant, setTenant] = useState<TenantDetails | null>(null)
   const [planMap, setPlanMap] = useState<Record<string, { id: string; slug: string; name: string }>>({})

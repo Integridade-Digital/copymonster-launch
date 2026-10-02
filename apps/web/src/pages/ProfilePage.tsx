@@ -1,11 +1,7 @@
 import React, { useState, useEffect } from 'react'
-import { useAuth } from '../lib/auth/auth.provider'
+import { supabaseClient } from '../lib/auth/supabase.client'
 import './ProfilePage.css'
 
-/**
- * Normaliza um número de telefone para o padrão E.164 internacional com entrada tolerante.
- * Aceita entradas com parênteses, traços e espaços como "(11) 98765-4321".
- */
 export function sanitizeToE164(input: string): { e164: string; isValid: boolean; error?: string } {
   const trimmed = input.trim()
   if (!trimmed) {
@@ -36,11 +32,23 @@ export function sanitizeToE164(input: string): { e164: string; isValid: boolean;
   return { e164: normalized, isValid: true }
 }
 
-export function ProfilePage() {
-  const { user, updateProfile, updatePassword } = useAuth()
+export interface ProfileUser {
+  id?: string | undefined
+  email?: string | undefined
+  fullName?: string | undefined
+  whatsapp?: string | undefined
+}
 
-  const [fullName, setFullName] = useState(user?.fullName || '')
-  const [whatsapp, setWhatsapp] = useState(user?.whatsapp || '')
+export interface ProfilePageProps {
+  currentUser?: ProfileUser | null | undefined
+  onProfileUpdated?: (() => void) | undefined
+}
+
+export function ProfilePage({ currentUser, onProfileUpdated }: ProfilePageProps = {}) {
+  const [user, setUser] = useState<ProfileUser | null>(currentUser || null)
+
+  const [fullName, setFullName] = useState(currentUser?.fullName || '')
+  const [whatsapp, setWhatsapp] = useState(currentUser?.whatsapp || '')
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileMessage, setProfileMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [whatsappError, setWhatsappError] = useState<string | null>(null)
@@ -51,11 +59,26 @@ export function ProfilePage() {
   const [passwordMessage, setPasswordMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
   useEffect(() => {
-    if (user) {
-      setFullName(user.fullName || '')
-      setWhatsapp(user.whatsapp || '')
+    if (currentUser) {
+      setUser(currentUser)
+      setFullName(currentUser.fullName || '')
+      setWhatsapp(currentUser.whatsapp || '')
+    } else {
+      void supabaseClient.auth.getUser().then(async ({ data: { user: authUser } }) => {
+        if (!authUser) return
+        const meta = authUser.user_metadata || {}
+        const fetchedUser: ProfileUser = {
+          id: authUser.id,
+          email: authUser.email ?? undefined,
+          fullName: (meta.full_name || meta.name) ? String(meta.full_name || meta.name) : undefined,
+          whatsapp: meta.whatsapp ? String(meta.whatsapp) : undefined,
+        }
+        setUser(fetchedUser)
+        setFullName(fetchedUser.fullName || '')
+        setWhatsapp(fetchedUser.whatsapp || '')
+      })
     }
-  }, [user])
+  }, [currentUser])
 
   const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -69,17 +92,31 @@ export function ProfilePage() {
     }
 
     setProfileSaving(true)
-    const { error: saveError } = await updateProfile({
-      fullName: fullName.trim(),
-      whatsapp: e164,
-    })
-    setProfileSaving(false)
+    try {
+      const { error: authError } = await supabaseClient.auth.updateUser({
+        data: {
+          full_name: fullName.trim(),
+          whatsapp: e164,
+        },
+      })
+      if (authError) throw authError
 
-    if (saveError) {
-      setProfileMessage({ type: 'error', text: `Erro ao salvar perfil: ${saveError.message}` })
-    } else {
+      if (user?.id) {
+        await supabaseClient
+          .from('users')
+          .update({ full_name: fullName.trim(), whatsapp: e164 })
+          .eq('id', user.id)
+      }
+
       setWhatsapp(e164)
+      setUser(prev => prev ? { ...prev, fullName: fullName.trim(), whatsapp: e164 } : null)
       setProfileMessage({ type: 'success', text: 'Perfil atualizado com sucesso!' })
+      onProfileUpdated?.()
+    } catch (saveError: unknown) {
+      const msg = saveError instanceof Error ? saveError.message : String(saveError)
+      setProfileMessage({ type: 'error', text: `Erro ao salvar perfil: ${msg}` })
+    } finally {
+      setProfileSaving(false)
     }
   }
 
@@ -98,15 +135,20 @@ export function ProfilePage() {
     }
 
     setPasswordSaving(true)
-    const { error: passError } = await updatePassword(newPassword)
-    setPasswordSaving(false)
+    try {
+      const { error: passError } = await supabaseClient.auth.updateUser({
+        password: newPassword,
+      })
+      if (passError) throw passError
 
-    if (passError) {
-      setPasswordMessage({ type: 'error', text: `Erro ao alterar senha: ${passError.message}` })
-    } else {
       setPasswordMessage({ type: 'success', text: 'Senha alterada com sucesso!' })
       setNewPassword('')
       setConfirmPassword('')
+    } catch (passError: unknown) {
+      const msg = passError instanceof Error ? passError.message : String(passError)
+      setPasswordMessage({ type: 'error', text: `Erro ao alterar senha: ${msg}` })
+    } finally {
+      setPasswordSaving(false)
     }
   }
 

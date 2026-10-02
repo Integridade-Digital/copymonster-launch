@@ -1,22 +1,79 @@
-import { useRef, useState } from 'react'
-import { RoleGate } from '../auth/RoleGate'
+import { useEffect, useRef, useState } from 'react'
+import { supabaseClient } from '../../lib/auth/supabase.client'
 import { PlansModal } from './PlansModal'
 import { ProfileModal } from './ProfileModal'
 import { AdminModal } from './AdminModal'
+import type { PlansUser } from '../../pages/billing/PlansPage'
+import type { ProfileUser } from '../../pages/ProfilePage'
 import css from './FooterActionsRoot.module.css'
 
 interface FooterActionsRootProps {
   wide?: boolean
 }
 
+export interface FooterUser extends PlansUser, ProfileUser {
+  role?: string | undefined
+}
+
 export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
   const [activeModal, setActiveModal] = useState<'plans' | 'profile' | 'admin' | null>(null)
+  const [currentUser, setCurrentUser] = useState<FooterUser | null>(null)
 
   const plansBtnRef = useRef<HTMLButtonElement>(null)
   const profileBtnRef = useRef<HTMLButtonElement>(null)
   const adminBtnRef = useRef<HTMLButtonElement>(null)
 
   const closeModal = () => setActiveModal(null)
+
+  const fetchCurrentUser = async () => {
+    try {
+      const { data: { user } } = await supabaseClient.auth.getUser()
+      if (!user) {
+        setCurrentUser(null)
+        return
+      }
+
+      const { data: roleData } = await supabaseClient
+        .from('user_tenant_roles')
+        .select('role, tenant_id')
+        .eq('user_id', user.id)
+        .limit(1)
+        .maybeSingle()
+
+      const meta = user.user_metadata || {}
+      setCurrentUser({
+        id: user.id,
+        email: user.email ?? undefined,
+        fullName: (meta.full_name || meta.name) ? String(meta.full_name || meta.name) : undefined,
+        whatsapp: meta.whatsapp ? String(meta.whatsapp) : undefined,
+        role: roleData?.role ? String(roleData.role) : undefined,
+        tenantId: roleData?.tenant_id ? String(roleData.tenant_id) : undefined,
+      })
+    } catch (err) {
+      console.error('FooterActionsRoot fetchCurrentUser error:', err)
+    }
+  }
+
+  useEffect(() => {
+    void fetchCurrentUser()
+
+    const handleCustomModal = (e: Event) => {
+      const customEvent = e as CustomEvent<string>
+      const target = customEvent.detail
+      if (target === 'plans' || target === 'profile' || target === 'admin') {
+        setActiveModal(target)
+      } else if (target === 'admin_audit') {
+        setActiveModal('admin')
+      }
+    }
+
+    window.addEventListener('copymonster:modal', handleCustomModal)
+    return () => {
+      window.removeEventListener('copymonster:modal', handleCustomModal)
+    }
+  }, [])
+
+  const isAdmin = currentUser?.role === 'owner' || currentUser?.role === 'admin'
 
   return (
     <>
@@ -56,8 +113,8 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
           {wide && <span className={css.label}>Meu Perfil</span>}
         </button>
 
-        {/* Linha 3: Admin (RoleGate: owner | admin) */}
-        <RoleGate allowedRoles={['owner', 'admin']}>
+        {/* Linha 3: Admin (Direto: owner | admin) */}
+        {isAdmin && (
           <button
             ref={adminBtnRef}
             type="button"
@@ -76,13 +133,29 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
             </span>
             {wide && <span className={css.label}>Admin</span>}
           </button>
-        </RoleGate>
+        )}
       </div>
 
       {/* Modais independentes usando o padrão Settings */}
-      <PlansModal isOpen={activeModal === 'plans'} onClose={closeModal} triggerRef={plansBtnRef} />
-      <ProfileModal isOpen={activeModal === 'profile'} onClose={closeModal} triggerRef={profileBtnRef} />
-      <AdminModal isOpen={activeModal === 'admin'} onClose={closeModal} triggerRef={adminBtnRef} />
+      <PlansModal
+        isOpen={activeModal === 'plans'}
+        onClose={closeModal}
+        triggerRef={plansBtnRef}
+        currentUser={currentUser}
+      />
+      <ProfileModal
+        isOpen={activeModal === 'profile'}
+        onClose={closeModal}
+        triggerRef={profileBtnRef}
+        currentUser={currentUser}
+        onProfileUpdated={fetchCurrentUser}
+      />
+      <AdminModal
+        isOpen={activeModal === 'admin'}
+        onClose={closeModal}
+        triggerRef={adminBtnRef}
+        role={currentUser?.role}
+      />
     </>
   )
 }

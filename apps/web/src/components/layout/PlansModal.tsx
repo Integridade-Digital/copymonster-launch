@@ -1,14 +1,15 @@
 import { useEffect, useRef } from 'react'
-import { PlansPage } from '../../pages/billing/PlansPage'
+import { PlansPage, type PlansUser } from '../../pages/billing/PlansPage'
 import css from './FooterActionsRoot.module.css'
 
 interface PlansModalProps {
   isOpen: boolean
   onClose: () => void
-  triggerRef?: React.RefObject<HTMLButtonElement | null>
+  triggerRef?: React.RefObject<HTMLButtonElement | null> | undefined
+  currentUser?: PlansUser | null | undefined
 }
 
-export function PlansModal({ isOpen, onClose, triggerRef }: PlansModalProps) {
+export function PlansModal({ isOpen, onClose, triggerRef, currentUser }: PlansModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -55,7 +56,7 @@ export function PlansModal({ isOpen, onClose, triggerRef }: PlansModalProps) {
           </svg>
         </button>
         <div className={css.content}>
-          <PlansPage />
+          <PlansPage currentUser={currentUser} />
         </div>
       </div>
     </div>

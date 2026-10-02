@@ -1,14 +1,16 @@
 import { useEffect, useRef } from 'react'
-import { ProfilePage } from '../../pages/ProfilePage'
+import { ProfilePage, ProfileUser } from '../../pages/ProfilePage'
 import css from './FooterActionsRoot.module.css'
 
 interface ProfileModalProps {
   isOpen: boolean
   onClose: () => void
-  triggerRef?: React.RefObject<HTMLButtonElement | null>
+  triggerRef?: React.RefObject<HTMLButtonElement | null> | undefined
+  currentUser?: ProfileUser | null | undefined
+  onProfileUpdated?: (() => void) | undefined
 }
 
-export function ProfileModal({ isOpen, onClose, triggerRef }: ProfileModalProps) {
+export function ProfileModal({ isOpen, onClose, triggerRef, currentUser, onProfileUpdated }: ProfileModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -55,7 +57,7 @@ export function ProfileModal({ isOpen, onClose, triggerRef }: ProfileModalProps)
           </svg>
         </button>
         <div className={css.content}>
-          <ProfilePage />
+          <ProfilePage currentUser={currentUser} onProfileUpdated={onProfileUpdated} />
         </div>
       </div>
     </div>

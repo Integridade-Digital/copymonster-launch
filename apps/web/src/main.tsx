@@ -2,11 +2,10 @@ import { FooterActionsRoot } from './components/layout/FooterActionsRoot'
 /** Browser entry for the Web client. */
 import React from 'react'
 import { createRoot } from 'react-dom/client'
-import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
+import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import type { applyIndexInjections } from '@deepseek-ai/dsh-client-web'
 import { AppWrapper, supabaseClient, useAuth } from './lib/auth'
 import { ProtectedRoute, PublicRoute } from './lib/auth/protected-route'
-import { RoleGate } from './components/auth/RoleGate'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -138,7 +137,7 @@ const LazyWebApp = React.lazy(async () => {
             ctx.slots.inject('sidebar.footer.action', function* () {
               yield ctx.slots.register(
                 { name: 'sidebar.footer.action', id: 'copymonster-footer-actions' },
-                FooterActionsRoot
+                FooterActionsRoot,
               )
             })
           },
@@ -181,6 +180,28 @@ const LazyWebApp = React.lazy(async () => {
  * sidebar.footer.action (FooterActionsRoot), seguindo o padrão Settings (estado local + overlay).
  */
 function AuthenticatedWorkspace() {
+  React.useEffect(() => {
+    if (typeof window === 'undefined') return
+    const path = window.location.pathname
+    if (path === '/admin' || path === '/admin/audit') {
+      window.history.replaceState({}, '', '/')
+      // Small delay ensures FooterActionsRoot listener is attached
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('copymonster:modal', { detail: 'admin' }))
+      }, 50)
+    } else if (path === '/plans') {
+      window.history.replaceState({}, '', '/')
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('copymonster:modal', { detail: 'plans' }))
+      }, 50)
+    } else if (path === '/profile') {
+      window.history.replaceState({}, '', '/')
+      setTimeout(() => {
+        window.dispatchEvent(new CustomEvent('copymonster:modal', { detail: 'profile' }))
+      }, 50)
+    }
+  }, [])
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       <WebAppErrorBoundary>

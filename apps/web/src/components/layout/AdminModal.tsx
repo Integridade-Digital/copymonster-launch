@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { RoleGate } from '../auth/RoleGate'
 import { AdminOverviewTab } from '../../pages/admin/tabs/AdminOverviewTab'
 import { AdminUsersTab } from '../../pages/admin/tabs/AdminUsersTab'
 import { AdminTenantsTab } from '../../pages/admin/tabs/AdminTenantsTab'
@@ -14,7 +13,8 @@ import css from './FooterActionsRoot.module.css'
 interface AdminModalProps {
   isOpen: boolean
   onClose: () => void
-  triggerRef?: React.RefObject<HTMLElement | null>
+  triggerRef?: React.RefObject<HTMLElement | null> | undefined
+  role?: string | null | undefined
 }
 
 type AdminTabKey =
@@ -40,7 +40,7 @@ const ADMIN_TABS: { key: AdminTabKey; label: string }[] = [
   { key: 'billing', label: 'Faturamento' },
 ]
 
-export function AdminModal({ isOpen, onClose, triggerRef }: AdminModalProps) {
+export function AdminModal({ isOpen, onClose, triggerRef, role }: AdminModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<AdminTabKey>('overview')
 
@@ -65,6 +65,8 @@ export function AdminModal({ isOpen, onClose, triggerRef }: AdminModalProps) {
 
   if (!isOpen) return null
 
+  const isAuthorized = role === 'owner' || role === 'admin'
+
   return (
     <div className={css.overlay} role="presentation">
       <div className={css.mask} onClick={onClose} aria-hidden="true" />
@@ -87,7 +89,7 @@ export function AdminModal({ isOpen, onClose, triggerRef }: AdminModalProps) {
             <line x1="6" y1="6" x2="18" y2="18" />
           </svg>
         </button>
-        <RoleGate allowedRoles={['owner', 'admin']} fallback={<div className={css.adminRestricted}>Acesso restrito a administradores.</div>}>
+        {isAuthorized ? (
           <div className={css.adminContainer}>
             <div className={css.adminTabBar}>
               {ADMIN_TABS.map(tab => (
@@ -113,7 +115,9 @@ export function AdminModal({ isOpen, onClose, triggerRef }: AdminModalProps) {
               {activeTab === 'billing' && <AdminBillingTab />}
             </div>
           </div>
-        </RoleGate>
+        ) : (
+          <div className={css.adminRestricted}>Acesso restrito a administradores.</div>
+        )}
       </div>
     </div>
   )

@@ -80,24 +80,7 @@ export function AdminAuditPage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto text-[#f0f6fc]">
-      {/* Navigation Tabs */}
-      <div className="border-b border-[#30363d] mb-6">
-        <nav className="-mb-px flex space-x-8">
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent('copymonster:modal', { detail: 'admin' }))}
-            className="border-transparent text-gray-400 hover:text-gray-200 hover:border-gray-500 whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm bg-transparent cursor-pointer transition-colors"
-          >
-            🏢 Gestão de Tenants
-          </button>
-          <button
-            type="button"
-            className="border-[#E7BF73] text-[#E7BF73] whitespace-nowrap py-4 px-1 border-b-2 font-semibold text-sm bg-transparent cursor-pointer"
-          >
-            📜 Trilha de Auditoria
-          </button>
-        </nav>
-      </div>
+
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
         <div>

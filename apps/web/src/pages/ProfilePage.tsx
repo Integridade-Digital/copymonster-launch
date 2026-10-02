@@ -151,38 +151,84 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
   }
 
   return (
-    <div className="profile-container" style={{ padding: '0 4px' }}>
+    <div style={{ maxWidth: '480px', margin: '0 auto', padding: '24px' }}>
       {/* Account Data Section */}
       {activeSection === 'account' && (
-        <section className="profile-section" style={{ border: 'none', background: 'transparent', padding: 0 }}>
-          <form onSubmit={handleUpdateProfile} className="profile-form">
-            <div className="form-group">
-              <label htmlFor="email" style={{ color: '#8b949e', fontSize: '13px' }}>{t('profile.email')}</label>
+        <section>
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#f0f6fc', margin: '0 0 4px 0' }}>
+              Dados da Conta
+            </h3>
+            <p style={{ fontSize: '13px', color: '#8b949e', margin: 0 }}>
+              Gerencie suas informações pessoais e detalhes de contato.
+            </p>
+          </div>
+
+          <form onSubmit={handleUpdateProfile} style={{ display: 'flex', flexDirection: 'column' }}>
+            <div>
+              <label
+                htmlFor="email"
+                style={{ display: 'block', fontSize: '13px', color: '#8b949e', marginBottom: '6px', fontWeight: 500 }}
+              >
+                {t('profile.email')}
+              </label>
               <input
                 id="email"
                 type="email"
                 value={user?.email || ''}
                 disabled
-                className="input-disabled"
-                style={{ background: '#161b22', border: '1px solid #30363d', color: '#8b949e', fontSize: '13px' }}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: '32px',
+                  fontSize: '13px',
+                  background: '#161b22',
+                  border: '1px solid #30363d',
+                  borderRadius: '6px',
+                  padding: '0 12px',
+                  marginBottom: '16px',
+                  color: '#8b949e',
+                  boxSizing: 'border-box',
+                }}
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="fullName" style={{ color: '#8b949e', fontSize: '13px' }}>{t('profile.fullName')}</label>
+            <div>
+              <label
+                htmlFor="fullName"
+                style={{ display: 'block', fontSize: '13px', color: '#8b949e', marginBottom: '6px', fontWeight: 500 }}
+              >
+                {t('profile.fullName')}
+              </label>
               <input
                 id="fullName"
                 type="text"
                 value={fullName}
                 onChange={e => setFullName(e.target.value)}
                 placeholder={t('profile.fullNamePlaceholder')}
-                className="input-text"
-                style={{ background: '#0d1117', border: '1px solid #30363d', color: '#c9d1d9', fontSize: '13px' }}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: '32px',
+                  fontSize: '13px',
+                  background: '#0d1117',
+                  border: '1px solid #30363d',
+                  borderRadius: '6px',
+                  padding: '0 12px',
+                  marginBottom: '16px',
+                  color: '#f0f6fc',
+                  boxSizing: 'border-box',
+                }}
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="whatsapp" style={{ color: '#8b949e', fontSize: '13px' }}>{t('profile.whatsapp')}</label>
+            <div>
+              <label
+                htmlFor="whatsapp"
+                style={{ display: 'block', fontSize: '13px', color: '#8b949e', marginBottom: '6px', fontWeight: 500 }}
+              >
+                {t('profile.whatsapp')}
+              </label>
               <input
                 id="whatsapp"
                 type="text"
@@ -192,15 +238,29 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
                   if (whatsappError) setWhatsappError(null)
                 }}
                 placeholder={t('profile.whatsappPlaceholder')}
-                className={`input-text ${whatsappError ? 'input-error' : ''}`}
-                style={{ background: '#0d1117', border: '1px solid #30363d', color: '#c9d1d9', fontSize: '13px' }}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: '32px',
+                  fontSize: '13px',
+                  background: '#0d1117',
+                  border: `1px solid ${whatsappError ? '#f85149' : '#30363d'}`,
+                  borderRadius: '6px',
+                  padding: '0 12px',
+                  marginBottom: whatsappError ? '6px' : '16px',
+                  color: '#f0f6fc',
+                  boxSizing: 'border-box',
+                }}
               />
-              {whatsappError && <span className="field-error" style={{ fontSize: '12px', color: '#f85149' }}>{whatsappError}</span>}
+              {whatsappError && (
+                <span style={{ display: 'block', fontSize: '12px', color: '#f85149', marginBottom: '16px' }}>
+                  {whatsappError}
+                </span>
+              )}
             </div>
 
             {profileMessage && (
               <div
-                className={`feedback-message ${profileMessage.type}`}
                 style={{
                   fontSize: '13px',
                   padding: '8px 12px',
@@ -208,67 +268,114 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
                   backgroundColor: profileMessage.type === 'success' ? 'rgba(46, 160, 67, 0.15)' : 'rgba(248, 81, 73, 0.15)',
                   border: `1px solid ${profileMessage.type === 'success' ? '#2ea043' : '#f85149'}`,
                   color: profileMessage.type === 'success' ? '#3fb950' : '#f85149',
+                  marginBottom: '16px',
                 }}
               >
                 {profileMessage.text}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={profileSaving}
-              className="btn-primary"
-              style={{
-                alignSelf: 'flex-start',
-                backgroundColor: '#E7BF73',
-                color: '#0d1117',
-                fontWeight: 600,
-                fontSize: '13px',
-                padding: '8px 16px',
-                borderRadius: '6px',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              {profileSaving ? t('common.saving') : t('profile.saveAccount')}
-            </button>
+            <div style={{ paddingTop: '8px' }}>
+              <button
+                type="submit"
+                disabled={profileSaving}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '32px',
+                  padding: '0 16px',
+                  backgroundColor: '#E7BF73',
+                  color: '#0d1117',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  width: 'auto',
+                  border: 'none',
+                  cursor: profileSaving ? 'not-allowed' : 'pointer',
+                  opacity: profileSaving ? 0.6 : 1,
+                }}
+              >
+                {profileSaving ? t('common.saving') : t('profile.saveAccount')}
+              </button>
+            </div>
           </form>
         </section>
       )}
 
       {/* Security & Password Section */}
       {activeSection === 'security' && (
-        <section className="profile-section" style={{ border: 'none', background: 'transparent', padding: 0 }}>
-          <form onSubmit={handleUpdatePassword} className="profile-form">
-            <div className="form-group">
-              <label htmlFor="newPassword" style={{ color: '#8b949e', fontSize: '13px' }}>{t('profile.newPassword')}</label>
+        <section>
+          <div style={{ marginBottom: '20px' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#f0f6fc', margin: '0 0 4px 0' }}>
+              Segurança & Senha
+            </h3>
+            <p style={{ fontSize: '13px', color: '#8b949e', margin: 0 }}>
+              Atualize sua senha de acesso para proteger sua conta.
+            </p>
+          </div>
+
+          <form onSubmit={handleUpdatePassword} style={{ display: 'flex', flexDirection: 'column' }}>
+            <div>
+              <label
+                htmlFor="newPassword"
+                style={{ display: 'block', fontSize: '13px', color: '#8b949e', marginBottom: '6px', fontWeight: 500 }}
+              >
+                {t('profile.newPassword')}
+              </label>
               <input
                 id="newPassword"
                 type="password"
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 placeholder={t('profile.newPasswordPlaceholder')}
-                className="input-text"
-                style={{ background: '#0d1117', border: '1px solid #30363d', color: '#c9d1d9', fontSize: '13px' }}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: '32px',
+                  fontSize: '13px',
+                  background: '#0d1117',
+                  border: '1px solid #30363d',
+                  borderRadius: '6px',
+                  padding: '0 12px',
+                  marginBottom: '16px',
+                  color: '#f0f6fc',
+                  boxSizing: 'border-box',
+                }}
               />
             </div>
 
-            <div className="form-group">
-              <label htmlFor="confirmPassword" style={{ color: '#8b949e', fontSize: '13px' }}>{t('profile.confirmPassword')}</label>
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                style={{ display: 'block', fontSize: '13px', color: '#8b949e', marginBottom: '6px', fontWeight: 500 }}
+              >
+                {t('profile.confirmPassword')}
+              </label>
               <input
                 id="confirmPassword"
                 type="password"
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 placeholder={t('profile.confirmPasswordPlaceholder')}
-                className="input-text"
-                style={{ background: '#0d1117', border: '1px solid #30363d', color: '#c9d1d9', fontSize: '13px' }}
+                style={{
+                  display: 'block',
+                  width: '100%',
+                  height: '32px',
+                  fontSize: '13px',
+                  background: '#0d1117',
+                  border: '1px solid #30363d',
+                  borderRadius: '6px',
+                  padding: '0 12px',
+                  marginBottom: '16px',
+                  color: '#f0f6fc',
+                  boxSizing: 'border-box',
+                }}
               />
             </div>
 
             {passwordMessage && (
               <div
-                className={`feedback-message ${passwordMessage.type}`}
                 style={{
                   fontSize: '13px',
                   padding: '8px 12px',
@@ -276,30 +383,37 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
                   backgroundColor: passwordMessage.type === 'success' ? 'rgba(46, 160, 67, 0.15)' : 'rgba(248, 81, 73, 0.15)',
                   border: `1px solid ${passwordMessage.type === 'success' ? '#2ea043' : '#f85149'}`,
                   color: passwordMessage.type === 'success' ? '#3fb950' : '#f85149',
+                  marginBottom: '16px',
                 }}
               >
                 {passwordMessage.text}
               </div>
             )}
 
-            <button
-              type="submit"
-              disabled={passwordSaving}
-              className="btn-primary"
-              style={{
-                alignSelf: 'flex-start',
-                backgroundColor: '#E7BF73',
-                color: '#0d1117',
-                fontWeight: 600,
-                fontSize: '13px',
-                padding: '8px 16px',
-                borderRadius: '6px',
-                border: 'none',
-                cursor: 'pointer',
-              }}
-            >
-              {passwordSaving ? t('common.saving') : t('profile.savePassword')}
-            </button>
+            <div style={{ paddingTop: '8px' }}>
+              <button
+                type="submit"
+                disabled={passwordSaving}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  height: '32px',
+                  padding: '0 16px',
+                  backgroundColor: '#E7BF73',
+                  color: '#0d1117',
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  fontWeight: 600,
+                  width: 'auto',
+                  border: 'none',
+                  cursor: passwordSaving ? 'not-allowed' : 'pointer',
+                  opacity: passwordSaving ? 0.6 : 1,
+                }}
+              >
+                {passwordSaving ? t('common.saving') : t('profile.savePassword')}
+              </button>
+            </div>
           </form>
         </section>
       )}

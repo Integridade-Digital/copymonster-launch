@@ -368,3 +368,142 @@
   color: #8b949e;
   font-size: 14px;
 }
+
+
+/* ==========================================================================
+   Shared Admin & Profile Utility Classes (Settings pattern rhythm)
+   ========================================================================== */
+.adminSection, :global(.adminSection) {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.adminGrid, :global(.adminGrid) {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.adminCard, :global(.adminCard) {
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.adminCardLabel, :global(.adminCardLabel) {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8b949e;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.adminCardValue, :global(.adminCardValue) {
+  font-size: 20px;
+  font-weight: 600;
+  color: #f0f6fc;
+  line-height: 1.2;
+}
+
+.adminCardSub, :global(.adminCardSub) {
+  font-size: 12px;
+  color: #8b949e;
+  margin-top: 4px;
+}
+
+.adminTable, :global(.adminTable) {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.adminTable th, :global(.adminTable th) {
+  font-size: 12px;
+  text-transform: uppercase;
+  color: #8b949e;
+  background: #161b22;
+  border-bottom: 1px solid #30363d;
+  padding: 8px 12px;
+  text-align: left;
+  font-weight: 600;
+}
+
+.adminTable td, :global(.adminTable td) {
+  padding: 8px 12px;
+  border-bottom: 1px solid #30363d;
+  color: #c9d1d9;
+}
+
+.adminInput, :global(.adminInput) {
+  display: block;
+  width: 100%;
+  height: 32px;
+  font-size: 13px;
+  background: #0d1117;
+  border: 1px solid #30363d;
+  border-radius: 6px;
+  padding: 0 12px;
+  margin-bottom: 16px;
+  color: #f0f6fc;
+  box-sizing: border-box;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.adminInput:focus, :global(.adminInput:focus) {
+  border-color: #E7BF73;
+}
+
+.adminLabel, :global(.adminLabel) {
+  display: block;
+  font-size: 13px;
+  color: #8b949e;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+
+.adminButton, :global(.adminButton) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 32px;
+  padding: 0 16px;
+  background: #E7BF73;
+  color: #0d1117;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  width: auto;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  text-decoration: none;
+}
+
+.adminButton:hover:not(:disabled), :global(.adminButton:hover:not(:disabled)) {
+  opacity: 0.9;
+}
+
+.adminButton:disabled, :global(.adminButton:disabled) {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.formContainer, :global(.formContainer) {
+  max-width: 480px;
+  padding: 24px;
+  margin: 0 auto;
+}
+
+.sectionSeparator, :global(.sectionSeparator) {
+  border: none;
+  border-top: 1px solid #30363d;
+  margin: 24px 0;
+}

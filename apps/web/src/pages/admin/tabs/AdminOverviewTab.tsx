@@ -158,12 +158,12 @@ export function AdminOverviewTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header com Status de Saúde e Botão de Atualizar */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#30363d]">
         <div>
-          <h3 className="text-lg font-semibold text-[#f0f6fc]">Overview da Plataforma</h3>
-          <p className="text-xs text-[#8b949e] mt-0.5">
+          <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#f0f6fc', margin: '0 0 4px 0' }}>Overview da Plataforma</h3>
+          <p style={{ fontSize: '13px', color: '#8b949e', margin: 0 }}>
             Métricas consolidadas de receita, uso de infraestrutura e saúde dos serviços.
           </p>
         </div>
@@ -221,50 +221,61 @@ export function AdminOverviewTab() {
         </div>
       )}
 
-      {/* Grid de KPIs */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* KPI: MRR / ARR */}
-        <div className="p-4 rounded-xl bg-[#161b22] border border-[#30363d] space-y-1">
-          <span className="text-xs font-medium text-[#8b949e] uppercase tracking-wider">MRR Estimado</span>
-          <div className="text-xl font-bold text-[#E7BF73]">
+      {/* Grid de 5 KPIs */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+        {/* KPI 1: MRR / ARR */}
+        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#8b949e', marginBottom: '6px' }}>MRR Estimado</div>
+          <div style={{ fontSize: '20px', fontWeight: 600, color: '#E7BF73' }}>
             {formatCurrency(latestMetrics?.estimated_mrr || 0)}
           </div>
-          <p className="text-[11px] text-[#8b949e]">
+          <div style={{ fontSize: '12px', color: '#8b949e', marginTop: '4px' }}>
             ARR: {formatCurrency((latestMetrics?.estimated_mrr || 0) * 12)}
-          </p>
+          </div>
         </div>
 
-        {/* KPI: Users Ativos */}
-        <div className="p-4 rounded-xl bg-[#161b22] border border-[#30363d] space-y-1">
-          <span className="text-xs font-medium text-[#8b949e] uppercase tracking-wider">Users Ativos (Hoje)</span>
-          <div className="text-xl font-bold text-[#f0f6fc]">
+        {/* KPI 2: Users Ativos */}
+        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#8b949e', marginBottom: '6px' }}>Users Ativos (Hoje)</div>
+          <div style={{ fontSize: '20px', fontWeight: 600, color: '#f0f6fc' }}>
             {formatNumber(latestMetrics?.active_users || 0)}
           </div>
-          <p className="text-[11px] text-[#8b949e]">
-            Tenants ativos: {formatNumber(latestMetrics?.active_tenants || 0)}
-          </p>
+          <div style={{ fontSize: '12px', color: '#8b949e', marginTop: '4px' }}>
+            Tenants: {formatNumber(latestMetrics?.active_tenants || 0)}
+          </div>
         </div>
 
-        {/* KPI: Tokens Consumidos */}
-        <div className="p-4 rounded-xl bg-[#161b22] border border-[#30363d] space-y-1">
-          <span className="text-xs font-medium text-[#8b949e] uppercase tracking-wider">Tokens (Hoje)</span>
-          <div className="text-xl font-bold text-[#f0f6fc]">
+        {/* KPI 3: Tokens Consumidos */}
+        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#8b949e', marginBottom: '6px' }}>Tokens (Hoje)</div>
+          <div style={{ fontSize: '20px', fontWeight: 600, color: '#f0f6fc' }}>
             {formatTokens(latestMetrics?.tokens_consumed || 0)}
           </div>
-          <p className="text-[11px] text-[#8b949e]">
-            {formatNumber(latestMetrics?.tokens_consumed || 0)} tokens totais
-          </p>
+          <div style={{ fontSize: '12px', color: '#8b949e', marginTop: '4px' }}>
+            Consumo diário
+          </div>
         </div>
 
-        {/* KPI: Sessions Indexadas */}
-        <div className="p-4 rounded-xl bg-[#161b22] border border-[#30363d] space-y-1">
-          <span className="text-xs font-medium text-[#8b949e] uppercase tracking-wider">Sessions Totais</span>
-          <div className="text-xl font-bold text-[#f0f6fc]">
+        {/* KPI 4: Sessions Totais */}
+        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#8b949e', marginBottom: '6px' }}>Sessions Totais</div>
+          <div style={{ fontSize: '20px', fontWeight: 600, color: '#f0f6fc' }}>
             {formatNumber(totalSessions)}
           </div>
-          <p className="text-[11px] text-emerald-400">
-            Provedores ativos: {health.providersActive} / {health.providersCount}
-          </p>
+          <div style={{ fontSize: '12px', color: '#8b949e', marginTop: '4px' }}>
+            Indexadas no banco
+          </div>
+        </div>
+
+        {/* KPI 5: Saúde do Sistema */}
+        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#8b949e', marginBottom: '6px' }}>Saúde do Sistema</div>
+          <div style={{ fontSize: '20px', fontWeight: 600, color: health.dbStatus === 'operational' ? '#3fb950' : health.dbStatus === 'degraded' ? '#d29922' : '#f85149' }}>
+            {health.dbStatus === 'operational' ? 'Operacional' : health.dbStatus === 'degraded' ? 'Degradado' : 'Indisponível'}
+          </div>
+          <div style={{ fontSize: '12px', color: '#8b949e', marginTop: '4px' }}>
+            Latência: {health.dbLatencyMs}ms ({health.providersActive} provedores)
+          </div>
         </div>
       </div>
 

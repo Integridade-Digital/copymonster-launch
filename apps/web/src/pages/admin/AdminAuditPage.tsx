@@ -79,7 +79,7 @@ export function AdminAuditPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto text-[#f0f6fc]">
+    <div style={{ width: '100%', color: '#f0f6fc' }}>
 
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">

@@ -253,7 +253,7 @@ export function AdminLLMProvidersTab() {
   }
 
   return (
-    <div className="space-y-6">
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header com título, contadores e ações principais */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#30363d]">
         <div>

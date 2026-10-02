@@ -76,7 +76,7 @@ export function AdminTenantsPage() {
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto text-[#f0f6fc]">
+    <div style={{ width: '100%', color: '#f0f6fc' }}>
 
 
       <div className="flex justify-between items-center mb-6">

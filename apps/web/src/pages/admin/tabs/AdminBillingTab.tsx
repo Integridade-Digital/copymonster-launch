@@ -240,7 +240,7 @@ export function AdminBillingTab() {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
 
   return (
-    <div className="space-y-6 text-[#f0f6fc]">
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', color: '#f0f6fc' }}>
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#30363d]">
         <div>

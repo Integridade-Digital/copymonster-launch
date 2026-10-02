@@ -315,6 +315,7 @@ export async function getUserFullProfile(userId: string): Promise<AuthUser | nul
 
     const { id, email, full_name, whatsapp, avatar_url } = data.user;
 
+    const resolvedRole = data.role ?? 'member';
     return {
       id,
       email,
@@ -322,7 +323,7 @@ export async function getUserFullProfile(userId: string): Promise<AuthUser | nul
       ...whatsapp === null || whatsapp === '' ? {} : { whatsapp },
       ...avatar_url === null || avatar_url === '' ? {} : { avatarUrl: avatar_url },
       ...data.tenant === null ? {} : { tenantId: data.tenant.id },
-      ...data.role === null ? {} : { role: data.role },
+      role: resolvedRole,
     };
   } catch (error: unknown) {
     console.error('Error fetching user profile:', error);

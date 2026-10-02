@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import type { applyIndexInjections } from '@deepseek-ai/dsh-client-web'
 import { AppWrapper, supabaseClient, useAuth } from './lib/auth'
+import { ensureDshBrowserSession, resolveHostBoot } from './lib/auth/host-boot'
 import { ProtectedRoute, PublicRoute } from './lib/auth/protected-route'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
@@ -30,6 +31,11 @@ interface ClientAuthSession {
 /** Page global carrying {@link ClientAuthSession}. */
 interface ClientAuthGlobal {
   __DSH_AUTH__?: ClientAuthSession
+}
+
+/** Page global installed by the host index injection of the boot module facade. */
+interface HostBootGlobal {
+  __ModuleLoader__?: unknown
 }
 
 const clientAuth = globalThis as ClientAuthGlobal
@@ -169,6 +175,36 @@ const LazyWebApp = React.lazy(async () => {
   }
 })
 
+/** Indicador de progresso do carregamento do ambiente de trabalho. */
+function WorkspaceBootProgress() {
+  return (
+    <div className="cm-auth-boot" role="status" aria-live="polite">
+      <span className="cm-auth-spinner" aria-hidden="true" />
+      <span>Carregando ambiente de trabalho…</span>
+    </div>
+  )
+}
+
+/**
+ * Tela exibida quando a troca do token de lançamento não rendeu o documento
+ * injetado, o que significa que o processo não registra a rota de entrada do host.
+ */
+function HostBootUnavailable() {
+  return (
+    <div className="cm-auth-page">
+      <div className="cm-auth-card" style={{ maxWidth: '480px', textAlign: 'center' }}>
+        <h2 className="cm-auth-title" style={{ color: 'var(--cm-auth-error-text)' }}>
+          Sessão do host indisponível
+        </h2>
+        <p className="cm-auth-subtitle" style={{ marginTop: '0.75rem' }}>
+          O servidor não atende a rota de entrada que estabelece a sessão do host. Inicie o
+          CopyMonster com o patch do bundle de autenticação e tente novamente.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 /**
  * Top-level application routes using HTML5 browser history (BrowserRouter).
  * Handles public auth flows, protected workspace shell, and SaaS management views.
@@ -202,17 +238,24 @@ function AuthenticatedWorkspace() {
     }
   }, [])
 
+  const hostBoot = resolveHostBoot({
+    facadePresent: (globalThis as HostBootGlobal).__ModuleLoader__ !== undefined,
+    desktopBoot: desktop !== undefined,
+    pathname: window.location.pathname,
+  })
+
+  React.useEffect(() => {
+    if (hostBoot !== 'exchange') return
+    ensureDshBrowserSession()
+  }, [hostBoot])
+
+  if (hostBoot === 'unavailable') return <HostBootUnavailable />
+  if (hostBoot === 'exchange') return <WorkspaceBootProgress />
+
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
       <WebAppErrorBoundary>
-        <React.Suspense
-          fallback={
-            <div className="cm-auth-boot" role="status" aria-live="polite">
-              <span className="cm-auth-spinner" aria-hidden="true" />
-              <span>Carregando ambiente de trabalho…</span>
-            </div>
-          }
-        >
+        <React.Suspense fallback={<WorkspaceBootProgress />}>
           <LazyWebApp />
         </React.Suspense>
       </WebAppErrorBoundary>

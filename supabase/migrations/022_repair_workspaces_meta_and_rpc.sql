@@ -6,7 +6,7 @@ DROP FUNCTION IF EXISTS public.get_admin_workspaces(TEXT, UUID, BOOLEAN, BOOLEAN
 
 -- 2. Garantir colunas na tabela workspaces_meta
 ALTER TABLE public.workspaces_meta
-  ADD COLUMN IF NOT EXISTS workspace_id TEXT,
+  ADD COLUMN IF NOT EXISTS workspace_id UUID,
   ADD COLUMN IF NOT EXISTS title TEXT DEFAULT '',
   ADD COLUMN IF NOT EXISTS relative_path TEXT DEFAULT '',
   ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE,
@@ -16,7 +16,7 @@ ALTER TABLE public.workspaces_meta
 
 -- 3. Backfill idempotente
 UPDATE public.workspaces_meta
-SET workspace_id = id::text
+SET workspace_id = id
 WHERE workspace_id IS NULL;
 
 UPDATE public.workspaces_meta
@@ -56,7 +56,7 @@ CREATE OR REPLACE FUNCTION public.get_admin_workspaces(
 )
 RETURNS TABLE (
   id UUID,
-  workspace_id TEXT,
+  workspace_id UUID,
   tenant_id UUID,
   tenant_name TEXT,
   title TEXT,
@@ -80,7 +80,7 @@ BEGIN
   WITH filtered AS (
     SELECT
       wm.id,
-      COALESCE(wm.workspace_id, wm.id::text)::TEXT AS workspace_id,
+      COALESCE(wm.workspace_id, wm.id) AS workspace_id,
       wm.tenant_id,
       COALESCE(t.name, 'Sem Tenant')::TEXT AS tenant_name,
       COALESCE(NULLIF(wm.title, ''), wm.name, 'Workspace')::TEXT AS title,

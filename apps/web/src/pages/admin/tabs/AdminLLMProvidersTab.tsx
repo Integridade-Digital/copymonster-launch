@@ -353,11 +353,19 @@ export function AdminLLMProvidersTab() {
                 {/* Topo do Card: Badge + Status Toggle */}
                 <div>
                   <div className="flex items-center justify-between gap-2 pb-2">
-                    <span
-                      className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${badge.bg} ${badge.text} ${badge.border}`}
-                    >
-                      {badge.label}
-                    </span>
+                    {badge.label.toLowerCase() !== p.name.toLowerCase() ? (
+                      <span
+                        className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${badge.bg} ${badge.text} ${badge.border}`}
+                      >
+                        {badge.label}
+                      </span>
+                    ) : (
+                      <span
+                        className="text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border border-[#30363d] bg-[#21262d] text-[#8b949e]"
+                      >
+                        OFICIAL
+                      </span>
+                    )}
 
                     {/* Toggle Rápido Ativo / Inativo */}
                     <button

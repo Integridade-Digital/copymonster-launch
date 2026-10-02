@@ -80,7 +80,7 @@ export function AdminSessionsTab() {
   useEffect(() => {
     async function loadAuxiliaryData() {
       try {
-        const callRpc = supabase.rpc as unknown as RpcCaller
+        const callRpc = supabase.rpc.bind(supabase) as unknown as RpcCaller
         const [tenantsRes, storageRes] = await Promise.all([
           supabase.from('tenants').select('id, name, slug').order('name'),
           callRpc('get_admin_storage_paths'),
@@ -111,7 +111,7 @@ export function AdminSessionsTab() {
     setError(null)
 
     try {
-      const callRpc = supabase.rpc as unknown as RpcCaller
+      const callRpc = supabase.rpc.bind(supabase) as unknown as RpcCaller
       const [kpisRes, listRes] = await Promise.all([
         callRpc('get_admin_sessions_kpis'),
         callRpc('get_admin_sessions', {
@@ -193,7 +193,7 @@ export function AdminSessionsTab() {
     setIsSubmittingAction(true)
 
     try {
-      const callRpc = supabase.rpc as unknown as RpcCaller
+      const callRpc = supabase.rpc.bind(supabase) as unknown as RpcCaller
       const { error: rpcErr } = await callRpc('admin_archive_session', {
         p_session_id: session.session_id,
       })
@@ -225,7 +225,7 @@ export function AdminSessionsTab() {
     setIsSubmittingAction(true)
 
     try {
-      const callRpc = supabase.rpc as unknown as RpcCaller
+      const callRpc = supabase.rpc.bind(supabase) as unknown as RpcCaller
       const { error: rpcErr } = await callRpc('admin_purge_session', {
         p_session_id: sessionToPurge.session_id,
       })

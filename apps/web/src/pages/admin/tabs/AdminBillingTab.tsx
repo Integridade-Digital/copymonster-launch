@@ -87,7 +87,7 @@ export function AdminBillingTab() {
     setError(null)
 
     try {
-      const callRpc = supabase.rpc as unknown as RpcCaller
+      const callRpc = supabase.rpc.bind(supabase) as unknown as RpcCaller
       const [kpisRes, listRes] = await Promise.all([
         callRpc('get_admin_billing_kpis'),
         callRpc('get_admin_billing_tenants', {

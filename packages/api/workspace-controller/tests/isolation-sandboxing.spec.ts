@@ -9,7 +9,7 @@ import {
   resolveUserSandboxRoot,
   WorkspaceId,
 } from '@deepseek-ai/dsh-workspace'
-import AuthService, { type AuthToken } from '@deepseek-ai/dsh-api-auth-context'
+import AuthService, { type AuthToken, type UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
 
 const roots: Context[] = []
 

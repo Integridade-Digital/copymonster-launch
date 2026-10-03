@@ -4,7 +4,7 @@ import { DirectoryPicker, DirectoryPickerError } from '@deepseek-ai/dsh-host-dir
 import type { DirectoryPickerCapability } from '@deepseek-ai/dsh-host-directory-picker'
 import { remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import { DirectoryPickerController } from '../src/directory-picker.ts'
-import AuthService from '@deepseek-ai/dsh-api-auth-context'
+import AuthService, { type AuthToken } from '@deepseek-ai/dsh-api-auth-context'
 
 const roots: Context[] = []
 
@@ -56,7 +56,7 @@ function makeAuthPlugin(tenantId: string, userId: string) {
       const auth = new AuthService(ctx)
       ctx.provide('auth', auth)
       const adapter = {
-        identity: () => ({ tenantId, userId } as unknown),
+        identity: () => ({ tenantId, userId } as AuthToken),
         resolve: (token: string) => token === `token-${tenantId}-${userId}` ? ctx.extend({ authToken: token }) : undefined,
       }
       ctx.typert.contexts.registerClient('auth', adapter)

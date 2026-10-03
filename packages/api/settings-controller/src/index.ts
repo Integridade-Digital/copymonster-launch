@@ -138,6 +138,7 @@ function assertAdminOrOwnerAuth(ctx: Context, action: string): void {
   }
 }
 
+/** Service providing access to tenant settings, audit logs, and usage metrics. */
 export class SettingsController extends TypertRemoteService {
   static Config: Schema<Config> = Schema.object({ nativeOpen: Schema.boolean() })
 
@@ -329,6 +330,7 @@ export class SettingsController extends TypertRemoteService {
   /**
    * List tenants with their plan, subscription status, and token usage for admin users.
    * Restricted to callers with role 'owner' or 'admin'.
+   * @returns list of tenant admin views with subscription and token usage details
    */
   @RemoteScope('auth', 'listTenants')
   async listTenants(): Promise<TenantAdminView[]> {
@@ -360,6 +362,8 @@ export class SettingsController extends TypertRemoteService {
   /**
    * Fetch token consumption metrics, trial status, and plan allowances for a tenant.
    * Regular members query their own tenant; administrators may query any tenant.
+   * @param request - optional tenantId for admin cross-tenant queries
+   * @returns tenant metrics including token consumption and trial status
    */
   @RemoteScope('auth', 'getTenantMetrics')
   async getTenantMetrics(request?: { tenantId?: string }): Promise<TenantMetricsView> {
@@ -440,6 +444,8 @@ export class SettingsController extends TypertRemoteService {
 
   /**
    * Query the tenant audit trail. Restricted to administrators.
+   * @param request - optional query parameters (limit, offset, tenantId)
+   * @returns list of audit log entries
    */
   @RemoteScope('auth', 'listAuditLogs')
   async listAuditLogs(request?: AuditLogQueryRequest): Promise<AuditLogView[]> {
@@ -482,6 +488,8 @@ export class SettingsController extends TypertRemoteService {
 
   /**
    * Record an action into the audit trail.
+   * @param request - the audit log entry to record
+   * @returns confirmation with the recorded log id
    */
   @RemoteScope('auth', 'recordAuditLog')
   async recordAuditLog(request: AuditLogRecordRequest): Promise<{ recorded: true; id: string }> {
@@ -515,6 +523,8 @@ export class SettingsController extends TypertRemoteService {
 
   /**
    * Increment token usage for the caller's tenant via the atomic database RPC.
+   * @param request - token usage details to record
+   * @returns the updated token usage record
    */
   @RemoteScope('auth', 'recordTokenUsage')
   async recordTokenUsage(request: TokenUsageRecordRequest): Promise<TokenUsageRecordValue> {

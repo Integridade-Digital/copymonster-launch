@@ -280,7 +280,7 @@ Source: [`packages/settings/settings/src/index.ts`](../../packages/settings/sett
 
 ### `ctx.settingsController` — `SettingsController`
 
-Host service backing the generated `ctx.remote.settings` namespace. Every remote read uses `redactSecrets: true`, so a `role('secret')` field cannot ride a response. Writes expose the settings service's merge, replacement, and path-addressed operations, and classify every provider refusal as `settings/conflict` or `settings/rejected` with the service's message.
+Service providing access to tenant settings, audit logs, and usage metrics.
 
 ```ts cordis-catalog
 /**
@@ -305,7 +305,7 @@ Host service backing the generated `ctx.remote.settings` namespace. Every remote
  * @returns the namespace's redacted view after the write.
  * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
  */
-@Remote update( ns: string, patch: Record<string, JsonValue>, expectedRevision: number | undefined, ): Promise<SettingsNamespaceView>
+@Remote async update( ns: string, patch: Record<string, JsonValue>, expectedRevision: number | undefined, ): Promise<SettingsNamespaceView>
 
 /**
  * Replace one namespace's stored user section wholesale.
@@ -315,7 +315,7 @@ Host service backing the generated `ctx.remote.settings` namespace. Every remote
  * @returns the namespace's redacted view after the write.
  * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
  */
-@Remote replace( ns: string, section: Record<string, JsonValue>, expectedRevision: number | undefined, ): Promise<SettingsNamespaceView>
+@Remote async replace( ns: string, section: Record<string, JsonValue>, expectedRevision: number | undefined, ): Promise<SettingsNamespaceView>
 
 /**
  * Apply path-addressed edits to one namespace's user section, resolved against
@@ -345,6 +345,42 @@ Host service backing the generated `ctx.remote.settings` namespace. Every remote
  * @throws RemoteError when the preset is missing, read-only, invalid, or cannot be opened.
  */
 @Remote async openAgentPresetDirectory( agentPreset: string, signal: AbortSignal, ): Promise<AgentPresetDirectoryOpenValue>
+
+/**
+ * List tenants with their plan, subscription status, and token usage for admin users.
+ * Restricted to callers with role 'owner' or 'admin'.
+ * @returns list of tenant admin views with subscription and token usage details
+ */
+@RemoteScope('auth', 'listTenants') async listTenants(): Promise<TenantAdminView[]>
+
+/**
+ * Fetch token consumption metrics, trial status, and plan allowances for a tenant.
+ * Regular members query their own tenant; administrators may query any tenant.
+ * @param request - optional tenantId for admin cross-tenant queries
+ * @returns tenant metrics including token consumption and trial status
+ */
+@RemoteScope('auth', 'getTenantMetrics') async getTenantMetrics(request?: { tenantId?: string }): Promise<TenantMetricsView>
+
+/**
+ * Query the tenant audit trail. Restricted to administrators.
+ * @param request - optional query parameters (limit, offset, tenantId)
+ * @returns list of audit log entries
+ */
+@RemoteScope('auth', 'listAuditLogs') async listAuditLogs(request?: AuditLogQueryRequest): Promise<AuditLogView[]>
+
+/**
+ * Record an action into the audit trail.
+ * @param request - the audit log entry to record
+ * @returns confirmation with the recorded log id
+ */
+@RemoteScope('auth', 'recordAuditLog') async recordAuditLog(request: AuditLogRecordRequest): Promise<{ recorded: true; id: string }>
+
+/**
+ * Increment token usage for the caller's tenant via the atomic database RPC.
+ * @param request - token usage details to record
+ * @returns the updated token usage record
+ */
+@RemoteScope('auth', 'recordTokenUsage') async recordTokenUsage(request: TokenUsageRecordRequest): Promise<TokenUsageRecordValue>
 ```
 
 Source: [`packages/api/settings-controller/src/index.ts`](../../packages/api/settings-controller/src/index.ts)

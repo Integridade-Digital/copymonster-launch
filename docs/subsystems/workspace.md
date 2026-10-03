@@ -158,27 +158,32 @@ Host service backing the generated `ctx.remote.directoryPicker` namespace. The s
 ```ts cordis-catalog
 /**
  * Open the host's OS chooser for a Remote caller.
+ * Requires authenticated caller identity.
  * @param signal - caller lifetime; abort terminates the chooser.
  * @returns the chosen absolute path, or null when the operator cancels.
  */
-@Remote('pick') async pick(signal: AbortSignal): Promise<string | null>
+@RemoteScope('auth', 'pick') async pick(signal: AbortSignal): Promise<string | null>
 
 /**
  * List one directory level for a Remote caller's in-app browser.
- * @param path - absolute directory to list; absent lists the home directory.
+ * Confines listing strictly to the caller's authorized sandbox.
+ * Requires authenticated caller identity.
+ * @param path - absolute directory to list; absent lists the sandbox root.
  * @param signal - caller lifetime; abort stops the backend's scan instead of
  *   letting it outlive a disconnected caller.
  * @returns the level's listing with its ancestry.
  */
-@Remote('list') async list(path: string | undefined, signal: AbortSignal): Promise<DirectoryListing>
+@RemoteScope('auth', 'list') async list(path: string | undefined, signal: AbortSignal): Promise<DirectoryListing>
 
 /**
  * Create one child directory for a Remote caller's in-app browser.
+ * Confines directory creation strictly to the caller's authorized sandbox.
+ * Requires authenticated caller identity.
  * @param path - absolute existing parent directory.
  * @param name - single non-blank path segment.
  * @returns the created directory's absolute path.
  */
-@Remote('createDirectory') async createDirectory(path: string, name: string): Promise<string>
+@RemoteScope('auth', 'createDirectory') async createDirectory(path: string, name: string): Promise<string>
 ```
 
 Source: [`packages/api/workspace-controller/src/directory-picker.ts`](../../packages/api/workspace-controller/src/directory-picker.ts)
@@ -295,56 +300,72 @@ Host service backing the generated `ctx.remote.workspace` namespace.
  * @param request - directory path to register.
  * @returns the Workspace and whether this call created it.
  */
-@Remote('create') create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue>
+@RemoteScope('auth', 'create') create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue>
+
+/**
+ * Ensure or auto-provision the initial default workspace for the authenticated user.
+ * @returns the Workspace and whether this call created it.
+ */
+@RemoteScope('auth', 'ensureInitial') ensureInitial(): Promise<WorkspaceCreateValue>
 
 /**
  * Rename one Workspace to a unique non-blank title.
  * @param request - Workspace identity and proposed title.
  * @returns the updated Workspace projection.
  */
-@Remote('rename') rename(request: WorkspaceRenameRequest): Promise<WorkspaceValue>
+@RemoteScope('auth', 'rename') rename(request: WorkspaceRenameRequest): Promise<WorkspaceValue>
 
 /**
  * Remove one Workspace registration while retaining files and Sessions.
  * @param request - Workspace identity to remove.
  * @returns deletion confirmation.
  */
-@Remote('delete') delete(request: WorkspaceDeleteRequest): Promise<WorkspaceDeleteValue>
+@RemoteScope('auth', 'delete') delete(request: WorkspaceDeleteRequest): Promise<WorkspaceDeleteValue>
 
 /**
  * Move one Workspace within the registry display order.
  * @param request - moved Workspace and optional anchor.
  * @returns the complete resulting Workspace order.
  */
-@Remote('insertBefore') insertBefore(request: WorkspaceInsertBeforeRequest): Promise<WorkspaceOrderValue>
+@RemoteScope('auth', 'insertBefore') insertBefore(request: WorkspaceInsertBeforeRequest): Promise<WorkspaceOrderValue>
 
 /**
  * Move one accounted Session within a Workspace.
  * @param request - Workspace, Session, and optional anchor identities.
  * @returns the updated Workspace projection.
  */
-@Remote('insertSessionBefore') insertSessionBefore(request: WorkspaceInsertSessionBeforeRequest): Promise<WorkspaceValue>
+@RemoteScope('auth', 'insertSessionBefore') insertSessionBefore(request: WorkspaceInsertSessionBeforeRequest): Promise<WorkspaceValue>
 
 /**
  * Hide one known Session from Workspace grouping surfaces.
  * @param request - Session identity to archive.
  * @returns the complete resulting archive set.
  */
-@Remote('archiveSession') archiveSession(request: WorkspaceArchiveSessionRequest): Promise<WorkspaceArchiveValue>
+@RemoteScope('auth', 'archiveSession') archiveSession(request: WorkspaceArchiveSessionRequest): Promise<WorkspaceArchiveValue>
 
 /**
  * Restore one archived Session to Workspace grouping surfaces.
  * @param request - Session identity to unarchive.
  * @returns the complete resulting archive set.
  */
-@Remote('unarchiveSession') unarchiveSession(request: WorkspaceUnarchiveSessionRequest): Promise<WorkspaceArchiveValue>
+@RemoteScope('auth', 'unarchiveSession') unarchiveSession(request: WorkspaceUnarchiveSessionRequest): Promise<WorkspaceArchiveValue>
 
 /**
  * Stream a complete Workspace baseline followed by ordered increments.
+ *
+ * `@RemoteScope` cannot carry this verb yet: the Typert generator discards
+ * `mode` for a `context` invocation, so a scoped stream is emitted as a unary
+ * method and breaks the Client contract. This verb therefore stays a direct
+ * stream and resolves the caller's identity itself from the same bearer token
+ * a scoped verb carries, refusing a call the Host cannot attribute to a
+ * confined root. Migrate to `@RemoteScope('auth', 'follow')` once the
+ * generator supports a stream and a context together.
+ *
+ * @param authToken - bearer token the Host re-verifies before reading data.
  * @param signal - generation cancellation.
  * @returns baseline followed by ordered Workspace increments.
  */
-@Remote({ mode: 'stream' }) follow(signal: AbortSignal): AsyncIterable<WorkspaceFollowFrame>
+@Remote({ mode: 'stream' }) async *follow(authToken: AuthToken, signal: AbortSignal): AsyncIterable<WorkspaceFollowFrame>
 ```
 
 Source: [`packages/api/workspace-controller/src/index.ts`](../../packages/api/workspace-controller/src/index.ts)

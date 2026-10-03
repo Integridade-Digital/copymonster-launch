@@ -78,6 +78,7 @@ function getAuthIdentity(ctx: Context): UserIdentity | undefined {
   return undefined
 }
 
+/** Service providing access to stored credentials and their metadata. */
 export class CredentialsController extends TypertRemoteService {
   /** @param ctx - Host context where a credential provider may be mounted. */
   constructor(ctx: Context) {

@@ -9,7 +9,7 @@ import {
   resolveUserSandboxRoot,
   WorkspaceId,
 } from '@deepseek-ai/dsh-workspace'
-import AuthService from '@deepseek-ai/dsh-api-auth-context'
+import AuthService, { type AuthToken } from '@deepseek-ai/dsh-api-auth-context'
 
 const roots: Context[] = []
 
@@ -25,7 +25,7 @@ function makeAuthPlugin(tenantId: string, userId: string) {
       const auth = new AuthService(ctx)
       ctx.provide('auth', auth)
       const adapter = {
-        identity: () => ({ tenantId, userId } as unknown),
+        identity: () => ({ tenantId, userId } as AuthToken),
         resolve: (token: string) => token === `token-${tenantId}-${userId}` ? ctx.extend({ authToken: token }) : undefined,
       }
       ctx.typert.contexts.registerClient('auth', adapter)
@@ -118,7 +118,7 @@ describe('DirectoryPicker and Workspace Tenant Isolation (authenticated)', () =>
     })
 
     const feed = new WorkspaceFeed(ctx)
-    const identity = { tenantId, userId } as unknown
+    const identity = { tenantId, userId } as AuthToken
     const baseline = feed.baseline(identity)
 
     expect(baseline.items).toHaveLength(1)
@@ -154,7 +154,7 @@ describe('DirectoryPicker and Workspace Tenant Isolation (authenticated)', () =>
     const commands = new WorkspaceCommands(ctx)
 
     // Create relative path inside sandbox
-    const identity = { tenantId, userId } as unknown
+    const identity = { tenantId, userId } as AuthToken
     const created = await commands.create({ path: 'my-subfolder' }, identity)
     expect(created.workspace.path).toContain(userSandbox)
 
@@ -180,7 +180,7 @@ describe('DirectoryPicker and Workspace Tenant Isolation (authenticated)', () =>
     })
 
     const commands = new WorkspaceCommands(ctx)
-    const identity = { tenantId, userId } as unknown
+    const identity = { tenantId, userId } as AuthToken
     const result = await commands.ensureInitialWorkspace(identity)
     expect(result.created).toBe(true)
     expect(result.workspace.path).toContain(userSandbox)

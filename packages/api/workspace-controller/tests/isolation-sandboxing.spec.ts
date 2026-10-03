@@ -118,7 +118,7 @@ describe('DirectoryPicker and Workspace Tenant Isolation (authenticated)', () =>
     })
 
     const feed = new WorkspaceFeed(ctx)
-    const identity = { tenantId, userId } as AuthToken
+    const identity = { tenantId, userId, role: 'member', email: 'user@example.com' } as UserIdentity
     const baseline = feed.baseline(identity)
 
     expect(baseline.items).toHaveLength(1)
@@ -154,7 +154,7 @@ describe('DirectoryPicker and Workspace Tenant Isolation (authenticated)', () =>
     const commands = new WorkspaceCommands(ctx)
 
     // Create relative path inside sandbox
-    const identity = { tenantId, userId } as AuthToken
+    const identity = { tenantId, userId, role: 'member', email: 'user@example.com' } as UserIdentity
     const created = await commands.create({ path: 'my-subfolder' }, identity)
     expect(created.workspace.path).toContain(userSandbox)
 
@@ -180,7 +180,7 @@ describe('DirectoryPicker and Workspace Tenant Isolation (authenticated)', () =>
     })
 
     const commands = new WorkspaceCommands(ctx)
-    const identity = { tenantId, userId } as AuthToken
+    const identity = { tenantId, userId, role: 'member', email: 'user@example.com' } as UserIdentity
     const result = await commands.ensureInitialWorkspace(identity)
     expect(result.created).toBe(true)
     expect(result.workspace.path).toContain(userSandbox)

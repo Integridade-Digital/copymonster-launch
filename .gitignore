@@ -84,4 +84,6 @@ lib/
 
 # Leaked-secret guards
 STRIPE_WEBHOOK_SECRET=*
+.env*
 *.secret
+.credentials*

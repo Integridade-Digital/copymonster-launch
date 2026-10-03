@@ -25,7 +25,7 @@ function makeAuthPlugin(tenantId: string, userId: string) {
       const auth = new AuthService(ctx)
       ctx.provide('auth', auth)
       const adapter = {
-        identity: () => ({ tenantId, userId } as AuthToken),
+        identity: () => `token-${tenantId}-${userId}` as AuthToken,
         resolve: (token: string) => token === `token-${tenantId}-${userId}` ? ctx.extend({ authToken: token }) : undefined,
       }
       ctx.typert.contexts.registerClient('auth', adapter)

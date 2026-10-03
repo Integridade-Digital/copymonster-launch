@@ -12,7 +12,7 @@ import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import WorkspaceController from '../src/index.ts'
 import { WorkspaceFeed } from '../src/feed.ts'
 import type { WorkspaceFollowFrame } from '../src/types.ts'
-import type { AuthToken } from '@deepseek-ai/dsh-api-auth-context'
+import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
 import { MemoryStorageBackend } from '../../../storage/storage-domain/tests/helpers/memory-backend.ts'
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
@@ -300,7 +300,7 @@ describe('WorkspaceController follow', () => {
     const { ctx, root } = await harness()
     const existing = await ctx.workspaceRegistry.create(stageDir(root, 'existing'))
     const feed = new WorkspaceFeed(ctx)
-    expect(feed.baseline({ tenantId: 'tenant-1', userId: 'user-1' } as AuthToken)).toMatchObject({
+    expect(feed.baseline({ tenantId: 'tenant-1', userId: 'user-1' } as UserIdentity)).toMatchObject({
       items: [{ workspaceId: existing.id }],
     })
 

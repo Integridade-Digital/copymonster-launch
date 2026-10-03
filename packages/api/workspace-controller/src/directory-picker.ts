@@ -19,6 +19,7 @@ import type {
 import type { DirectoryListing } from '@deepseek-ai/dsh-host-directory-picker/types'
 import { Remote, RemoteError, TypertRemoteService, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import type { RemoteErrorCode } from '@deepseek-ai/dsh-typert-protocol'
+import { getAuthIdentity } from './auth-identity.ts'
 
 const createDirectoryRequestSchema = z.object({
   path: z.string(),
@@ -80,7 +81,7 @@ export class DirectoryPickerController extends TypertRemoteService {
     try {
       let targetPath = path
       let sandboxRoot: string | undefined
-      const identity = this.ctx.authIdentity
+      const identity = getAuthIdentity(this.ctx)
       if (identity?.tenantId && identity.userId) {
         sandboxRoot = await ensureUserSandboxDirectory(identity.tenantId, identity.userId)
         if (targetPath === undefined || targetPath === '') {
@@ -154,7 +155,7 @@ export class DirectoryPickerController extends TypertRemoteService {
     }
 
     let parentPath = request.data.path
-    const identity = this.ctx.authIdentity
+    const identity = getAuthIdentity(this.ctx)
     if (identity?.tenantId && identity.userId) {
       const sandboxRoot = await ensureUserSandboxDirectory(identity.tenantId, identity.userId)
       try {

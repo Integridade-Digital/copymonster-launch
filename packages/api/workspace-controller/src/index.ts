@@ -1,8 +1,8 @@
 /** Host Workspace Remote owner: explicit commands and reconnect-safe state. */
 
 import { Context } from '@deepseek-ai/cordis'
-// Type-only: resolves the `authIdentity` Context augmentation this controller reads.
 import { Remote, RemoteScope, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { getAuthIdentity } from './auth-identity.ts'
 import { WorkspaceCommands } from './commands.ts'
 import { DirectoryPickerController } from './directory-picker.ts'
 import { WorkspaceFeed } from './feed.ts'
@@ -58,7 +58,7 @@ export class WorkspaceController extends TypertRemoteService {
    */
   @Remote('create')
   create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue> {
-    return this.commands.create(request, this.ctx.authIdentity)
+    return this.commands.create(request, getAuthIdentity(this.ctx))
   }
 
   /**
@@ -73,12 +73,12 @@ export class WorkspaceController extends TypertRemoteService {
    */
   @RemoteScope('auth', 'ensureInitial')
   ensureInitial(): Promise<WorkspaceCreateValue> {
-    return this.commands.ensureInitialWorkspace(this.ctx.authIdentity)
+    return this.commands.ensureInitialWorkspace(getAuthIdentity(this.ctx))
   }
 
   @Remote('rename')
   rename(request: WorkspaceRenameRequest): Promise<WorkspaceValue> {
-    return this.commands.rename(request, this.ctx.authIdentity)
+    return this.commands.rename(request, getAuthIdentity(this.ctx))
   }
 
   /**
@@ -88,7 +88,7 @@ export class WorkspaceController extends TypertRemoteService {
    */
   @Remote('delete')
   delete(request: WorkspaceDeleteRequest): Promise<WorkspaceDeleteValue> {
-    return this.commands.delete(request, this.ctx.authIdentity)
+    return this.commands.delete(request, getAuthIdentity(this.ctx))
   }
 
   /**
@@ -138,7 +138,7 @@ export class WorkspaceController extends TypertRemoteService {
    */
   @Remote({ mode: 'stream' })
   follow(signal: AbortSignal): AsyncIterable<WorkspaceFollowFrame> {
-    return this.feed.follow(signal, this.ctx.authIdentity)
+    return this.feed.follow(signal, getAuthIdentity(this.ctx))
   }
 }
 

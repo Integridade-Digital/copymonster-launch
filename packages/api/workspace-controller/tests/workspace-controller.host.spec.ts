@@ -41,7 +41,8 @@ function deferred<T>(): Deferred<T> {
   return { promise, resolve }
 }
 
-async function harness() {
+/** Booted Host composition without a controller, for tests that place one themselves. */
+async function harnessHost() {
   const root = realpathSync.native(mkdtempSync(join(tmpdir(), 'dsh-workspace-controller-')))
   tempDirs.push(root)
   const ctx = new Context()
@@ -59,8 +60,35 @@ async function harness() {
     lookups: { configure: () => dispose },
     contexts: { configureHost: () => dispose },
   } as never)
+  return { ctx, root, storageDomain }
+}
+
+/** Booted Host composition whose controller the caller places on its own context. */
+async function hostComposition() {
+  const { ctx, root, storageDomain } = await harnessHost()
   const controller = new WorkspaceController(ctx)
   return { controller, ctx, root, storageDomain }
+}
+
+/**
+ * Construct the controller under `ctx.plugin(...)`, so it runs on a plugin
+ * fiber rather than the root fiber. Only a plugin fiber answers an undeclared
+ * property through the Context proxy's throwing `get` trap.
+ */
+async function controllerOnPluginFiber() {
+  const { ctx, root, storageDomain } = await harnessHost()
+  let controller!: WorkspaceController
+  await ctx.plugin({
+    inject: ['workspaceRegistry', 'typert'],
+    apply: (pluginCtx: Context) => {
+      controller = new WorkspaceController(pluginCtx)
+    },
+  })
+  return { controller, ctx, root, storageDomain }
+}
+
+async function harness() {
+  return hostComposition()
 }
 
 function stageDir(root: string, name: string): string {
@@ -231,6 +259,38 @@ describe('WorkspaceController commands', () => {
     // Unarchive is idempotent: an id that is not archived is not an error.
     await expect(controller.unarchiveSession({ sessionId: session.id }))
       .resolves.toEqual({ archivedSessionIds: [] })
+  })
+})
+
+describe('WorkspaceController on a runtime declaring no authIdentity', () => {
+  // The Context proxy only throws `cannot get property "authIdentity" without
+  // inject` when `fiber.runtime` is set, which is true for a plugin fiber and
+  // false for the root fiber. Reading the identity through `Reflect.has` keeps
+  // these verbs serving under a composition that declares no such property.
+  it('serves create, rename, follow, and delete from a plugin fiber', async () => {
+    const { controller, root } = await controllerOnPluginFiber()
+
+    const path = stageDir(root, 'unscoped')
+    const created = await controller.create({ path })
+    expect(created).toMatchObject({ created: true, workspace: { path, title: 'unscoped' } })
+    const workspaceId = created.workspace.workspaceId
+
+    const renamed = await controller.rename({ workspaceId, title: 'renamed-unscoped' })
+    expect(renamed.workspace.title).toBe('renamed-unscoped')
+
+    const frames = controller.follow(new AbortController().signal)
+    const baseline = await nextFrame(frames[Symbol.asyncIterator]())
+    expect(baseline.type).toBe('baseline')
+
+    await expect(controller.delete({ workspaceId })).resolves.toEqual({ deleted: true })
+  })
+
+  it('refuses ensureInitial with the wire failure rather than a proxy trap', async () => {
+    const { controller } = await controllerOnPluginFiber()
+
+    await expect(controller.ensureInitial()).rejects.toMatchObject({
+      code: 'workspace/unauthorized',
+    })
   })
 })
 

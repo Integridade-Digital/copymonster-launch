@@ -14,6 +14,7 @@ import {
   workspaceRecord,
   WorkspaceId,
 } from '@deepseek-ai/dsh-workspace'
+import { getAuthIdentity } from './auth-identity.ts'
 import type {
   WorkspaceBaseline,
   WorkspaceFollowFrame,
@@ -74,7 +75,7 @@ export class WorkspaceFeed {
    */
   baseline(identity?: UserIdentity): WorkspaceBaseline {
     const all = this.ctx.workspaceRegistry.list()
-    const resolvedIdentity = identity ?? this.ctx.authIdentity
+    const resolvedIdentity = identity ?? getAuthIdentity(this.ctx)
     if (!resolvedIdentity?.tenantId || !resolvedIdentity.userId) {
       return {
         items: all.map(workspaceView),
@@ -155,7 +156,7 @@ export class WorkspaceFeed {
   }
 
   private publish(frame: Exclude<WorkspaceFollowFrame, { readonly type: 'baseline' }>): void {
-    const identity = this.ctx.authIdentity
+    const identity = getAuthIdentity(this.ctx)
     if (identity?.tenantId && identity.userId && frame.type === 'upsert') {
       const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
       try {

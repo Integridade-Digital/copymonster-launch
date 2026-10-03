@@ -17,6 +17,7 @@ import {
   WorkspaceUnknownSessionError,
 } from '@deepseek-ai/dsh-workspace'
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
+import { getAuthIdentity } from './auth-identity.ts'
 import { workspaceView } from './feed.ts'
 import type {
   WorkspaceArchiveSessionRequest,
@@ -49,7 +50,7 @@ export class WorkspaceCommands {
     return this.enqueue(async () => {
       try {
         let targetPath = request.path
-        const resolvedIdentity = identity ?? this.ctx.authIdentity
+        const resolvedIdentity = identity ?? getAuthIdentity(this.ctx)
         if (resolvedIdentity?.tenantId && resolvedIdentity.userId) {
           const sandboxRoot = await ensureUserSandboxDirectory(resolvedIdentity.tenantId, resolvedIdentity.userId)
           if (!isAbsolute(targetPath)) {
@@ -88,7 +89,7 @@ export class WorkspaceCommands {
     }
     return this.enqueue(async () => {
       const workspace = this.requireWorkspace(request.workspaceId)
-      const resolvedIdentity = identity ?? this.ctx.authIdentity
+      const resolvedIdentity = identity ?? getAuthIdentity(this.ctx)
       if (resolvedIdentity?.tenantId && resolvedIdentity.userId) {
         const sandboxRoot = resolveUserSandboxRoot(resolvedIdentity.tenantId, resolvedIdentity.userId)
         try {
@@ -127,7 +128,7 @@ export class WorkspaceCommands {
       if (workspace === undefined) {
         throw workspaceNotFound(request.workspaceId)
       }
-      const resolvedIdentity = identity ?? this.ctx.authIdentity
+      const resolvedIdentity = identity ?? getAuthIdentity(this.ctx)
       if (resolvedIdentity?.tenantId && resolvedIdentity.userId) {
         const sandboxRoot = resolveUserSandboxRoot(resolvedIdentity.tenantId, resolvedIdentity.userId)
         try {
@@ -226,7 +227,7 @@ export class WorkspaceCommands {
    * Auto-provisions or retrieves the initial workspace for the authenticated user.
    */
   async ensureInitialWorkspace(identity?: UserIdentity): Promise<WorkspaceCreateValue> {
-    const resolvedIdentity = identity ?? this.ctx.authIdentity
+    const resolvedIdentity = identity ?? getAuthIdentity(this.ctx)
     if (!resolvedIdentity?.tenantId || !resolvedIdentity.userId) {
       throw new RemoteError(
         'workspace/unauthorized',

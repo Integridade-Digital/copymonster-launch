@@ -3,6 +3,7 @@ export const zh = {
   'common.plans': '计划',
   'common.profile': '个人资料',
   'common.admin': '管理员',
+  'common.signOut': '退出登录',
   'common.close': '关闭',
   'common.save': '保存更改',
   'common.saving': '正在保存…',

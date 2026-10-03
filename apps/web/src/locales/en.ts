@@ -3,6 +3,7 @@ export const en = {
   'common.plans': 'Plans',
   'common.profile': 'Profile',
   'common.admin': 'Admin',
+  'common.signOut': 'Sign Out',
   'common.close': 'Close',
   'common.save': 'Save Changes',
   'common.saving': 'Saving…',

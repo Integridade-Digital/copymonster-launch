@@ -274,7 +274,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const handleRemoteLogout = () => {
-      void signOut();
+      void signOut().then(() => {
+        window.location.href = '/login';
+      });
     };
     window.addEventListener('copymonster:logout', handleRemoteLogout);
     return () => {

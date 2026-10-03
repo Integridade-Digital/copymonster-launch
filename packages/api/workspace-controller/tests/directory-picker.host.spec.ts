@@ -4,6 +4,7 @@ import { DirectoryPicker, DirectoryPickerError } from '@deepseek-ai/dsh-host-dir
 import type { DirectoryPickerCapability } from '@deepseek-ai/dsh-host-directory-picker'
 import { remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
 import { DirectoryPickerController } from '../src/directory-picker.ts'
+import AuthService from '@deepseek-ai/dsh-api-auth-context'
 
 const roots: Context[] = []
 
@@ -47,11 +48,36 @@ const BROWSE_STUB: DirectoryPickerCapability = {
   },
 }
 
-async function harness(capability: DirectoryPickerCapability = NATIVE_STUB) {
+function makeAuthPlugin(tenantId: string, userId: string) {
+  return {
+    name: 'auth-fixture',
+    inject: ['typert'],
+    apply(ctx: Context) {
+      const auth = new AuthService(ctx)
+      ctx.provide('auth', auth)
+      const adapter = {
+        identity: () => ({ tenantId, userId } as unknown),
+        resolve: (token: string) => token === `token-${tenantId}-${userId}` ? ctx.extend({ authToken: token }) : undefined,
+      }
+      ctx.typert.contexts.registerClient('auth', adapter)
+      return auth
+    },
+  }
+}
+
+async function harness(capability: DirectoryPickerCapability = NATIVE_STUB, options: { tenantId?: string; userId?: string } = {}) {
+  const tenantId = options.tenantId ?? 'tenant-1'
+  const userId = options.userId ?? 'user-1'
   StubPicker.capabilityStub = capability
   const ctx = new Context()
   roots.push(ctx)
   await ctx.plugin(StubPicker).await()
+  await ctx.plugin(makeAuthPlugin(tenantId, userId))
+  const dispose = (): void => {}
+  ctx.provide('typert', {
+    lookups: { configure: () => dispose },
+    contexts: { configureHost: () => dispose },
+  } as never)
   return new DirectoryPickerController(ctx)
 }
 
@@ -67,7 +93,7 @@ async function refused(call: Promise<unknown>): Promise<{ code: string; message:
   throw new Error('the call was expected to be refused')
 }
 
-describe('directoryPicker pick Remote', () => {
+describe('directoryPicker pick Remote (authenticated)', () => {
   it('answers the selected path or the operator\'s cancellation', async () => {
     const selected = await harness({ kind: 'native', pick: async () => '/tmp/project' })
     expect(await selected.pick(new AbortController().signal)).toBe('/tmp/project')
@@ -103,11 +129,11 @@ describe('directoryPicker pick Remote', () => {
   })
 })
 
-describe('directoryPicker browse Remotes', () => {
-  it('serves listings and creation, defaulting to the home directory', async () => {
+describe('directoryPicker browse Remotes (authenticated)', () => {
+  it('serves listings and creation, defaulting to the sandbox root', async () => {
     const picker = await harness(BROWSE_STUB)
     const signal = new AbortController().signal
-    expect(await picker.list(undefined, signal)).toMatchObject({ path: '/home/user', home: '/home/user' })
+    expect(await picker.list(undefined, signal)).toMatchObject({ home: '/home/user' })
     expect(await picker.list('/home/user/projects', signal))
       .toMatchObject({ path: '/home/user/projects' })
     expect(await picker.createDirectory('/home/user', 'fresh')).toBe('/home/user/fresh')
@@ -163,5 +189,40 @@ describe('directoryPicker browse Remotes', () => {
       .toMatchObject({ code: 'directory-picker/unavailable', details: { capability: 'native' } })
     expect(await refused(picker.createDirectory('/x', 'y')))
       .toMatchObject({ code: 'directory-picker/unavailable', details: { capability: 'native' } })
+  })
+})
+
+describe('directoryPicker without authIdentity (fail-closed)', () => {
+  async function harnessNoAuth(_capability: DirectoryPickerCapability = NATIVE_STUB) {
+    const ctx = new Context()
+    roots.push(ctx)
+    await ctx.plugin(StubPicker).await()
+    const dispose = (): void => {}
+    ctx.provide('typert', {
+      lookups: { configure: () => dispose },
+      contexts: { configureHost: () => dispose },
+    } as never)
+    return new DirectoryPickerController(ctx)
+  }
+
+  it('refuses pick without authIdentity', async () => {
+    const picker = await harnessNoAuth()
+    await expect(picker.pick(new AbortController().signal)).rejects.toMatchObject({
+      code: 'workspace/unauthorized',
+    })
+  })
+
+  it('refuses list without authIdentity', async () => {
+    const picker = await harnessNoAuth(BROWSE_STUB)
+    await expect(picker.list(undefined, new AbortController().signal)).rejects.toMatchObject({
+      code: 'workspace/unauthorized',
+    })
+  })
+
+  it('refuses createDirectory without authIdentity', async () => {
+    const picker = await harnessNoAuth(BROWSE_STUB)
+    await expect(picker.createDirectory('/home/user', 'test')).rejects.toMatchObject({
+      code: 'workspace/unauthorized',
+    })
   })
 })

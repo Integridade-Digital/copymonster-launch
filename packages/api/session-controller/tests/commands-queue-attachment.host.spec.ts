@@ -103,7 +103,7 @@ async function commandHarness(
   } as unknown as ApiSessionAgentController
   return {
     ctx,
-    controller: new SessionCommandController(ctx, agents, '/workspace'),
+    controller: new SessionCommandController(ctx, agents),
     agent,
     inbox,
     steer,
@@ -123,7 +123,7 @@ describe('Session queue commands', () => {
     const error = new RemoteError('session/agent-busy', 'owned by a child', { reason: 'subagent-owned' })
     const controller = new SessionCommandController(ctx, {
       resolveAgent: () => Promise.resolve({ error }),
-    } as unknown as ApiSessionAgentController, '/workspace')
+    } as unknown as ApiSessionAgentController)
     try {
       await expect(controller.updateQueue({
         sessionId: SessionId('cold-child'), itemId: MessageId('pending'), action: { kind: 'remove' },
@@ -336,7 +336,7 @@ async function persistedController(
   installSessionReadTestServices(ctx)
   ctx.provide('attachments', { readImage } as never)
   const agents = { resolveAgent: vi.fn() } as unknown as ApiSessionAgentController
-  return { ctx, controller: new SessionCommandController(ctx, agents, '/workspace'), sessionId }
+  return { ctx, controller: new SessionCommandController(ctx, agents), sessionId }
 }
 
 describe('Session attachment authorization', () => {
@@ -415,7 +415,6 @@ describe('Session attachment authorization', () => {
     const noPersistenceController = new SessionCommandController(
       noPersistence,
       { resolveAgent: vi.fn() } as unknown as ApiSessionAgentController,
-      '/workspace',
     )
     await expectFailure(noPersistenceController.attachment({
       sessionId: SessionId('missing'), attachmentId: AttachmentId('att'),
@@ -431,7 +430,6 @@ describe('Session attachment authorization', () => {
     const missingController = new SessionCommandController(
       missing,
       { resolveAgent: vi.fn() } as unknown as ApiSessionAgentController,
-      '/workspace',
     )
     await expectFailure(missingController.attachment({
       sessionId: SessionId('missing'), attachmentId: 'att' as never,
@@ -462,7 +460,6 @@ describe('Session attachment authorization', () => {
     const controller = new SessionCommandController(
       ctx,
       { resolveAgent: vi.fn() } as unknown as ApiSessionAgentController,
-      '/workspace',
     )
 
     await expectFailure(controller.attachment({

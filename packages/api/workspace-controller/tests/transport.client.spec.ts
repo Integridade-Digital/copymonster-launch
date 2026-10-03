@@ -161,6 +161,7 @@ describe('Workspace state stream', () => {
     const replaceOrder = vi.fn<WorkspaceFollowSink['replaceOrder']>()
     const replaceArchived = vi.fn<WorkspaceFollowSink['replaceArchived']>()
     const stream = createWorkspaceStateStream(remote, {
+      authToken: 'test-token',
       accept: accepts({ replaceBaseline, upsertView, removeView, replaceOrder, replaceArchived }),
       failed: vi.fn(),
     })
@@ -192,6 +193,7 @@ describe('Workspace state stream', () => {
     const carrierFailed = vi.fn()
     const failed = vi.fn()
     const stream = createWorkspaceStateStream(remote, {
+      authToken: 'test-token',
       accept: accepts({ replaceBaseline }),
       carrierFailed,
       failed,
@@ -215,6 +217,7 @@ describe('Workspace state stream', () => {
     const replaceBaseline = vi.fn<WorkspaceFollowSink['replaceBaseline']>()
     const carrierFailed = vi.fn()
     const stream = createWorkspaceStateStream(remote, {
+      authToken: 'test-token',
       accept: accepts({ replaceBaseline }),
       carrierFailed,
       failed: vi.fn(),
@@ -234,6 +237,7 @@ describe('Workspace state stream', () => {
     const failed = vi.fn()
     let closing: Promise<void> | undefined
     const stream = createWorkspaceStateStream(remote, {
+      authToken: 'test-token',
       accept: accepts({
         replaceBaseline: () => {
           closing = stream.dispose()
@@ -269,7 +273,8 @@ describe('Workspace state stream', () => {
     const { remote } = await gatewayClient(mock, start)
     mock.stream(FOLLOW, frames(items))
     const failed = vi.fn()
-    const stream = createWorkspaceStateStream(remote, { accept: accepts(), failed })
+    const stream = createWorkspaceStateStream(remote, {
+      authToken: 'test-token', accept: accepts(), failed })
 
     stream.start()
     await vi.waitFor(() => { expect(failed).toHaveBeenCalledOnce() })
@@ -291,6 +296,7 @@ describe('Workspace state stream', () => {
     const replaceBaseline = vi.fn<WorkspaceFollowSink['replaceBaseline']>()
     const failed = vi.fn()
     const stream = createWorkspaceStateStream(remote, {
+      authToken: 'test-token',
       accept: accepts({ replaceBaseline }),
       failed,
     })

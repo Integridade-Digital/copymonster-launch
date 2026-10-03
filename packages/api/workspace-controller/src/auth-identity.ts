@@ -12,6 +12,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
+import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 
 /**
  * Read the authenticated caller identity when the Context carries one.
@@ -19,5 +20,25 @@ import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
  * @returns the authenticated identity, or `undefined` when the call is unscoped.
  */
 export function getAuthIdentity(ctx: Context): UserIdentity | undefined {
-  return Reflect.has(ctx, 'authIdentity') ? ctx.authIdentity : undefined
+  // Use the context proxy to access authIdentity (works for both own properties and services)
+  return 'authIdentity' in ctx ? ctx.authIdentity : undefined
+}
+
+/**
+ * Read the authenticated caller identity, refusing a call that carries none.
+ *
+ * Every Workspace read and write resolves its confined root from this identity,
+ * so an unscoped call has no root to confine to. This method raises a `workspace`
+ * Remote failure instead of falling back to a shared or process-wide directory.
+ * @param ctx - Host context the Remote method is running under.
+ * @returns the authenticated identity.
+ * @throws RemoteError with code `workspace/unauthorized` when the Context carries
+ * no identity, which happens for an unscoped call or a path-local invocation.
+ */
+export function requireAuthIdentity(ctx: Context): UserIdentity {
+  const identity = getAuthIdentity(ctx)
+  if (identity === undefined) {
+    throw new RemoteError('workspace/unauthorized', 'This operation requires an authenticated caller identity.', {})
+  }
+  return identity
 }

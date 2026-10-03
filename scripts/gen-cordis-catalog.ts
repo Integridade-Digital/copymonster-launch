@@ -76,6 +76,7 @@ export const SERVICE_PAGE: Record<string, string> = {
   compaction: 'compaction.md',
   cordisInspect: 'extensions.md',
   authorization: 'credentials.md',
+  auth: 'auth.md',
   credentials: 'credentials.md',
   credentialsController: 'credentials.md',
   settingsController: 'settings.md',
@@ -191,6 +192,8 @@ export const SERVICE_WALK_EXEMPTIONS: Record<string, string> = {
   sidebarRight: 'client-side right-Sidebar navigation face — packages/client/ui-sidebar-right/README.md owns the API',
   sidebarRightTabs: 'client-side right-Sidebar tab-type registry — packages/client/ui-sidebar-right/README.md owns the API',
   documentPreviews: 'client-side document renderer registry — docs/subsystems/sidebar-right.md owns the API',
+  authToken: 'client-side auth token provided by the auth page — packages/api/auth-context/README.md owns the API',
+  authIdentity: 'server-side resolved auth identity — packages/api/auth-context/README.md owns the API',
 }
 
 /**
@@ -840,6 +843,17 @@ export const TYPE_LINK_EXEMPTIONS: Readonly<Record<string, string>> = {
   TerminalFrame: 'Browser terminal stream frames are owned by packages/api/terminal-controller/README.md',
   TerminalRetentionFrame: 'Browser terminal window holds are owned by packages/api/terminal-controller/README.md',
   WebTerminalId: 'Browser terminal identity is owned by packages/api/terminal-controller/README.md',
+  /** Settings controller local types (tenant metrics, audit logs, token usage) */
+  TenantMetricsView: 'tenant metrics view is owned by packages/api/settings-controller/README.md',
+  AuditLogQueryRequest: 'audit log query request is owned by packages/api/settings-controller/README.md',
+  AuditLogView: 'audit log view is owned by packages/api/settings-controller/README.md',
+  AuditLogRecordRequest: 'audit log record request is owned by packages/api/settings-controller/README.md',
+  TokenUsageRecordRequest: 'token usage record request is owned by packages/api/settings-controller/README.md',
+  TokenUsageRecordValue: 'token usage record value is owned by packages/api/settings-controller/README.md',
+  /** Workspace controller manual auth token for follow stream */
+  AuthToken: 'bearer token type is owned by packages/api/auth-context/README.md',
+  UserIdentity: 'authenticated user identity is owned by packages/api/auth-context/README.md',
+  TenantAdminView: 'tenant admin view is owned by packages/api/settings-controller/README.md',
 }
 
 /** Repository data policy consumed by the Cordis catalog projector. */

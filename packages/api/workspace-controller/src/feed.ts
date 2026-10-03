@@ -14,7 +14,6 @@ import {
   workspaceRecord,
   WorkspaceId,
 } from '@deepseek-ai/dsh-workspace'
-import { getAuthIdentity } from './auth-identity.ts'
 import type {
   WorkspaceBaseline,
   WorkspaceFollowFrame,
@@ -70,46 +69,37 @@ export class WorkspaceFeed {
   }
 
   /**
-   * Read the complete current projection synchronously.
-   * @returns all active Workspaces and archived Session identities.
+   * Read the complete current projection visible to one authenticated caller.
+   * @param identity - authenticated caller identity owning the confined root.
+   * @returns the caller's Workspaces and the registry-global archived Session identities.
    */
-  baseline(identity?: UserIdentity): WorkspaceBaseline {
-    const all = this.ctx.workspaceRegistry.list()
-    const resolvedIdentity = identity ?? getAuthIdentity(this.ctx)
-    if (!resolvedIdentity?.tenantId || !resolvedIdentity.userId) {
-      return {
-        items: all.map(workspaceView),
-        archivedSessionIds: [...this.ctx.workspaceRegistry.archivedSessionIds],
-      }
-    }
-
-    const sandboxRoot = resolveUserSandboxRoot(resolvedIdentity.tenantId, resolvedIdentity.userId)
-    const allowed = all.filter((ws) => {
-      try {
-        assertPathInSandbox(ws.path, sandboxRoot)
-        return true
-      } catch {
-        return false
-      }
-    })
-
+  baseline(identity: UserIdentity): WorkspaceBaseline {
+    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    const items = this.ctx.workspaceRegistry.list().filter(workspace => allowsPath(workspace.path, sandboxRoot))
     return {
-      items: allowed.map(workspaceView),
+      items: items.map(workspaceView),
       archivedSessionIds: [...this.ctx.workspaceRegistry.archivedSessionIds],
     }
   }
 
   /**
    * Open one generation beginning with a complete baseline.
+   *
+   * Each generation confines itself to the caller's sandbox root, so one
+   * publication reaches only the followers entitled to see that Workspace.
    * @param signal - generation cancellation.
+   * @param identity - authenticated caller identity owning the confined root.
    * @returns baseline followed by ordered Workspace increments.
    */
-  async *follow(signal: AbortSignal, identity?: UserIdentity): AsyncIterable<WorkspaceFollowFrame> {
+  async *follow(signal: AbortSignal, identity: UserIdentity): AsyncIterable<WorkspaceFollowFrame> {
     signal.throwIfAborted()
-    const follower = new WorkspaceFollower()
+    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    const follower = new WorkspaceFollower(sandboxRoot)
     this.followers.add(follower)
     try {
-      yield { type: 'baseline', value: this.baseline(identity) }
+      const baseline = this.baseline(identity)
+      follower.remember(baseline.items)
+      yield { type: 'baseline', value: baseline }
       yield* follower.read(signal)
     } finally {
       this.followers.delete(follower)
@@ -155,17 +145,23 @@ export class WorkspaceFeed {
     })
   }
 
+  /**
+   * Offer one increment to every generation, filtered by each generation's own
+   * confined root. A frame a follower is not entitled to see is dropped for that
+   * follower only, so two callers never observe each other's Workspaces.
+   */
   private publish(frame: Exclude<WorkspaceFollowFrame, { readonly type: 'baseline' }>): void {
-    const identity = getAuthIdentity(this.ctx)
-    if (identity?.tenantId && identity.userId && frame.type === 'upsert') {
-      const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
-      try {
-        assertPathInSandbox(frame.workspace.path, sandboxRoot)
-      } catch {
-        return
-      }
-    }
-    for (const follower of this.followers) follower.push(frame)
+    for (const follower of this.followers) follower.accept(frame)
+  }
+}
+
+/** @returns whether one Workspace path lies inside a confined root. */
+function allowsPath(path: string, sandboxRoot: string): boolean {
+  try {
+    assertPathInSandbox(path, sandboxRoot)
+    return true
+  } catch {
+    return false
   }
 }
 
@@ -175,8 +171,45 @@ function sameStrings(left: readonly string[], right: readonly string[]): boolean
 
 class WorkspaceFollower {
   private readonly frames = new Deque<WorkspaceFollowFrame>()
+  private readonly visible = new Set<string>()
   private waiting: (() => void) | undefined
   private closed = false
+
+  /** @param sandboxRoot - confined root this generation may observe. */
+  constructor(private readonly sandboxRoot: string) {}
+
+  /** @param items - baseline Workspaces this generation has already observed. */
+  remember(items: readonly WorkspaceView[]): void {
+    for (const item of items) this.visible.add(item.workspaceId)
+  }
+
+  /**
+   * Queue one increment when this generation is entitled to observe it.
+   *
+   * An `upsert` is judged by its Workspace path. `remove` and `order` carry no
+   * path, so they are judged against the identities already delivered to this
+   * generation, which keeps another user's Workspace ids out of its stream.
+   */
+  accept(frame: Exclude<WorkspaceFollowFrame, { readonly type: 'baseline' }>): void {
+    if (frame.type === 'upsert') {
+      if (!allowsPath(frame.workspace.path, this.sandboxRoot)) return
+      this.visible.add(frame.workspace.workspaceId)
+      this.push(frame)
+      return
+    }
+    if (frame.type === 'remove') {
+      if (!this.visible.delete(frame.workspaceId)) return
+      this.push(frame)
+      return
+    }
+    if (frame.type === 'order') {
+      const workspaceIds = frame.workspaceIds.filter(id => this.visible.has(id))
+      if (workspaceIds.length === 0) return
+      this.push({ type: 'order', workspaceIds })
+      return
+    }
+    this.push(frame)
+  }
 
   push(frame: WorkspaceFollowFrame): void {
     /* v8 ignore next -- closed followers are removed before later publication can reach them. */

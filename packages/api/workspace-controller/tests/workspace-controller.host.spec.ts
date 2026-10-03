@@ -278,7 +278,7 @@ describe('WorkspaceController on a runtime declaring no authIdentity', () => {
     const renamed = await controller.rename({ workspaceId, title: 'renamed-unscoped' })
     expect(renamed.workspace.title).toBe('renamed-unscoped')
 
-    const frames = controller.follow(new AbortController().signal)
+    const frames = controller.follow('token', new AbortController().signal)
     const baseline = await nextFrame(frames[Symbol.asyncIterator]())
     expect(baseline.type).toBe('baseline')
 
@@ -299,7 +299,7 @@ describe('WorkspaceController follow', () => {
     const { ctx, root } = await harness()
     const existing = await ctx.workspaceRegistry.create(stageDir(root, 'existing'))
     const feed = new WorkspaceFeed(ctx)
-    expect(feed.baseline()).toMatchObject({
+    expect(feed.baseline({ tenantId: 'tenant-1', userId: 'user-1' } as unknown)).toMatchObject({
       items: [{ workspaceId: existing.id }],
     })
 
@@ -321,7 +321,7 @@ describe('WorkspaceController follow', () => {
   it('starts with a complete baseline and emits committed increments in domain order', async () => {
     const { controller, ctx, root } = await harness()
     const abort = new AbortController()
-    const iterator = controller.follow(abort.signal)[Symbol.asyncIterator]()
+    const iterator = controller.follow('token', abort.signal)[Symbol.asyncIterator]()
     await expect(nextFrame(iterator)).resolves.toEqual({
       type: 'baseline',
       value: { items: [], archivedSessionIds: [] },
@@ -382,7 +382,7 @@ describe('WorkspaceController follow', () => {
   it('ignores unrelated domain writes and closes active followers on disposal', async () => {
     const { controller, ctx, root } = await harness()
     const abort = new AbortController()
-    const iterator = controller.follow(abort.signal)[Symbol.asyncIterator]()
+    const iterator = controller.follow('token', abort.signal)[Symbol.asyncIterator]()
     await nextFrame(iterator)
     ctx.emit('domain/changed', {
       domain: 'other', table: 'records', key: 'x', operation: 'put', value: {},

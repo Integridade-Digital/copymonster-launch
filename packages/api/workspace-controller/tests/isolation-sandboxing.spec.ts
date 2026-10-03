@@ -9,6 +9,7 @@ import {
   resolveUserSandboxRoot,
   WorkspaceId,
 } from '@deepseek-ai/dsh-workspace'
+import AuthService from '@deepseek-ai/dsh-api-auth-context'
 
 const roots: Context[] = []
 
@@ -16,21 +17,32 @@ afterEach(async () => {
   await Promise.all(roots.splice(0).map(ctx => ctx.fiber.dispose()))
 })
 
-describe('DirectoryPicker and Workspace Tenant Isolation', () => {
+function makeAuthPlugin(tenantId: string, userId: string) {
+  return {
+    name: 'auth-fixture',
+    inject: ['typert'],
+    apply(ctx: Context) {
+      const auth = new AuthService(ctx)
+      ctx.provide('auth', auth)
+      const adapter = {
+        identity: () => ({ tenantId, userId } as unknown),
+        resolve: (token: string) => token === `token-${tenantId}-${userId}` ? ctx.extend({ authToken: token }) : undefined,
+      }
+      ctx.typert.contexts.registerClient('auth', adapter)
+      return auth
+    },
+  }
+}
+
+describe('DirectoryPicker and Workspace Tenant Isolation (authenticated)', () => {
   it('confines directory list to sandbox and filters ancestry crumbs', async () => {
     const ctx = new Context()
     roots.push(ctx)
-
     const tenantId = 'tenant-alpha'
     const userId = 'user-123'
     const sandboxRoot = await ensureUserSandboxDirectory(tenantId, userId)
 
-    ctx.provide('authIdentity', {
-      userId,
-      tenantId,
-      role: 'member',
-      email: 'user@example.com',
-    })
+    await ctx.plugin(makeAuthPlugin(tenantId, userId))
 
     const cap: DirectoryPickerCapability = {
       kind: 'browse',
@@ -92,6 +104,8 @@ describe('DirectoryPicker and Workspace Tenant Isolation', () => {
     const userSandbox = resolveUserSandboxRoot(tenantId, userId)
     const otherSandbox = resolveUserSandboxRoot('tenant-other', 'other-user')
 
+    await ctx.plugin(makeAuthPlugin(tenantId, userId))
+
     ctx.provide('workspaceRegistry', {
       list() {
         return [
@@ -103,15 +117,9 @@ describe('DirectoryPicker and Workspace Tenant Isolation', () => {
       archivedSessionIds: [],
     })
 
-    ctx.provide('authIdentity', {
-      userId,
-      tenantId,
-      role: 'member',
-      email: 'beta@example.com',
-    })
-
     const feed = new WorkspaceFeed(ctx)
-    const baseline = feed.baseline()
+    const identity = { tenantId, userId } as unknown
+    const baseline = feed.baseline(identity)
 
     expect(baseline.items).toHaveLength(1)
     expect(baseline.items[0]?.workspaceId).toBe('ws-1')
@@ -125,6 +133,8 @@ describe('DirectoryPicker and Workspace Tenant Isolation', () => {
     const tenantId = 'tenant-gamma'
     const userId = 'user-789'
     const userSandbox = resolveUserSandboxRoot(tenantId, userId)
+
+    await ctx.plugin(makeAuthPlugin(tenantId, userId))
 
     ctx.provide('workspaceRegistry', {
       resolveByPath: async (_p: string) => undefined,
@@ -141,21 +151,15 @@ describe('DirectoryPicker and Workspace Tenant Isolation', () => {
       delete: async () => true,
     })
 
-    ctx.provide('authIdentity', {
-      userId,
-      tenantId,
-      role: 'member',
-      email: 'gamma@example.com',
-    })
-
     const commands = new WorkspaceCommands(ctx)
 
     // Create relative path inside sandbox
-    const created = await commands.create({ path: 'my-subfolder' })
+    const identity = { tenantId, userId } as unknown
+    const created = await commands.create({ path: 'my-subfolder' }, identity)
     expect(created.workspace.path).toContain(userSandbox)
 
     // Attempt to delete foreign workspace throws forbidden
-    await expect(commands.delete({ workspaceId: WorkspaceId('ws-foreign') })).rejects.toThrow(
+    await expect(commands.delete({ workspaceId: WorkspaceId('ws-foreign') }, identity)).rejects.toThrow(
       /Access denied: cannot delete workspace outside authorized sandbox/,
     )
   })
@@ -168,20 +172,16 @@ describe('DirectoryPicker and Workspace Tenant Isolation', () => {
     const userId = 'user-auto'
     const userSandbox = resolveUserSandboxRoot(tenantId, userId)
 
+    await ctx.plugin(makeAuthPlugin(tenantId, userId))
+
     ctx.provide('workspaceRegistry', {
       resolveByPath: async (_p: string) => undefined,
       create: async (p: string) => ({ id: 'ws-init', title: 'Default', path: p, sessionIds: [] }),
     })
 
-    ctx.provide('authIdentity', {
-      userId,
-      tenantId,
-      role: 'member',
-      email: 'auto@example.com',
-    })
-
     const commands = new WorkspaceCommands(ctx)
-    const result = await commands.ensureInitialWorkspace()
+    const identity = { tenantId, userId } as unknown
+    const result = await commands.ensureInitialWorkspace(identity)
     expect(result.created).toBe(true)
     expect(result.workspace.path).toContain(userSandbox)
     expect(result.workspace.path).toContain('default')

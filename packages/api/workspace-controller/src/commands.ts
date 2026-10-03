@@ -17,7 +17,6 @@ import {
   WorkspaceUnknownSessionError,
 } from '@deepseek-ai/dsh-workspace'
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
-import { getAuthIdentity } from './auth-identity.ts'
 import { workspaceView } from './feed.ts'
 import type {
   WorkspaceArchiveSessionRequest,
@@ -44,21 +43,16 @@ export class WorkspaceCommands {
   /**
    * Create or resolve one Workspace over an existing directory.
    * @param request - directory path to register.
+   * @param identity - authenticated caller identity owning the confined root.
    * @returns the Workspace and whether this call created it.
    */
-  create(request: WorkspaceCreateRequest, identity?: UserIdentity): Promise<WorkspaceCreateValue> {
+  create(request: WorkspaceCreateRequest, identity: UserIdentity): Promise<WorkspaceCreateValue> {
     return this.enqueue(async () => {
       try {
-        let targetPath = request.path
-        const resolvedIdentity = identity ?? getAuthIdentity(this.ctx)
-        if (resolvedIdentity?.tenantId && resolvedIdentity.userId) {
-          const sandboxRoot = await ensureUserSandboxDirectory(resolvedIdentity.tenantId, resolvedIdentity.userId)
-          if (!isAbsolute(targetPath)) {
-            targetPath = resolve(sandboxRoot, targetPath)
-          } else {
-            targetPath = assertPathInSandbox(targetPath, sandboxRoot)
-          }
-        }
+        const sandboxRoot = await ensureUserSandboxDirectory(identity.tenantId, identity.userId)
+        const targetPath = isAbsolute(request.path)
+          ? assertPathInSandbox(request.path, sandboxRoot)
+          : resolve(sandboxRoot, request.path)
         const existing = await this.ctx.workspaceRegistry.resolveByPath(targetPath)
         if (existing !== undefined) {
           return { workspace: workspaceView(existing), created: false }
@@ -80,28 +74,16 @@ export class WorkspaceCommands {
   /**
    * Rename one Workspace after serializing title ownership checks.
    * @param request - Workspace identity and proposed title.
+   * @param identity - authenticated caller identity owning the confined root.
    * @returns the updated Workspace projection.
    */
-  rename(request: WorkspaceRenameRequest, identity?: UserIdentity): Promise<WorkspaceValue> {
+  rename(request: WorkspaceRenameRequest, identity: UserIdentity): Promise<WorkspaceValue> {
     const title = request.title.trim()
     if (title === '') {
       return Promise.reject(new RemoteError('gateway/bad-request', 'Workspace rename requires a non-blank title', {}))
     }
     return this.enqueue(async () => {
-      const workspace = this.requireWorkspace(request.workspaceId)
-      const resolvedIdentity = identity ?? getAuthIdentity(this.ctx)
-      if (resolvedIdentity?.tenantId && resolvedIdentity.userId) {
-        const sandboxRoot = resolveUserSandboxRoot(resolvedIdentity.tenantId, resolvedIdentity.userId)
-        try {
-          assertPathInSandbox(workspace.path, sandboxRoot)
-        } catch {
-          throw new RemoteError(
-            'workspace/forbidden',
-            'Access denied: cannot rename workspace outside authorized sandbox',
-            { workspaceId: request.workspaceId },
-          )
-        }
-      }
+      const workspace = this.requireConfinedWorkspace(request.workspaceId, identity, 'rename')
       if (title !== workspace.title) {
         if (this.ctx.workspaceRegistry.list().some(candidate =>
           candidate.id !== workspace.id && candidate.title === title)) {
@@ -120,27 +102,12 @@ export class WorkspaceCommands {
   /**
    * Delete one Workspace registration without deleting its directory or Sessions.
    * @param request - Workspace identity to remove.
+   * @param identity - authenticated caller identity owning the confined root.
    * @returns deletion confirmation.
    */
-  delete(request: WorkspaceDeleteRequest, identity?: UserIdentity): Promise<WorkspaceDeleteValue> {
+  delete(request: WorkspaceDeleteRequest, identity: UserIdentity): Promise<WorkspaceDeleteValue> {
     return this.enqueue(async () => {
-      const workspace = this.ctx.workspaceRegistry.get(WorkspaceId(request.workspaceId))
-      if (workspace === undefined) {
-        throw workspaceNotFound(request.workspaceId)
-      }
-      const resolvedIdentity = identity ?? getAuthIdentity(this.ctx)
-      if (resolvedIdentity?.tenantId && resolvedIdentity.userId) {
-        const sandboxRoot = resolveUserSandboxRoot(resolvedIdentity.tenantId, resolvedIdentity.userId)
-        try {
-          assertPathInSandbox(workspace.path, sandboxRoot)
-        } catch {
-          throw new RemoteError(
-            'workspace/forbidden',
-            'Access denied: cannot delete workspace outside authorized sandbox',
-            { workspaceId: request.workspaceId },
-          )
-        }
-      }
+      this.requireConfinedWorkspace(request.workspaceId, identity, 'delete')
       if (!await this.ctx.workspaceRegistry.delete(WorkspaceId(request.workspaceId))) {
         throw workspaceNotFound(request.workspaceId)
       }
@@ -225,18 +192,39 @@ export class WorkspaceCommands {
 
   /**
    * Auto-provisions or retrieves the initial workspace for the authenticated user.
+   * @param identity - authenticated caller identity owning the confined root.
+   * @returns the initial Workspace and whether this call created it.
    */
-  async ensureInitialWorkspace(identity?: UserIdentity): Promise<WorkspaceCreateValue> {
-    const resolvedIdentity = identity ?? getAuthIdentity(this.ctx)
-    if (!resolvedIdentity?.tenantId || !resolvedIdentity.userId) {
+  async ensureInitialWorkspace(identity: UserIdentity): Promise<WorkspaceCreateValue> {
+    await ensureInitialUserWorkspace(identity.tenantId, identity.userId)
+    return this.create({ path: 'default' }, identity)
+  }
+
+  /**
+   * Resolve one Workspace and refuse it when its directory lies outside the
+   * caller's confined root.
+   * @param workspaceId - Workspace identity to resolve.
+   * @param identity - authenticated caller identity owning the confined root.
+   * @param operation - verb name used in the refusal message.
+   * @returns the confined Workspace.
+   */
+  private requireConfinedWorkspace(
+    workspaceId: WorkspaceId,
+    identity: UserIdentity,
+    operation: string,
+  ): Workspace {
+    const workspace = this.requireWorkspace(workspaceId)
+    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    try {
+      assertPathInSandbox(workspace.path, sandboxRoot)
+    } catch {
       throw new RemoteError(
-        'workspace/unauthorized',
-        'Authentication required to ensure initial workspace',
-        {},
+        'workspace/forbidden',
+        `Access denied: cannot ${operation} workspace outside authorized sandbox`,
+        { workspaceId },
       )
     }
-    await ensureInitialUserWorkspace(resolvedIdentity.tenantId, resolvedIdentity.userId)
-    return this.create({ path: 'default' }, resolvedIdentity)
+    return workspace
   }
 
   private requireWorkspace(workspaceId: WorkspaceId): Workspace {

@@ -20,6 +20,7 @@ import type {
   WorkspaceView,
 } from '../src/types.ts'
 import { RemoteError, type RemoteFailure, type RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
+import type { AuthToken } from '@deepseek-ai/dsh-api-auth-context'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
 const sid = (id: string): SessionId => id as SessionId
@@ -68,6 +69,8 @@ class FakeWorkspaceRemote implements WorkspaceRemote {
   readonly calls: Array<{ readonly method: string; readonly request: unknown }> = []
   onCreate: (request: WorkspaceCreateRequest) => Promise<RemoteResult<WorkspaceCreateValue>> = request =>
     Promise.resolve(remoteOk({ workspace: workspace(request.path.split('/').pop() ?? 'workspace'), created: true }))
+  onEnsureInitial: () => Promise<RemoteResult<WorkspaceCreateValue>> = () =>
+    Promise.resolve(remoteOk({ workspace: workspace('default'), created: true }))
   onRename: (request: WorkspaceRenameRequest) => Promise<RemoteResult<WorkspaceValue>> = request =>
     Promise.resolve(remoteOk({ workspace: { ...workspace(String(request.workspaceId)), title: request.title } }))
   onDelete: (_request: WorkspaceDeleteRequest) => Promise<RemoteResult<WorkspaceDeleteValue>> = () =>
@@ -93,6 +96,11 @@ class FakeWorkspaceRemote implements WorkspaceRemote {
   create(request: WorkspaceCreateRequest): Promise<RemoteResult<WorkspaceCreateValue>> {
     this.record('create', request)
     return this.onCreate(request)
+  }
+
+  ensureInitial(): Promise<RemoteResult<WorkspaceCreateValue>> {
+    this.record('ensureInitial', {})
+    return this.onEnsureInitial()
   }
 
   rename(request: WorkspaceRenameRequest): Promise<RemoteResult<WorkspaceValue>> {
@@ -125,7 +133,7 @@ class FakeWorkspaceRemote implements WorkspaceRemote {
     return this.onUnarchiveSession(request)
   }
 
-  async *follow(_signal?: AbortSignal): AsyncGenerator<WorkspaceFollowFrame> {}
+  async *follow(_authToken: AuthToken, _signal?: AbortSignal): AsyncGenerator<WorkspaceFollowFrame> {}
 
   private record(method: string, request: unknown): void {
     this.calls.push({ method, request })

@@ -359,11 +359,29 @@ export class FaceModelEmitter {
     const direct = packageModel.invocations.filter(invocation => invocation.invocation.kind === 'direct')
     const scoped = packageModel.invocations.filter(invocation =>
       invocation.invocation.kind === 'context' || invocation.scope !== undefined)
-    if (direct.length > 0) {
-      for (const namespace of uniqueNamespaces(direct)) {
+
+    // Group scoped invocations by namespace for merging into namespace interfaces
+    const scopedByNamespace = new Map<string, typeof scoped>()
+    for (const invocation of scoped) {
+      const ns = invocation.namespace
+      if (!scopedByNamespace.has(ns)) scopedByNamespace.set(ns, [])
+      scopedByNamespace.get(ns)?.push(invocation)
+    }
+
+    const allNamespaces = new Set([...uniqueNamespaces(direct), ...uniqueNamespaces(scoped)])
+    if (allNamespaces.size > 0) {
+      for (const namespace of [...allNamespaces].sort()) {
         lines.push(`  interface ${remoteNamespaceInterface(namespace)} {`)
+        // Add direct methods for this namespace
         for (const invocation of direct.filter(candidate => candidate.namespace === namespace)) {
           this.pushRemoteNamespaceSignature(lines, sourceMap, packageModel, invocation, referenceNames)
+        }
+        // Add scoped methods for this namespace
+        const scopedInNamespace = scopedByNamespace.get(namespace)
+        if (scopedInNamespace) {
+          for (const invocation of scopedInNamespace) {
+            this.pushRemoteNamespaceSignature(lines, sourceMap, packageModel, invocation, referenceNames)
+          }
         }
         lines.push('  }')
       }
@@ -373,15 +391,8 @@ export class FaceModelEmitter {
       }
       lines.push('  }')
       lines.push('  interface TypertRemoteNamespaceMap {')
-      for (const namespace of uniqueNamespaces(direct)) {
+      for (const namespace of [...allNamespaces].sort()) {
         lines.push(`    ${quote(namespace)}: ${remoteNamespaceInterface(namespace)}`)
-      }
-      lines.push('  }')
-    }
-    if (scoped.length > 0) {
-      lines.push('  interface TypertRemoteScopeMap {')
-      for (const invocation of scoped) {
-        this.pushRemoteSignature(lines, sourceMap, packageModel, invocation, referenceNames, true)
       }
       lines.push('  }')
     }

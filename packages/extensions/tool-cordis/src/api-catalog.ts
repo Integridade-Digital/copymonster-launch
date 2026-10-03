@@ -557,6 +557,30 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     ],
   },
   {
+    key: 'auth',
+    summary: '`ctx.auth`: resolve bearer tokens to CopyMonster identities.',
+    description: '`ctx.auth`: resolve bearer tokens to CopyMonster identities.\n\nA resolution failure is not an exception for Typert lookups — the adapter returns `undefined` so Gateway answers the stable `context-not-found` fault. Direct callers (HTTP routes) get `undefined` too and decide their own status.',
+    methods: [
+      {
+        signature: 'async resolveIdentity(token: AuthToken): Promise<UserIdentity | undefined>',
+        description: 'Resolve one bearer token to the caller identity.\n\nThe active tenant and role come from the `tenant_id` and `user_role` claims that the Supabase Custom Access Token Hook writes into the JWT, so the Custom Access Token Hook decides the membership and this service only confirms the tenant is still usable. A token that names no tenant, names no role, names the `anonymous` role, or names a tenant that is not `active` resolves to `undefined`: an authenticated user without a usable membership gets no identity rather than a downgraded one.\n\nHits the local in-memory LRU cache first to prevent repeated round-trips to Supabase.',
+        parameters: [{ name: 'token', description: 'Supabase-issued JWT presented by the caller.' }],
+        returns: 'the identity, or `undefined` when the token is absent, invalid, expired, carries no usable tenant or role claim, names a tenant that is not active, or no longer maps to a known profile.',
+      },
+      {
+        signature: 'clearCache(): void',
+        description: 'Clears the in-memory identity cache. Useful for test isolation or explicit revocation.',
+        parameters: [],
+      },
+      {
+        signature: 'async resolveContext(token: AuthToken): Promise<Context | undefined>',
+        description: 'Resolve one bearer token to the child Context a scoped Remote method runs in.\n\nThe child is a plain `ctx.extend(...)` overlay carrying `authIdentity`; it creates no fiber and holds no registrations, so it needs no teardown.',
+        parameters: [{ name: 'token', description: 'Supabase-issued JWT presented by the caller.' }],
+        returns: 'the identity-carrying Context, or `undefined` when unresolved.',
+      },
+    ],
+  },
+  {
     key: 'authorization',
     summary: '`ctx.authorization`: a registry of credential-obtaining flows, one attempt at a time per key.',
     description: '`ctx.authorization`: a registry of credential-obtaining flows, one attempt at a time per key.',
@@ -834,8 +858,8 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   },
   {
     key: 'credentialsController',
-    summary: 'Host service backing the generated `ctx.remote.credentials` namespace.',
-    description: 'Host service backing the generated `ctx.remote.credentials` namespace. It carries every wire obligation the credential seam itself does not: the batch fan-out bound, the field-by-field view projection, the reference-grammar guard, and the refusal mapping. Secret values cross in one direction only — no method here returns one.',
+    summary: 'Service providing access to stored credentials and their metadata.',
+    description: 'Service providing access to stored credentials and their metadata.',
     methods: [
       {
         signature: '@Remote async describe(refs: string[]): Promise<Record<string, CredentialInfo>>',
@@ -896,20 +920,20 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Host service backing the generated `ctx.remote.directoryPicker` namespace. The seam it exports is abstract and therefore never a Loader entry of its own, so this controller carries the wire verbs: one composed backend serves either the native chooser or the browse primitives, and a verb the composition cannot serve is refused rather than approximated.',
     methods: [
       {
-        signature: '@Remote(\'pick\') async pick(signal: AbortSignal): Promise<string | null>',
-        description: 'Open the host\'s OS chooser for a Remote caller.',
+        signature: '@RemoteScope(\'auth\', \'pick\') async pick(signal: AbortSignal): Promise<string | null>',
+        description: 'Open the host\'s OS chooser for a Remote caller. Requires authenticated caller identity.',
         parameters: [{ name: 'signal', description: 'caller lifetime; abort terminates the chooser.' }],
         returns: 'the chosen absolute path, or null when the operator cancels.',
       },
       {
-        signature: '@Remote(\'list\') async list(path: string | undefined, signal: AbortSignal): Promise<DirectoryListing>',
-        description: 'List one directory level for a Remote caller\'s in-app browser.',
-        parameters: [{ name: 'path', description: 'absolute directory to list; absent lists the home directory.' }, { name: 'signal', description: 'caller lifetime; abort stops the backend\'s scan instead of letting it outlive a disconnected caller.' }],
+        signature: '@RemoteScope(\'auth\', \'list\') async list(path: string | undefined, signal: AbortSignal): Promise<DirectoryListing>',
+        description: 'List one directory level for a Remote caller\'s in-app browser. Confines listing strictly to the caller\'s authorized sandbox. Requires authenticated caller identity.',
+        parameters: [{ name: 'path', description: 'absolute directory to list; absent lists the sandbox root.' }, { name: 'signal', description: 'caller lifetime; abort stops the backend\'s scan instead of letting it outlive a disconnected caller.' }],
         returns: 'the level\'s listing with its ancestry.',
       },
       {
-        signature: '@Remote(\'createDirectory\') async createDirectory(path: string, name: string): Promise<string>',
-        description: 'Create one child directory for a Remote caller\'s in-app browser.',
+        signature: '@RemoteScope(\'auth\', \'createDirectory\') async createDirectory(path: string, name: string): Promise<string>',
+        description: 'Create one child directory for a Remote caller\'s in-app browser. Confines directory creation strictly to the caller\'s authorized sandbox. Requires authenticated caller identity.',
         parameters: [{ name: 'path', description: 'absolute existing parent directory.' }, { name: 'name', description: 'single non-blank path segment.' }],
         returns: 'the created directory\'s absolute path.',
       },
@@ -2287,8 +2311,8 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
   },
   {
     key: 'settingsController',
-    summary: 'Host service backing the generated `ctx.remote.settings` namespace.',
-    description: 'Host service backing the generated `ctx.remote.settings` namespace. Every remote read uses `redactSecrets: true`, so a `role(\'secret\')` field cannot ride a response. Writes expose the settings service\'s merge, replacement, and path-addressed operations, and classify every provider refusal as `settings/conflict` or `settings/rejected` with the service\'s message.',
+    summary: 'Service providing access to tenant settings, audit logs, and usage metrics.',
+    description: 'Service providing access to tenant settings, audit logs, and usage metrics.',
     methods: [
       {
         signature: '@Remote describe(): SettingsDescribeValue',
@@ -2304,14 +2328,14 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         returns: 'true when the matching open operation is available.',
       },
       {
-        signature: '@Remote update( ns: string, patch: Record<string, JsonValue>, expectedRevision: number | undefined, ): Promise<SettingsNamespaceView>',
+        signature: '@Remote async update( ns: string, patch: Record<string, JsonValue>, expectedRevision: number | undefined, ): Promise<SettingsNamespaceView>',
         description: 'Merge a patch into one namespace\'s stored user section.',
         parameters: [{ name: 'ns', description: 'namespace key to write.' }, { name: 'patch', description: 'fields to merge into the user section.' }, { name: 'expectedRevision', description: 'revision the caller read; `undefined` writes unconditionally.' }],
         returns: 'the namespace\'s redacted view after the write.',
         throws: ['RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.'],
       },
       {
-        signature: '@Remote replace( ns: string, section: Record<string, JsonValue>, expectedRevision: number | undefined, ): Promise<SettingsNamespaceView>',
+        signature: '@Remote async replace( ns: string, section: Record<string, JsonValue>, expectedRevision: number | undefined, ): Promise<SettingsNamespaceView>',
         description: 'Replace one namespace\'s stored user section wholesale.',
         parameters: [{ name: 'ns', description: 'namespace key to write.' }, { name: 'section', description: 'complete replacement user section.' }, { name: 'expectedRevision', description: 'revision the caller read; `undefined` writes unconditionally.' }],
         returns: 'the namespace\'s redacted view after the write.',
@@ -2337,6 +2361,36 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
         parameters: [{ name: 'agentPreset', description: 'preset id resolved against Host-owned roots.' }, { name: 'signal', description: 'caller lifetime; abort terminates the native command.' }],
         returns: 'an opened confirmation or the resolved directory for text display.',
         throws: ['RemoteError when the preset is missing, read-only, invalid, or cannot be opened.'],
+      },
+      {
+        signature: '@RemoteScope(\'auth\', \'listTenants\') async listTenants(): Promise<TenantAdminView[]>',
+        description: 'List tenants with their plan, subscription status, and token usage for admin users. Restricted to callers with role \'owner\' or \'admin\'.',
+        parameters: [],
+        returns: 'list of tenant admin views with subscription and token usage details',
+      },
+      {
+        signature: '@RemoteScope(\'auth\', \'getTenantMetrics\') async getTenantMetrics(request?: { tenantId?: string }): Promise<TenantMetricsView>',
+        description: 'Fetch token consumption metrics, trial status, and plan allowances for a tenant. Regular members query their own tenant; administrators may query any tenant.',
+        parameters: [{ name: 'request', description: 'optional tenantId for admin cross-tenant queries' }],
+        returns: 'tenant metrics including token consumption and trial status',
+      },
+      {
+        signature: '@RemoteScope(\'auth\', \'listAuditLogs\') async listAuditLogs(request?: AuditLogQueryRequest): Promise<AuditLogView[]>',
+        description: 'Query the tenant audit trail. Restricted to administrators.',
+        parameters: [{ name: 'request', description: 'optional query parameters (limit, offset, tenantId)' }],
+        returns: 'list of audit log entries',
+      },
+      {
+        signature: '@RemoteScope(\'auth\', \'recordAuditLog\') async recordAuditLog(request: AuditLogRecordRequest): Promise<{ recorded: true; id: string }>',
+        description: 'Record an action into the audit trail.',
+        parameters: [{ name: 'request', description: 'the audit log entry to record' }],
+        returns: 'confirmation with the recorded log id',
+      },
+      {
+        signature: '@RemoteScope(\'auth\', \'recordTokenUsage\') async recordTokenUsage(request: TokenUsageRecordRequest): Promise<TokenUsageRecordValue>',
+        description: 'Increment token usage for the caller\'s tenant via the atomic database RPC.',
+        parameters: [{ name: 'request', description: 'token usage details to record' }],
+        returns: 'the updated token usage record',
       },
     ],
   },
@@ -3227,51 +3281,57 @@ export const SERVICE_API: readonly ServiceApiEntry[] = [
     description: 'Host service backing the generated `ctx.remote.workspace` namespace.',
     methods: [
       {
-        signature: '@Remote(\'create\') create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue>',
+        signature: '@RemoteScope(\'auth\', \'create\') create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue>',
         description: 'Create or idempotently resolve one Workspace over an existing directory.',
         parameters: [{ name: 'request', description: 'directory path to register.' }],
         returns: 'the Workspace and whether this call created it.',
       },
       {
-        signature: '@Remote(\'rename\') rename(request: WorkspaceRenameRequest): Promise<WorkspaceValue>',
+        signature: '@RemoteScope(\'auth\', \'ensureInitial\') ensureInitial(): Promise<WorkspaceCreateValue>',
+        description: 'Ensure or auto-provision the initial default workspace for the authenticated user.',
+        parameters: [],
+        returns: 'the Workspace and whether this call created it.',
+      },
+      {
+        signature: '@RemoteScope(\'auth\', \'rename\') rename(request: WorkspaceRenameRequest): Promise<WorkspaceValue>',
         description: 'Rename one Workspace to a unique non-blank title.',
         parameters: [{ name: 'request', description: 'Workspace identity and proposed title.' }],
         returns: 'the updated Workspace projection.',
       },
       {
-        signature: '@Remote(\'delete\') delete(request: WorkspaceDeleteRequest): Promise<WorkspaceDeleteValue>',
+        signature: '@RemoteScope(\'auth\', \'delete\') delete(request: WorkspaceDeleteRequest): Promise<WorkspaceDeleteValue>',
         description: 'Remove one Workspace registration while retaining files and Sessions.',
         parameters: [{ name: 'request', description: 'Workspace identity to remove.' }],
         returns: 'deletion confirmation.',
       },
       {
-        signature: '@Remote(\'insertBefore\') insertBefore(request: WorkspaceInsertBeforeRequest): Promise<WorkspaceOrderValue>',
+        signature: '@RemoteScope(\'auth\', \'insertBefore\') insertBefore(request: WorkspaceInsertBeforeRequest): Promise<WorkspaceOrderValue>',
         description: 'Move one Workspace within the registry display order.',
         parameters: [{ name: 'request', description: 'moved Workspace and optional anchor.' }],
         returns: 'the complete resulting Workspace order.',
       },
       {
-        signature: '@Remote(\'insertSessionBefore\') insertSessionBefore(request: WorkspaceInsertSessionBeforeRequest): Promise<WorkspaceValue>',
+        signature: '@RemoteScope(\'auth\', \'insertSessionBefore\') insertSessionBefore(request: WorkspaceInsertSessionBeforeRequest): Promise<WorkspaceValue>',
         description: 'Move one accounted Session within a Workspace.',
         parameters: [{ name: 'request', description: 'Workspace, Session, and optional anchor identities.' }],
         returns: 'the updated Workspace projection.',
       },
       {
-        signature: '@Remote(\'archiveSession\') archiveSession(request: WorkspaceArchiveSessionRequest): Promise<WorkspaceArchiveValue>',
+        signature: '@RemoteScope(\'auth\', \'archiveSession\') archiveSession(request: WorkspaceArchiveSessionRequest): Promise<WorkspaceArchiveValue>',
         description: 'Hide one known Session from Workspace grouping surfaces.',
         parameters: [{ name: 'request', description: 'Session identity to archive.' }],
         returns: 'the complete resulting archive set.',
       },
       {
-        signature: '@Remote(\'unarchiveSession\') unarchiveSession(request: WorkspaceUnarchiveSessionRequest): Promise<WorkspaceArchiveValue>',
+        signature: '@RemoteScope(\'auth\', \'unarchiveSession\') unarchiveSession(request: WorkspaceUnarchiveSessionRequest): Promise<WorkspaceArchiveValue>',
         description: 'Restore one archived Session to Workspace grouping surfaces.',
         parameters: [{ name: 'request', description: 'Session identity to unarchive.' }],
         returns: 'the complete resulting archive set.',
       },
       {
-        signature: '@Remote({ mode: \'stream\' }) follow(signal: AbortSignal): AsyncIterable<WorkspaceFollowFrame>',
-        description: 'Stream a complete Workspace baseline followed by ordered increments.',
-        parameters: [{ name: 'signal', description: 'generation cancellation.' }],
+        signature: '@Remote({ mode: \'stream\' }) async *follow(authToken: AuthToken, signal: AbortSignal): AsyncIterable<WorkspaceFollowFrame>',
+        description: 'Stream a complete Workspace baseline followed by ordered increments.\n\n`@RemoteScope` cannot carry this verb yet: the Typert generator discards `mode` for a `context` invocation, so a scoped stream is emitted as a unary method and breaks the Client contract. This verb therefore stays a direct stream and resolves the caller\'s identity itself from the same bearer token a scoped verb carries, refusing a call the Host cannot attribute to a confined root. Migrate to `@RemoteScope(\'auth\', \'follow\')` once the generator supports a stream and a context together.',
+        parameters: [{ name: 'authToken', description: 'bearer token the Host re-verifies before reading data.' }, { name: 'signal', description: 'generation cancellation.' }],
         returns: 'baseline followed by ordered Workspace increments.',
       },
     ],
@@ -4161,6 +4221,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export type AttachmentId = Branded<\'AttachmentId\'>;',
   },
   {
+    name: 'AuditLogQueryRequest',
+    declaration: 'export interface AuditLogQueryRequest {\n    readonly tenantId?: string;\n    readonly action?: string;\n    readonly limit?: number;\n    readonly offset?: number;\n}',
+  },
+  {
+    name: 'AuditLogRecordRequest',
+    declaration: 'export interface AuditLogRecordRequest {\n    readonly action: string;\n    readonly resourceType?: string;\n    readonly resourceId?: string;\n    readonly oldValue?: JsonValue | null;\n    readonly newValue?: JsonValue | null;\n}',
+  },
+  {
+    name: 'AuditLogView',
+    declaration: 'export interface AuditLogView {\n    readonly id: string;\n    readonly tenantId: string | null;\n    readonly userId: string | null;\n    readonly action: string;\n    readonly resourceType: string | null;\n    readonly resourceId: string | null;\n    readonly oldValue: JsonValue | null;\n    readonly newValue: JsonValue | null;\n    readonly ipAddress: string | null;\n    readonly userAgent: string | null;\n    readonly createdAt: string;\n}',
+  },
+  {
     name: 'AuthorizationEntry',
     declaration: 'export interface AuthorizationEntry {\n    key: CredentialKey;\n    label: string;\n    methods: readonly AuthorizationMethod[];\n    inFlight: boolean;\n}',
   },
@@ -4207,6 +4279,10 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'AuthorizationStatus',
     declaration: 'export type AuthorizationStatus = \'authorized\' | \'cancelled\';',
+  },
+  {
+    name: 'AuthToken',
+    declaration: 'export type AuthToken = string;',
   },
   {
     name: 'BackendRegistry',
@@ -6577,6 +6653,18 @@ export const TYPE_API: readonly TypeApiEntry[] = [
     declaration: 'export interface TeamWaitResult {\n    readonly timedOut: boolean;\n}',
   },
   {
+    name: 'TenantAdminView',
+    declaration: 'export interface TenantAdminView {\n    readonly id: string;\n    readonly name: string;\n    readonly slug: string;\n    readonly status: \'active\' | \'suspended\' | \'deleted\';\n    readonly subscription_status: string;\n    readonly plan_id: string | null;\n    readonly trial_ends_at: string | null;\n    readonly trial_used: boolean;\n    readonly trial_tokens_used: number;\n    readonly current_period_tokens_used: number;\n    readonly created_at: string;\n}',
+  },
+  {
+    name: 'TenantMetricsView',
+    declaration: 'export interface TenantMetricsView {\n    readonly tenantId: string;\n    readonly subscriptionStatus: string;\n    readonly plan: TenantPlanDetails | null;\n    readonly trial: {\n        readonly trialEndsAt: string | null;\n        readonly trialUsed: boolean;\n        readonly trialTokensUsed: number;\n        readonly maxTrialTokens: number;\n        readonly isExpired: boolean;\n        readonly daysLeft: number;\n    };\n    readonly usage: {\n        readonly currentPeriodTokensUsed: number;\n        readonly totalTokensLimit: number;\n    };\n}',
+  },
+  {
+    name: 'TenantPlanDetails',
+    declaration: 'export interface TenantPlanDetails {\n    readonly id: string;\n    readonly name: string;\n    readonly slug: string;\n    readonly monthly_price_cents?: number | null | undefined;\n    readonly annual_price_cents?: number | null | undefined;\n    readonly token_limit_input?: number | null | undefined;\n    readonly token_limit_output?: number | null | undefined;\n    readonly max_workspaces?: number | null | undefined;\n    readonly max_sessions?: number | null | undefined;\n    readonly storage_gb?: number | null | undefined;\n    readonly ai_tier?: string | null | undefined;\n}',
+  },
+  {
     name: 'TerminalAttachmentId',
     declaration: 'export type TerminalAttachmentId = Branded<\'TerminalAttachmentId\'>;',
   },
@@ -6695,6 +6783,14 @@ export const TYPE_API: readonly TypeApiEntry[] = [
   {
     name: 'TokenUsage',
     declaration: 'export interface TokenUsage {\n    inputTokens: number;\n    outputTokens: number;\n    totalTokens?: number;\n    cacheReadTokens?: number;\n    cacheWriteTokens?: number;\n    reasoningTokens?: number;\n}',
+  },
+  {
+    name: 'TokenUsageRecordRequest',
+    declaration: 'export interface TokenUsageRecordRequest {\n    readonly tokens: number;\n    readonly tenantId?: string;\n}',
+  },
+  {
+    name: 'TokenUsageRecordValue',
+    declaration: 'export interface TokenUsageRecordValue {\n    readonly recorded: true;\n    readonly tenantId: string;\n    readonly tokensAdded: number;\n}',
   },
   {
     name: 'ToolCallKind',

@@ -1,8 +1,9 @@
 /** Host Workspace Remote owner: explicit commands and reconnect-safe state. */
 
 import { Context } from '@deepseek-ai/cordis'
-import { Remote, RemoteScope, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
-import { getAuthIdentity } from './auth-identity.ts'
+import type { AuthToken } from '@deepseek-ai/dsh-api-auth-context'
+import { Remote, RemoteScope, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { requireAuthIdentity } from './auth-identity.ts'
 import { WorkspaceCommands } from './commands.ts'
 import { DirectoryPickerController } from './directory-picker.ts'
 import { WorkspaceFeed } from './feed.ts'
@@ -56,16 +57,10 @@ export class WorkspaceController extends TypertRemoteService {
    * @param request - directory path to register.
    * @returns the Workspace and whether this call created it.
    */
-  @Remote('create')
+  @RemoteScope('auth', 'create')
   create(request: WorkspaceCreateRequest): Promise<WorkspaceCreateValue> {
-    return this.commands.create(request, getAuthIdentity(this.ctx))
+    return this.commands.create(request, requireAuthIdentity(this.ctx))
   }
-
-  /**
-   * Rename one Workspace to a unique non-blank title.
-   * @param request - Workspace identity and proposed title.
-   * @returns the updated Workspace projection.
-   */
 
   /**
    * Ensure or auto-provision the initial default workspace for the authenticated user.
@@ -73,12 +68,17 @@ export class WorkspaceController extends TypertRemoteService {
    */
   @RemoteScope('auth', 'ensureInitial')
   ensureInitial(): Promise<WorkspaceCreateValue> {
-    return this.commands.ensureInitialWorkspace(getAuthIdentity(this.ctx))
+    return this.commands.ensureInitialWorkspace(requireAuthIdentity(this.ctx))
   }
 
-  @Remote('rename')
+  /**
+   * Rename one Workspace to a unique non-blank title.
+   * @param request - Workspace identity and proposed title.
+   * @returns the updated Workspace projection.
+   */
+  @RemoteScope('auth', 'rename')
   rename(request: WorkspaceRenameRequest): Promise<WorkspaceValue> {
-    return this.commands.rename(request, getAuthIdentity(this.ctx))
+    return this.commands.rename(request, requireAuthIdentity(this.ctx))
   }
 
   /**
@@ -86,9 +86,9 @@ export class WorkspaceController extends TypertRemoteService {
    * @param request - Workspace identity to remove.
    * @returns deletion confirmation.
    */
-  @Remote('delete')
+  @RemoteScope('auth', 'delete')
   delete(request: WorkspaceDeleteRequest): Promise<WorkspaceDeleteValue> {
-    return this.commands.delete(request, getAuthIdentity(this.ctx))
+    return this.commands.delete(request, requireAuthIdentity(this.ctx))
   }
 
   /**
@@ -96,7 +96,7 @@ export class WorkspaceController extends TypertRemoteService {
    * @param request - moved Workspace and optional anchor.
    * @returns the complete resulting Workspace order.
    */
-  @Remote('insertBefore')
+  @RemoteScope('auth', 'insertBefore')
   insertBefore(request: WorkspaceInsertBeforeRequest): Promise<WorkspaceOrderValue> {
     return this.commands.insertBefore(request)
   }
@@ -106,7 +106,7 @@ export class WorkspaceController extends TypertRemoteService {
    * @param request - Workspace, Session, and optional anchor identities.
    * @returns the updated Workspace projection.
    */
-  @Remote('insertSessionBefore')
+  @RemoteScope('auth', 'insertSessionBefore')
   insertSessionBefore(request: WorkspaceInsertSessionBeforeRequest): Promise<WorkspaceValue> {
     return this.commands.insertSessionBefore(request)
   }
@@ -116,7 +116,7 @@ export class WorkspaceController extends TypertRemoteService {
    * @param request - Session identity to archive.
    * @returns the complete resulting archive set.
    */
-  @Remote('archiveSession')
+  @RemoteScope('auth', 'archiveSession')
   archiveSession(request: WorkspaceArchiveSessionRequest): Promise<WorkspaceArchiveValue> {
     return this.commands.archiveSession(request)
   }
@@ -126,19 +126,42 @@ export class WorkspaceController extends TypertRemoteService {
    * @param request - Session identity to unarchive.
    * @returns the complete resulting archive set.
    */
-  @Remote('unarchiveSession')
+  @RemoteScope('auth', 'unarchiveSession')
   unarchiveSession(request: WorkspaceUnarchiveSessionRequest): Promise<WorkspaceArchiveValue> {
     return this.commands.unarchiveSession(request)
   }
 
   /**
    * Stream a complete Workspace baseline followed by ordered increments.
+   *
+   * `@RemoteScope` cannot carry this verb yet: the Typert generator discards
+   * `mode` for a `context` invocation, so a scoped stream is emitted as a unary
+   * method and breaks the Client contract. This verb therefore stays a direct
+   * stream and resolves the caller's identity itself from the same bearer token
+   * a scoped verb carries, refusing a call the Host cannot attribute to a
+   * confined root. Migrate to `@RemoteScope('auth', 'follow')` once the
+   * generator supports a stream and a context together.
+   *
+   * @param authToken - bearer token the Host re-verifies before reading data.
    * @param signal - generation cancellation.
    * @returns baseline followed by ordered Workspace increments.
    */
   @Remote({ mode: 'stream' })
-  follow(signal: AbortSignal): AsyncIterable<WorkspaceFollowFrame> {
-    return this.feed.follow(signal, getAuthIdentity(this.ctx))
+  async *follow(authToken: AuthToken, signal: AbortSignal): AsyncIterable<WorkspaceFollowFrame> {
+    signal.throwIfAborted()
+    const auth = this.ctx.get('auth')
+    if (auth === undefined) {
+      throw new RemoteError('workspace/unauthorized', 'Workspace streaming requires the auth service.', {})
+    }
+    const identity = await auth.resolveIdentity(authToken)
+    if (identity === undefined) {
+      throw new RemoteError(
+        'workspace/unauthorized',
+        'Workspace streaming requires an authenticated caller identity.',
+        {},
+      )
+    }
+    yield* this.feed.follow(signal, identity)
   }
 }
 

@@ -1,6 +1,7 @@
 /** Workspace-specific adapter for the Gateway-owned snapshot stream lifecycle. */
 
 import type { Context } from '@deepseek-ai/cordis'
+import type { AuthToken } from '@deepseek-ai/dsh-api-auth-context/types'
 import {
   RemoteSnapshotStream,
   RemoteStreamCarrierError,
@@ -46,6 +47,7 @@ export function apply(ctx: Context): void {
   new WorkspaceController(ctx, model)
   const control = createWorkspaceStateStream(ctx.remote, {
     accept: model,
+    authToken: authTokenOf(ctx),
     carrierFailed: () => { model.handleCarrierFailure() },
     failed: (error) => { model.handleStreamFailure(error) },
   })
@@ -56,10 +58,32 @@ export function apply(ctx: Context): void {
   )
 }
 
+/**
+ * Read the bearer token the Host re-verifies for the Workspace stream.
+ *
+ * `follow` resolves its own caller identity because the Typert generator cannot
+ * yet express a stream and a context together. The token comes from the same
+ * `auth` Client Context adapter that carries it for scoped verbs, so the page
+ * publishes it in exactly one place.
+ * @param ctx - Client root Context holding the `auth` Context adapter.
+ * @returns the page's bearer token.
+ * @throws Error when the page has published no token, because a Workspace stream
+ * cannot be confined to a caller the Host cannot attribute.
+ */
+function authTokenOf(ctx: Context): AuthToken {
+  const token = ctx.typert.contexts.getClient('auth')?.identity(ctx)
+  if (token === undefined) {
+    throw new Error('workspace-controller: the Workspace stream requires a published auth token')
+  }
+  return token as AuthToken
+}
+
 /** Domain sinks used by the Workspace state stream. */
 export interface WorkspaceStateStreamOptions {
   /** Destinations for decoded Workspace state operations. */
   readonly accept: WorkspaceFollowSink
+  /** Bearer token the Host re-verifies before opening each generation. */
+  readonly authToken: AuthToken
   /** Observe a retryable carrier loss before reconnection. */
   readonly carrierFailed?: (error: RemoteStreamCarrierError) => void
   /** Publish a terminal business or protocol failure. */
@@ -78,7 +102,7 @@ export function createWorkspaceStateStream(
 ): WorkspaceStateStream {
   const stream = remote.$stream<WorkspaceFollowFrame>({
     name: 'Workspace state stream',
-    open: signal => remote.workspace.follow(signal),
+    open: signal => remote.workspace.follow(options.authToken, signal),
     ended: accepted => accepted
       ? new RemoteStreamCarrierError('Workspace state stream ended without a terminal result')
       : new Error('Workspace state stream ended before its opening snapshot'),

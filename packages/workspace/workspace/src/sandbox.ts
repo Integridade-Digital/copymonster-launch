@@ -4,8 +4,9 @@
  * @module @deepseek-ai/dsh-workspace/src/sandbox
  */
 
+import { realpathSync } from 'node:fs'
 import { mkdir, realpath } from 'node:fs/promises'
-import { isAbsolute, normalize, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, normalize, resolve } from 'node:path'
 
 /** Default base directory for tenant data when not configured via environment */
 export const DEFAULT_COPYMONSTER_DATA_DIR = '/var/copymonster/data'
@@ -18,8 +19,16 @@ export function getCopyMonsterDataDir(): string {
 }
 
 /**
- * Resolves the absolute confined root directory for a specific tenant and user.
+ * Resolve the absolute confined root directory for a specific tenant and user.
  * Structure: <COPYMONSTER_DATA_DIR>/<tenantId>/<userId>/workspaces
+ *
+ * The result is canonicalized through `fs.realpath` on the deepest ancestor that
+ * exists, so it carries the same spelling the Workspace registry stores. That
+ * matters because `assertPathInSandbox` compares a canonicalized Workspace path
+ * against this root: a lexical root under a symlinked data directory would
+ * reject every legitimate Workspace and silently empty the Workspace feed.
+ * Segments that do not exist yet are appended unresolved, so the root can be
+ * computed before the directory is created.
  */
 export function resolveUserSandboxRoot(tenantId: string, userId: string): string {
   if (!tenantId || !tenantId.trim()) {
@@ -31,7 +40,32 @@ export function resolveUserSandboxRoot(tenantId: string, userId: string): string
   const base = resolve(getCopyMonsterDataDir())
   const sanitizedTenant = tenantId.replace(/[^a-zA-Z0-9_-]/g, '')
   const sanitizedUser = userId.replace(/[^a-zA-Z0-9_-]/g, '')
-  return resolve(base, sanitizedTenant, sanitizedUser, 'workspaces')
+  return canonicalizeExistingAncestor(resolve(base, sanitizedTenant, sanitizedUser, 'workspaces'))
+}
+
+/**
+ * Canonicalize the deepest existing ancestor of `target` and re-append the
+ * segments that do not exist yet.
+ *
+ * `fs.realpath` rejects a path it cannot traverse, so resolving the full target
+ * would make the root unavailable before the directory is created. Only the
+ * existing prefix can carry symlinks, so canonicalizing just that prefix and
+ * re-appending the remainder yields the same spelling the filesystem will report
+ * once `mkdir` has created the rest.
+ */
+function canonicalizeExistingAncestor(target: string): string {
+  const segments: string[] = []
+  let current = target
+  for (;;) {
+    try {
+      return resolve(realpathSync(current), ...segments.reverse())
+    } catch {
+      const parent = dirname(current)
+      if (parent === current) return target
+      segments.push(basename(current))
+      current = parent
+    }
+  }
 }
 
 /**
@@ -56,16 +90,53 @@ export function assertPathInSandbox(requestedPath: string, sandboxRoot: string):
 }
 
 /**
- * Ensures the sandbox directory exists on the filesystem and returns its verified realpath.
+ * Validates that a path lies inside some user's managed Workspaces tree.
+ *
+ * This is the ownership-agnostic half of {@link assertPathInSandbox}: it accepts
+ * any `<COPYMONSTER_DATA_DIR>/<tenantId>/<userId>/workspaces` subtree and refuses
+ * everything else, including the data directory itself and the process working
+ * directory. A caller that knows its own identity should confine with
+ * `assertPathInSandbox` against `resolveUserSandboxRoot` instead.
+ *
+ * @param requestedPath - absolute path a caller asked to use.
+ * @returns the resolved path inside a managed Workspaces tree.
+ * @throws Error when the path escapes the managed tree or omits the required
+ * `<tenantId>/<userId>/workspaces` prefix.
+ */
+export function assertPathInManagedWorkspaces(requestedPath: string): string {
+  if (!isAbsolute(requestedPath)) {
+    throw new Error(`Security Violation: "${requestedPath}" must be an absolute managed Workspace path.`)
+  }
+  const dataRoot = canonicalizeExistingAncestor(resolve(getCopyMonsterDataDir()))
+  const targetPath = resolve(normalize(requestedPath))
+  if (targetPath === dataRoot || !targetPath.startsWith(dataRoot + '/')) {
+    throw new Error(`Security Violation: Path traversal forbidden. "${requestedPath}" is outside the managed Workspaces tree.`)
+  }
+  const [tenantId, userId, ...rest] = targetPath.slice(dataRoot.length + 1).split('/')
+  if (tenantId === '' || userId === '' || rest[0] !== 'workspaces') {
+    throw new Error(
+      `Security Violation: Path traversal forbidden. "${requestedPath}" is not a <tenantId>/<userId>/workspaces path.`,
+    )
+  }
+  return targetPath
+}
+
+/**
+ * Ensure the sandbox directory exists and return its canonical root.
+ *
+ * Both sandbox resolvers return the same canonical spelling, so a caller that
+ * creates the directory and a caller that only compares paths against it agree
+ * on one root.
  */
 export async function ensureUserSandboxDirectory(tenantId: string, userId: string): Promise<string> {
   const root = resolveUserSandboxRoot(tenantId, userId)
   await mkdir(root, { recursive: true })
-  return await realpath(root)
+  return resolveUserSandboxRoot(tenantId, userId)
 }
 
 /**
- * Ensures the initial user workspace directory exists (default subfolder) and returns its path.
+ * Ensure the initial user workspace directory exists (default subfolder) and
+ * return its canonical path.
  */
 export async function ensureInitialUserWorkspace(
   tenantId: string,

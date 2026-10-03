@@ -13,6 +13,7 @@
   ],
   "references": [
     { "path": "../../../vendor/cordis" },
+    { "path": "../auth-context/tsconfig.client.json" },
     { "path": "../gateway/tsconfig.client.json" },
     { "path": "../../client/connection/tsconfig.client.json" },
     { "path": "../../client/store" },

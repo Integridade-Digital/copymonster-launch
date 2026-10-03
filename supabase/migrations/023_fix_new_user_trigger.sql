@@ -1,3 +1,33 @@
+-- ============================================================
+-- Migration: 023_fix_new_user_trigger.sql
+-- CopyMonster - Integridade Digital
+--
+-- CopyMonster e um SaaS de administracao unica: existe um tenant
+-- oficial ("Integridade Digital") e apenas o operador e owner.
+-- Este migration cria o tenant padrao (id fixo) e substitui o
+-- trigger handle_new_user() para que novos usuarios nunca criem
+-- tenant proprio nem recebam role 'owner'.
+-- ============================================================
+
+-- 1. Tenant padrao unico. Precisa existir antes do trigger: sem esta
+-- linha, handle_new_user() cairia no ramo _tenant_id IS NULL e o novo
+-- usuario ficaria sem nenhuma linha em user_tenant_roles.
+INSERT INTO public.tenants (id, name, slug, status, metadata)
+VALUES (
+  '00000000-0000-0000-0000-000000000001',
+  'Integridade Digital',
+  'integridade-digital',
+  'active',
+  jsonb_build_object('created_by_trigger', false)
+)
+ON CONFLICT (id) DO NOTHING;
+
+-- 2. Trigger de novo usuario: vincula 'member' no tenant convidado
+-- ou, na ausencia de convite valido, no tenant padrao. Nunca cria
+-- tenant e nunca atribui 'owner'. O convite so e aceito para um
+-- tenant 'active': a migration 024 mantem os tenants criados pelo
+-- trigger antigo como linhas soft-deleted, e um convite pendente
+-- para um deles deve cair no tenant padrao.
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -32,7 +62,8 @@ BEGIN
 
   IF _invited_tenant_id IS NOT NULL
     AND _invited_tenant_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$' THEN
-    SELECT id INTO _tenant_id FROM public.tenants WHERE id = _invited_tenant_id::uuid;
+    SELECT id INTO _tenant_id FROM public.tenants
+    WHERE id = _invited_tenant_id::uuid AND status = 'active';
   END IF;
 
   IF _tenant_id IS NULL THEN

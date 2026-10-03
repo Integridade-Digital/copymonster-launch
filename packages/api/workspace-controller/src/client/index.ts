@@ -47,7 +47,7 @@ export function apply(ctx: Context): void {
   new WorkspaceController(ctx, model)
   const control = createWorkspaceStateStream(ctx.remote, {
     accept: model,
-    authToken: authTokenOf(ctx),
+    authToken: () => authTokenOf(ctx),
     carrierFailed: () => { model.handleCarrierFailure() },
     failed: (error) => { model.handleStreamFailure(error) },
   })
@@ -82,8 +82,8 @@ function authTokenOf(ctx: Context): AuthToken {
 export interface WorkspaceStateStreamOptions {
   /** Destinations for decoded Workspace state operations. */
   readonly accept: WorkspaceFollowSink
-  /** Bearer token the Host re-verifies before opening each generation. */
-  readonly authToken: AuthToken
+  /** Reads the bearer token the Host re-verifies before opening each generation. */
+  readonly authToken: () => AuthToken
   /** Observe a retryable carrier loss before reconnection. */
   readonly carrierFailed?: (error: RemoteStreamCarrierError) => void
   /** Publish a terminal business or protocol failure. */
@@ -102,7 +102,7 @@ export function createWorkspaceStateStream(
 ): WorkspaceStateStream {
   const stream = remote.$stream<WorkspaceFollowFrame>({
     name: 'Workspace state stream',
-    open: signal => remote.workspace.follow(options.authToken, signal),
+    open: signal => remote.workspace.follow(options.authToken(), signal),
     ended: accepted => accepted
       ? new RemoteStreamCarrierError('Workspace state stream ended without a terminal result')
       : new Error('Workspace state stream ended before its opening snapshot'),

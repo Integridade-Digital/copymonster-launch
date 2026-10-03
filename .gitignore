@@ -81,3 +81,7 @@ lib/
 lib/
 *.bak
 .dsh-build/
+
+# Leaked-secret guards
+STRIPE_WEBHOOK_SECRET=*
+*.secret

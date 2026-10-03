@@ -10,6 +10,7 @@
     "src/types.ts",
     "src/remote-events.ts",
     "src/agent.ts",
+    "src/auth-identity.ts",
     "src/assistant-stream.ts",
     "src/catalog.ts",
     "src/commands.ts",
@@ -24,6 +25,7 @@
   "references": [
     { "path": "../../../vendor/cordis" },
     { "path": "../../../vendor/schemastery" },
+    { "path": "../auth-context/tsconfig.host.json" },
     { "path": "../../core/agent" },
     { "path": "../../core/agent-default-model" },
     { "path": "../../core/scope" },

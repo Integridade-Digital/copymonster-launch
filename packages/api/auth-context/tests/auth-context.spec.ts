@@ -103,14 +103,14 @@ describe('auth service', () => {
     expect(name).toBe('auth')
   })
 
-  it('registers the auth Host Context adapter over the authToken wire field', async () => {
+  it('registers the auth Host Context adapter over the authId wire field', async () => {
     const ctx = new Context()
     await ctx.plugin(TypertRegistry)
     await ctx.plugin(AuthService)
 
     const adapter = ctx.typert.contexts.getHost('auth')
-    expect(adapter?.wire).toBe('authToken')
-    expect(adapter?.wireTypeSymbol).toBe('@copymonster/auth#AuthToken')
+    expect(adapter?.wire).toBe('authId')
+    expect(adapter?.wireTypeSymbol).toBe('@deepseek-ai/dsh-api-auth-context/types#AuthToken')
   })
 
   it('resolves a valid token to an identity from the JWT claims and profile', async () => {
@@ -304,7 +304,7 @@ describe('auth service', () => {
 
     expect(await ctx.auth.resolveContext(jwt(validClaims))).toBeUndefined()
   })
-  it("serves repeated lookups for the same token from the in-memory cache without hitting Supabase", async () => {
+  it('serves repeated lookups for the same token from the in-memory cache without hitting Supabase', async () => {
     signedIn()
     tables({ tenants: activeTenant, users: fullProfile })
 
@@ -323,7 +323,7 @@ describe('auth service', () => {
     expect(mocks.from).toHaveBeenCalledTimes(2)
   })
 
-  it("clears cached identities when clearCache() is invoked", async () => {
+  it('clears cached identities when clearCache() is invoked', async () => {
     signedIn()
     tables({ tenants: activeTenant, users: fullProfile })
 

@@ -9,12 +9,13 @@ import { canOpenNativePath, nativeFileManager, openNativePath, revealNativePath 
 import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionInspection } from '@deepseek-ai/dsh-session-persistence'
 import type { SessionObservation } from '@deepseek-ai/dsh-session-query'
-import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { Remote, RemoteError, RemoteScope, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import {
   ApiSessionAgentController,
   inspectApiSession,
   type ApiSessionAgentResult,
 } from './agent.ts'
+import { requireAuthIdentity } from './auth-identity.ts'
 import { SessionCommandController } from './commands.ts'
 import { SessionControlController } from './control.ts'
 import { SessionHistoryController } from './history.ts'
@@ -240,9 +241,9 @@ export class SessionController extends TypertRemoteService {
    * @param request - requested identity, location, and Agent preset.
    * @returns the Session identity and resolved preset when configured.
    */
-  @Remote('create')
+  @RemoteScope('auth', 'create')
   create(request: SessionCreateRequest): Promise<SessionCreateValue> {
-    return this.commands.create(request)
+    return this.commands.create(request, requireAuthIdentity(this.ctx))
   }
 
   /**

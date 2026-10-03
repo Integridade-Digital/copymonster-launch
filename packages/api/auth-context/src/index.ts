@@ -29,8 +29,8 @@ declare module '@deepseek-ai/cordis' {
 }
 
 /** Wire field and type symbol the strict generator binds to the `auth` Context. */
-const AUTH_CONTEXT_WIRE = 'authToken'
-const AUTH_CONTEXT_WIRE_TYPE = '@copymonster/auth#AuthToken'
+const AUTH_CONTEXT_WIRE = 'authId'
+const AUTH_CONTEXT_WIRE_TYPE = '@deepseek-ai/dsh-api-auth-context/types#AuthToken'
 
 /**
  * Cache entry for a resolved user identity.

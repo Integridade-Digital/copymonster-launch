@@ -28,7 +28,7 @@ kind: "package-reference"
 
 失败不是异常。缺失、被拒绝或过期的 token、不是 JSON 对象的载荷、缺失或为空的 `tenant_id` 或 `user_role`、非 `active` 的租户，以及读不到或不存在的 profile，全部解析为 `undefined`：Typert lookup 因此答以稳定的 `context-not-found` 故障，而不会把 Supabase 错误抛给调用方。紧凑 JWS 载荷的解码不校验签名，因为在读取任何 claim 之前，`getUser()` 已经用 Supabase 校验过该 token。
 
-`ctx.auth.resolveContext(token)` 把该身份包进普通的 `ctx.extend({ authIdentity })` overlay，既不创建 fiber，也不持有注册。构造函数在 `ctx.inject(['typert'], ...)` 内注册 `auth` 类别的 Host Context 适配器，绑定到 `authToken` wire 字段与 `@copymonster/auth#AuthToken` 类型符号；因此该注册随 Typert 注册表一同出现，并随本插件一同卸载。标记 `@RemoteScope` 的 Remote 方法通过该适配器解析接收者，因此作用域方法体从 `ctx.authIdentity` 读取身份。
+`ctx.auth.resolveContext(token)` 把该身份包进普通的 `ctx.extend({ authIdentity })` overlay，既不创建 fiber，也不持有注册。构造函数在 `ctx.inject(['typert'], ...)` 内注册 `auth` 类别的 Host Context 适配器，绑定到 `authId` wire 字段与 `@deepseek-ai/dsh-api-auth-context/types#AuthToken` 类型符号；因此该注册随 Typert 注册表一同出现，并随本插件一同卸载。标记 `@RemoteScope` 的 Remote 方法通过该适配器解析接收者，因此作用域方法体从 `ctx.authIdentity` 读取身份。
 
 <a id="client-adapter-auth-client"></a>
 ## Client 适配器：`auth-client`

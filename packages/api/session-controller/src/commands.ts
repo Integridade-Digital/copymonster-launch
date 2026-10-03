@@ -3,6 +3,7 @@
 import { randomUUID } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import { brandString } from '@deepseek-ai/dsh-brand'
+import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
 import type { Agent, ModelSelection as AgentModelSelection } from '@deepseek-ai/dsh-agent'
 import { AttachmentError } from '@deepseek-ai/dsh-attachment'
 import type {
@@ -21,6 +22,7 @@ import { SessionTitleInvalidError } from '@deepseek-ai/dsh-session-title'
 import { canonicalClientTimeZone } from '@deepseek-ai/dsh-util-time'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
+import { assertPathInSandbox, resolveUserSandboxRoot } from '@deepseek-ai/dsh-workspace'
 import type { Workspace } from '@deepseek-ai/dsh-workspace'
 import {
   ApiSessionAgentController,
@@ -80,13 +82,15 @@ export class SessionCommandController {
   /**
    * Create or idempotently adopt one ordinary Session.
    * @param request - requested identity, location, and Agent preset.
+   * @param identity - authenticated caller whose sandbox confines the working directory.
    * @returns the Session identity and resolved preset when configured.
    */
-  async create(request: SessionCreateRequest): Promise<SessionCreateValue> {
+  async create(request: SessionCreateRequest, identity: UserIdentity): Promise<SessionCreateValue> {
     if (request.workspaceId !== undefined && request.cwd !== undefined) {
       throw new RemoteError('gateway/bad-request', 'session.create accepts workspaceId or cwd, not both', {})
     }
     const sessionId = request.sessionId ?? brandString<SessionId>(`session-${randomUUID()}`)
+    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
     let workspace: Workspace | undefined
     if (request.workspaceId !== undefined) {
       workspace = this.ctx.workspaceRegistry.get(request.workspaceId)
@@ -96,19 +100,25 @@ export class SessionCommandController {
         })
       }
     }
-    const cwd = workspace?.path ?? request.cwd
-    if (cwd === undefined) {
+    // Default the working directory to the caller's sandbox root; never the
+    // process working directory, which would cross tenant boundaries.
+    const cwd = request.cwd ?? workspace?.path ?? sandboxRoot
+    let confined: string
+    try {
+      confined = assertPathInSandbox(cwd, sandboxRoot)
+    } catch (error) {
       throw new RemoteError(
-        'gateway/bad-request',
-        'session.create requires workspaceId or cwd',
-        {},
+        'session/cwd-outside-sandbox',
+        `session.create cwd "${cwd}" is outside the caller's sandbox`,
+        { requestedCwd: cwd },
+        { cause: error },
       )
     }
     let adopted: Agent
     try {
       adopted = await this.agents.ensureSession(
         sessionId,
-        cwd,
+        confined,
         request.sessionId !== undefined,
         request.agentPreset,
       )

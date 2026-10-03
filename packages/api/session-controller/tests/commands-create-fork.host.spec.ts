@@ -1,11 +1,13 @@
+import { resolve } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent, AgentHandle, CreateAgentOptions } from '@deepseek-ai/dsh-agent'
 import type {} from '@deepseek-ai/dsh-agent-presets'
+import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
-import type { Workspace, WorkspaceId } from '@deepseek-ai/dsh-workspace'
+import { resolveUserSandboxRoot, type Workspace, type WorkspaceId } from '@deepseek-ai/dsh-workspace'
 import { describe, expect, it, vi } from 'vitest'
 import {
   ApiSessionAgentController,
@@ -17,6 +19,14 @@ import { installSessionReadTestServices, testSessionPersistence } from './test-r
 async function expectFailure(operation: Promise<unknown>, code: string): Promise<void> {
   await expect(operation).rejects.toMatchObject({ code })
 }
+
+const identity: UserIdentity = {
+  userId: 'user-x',
+  tenantId: 'tenant-x',
+  role: 'member',
+  email: 'user-x@example.com',
+}
+const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
 
 function controllerAgents(overrides: object = {}): ApiSessionAgentController {
   return {
@@ -53,13 +63,13 @@ describe('Session creation failures', () => {
       controllerAgents({ ensureSession }),
     )
 
-    const created = await controller.create({})
+    const created = await controller.create({}, identity)
 
     expect(created.sessionId).toMatch(/^session-/)
     expect(created).not.toHaveProperty('agentPreset')
     expect(ensureSession).toHaveBeenCalledWith(
       created.sessionId,
-      '/default-workspace',
+      sandboxRoot,
       false,
       undefined,
     )
@@ -75,13 +85,13 @@ describe('Session creation failures', () => {
     )
     await expectFailure(missingController.create({
       workspaceId: 'missing' as WorkspaceId,
-    }), 'workspace/not-found')
+    }, identity), 'workspace/not-found')
     await missing.fiber.dispose()
 
     const failed = await baseContext()
     const workspace = {
       id: 'workspace-1' as WorkspaceId,
-      path: '/workspace',
+      path: resolve(sandboxRoot, 'project-a'),
       attachSession: () => Promise.reject(new Error('read-only workspace')),
     } as unknown as Workspace
     failed.provide('workspaceRegistry', {
@@ -95,7 +105,7 @@ describe('Session creation failures', () => {
     await expectFailure(failedController.create({
       sessionId: SessionId('workspace-session'),
       workspaceId: workspace.id,
-    }), 'session/workspace-attach-failed')
+    }, identity), 'session/workspace-attach-failed')
     await failed.fiber.dispose()
   })
 
@@ -129,8 +139,8 @@ describe('Session creation failures', () => {
     )
 
     await expectFailure(controller.create({
-      sessionId: SessionId('failed-create'), cwd: '/requested',
-    }), code)
+      sessionId: SessionId('failed-create'), cwd: resolve(sandboxRoot, 'requested'),
+    }, identity), code)
     await ctx.fiber.dispose()
   })
 
@@ -141,7 +151,7 @@ describe('Session creation failures', () => {
     await expectFailure(controller.create({
       workspaceId: 'workspace-1' as WorkspaceId,
       cwd: '/workspace',
-    }), 'gateway/bad-request')
+    }, identity), 'gateway/bad-request')
     await ctx.fiber.dispose()
   })
 

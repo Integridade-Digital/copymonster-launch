@@ -66,27 +66,39 @@ describe('ic_ds_ icon set', () => {
 })
 
 describe('FishLogo', () => {
-  it('renders the fish path in currentColor at the native ratio', () => {
-    const { container } = render(<primitives.FishLogo />)
-    const svg = container.querySelector('svg')!
-    expect(svg.getAttribute('width')).toBe('24')
-    expect(Number(svg.getAttribute('height'))).toBeCloseTo(17.66, 1)
-    expect(svg.getAttribute('viewBox')).toBe('0 0 23.16 17.04')
-    expect(container.querySelectorAll('path')).toHaveLength(1)
-    expect(container.innerHTML).toContain('currentColor')
-    expect(container.innerHTML).not.toContain('M0 0L23.16')
+  it('renders the brand mark image at a square of the requested size', () => {
+    const view = render(<primitives.FishLogo />)
+    const img = view.container.querySelector('img')!
+    expect(img.getAttribute('src')).toBe('/brand.png')
+    expect(img.getAttribute('width')).toBe('24')
+    expect(img.getAttribute('height')).toBe('24')
+    expect(img.getAttribute('alt')).toBe('')
+    expect(img.hasAttribute('aria-hidden')).toBe(true)
+
+    view.rerender(<primitives.FishLogo size={34} className="x" />)
+    expect(img.getAttribute('width')).toBe('34')
+    expect(img.getAttribute('height')).toBe('34')
+    expect(img.classList.contains('x')).toBe(true)
   })
 })
 
 describe('BrandWordmark', () => {
-  it('can render the name artwork with or without its leading mark', () => {
-    const view = render(<primitives.BrandWordmark />)
-    const svg = view.container.querySelector('svg')!
-    expect(svg.getAttribute('width')).toBe('182')
-    expect(svg.getAttribute('viewBox')).toBe('0 0 182 24')
+  it('renders the mark image and the wordmark image, both driven by size', () => {
+    const { container } = render(<primitives.BrandWordmark size={40} />)
+    const [mark, wordmark] = Array.from(container.querySelectorAll('img'))
+    expect(mark!.getAttribute('src')).toBe('/brand.png')
+    expect(mark!.getAttribute('width')).toBe('40')
+    expect(mark!.getAttribute('height')).toBe('40')
+    expect(wordmark!.getAttribute('src')).toBe('/brand-text.png')
+    expect(wordmark!.getAttribute('alt')).toBe('CopyMonster')
+    expect(wordmark!.getAttribute('height')).toBe('24')
+  })
 
-    view.rerender(<primitives.BrandWordmark includeMark={false} />)
-    expect(svg.getAttribute('width')).toBe('156')
-    expect(svg.getAttribute('viewBox')).toBe('26 0 156 24')
+  it('drops only the leading mark when includeMark is false', () => {
+    const { container } = render(<primitives.BrandWordmark includeMark={false} />)
+    const [wordmark] = Array.from(container.querySelectorAll('img'))
+    expect(container.querySelector('img[src="/brand.png"]')).toBeNull()
+    expect(wordmark!.getAttribute('src')).toBe('/brand-text.png')
+    expect(wordmark!.getAttribute('alt')).toBe('CopyMonster')
   })
 })

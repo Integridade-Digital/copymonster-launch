@@ -7,7 +7,7 @@ export interface BrandWordmarkProps extends IconProps {
 }
 
 /**
- * Render the CopyMonster brand wordmark (image mark + text).
+ * Render the CopyMonster brand wordmark (image mark + wordmark image).
  * @param props.size - height in px (default 24).
  * @param props.className - extra class for layout placement.
  * @param props.includeMark - whether to include the leading brand mark.
@@ -38,7 +38,12 @@ export function BrandWordmark({ size = 24, className, includeMark = true }: Bran
           style={{ objectFit: 'contain', display: 'block' }}
         />
       )}
-      <span>CopyMonster</span>
+      <img
+        src="/brand-text.png"
+        alt="CopyMonster"
+        height={size * 0.6}
+        style={{ objectFit: 'contain', display: 'block' }}
+      />
     </span>
   )
 }

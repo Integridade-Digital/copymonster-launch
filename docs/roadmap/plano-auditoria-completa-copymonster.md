@@ -1,9 +1,9 @@
 # CopyMonster: Auditoria Completa — Segurança, Branding, Funcionalidades, Layout e Operação
 
 **Repositório:** `Integridade-Digital/copymonster-launch`
-**Commit Auditado:** `6224d0a858` (branch `master`)
+**Commit Auditado:** `bcfe43fedb` (branch `master`)
 **Data:** 04 de Outubro de 2026
-**Status:** Aguardando aprovação — NENHUMA correção foi implementada neste plano
+**Status:** Roadmap Reorganizado e Aprovado — Pronto para execução por blocos prioritários
 **Escopo:** apenas auditoria com evidência (arquivo:linha); "a confirmar" = não verificável pelo repo; "não encontrado" = procurado e ausente
 
 ---
@@ -327,71 +327,61 @@ Legenda esforço: **S** < 1 dia · **M** 1–5 dias · **L** > 1 semana.
 
 ---
 
-## 8. Top 10 Prioridades (risco × esforço)
+## 8. Prioridades e Matriz de Ação para Produção
 
-Critério: severidade máxima com menor esforço primeiro (maior impacto por dia de trabalho).
+Critério de ordenação: **Severidade Crítica > Risco Financeiro/Billing > Integridade do Sandbox > Identidade de Produto (Branding) > Robustez e Sustentabilidade de Longo Prazo.**
 
-| Pos. | Item | Por quê agora |
-|---|---|---|
-| 1 | **SEC-01** + SEC-02 + SEC-12 + SEC-13 (1 migration: `is_admin_or_owner` somente por `user_tenant_roles` tenanted; REVOKE/GRANT nas 5 funções; corrigir insert de audit) | Elimina o único vetor de **admin global auto-serviço** e a leitura da chave mestra LLM; ~1 migration + REVOKEs |
-| 2 | **SEC-04** (`workspace.create` relativo sem contenção) | Traversão real de FS inter-tenant; 1 linha de condição + teste |
-| 3 | **SEC-19** (`.env:17` corrompido) | Stripe com key inválida em produção **hoje**; 1 linha no arquivo + smoke test |
-| 4 | **SEC-06/FUN-04** (webhook fail-open) | Webhook forjado ativa assinatura; fail-closed em ~10 linhas |
-| 5 | **SEC-09** (cookie sem `Secure`) | 1 flag; risco de sessão em HTTP puro |
-| 6 | **SEC-10** (RLS em `trial_rate_limits`) | 1 ALTER + política |
-| 7 | **FUN-05** (price IDs divergentes) | Checkout mensal já pode ativar assinatura com `plan_id` errado; migration UPDATE + teste |
-| 8 | **BRN-01** (system-prompt "DeepSeek Harness") | A IA se apresenta com a marca errada para todo cliente; 1 linha no bundle + snapshot |
-| 9 | **SEC-08** (CSP + X-Frame-Options + nosniff) | Mitiga o XSS que habilita o SEC-07 (localStorage) e o clickjacking |
-| 10 | **BRN-02/03/04 + BRN-05** (copy "DeepSeek Harness" no UI + erros crús) | 3 strings + sanitizador de erro; cara no produto |
+| Ordem | Bloco | Escopo Principal | Impacto Direto | Esforço |
+|---|---|---|---|---|
+| **1** | **Bloco 1: Blindagem de Segurança & RLS** | Migration 025 (`is_admin_or_owner` estrito por `user_tenant_roles`, `REVOKE/GRANT` em RPCs `SECURITY DEFINER`, RLS em `trial_rate_limits`, correção de inserts em `audit_logs`) + Confinamento de caminhos relativos em `workspace.create` com `assertPathInSandbox` | Elimina auto-elevação a admin global e escape de diretório cross-tenant | Médio |
+| **2** | **Bloco 2: Integridade de Billing & Stripe** | Webhook Stripe fail-closed (rejeitar se sem secret), sincronização dos Price IDs mensais (DB↔UI), persistência de `current_period_end` no banco e gate de assinatura em `session.create` | Evita ativação indevida e encerra uso de infraestrutura por tenants expirados | Médio |
+| **3** | **Bloco 3: Identidade Institucional (Branding & Bundle)** | Desativar `includeHarnessIdentity` no bundle `copymonster`, injetar persona oficial do CopyMonster no system prompt e higienizar resíduos textuais de DSH nos modais | A IA se apresenta como CopyMonster para clientes finais sem vazamento de marca fork | Curto |
+| **4** | **Bloco 4: Saneamento de UX, i18n & Operação** | Migração total de strings residuais em PT-BR para dicionário EN/ZH, formatação de datas/moedas com locale ativo, `:focus-visible` global e documentação de runbook e serviços systemd | Prepara o SaaS para lançamento com consistência internacional e operação estável | Médio |
 
 ---
 
-## 9. Roadmap Sugerido (passo a passo por grau de prioridade)
+## 9. Roteiro Passo a Passo de Execução
 
-### Semana 1 — "Seguraram o vazamento" (crítico/ops, S–M)
+### Bloco 1 — Blindagem de Segurança & RLS (Imediato)
+1. **Migration 025 (`025_security_and_role_hardening.sql`):**
+   - Reescrever `public.is_admin_or_owner()`: autoridade derivada exclusivamente de `public.user_tenant_roles` vinculada ao `tenant_id` ativo (ou claim assinada `user_role` via hook confiável), expurgando validações em `user_metadata` ou `app_metadata` controladas pelo usuário.
+   - Adicionar `REVOKE EXECUTE ON FUNCTION public.get_admin_workspaces(TEXT, UUID, BOOLEAN, BOOLEAN, INT, INT) FROM PUBLIC;` e `GRANT EXECUTE TO authenticated;` (migração 022).
+   - Adicionar `REVOKE ... FROM PUBLIC` e `GRANT ... TO authenticated` em `get_system_secret`, `get_llm_encryption_key`, `get_my_profile` e `increment_tenant_token_usage`.
+   - Executar `ALTER TABLE public.trial_rate_limits ENABLE ROW LEVEL SECURITY;` com política restritiva.
+   - Corrigir chamada interna de auditoria em `get_system_secret` para usar as colunas válidas `resource_type` e `resource_id`.
+   - Adicionar escape de metacaracteres (`%`, `_`) em consultas administrativas com `ILIKE`.
+2. **Confinamento de Paths em `workspace.create` (`packages/api/workspace-controller/src/commands.ts`):**
+   - Garantir que caminhos relativos em `request.path` passem obrigatoriamente por `assertPathInSandbox(targetPath, sandboxRoot)`.
+   - Adicionar teste unitário de traversão (`../../../../`) validando erro `workspace/invalid-path`.
 
-**Dia 1–2 (produção, sem código):**
-1. Corrigir `.env:17` (quebrar `STRIPE_SECRET_KEY`/`STRIPE_WEBHOOK_SECRET` em 2 linhas) e revalidar o parse (SEC-19).
-2. Confirmar que o deploy tem `STRIPE_WEBHOOK_SECRET` setado (se não, o webhook está fail-open) e ativar o fail-closed (SEC-06/FUN-04).
-3. `chmod 600` em `.env*`; mover `.env.systemd` p/ `/etc/copymonster/` (SEC-20, OPS-07).
-4. Rotacionar `whsec_` no Stripe (o valor está em 3 arquivos locais); rotação do service-role Supabase **a avaliar** (exposta em disco, sem evidência de vazamento além do host).
-5. Verificar no dashboard Supabase: (a) `custom_access_token_hook` habilitado (FUN-09), (b) templates de e-mail com marca CopyMonster (BRN-10), (c) HSTS na CF (SEC-08), (d) rate limit no GoTrue/CF (SEC-17).
+### Bloco 2 — Integridade de Billing & Stripe
+1. **Webhook Stripe Fail-Closed (`packages/api/auth-http/src/billing.ts`):**
+   - Se `STRIPE_WEBHOOK_SECRET` não estiver configurado no ambiente, retornar status HTTP 500 com log de erro, impedindo o processamento de payloads não assinados.
+2. **Sincronização de Price IDs (DB ↔ UI):**
+   - Criar migration `026_sync_billing_price_ids.sql` atualizando os Price IDs mensais na tabela `public.plans` para espelhar a produção ativa (`price_1UMC67RiKNxooUH0MrL1dIoD` para Starter e `price_1UMC4lRiKNxooUH0ltHJ1pOf` para Pro), ou vice-versa, garantindo paridade entre checkout e webhook.
+3. **Persistência de `current_period_end`:**
+   - Atualizar os handlers `customer.subscription.updated` e `checkout.session.completed` para gravar o timestamp `current_period_end` retornado pelo Stripe na tabela `public.tenants`.
+4. **Gate de Assinatura em Runtime:**
+   - Adicionar verificação em `session.create` impedindo que tenants com status `trial_expired`, `canceled` ou `past_due` criem novas sessões de IA, exibindo aviso claro para upgrade.
 
-**Dia 3–5 (código):**
-6. Migration `025` (única, atômica): `is_admin_or_owner` por `user_tenant_roles` com escopo de tenant (ou claim derivado); `REVOKE … FROM PUBLIC` + `GRANT … TO authenticated` em `get_admin_workspaces` (022), `get_system_secret`, `get_llm_encryption_key`, `get_my_profile`, `increment_tenant_token_usage`; corrigir insert em `audit_logs` (`resource_type/resource_id`); `ENABLE ROW LEVEL SECURITY` em `trial_rate_limits`; validar escopo da policy de `user_tenant_roles` (SEC-14) e escapar wildcards (SEC-16). Auditar o log do Supabase para uso prévio de `user_metadata.role='admin'`. (SEC-01..03, 10, 12, 13, 14, 16, 23)
-7. Contener `workspace.create` (ramo relativo) + teste de `../` inter-tenant (SEC-04); `realpath` no alvo de `assertPathInSandbox` (SEC-22).
-8. Cookie `Secure` (SEC-09).
-9. Headers de segurança no webserver: CSP, `X-Frame-Options: DENY`, nosniff, Referrer-Policy (SEC-08).
-10. Migration de price IDs mensais p/ IDs live no Stripe + teste de contrato (FUN-05).
-11. Bundle `copymonster`: `includeHarnessIdentity: false` + persona CopyMonster; snapshot de system-prompt (BRN-01).
-12. Strings "DeepSeek Harness" nos 3 locales do shell (BRN-02/03/04).
+### Bloco 3 — Identidade Institucional (Branding & Prompt)
+1. **System Prompt Oficial do CopyMonster (`packages/core/system-prompt` e `packages/bundle/copymonster`):**
+   - Configurar `includeHarnessIdentity: false` no patch de bundle do CopyMonster.
+   - Injetar `PERSONA_PREFIX` institucional com as diretrizes e tom de voz do CopyMonster.
+2. **Limpeza de Textos em Modais de Configuração:**
+   - Atualizar boas-vindas do modal Models (`ui-settings-models`), document preview e guias de plugins para referenciar exclusivamente CopyMonster.
+   - Aplicar sanitização de erros no `ErrorBoundary` e no chat para não expor nomes de pacotes internos `@deepseek-ai/*`.
 
-**Validação da semana:** `pnpm run test`, `pnpm run typecheck`, snapshot de system-prompt; smoke em staging: webhook forjado rejeitado, `workspace.create` com `../../` rejeitado, login → admin invisível para member.
-
-### Mês 1 — "Billing de verdade + UI limpa" (ALTO, M)
-
-1. **Billing end-to-end**: `current_period_end` nos webhooks (FUN-01); gate de subscription em `sessions.create` (trial expirado / past_due / canceled bloqueiam com mensagem de upgrade) (FUN-02).
-2. **Metering**: chamar `recordTokenUsage` por turno (hook do loop) e popular `sessions_index` por sessão (FUN-03) — com isto as abas Sessions/Billing ganham dados.
-3. **i18n**: `LocaleContext` + `useT()` + seletor EN/ZH; keyificar auth-error-utils, main.tsx, PlansPage, 8 tabs admin; helper único de data/moeda com locale ativo (UX-01/02/03).
-4. **Erros**: sanitizador central (mapeamento + fallback genérico + bloqueio de `@deepseek-ai/`/paths) no ErrorBoundary e `displayFailure` (BRN-05).
-5. **A11y**: `:focus-visible` global, focus-trap nos 3 modais, `aria-label` nos botões-ícone, touch 44px (UX-04/06/07/08).
-6. **Landing de email confirmation** + teste do reset (FUN-06/07); portal via `/api/billing/portal` apenas (FUN-10).
-7. **Bump de deps**: vitest ≥3.2.6 (critical), js-yaml ≥4.3.0; triage dos demais highs (SEC-21).
-8. **README raiz** p/ CopyMonster (BRN-06); metadata HTML/manifest + OG (BRN-08); `DSH_CLIENT_TITLE=CopyMonster` no build oficial (BRN-09).
-9. **Infra**: versionar `copymonster.service` (non-root, `Restart=always`, EnvironmentFile) (OPS-01); runbook de build/serve/ExecStart (OPS-06); `GET /health` + alerta externo (OPS-04).
-10. **Testes de RLS** p/ os 5 reads diretos do admin (testcontainers ou fixtures) (FUN-08).
-
-### Trimestre 1 — "Produto, plataforma e dados" (ALTO/L + casa)
-
-1. **LLM single-source**: runtime lê `llm_providers`/`llm_models` (com decryption via key mestra protegida) — admin de providers/models passa a ter efeito real (FUN-12); validar `base_url` (SEC-11).
-2. **Storage/tenant scoping**: escopar RPCs de admin por tenant ou documentar "admin global por design" com o gate novo (SEC-05, M6: `admin_delete_workspace`/`admin_purge_session`/`admin_toggle_user_status` multi-tenant).
-3. **Mobile**: breakpoint dos modais (rail → drawer/abas) (UX-05); verificar se "Settings" é item esperado na rail.
-4. **Backup e DR**: pg_dump diário + `~/.dsh` offsite via systemd-timer, teste de restore documentado (OPS-03); `deploy.sh` com tag/rollback (OPS-05).
-5. **Redação de logs**: mask de secrets no dump de startup (BRN-11); política de retenção de logs.
-6. **Polimento**: paleta (acentos gold), floor 12px, `<Spinner/>` único, badge de versão, "Retry" unificado (UX-09/10/11/12).
-7. **Nice-to-have (L, optional)**: renomear tokens internos `--dsw-*`/`__DSH_*` (BRN-13); staging para webhooks; PKCE em vez de localStorage (SEC-07 — alto esforço, maior valor se houver CSP forte já).
-
----
+### Bloco 4 — Layout, Acessibilidade, i18n & Operação
+1. **Internacionalização Estrita (EN + ZH):**
+   - Migrar todas as mensagens em português remanescentes (`auth-error-utils.ts`, `main.tsx`, abas do painel admin) para os dicionários `en.ts` e `zh.ts`.
+   - Padronizar formatação de valores monetários e datas com o locale ativo da aplicação.
+2. **Acessibilidade & Estilos:**
+   - Adicionar regra global `:focus-visible { outline: 2px solid #E7BF73; }`.
+   - Adicionar focus-trap acessível nos modais de Admin, Profile e Plans.
+3. **Runbooks de Infraestrutura & Deploy:**
+   - Versionar o modelo de unidade systemd `copymonster.service` com execução non-root e carregamento seguro de variáveis de ambiente.
+   - Criar endpoint `GET /health` reportando integridade do servidor Node e conectividade com o Supabase.
 
 ## 10. Verificado OK / Não Encontrado / A Confirmar
 

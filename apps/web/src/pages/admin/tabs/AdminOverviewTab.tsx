@@ -150,8 +150,8 @@ export function AdminOverviewTab() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-[#8b949e]">
-        <div className="w-8 h-8 border-2 border-[#E7BF73] border-t-transparent rounded-full animate-spin mb-4" />
+      <div className="flex flex-col items-center justify-center p-12 text-[var(--cm-muted-foreground)]">
+        <div className="w-8 h-8 border-2 border-[var(--cm-primary)] border-t-transparent rounded-full animate-spin mb-4" />
         <p className="text-sm">Carregando indicadores do painel...</p>
       </div>
     )
@@ -160,18 +160,18 @@ export function AdminOverviewTab() {
   return (
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Header com Status de Saúde e Botão de Atualizar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#30363d]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[var(--cm-border)]">
         <div>
-          <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#f0f6fc', margin: '0 0 4px 0' }}>Overview da Plataforma</h3>
-          <p style={{ fontSize: '13px', color: '#8b949e', margin: 0 }}>
+          <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: '0 0 4px 0' }}>Overview da Plataforma</h3>
+          <p style={{ fontSize: '13px', color: 'var(--cm-muted-foreground)', margin: 0 }}>
             Métricas consolidadas de receita, uso de infraestrutura e saúde dos serviços.
           </p>
         </div>
 
         <div className="flex items-center gap-3">
           {/* Status do Banco e Latência (Problema 2 resolvido) */}
-          <div className="px-3 py-1.5 rounded-lg bg-[#0d1117] border border-[#30363d] flex items-center gap-2">
-            <span className="text-xs text-[#8b949e]">Banco:</span>
+          <div className="px-3 py-1.5 rounded-lg bg-[var(--cm-background)] border border-[var(--cm-border)] flex items-center gap-2">
+            <span className="text-xs text-[var(--cm-muted-foreground)]">Banco:</span>
             {health.dbStatus === 'operational' && (
               <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400">
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
@@ -195,11 +195,11 @@ export function AdminOverviewTab() {
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[#E7BF73]/10 hover:bg-[#E7BF73]/20 text-[#E7BF73] border border-[#E7BF73]/30 transition flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--cm-primary)]/10 hover:bg-[var(--cm-primary)]/20 text-[var(--cm-primary)] border border-[var(--cm-primary)]/30 transition flex items-center gap-1.5 disabled:opacity-50"
           >
             {isRefreshing ? (
               <>
-                <span className="w-3 h-3 border-2 border-[#E7BF73] border-t-transparent rounded-full animate-spin" />
+                <span className="w-3 h-3 border-2 border-[var(--cm-primary)] border-t-transparent rounded-full animate-spin" />
                 Atualizando...
               </>
             ) : (
@@ -224,56 +224,56 @@ export function AdminOverviewTab() {
       {/* Grid de 5 KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
         {/* KPI 1: MRR / ARR */}
-        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#8b949e', marginBottom: '6px' }}>MRR Estimado</div>
-          <div style={{ fontSize: '20px', fontWeight: 600, color: '#E7BF73' }}>
+        <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>MRR Estimado</div>
+          <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-primary)' }}>
             {formatCurrency(latestMetrics?.estimated_mrr || 0)}
           </div>
-          <div style={{ fontSize: '12px', color: '#8b949e', marginTop: '4px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
             ARR: {formatCurrency((latestMetrics?.estimated_mrr || 0) * 12)}
           </div>
         </div>
 
         {/* KPI 2: Users Ativos */}
-        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#8b949e', marginBottom: '6px' }}>Users Ativos (Hoje)</div>
-          <div style={{ fontSize: '20px', fontWeight: 600, color: '#f0f6fc' }}>
+        <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>Users Ativos (Hoje)</div>
+          <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-foreground)' }}>
             {formatNumber(latestMetrics?.active_users || 0)}
           </div>
-          <div style={{ fontSize: '12px', color: '#8b949e', marginTop: '4px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
             Tenants: {formatNumber(latestMetrics?.active_tenants || 0)}
           </div>
         </div>
 
         {/* KPI 3: Tokens Consumidos */}
-        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#8b949e', marginBottom: '6px' }}>Tokens (Hoje)</div>
-          <div style={{ fontSize: '20px', fontWeight: 600, color: '#f0f6fc' }}>
+        <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>Tokens (Hoje)</div>
+          <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-foreground)' }}>
             {formatTokens(latestMetrics?.tokens_consumed || 0)}
           </div>
-          <div style={{ fontSize: '12px', color: '#8b949e', marginTop: '4px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
             Consumo diário
           </div>
         </div>
 
         {/* KPI 4: Sessions Totais */}
-        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#8b949e', marginBottom: '6px' }}>Sessions Totais</div>
-          <div style={{ fontSize: '20px', fontWeight: 600, color: '#f0f6fc' }}>
+        <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>Sessions Totais</div>
+          <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-foreground)' }}>
             {formatNumber(totalSessions)}
           </div>
-          <div style={{ fontSize: '12px', color: '#8b949e', marginTop: '4px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
             Indexadas no banco
           </div>
         </div>
 
         {/* KPI 5: Saúde do Sistema */}
-        <div style={{ background: '#161b22', border: '1px solid #30363d', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: '#8b949e', marginBottom: '6px' }}>Saúde do Sistema</div>
-          <div style={{ fontSize: '20px', fontWeight: 600, color: health.dbStatus === 'operational' ? '#3fb950' : health.dbStatus === 'degraded' ? '#d29922' : '#f85149' }}>
+        <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>Saúde do Sistema</div>
+          <div style={{ fontSize: '20px', fontWeight: 600, color: health.dbStatus === 'operational' ? 'var(--cm-success)' : health.dbStatus === 'degraded' ? 'var(--cm-primary)' : 'var(--cm-destructive)' }}>
             {health.dbStatus === 'operational' ? 'Operacional' : health.dbStatus === 'degraded' ? 'Degradado' : 'Indisponível'}
           </div>
-          <div style={{ fontSize: '12px', color: '#8b949e', marginTop: '4px' }}>
+          <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
             Latência: {health.dbLatencyMs}ms ({health.providersActive} provedores)
           </div>
         </div>
@@ -282,15 +282,15 @@ export function AdminOverviewTab() {
       {/* Seção Central: Distribuição por Modelo e Histórico */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Distribuição por Modelo */}
-        <div className="p-4 rounded-xl bg-[#161b22] border border-[#30363d] flex flex-col justify-between">
+        <div className="p-4 rounded-xl bg-[var(--cm-card)] border border-[var(--cm-border)] flex flex-col justify-between">
           <div>
             <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-[#f0f6fc]">Models Mais Utilizados</h4>
-              <span className="text-[11px] text-[#8b949e]">Top 10 por volume</span>
+              <h4 className="text-sm font-semibold text-[var(--cm-foreground)]">Models Mais Utilizados</h4>
+              <span className="text-[11px] text-[var(--cm-muted-foreground)]">Top 10 por volume</span>
             </div>
 
             {modelStats.length === 0 ? (
-              <div className="py-8 text-center text-xs text-[#8b949e]">
+              <div className="py-8 text-center text-xs text-[var(--cm-muted-foreground)]">
                 Nenhuma sessão indexada com registro de modelo até o momento.
               </div>
             ) : (
@@ -301,14 +301,14 @@ export function AdminOverviewTab() {
                   return (
                     <div key={idx} className="space-y-1">
                       <div className="flex justify-between text-xs">
-                        <span className="font-mono text-[#f0f6fc]">{item.model}</span>
-                        <span className="text-[#8b949e]">
+                        <span className="font-mono text-[var(--cm-foreground)]">{item.model}</span>
+                        <span className="text-[var(--cm-muted-foreground)]">
                           {formatNumber(item.session_count)} sessões ({formatTokens(item.tokens_sum)} tokens)
                         </span>
                       </div>
-                      <div className="w-full h-1.5 rounded-full bg-[#0d1117] overflow-hidden">
+                      <div className="w-full h-1.5 rounded-full bg-[var(--cm-background)] overflow-hidden">
                         <div
-                          className="h-full rounded-full bg-[#E7BF73]"
+                          className="h-full rounded-full bg-[var(--cm-primary)]"
                           style={{ width: `${pct}%` }}
                         />
                       </div>
@@ -321,34 +321,34 @@ export function AdminOverviewTab() {
         </div>
 
         {/* Histórico Recente de Métricas (Tabela) */}
-        <div className="p-4 rounded-xl bg-[#161b22] border border-[#30363d]">
+        <div className="p-4 rounded-xl bg-[var(--cm-card)] border border-[var(--cm-border)]">
           <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-[#f0f6fc]">Histórico Recente (Snapshot Diário)</h4>
-            <span className="text-[11px] text-[#8b949e]">Últimos 14 dias</span>
+            <h4 className="text-sm font-semibold text-[var(--cm-foreground)]">Histórico Recente (Snapshot Diário)</h4>
+            <span className="text-[11px] text-[var(--cm-muted-foreground)]">Últimos 14 dias</span>
           </div>
 
           {history.length === 0 ? (
-            <div className="py-8 text-center text-xs text-[#8b949e]">
+            <div className="py-8 text-center text-xs text-[var(--cm-muted-foreground)]">
               Nenhum snapshot diário gerado. Clique em &quot;Recalcular Métricas&quot; acima para registrar o primeiro.
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
                 <thead>
-                  <tr className="border-b border-[#30363d] text-[#8b949e]">
+                  <tr className="border-b border-[var(--cm-border)] text-[var(--cm-muted-foreground)]">
                     <th className="pb-2 font-medium">Data</th>
                     <th className="pb-2 font-medium">Users</th>
                     <th className="pb-2 font-medium">Tokens</th>
                     <th className="pb-2 font-medium">MRR</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#30363d]/50">
+                <tbody className="divide-y divide-[var(--cm-border)]/50">
                   {history.map(row => (
-                    <tr key={row.date} className="text-[#f0f6fc]">
+                    <tr key={row.date} className="text-[var(--cm-foreground)]">
                       <td className="py-2 font-mono text-[11px]">{row.date}</td>
                       <td className="py-2">{formatNumber(row.active_users)}</td>
-                      <td className="py-2 text-[#8b949e]">{formatTokens(row.tokens_consumed)}</td>
-                      <td className="py-2 text-[#E7BF73] font-medium">{formatCurrency(row.estimated_mrr)}</td>
+                      <td className="py-2 text-[var(--cm-muted-foreground)]">{formatTokens(row.tokens_consumed)}</td>
+                      <td className="py-2 text-[var(--cm-primary)] font-medium">{formatCurrency(row.estimated_mrr)}</td>
                     </tr>
                   ))}
                 </tbody>

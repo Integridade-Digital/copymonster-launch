@@ -1,0 +1,73 @@
+/*
+ * CopyMonster application palette.
+ *
+ * Single source of truth for the `--cm-*` tokens: official CopyMonster
+ * light values on `:root`, dark values under `body[data-ds-dark-theme]`
+ * (the attribute the DSH ui-layout theme presenter sets on `<body>`).
+ * Every other file in apps/web/src references `--cm-*` tokens and must not
+ * contain color literals; `pnpm run check:theme` (scripts/check-theme.sh)
+ * enforces that.
+ */
+
+:root {
+  --cm-background: #faf9f5;
+  --cm-foreground: #3d3929;
+  --cm-primary: #967d45;
+  --cm-primary-foreground: #ffffff;
+  --cm-card: #faf9f5;
+  --cm-card-foreground: #181611;
+  --cm-popover: #ffffff;
+  --cm-popover-foreground: #28261b;
+  --cm-secondary: #e9e6dc;
+  --cm-secondary-foreground: #535146;
+  --cm-muted: #ede9de;
+  --cm-muted-foreground: #83827d;
+  --cm-accent: #e9e6dc;
+  --cm-accent-foreground: #181611;
+  --cm-destructive: #181611;
+  --cm-destructive-foreground: #ffffff;
+  --cm-border: #dad9d4;
+  --cm-input: #b4b2a7;
+  --cm-ring: #967d45;
+  --cm-sidebar: #f5f4ee;
+  --cm-sidebar-foreground: #181611;
+  --cm-sidebar-primary: #967d45;
+  --cm-sidebar-accent: #e9e6dc;
+  --cm-sidebar-ring: #b5b5b5;
+
+  /* Application surfaces derived from the official palette. */
+  --cm-success: #15803d;
+  --cm-shadow: 0 4px 20px -2px rgba(24, 22, 17, 0.08), 0 1px 4px rgba(24, 22, 17, 0.04);
+  --cm-overlay: rgba(0, 0, 0, 0.65);
+}
+
+body[data-ds-dark-theme] {
+  --cm-background: #262624;
+  --cm-foreground: #c3c0b6;
+  --cm-primary: #d0ad62;
+  --cm-primary-foreground: #181611;
+  --cm-card: #262624;
+  --cm-card-foreground: #faf9f5;
+  --cm-popover: #30302e;
+  --cm-popover-foreground: #e5e5e2;
+  --cm-secondary: #faf9f5;
+  --cm-secondary-foreground: #30302e;
+  --cm-muted: #181611;
+  --cm-muted-foreground: #b7b5a9;
+  --cm-accent: #181611;
+  --cm-accent-foreground: #f5f4ee;
+  --cm-destructive: #b63a3a;
+  --cm-destructive-foreground: #ffffff;
+  --cm-border: #3e3e38;
+  --cm-input: #52514a;
+  --cm-ring: #d0ad62;
+  --cm-sidebar: #1f1e1d;
+  --cm-sidebar-foreground: #c3c0b6;
+  --cm-sidebar-primary: #343434;
+  --cm-sidebar-accent: #181611;
+  --cm-sidebar-ring: #d0ad62;
+
+  --cm-success: #86efac;
+  --cm-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.2);
+  --cm-overlay: rgba(0, 0, 0, 0.65);
+}

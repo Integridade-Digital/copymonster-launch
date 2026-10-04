@@ -379,15 +379,15 @@ export function AdminSystemTab() {
   return (
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Cabeçalho */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#30363d]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--cm-border)]">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-[#f0f6fc]">Configurações do Sistema</h2>
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#e7bf73]/10 text-[#e7bf73] border border-[#e7bf73]/30">
+            <h2 className="text-lg font-semibold text-[var(--cm-foreground)]">Configurações do Sistema</h2>
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--cm-primary)]/10 text-[var(--cm-primary)] border border-[var(--cm-primary)]/30">
               Ambiente Operacional
             </span>
           </div>
-          <p className="text-xs text-[#8b949e] mt-1">
+          <p className="text-xs text-[var(--cm-muted-foreground)] mt-1">
             Parâmetros globais do servidor, feature flags ativas, cotas, diretórios e workspaces multi-tenant.
           </p>
         </div>
@@ -396,7 +396,7 @@ export function AdminSystemTab() {
           type="button"
           onClick={handleRefresh}
           disabled={isRefreshing || isLoading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] text-xs font-medium text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] transition disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] text-xs font-medium text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] transition disabled:opacity-50"
         >
           <span className={isRefreshing ? 'animate-spin' : ''}>↻</span>
           Atualizar
@@ -405,21 +405,21 @@ export function AdminSystemTab() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e]">Total Parâmetros</div>
-          <div className="text-xl font-bold text-[#f0f6fc] mt-1">{totalConfigs}</div>
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)]">Total Parâmetros</div>
+          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">{totalConfigs}</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e]">Feature Flags Ativas</div>
-          <div className="text-xl font-bold text-[#e7bf73] mt-1">{activeFlagsCount}</div>
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)]">Feature Flags Ativas</div>
+          <div className="text-xl font-bold text-[var(--cm-primary)] mt-1">{activeFlagsCount}</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e]">Limites & Cotas</div>
-          <div className="text-xl font-bold text-[#f0f6fc] mt-1">{totalLimitsCount}</div>
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)]">Limites & Cotas</div>
+          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">{totalLimitsCount}</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e]">Workspaces Ativos</div>
-          <div className="text-xl font-bold text-[#c9d1d9] mt-1">{totalWorkspacesCount}</div>
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)]">Workspaces Ativos</div>
+          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">{totalWorkspacesCount}</div>
         </div>
       </div>
 
@@ -438,32 +438,32 @@ export function AdminSystemTab() {
       )}
 
       {/* Seção 1 — Ambiente & Sistema */}
-      <div className="p-4 rounded-xl border border-[#30363d] bg-[#161b22] space-y-3">
+      <div className="p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)] space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="text-[#e7bf73] text-sm">🖥</span>
-            <h3 className="text-sm font-semibold text-[#f0f6fc]">Ambiente & Servidor</h3>
+            <span className="text-[var(--cm-primary)] text-sm">🖥</span>
+            <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Ambiente & Servidor</h3>
           </div>
-          <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-[#0d1117] text-[#8b949e] border border-[#30363d]">
+          <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-[var(--cm-background)] text-[var(--cm-muted-foreground)] border border-[var(--cm-border)]">
             DSH Web Frontend
           </span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-xs">
-          <div className="p-3 rounded-lg border border-[#30363d]/60 bg-[#0d1117]/60">
-            <span className="text-[#8b949e] block text-[11px]">Modo de Execução</span>
-            <span className="font-mono text-[#f0f6fc] font-medium mt-1 inline-block">
+          <div className="p-3 rounded-lg border border-[var(--cm-border)]/60 bg-[var(--cm-background)]/60">
+            <span className="text-[var(--cm-muted-foreground)] block text-[11px]">Modo de Execução</span>
+            <span className="font-mono text-[var(--cm-foreground)] font-medium mt-1 inline-block">
               {(import.meta as any).env?.MODE || 'production'}
             </span>
           </div>
-          <div className="p-3 rounded-lg border border-[#30363d]/60 bg-[#0d1117]/60">
-            <span className="text-[#8b949e] block text-[11px]">Endpoint Supabase</span>
-            <span className="font-mono text-[#f0f6fc] font-medium mt-1 inline-block">
+          <div className="p-3 rounded-lg border border-[var(--cm-border)]/60 bg-[var(--cm-background)]/60">
+            <span className="text-[var(--cm-muted-foreground)] block text-[11px]">Endpoint Supabase</span>
+            <span className="font-mono text-[var(--cm-foreground)] font-medium mt-1 inline-block">
               {maskedSupabaseUrl}
             </span>
           </div>
-          <div className="p-3 rounded-lg border border-[#30363d]/60 bg-[#0d1117]/60">
-            <span className="text-[#8b949e] block text-[11px]">Raiz de Instalação no Host</span>
+          <div className="p-3 rounded-lg border border-[var(--cm-border)]/60 bg-[var(--cm-background)]/60">
+            <span className="text-[var(--cm-muted-foreground)] block text-[11px]">Raiz de Instalação no Host</span>
             <span className="text-amber-400/90 font-medium mt-1 inline-block">
               Não exposta por razões de segurança
             </span>
@@ -472,15 +472,15 @@ export function AdminSystemTab() {
       </div>
 
       {/* Seção 2 — Feature Flags */}
-      <div className="p-4 rounded-xl border border-[#30363d] bg-[#161b22] space-y-4">
+      <div className="p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)] space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[#e7bf73] text-sm">🚩</span>
-              <h3 className="text-sm font-semibold text-[#f0f6fc]">Feature Flags</h3>
+              <span className="text-[var(--cm-primary)] text-sm">🚩</span>
+              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Feature Flags</h3>
             </div>
-            <p className="text-xs text-[#8b949e] mt-0.5">
-              Habilitação gradual e controle dinâmico de funcionalidades (<code className="text-[#e7bf73]">feature.*</code>).
+            <p className="text-xs text-[var(--cm-muted-foreground)] mt-0.5">
+              Habilitação gradual e controle dinâmico de funcionalidades (<code className="text-[var(--cm-primary)]">feature.*</code>).
             </p>
           </div>
 
@@ -490,12 +490,12 @@ export function AdminSystemTab() {
               value={flagSearchQuery}
               onChange={e => setFlagSearchQuery(e.target.value)}
               placeholder="Buscar flag..."
-              className="px-2.5 py-1 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] placeholder-[#8b949e]/50 focus:border-[#e7bf73] focus:outline-none"
+              className="px-2.5 py-1 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)]/50 focus:border-[var(--cm-primary)] focus:outline-none"
             />
             <button
               type="button"
               onClick={() => openCreateConfigModal('feature')}
-              className="px-3 py-1 rounded-lg bg-gradient-to-r from-[#e7bf73] to-[#d8ae5f] text-xs font-semibold text-[#0d1117] hover:brightness-105 transition"
+              className="px-3 py-1 rounded-lg bg-gradient-to-r from-[var(--cm-primary)] to-[var(--cm-primary)] text-xs font-semibold text-[var(--cm-primary-foreground)] hover:brightness-105 transition"
             >
               + Nova Flag
             </button>
@@ -503,18 +503,18 @@ export function AdminSystemTab() {
         </div>
 
         {isLoading ? (
-          <div className="p-6 text-center text-xs text-[#8b949e]">
+          <div className="p-6 text-center text-xs text-[var(--cm-muted-foreground)]">
             <span className="inline-block animate-spin mr-2">↻</span> Carregando feature flags...
           </div>
         ) : filteredFlags.length === 0 ? (
-          <div className="p-6 text-center rounded-lg border border-dashed border-[#30363d] bg-[#0d1117]/30 text-xs text-[#8b949e]">
+          <div className="p-6 text-center rounded-lg border border-dashed border-[var(--cm-border)] bg-[var(--cm-background)]/30 text-xs text-[var(--cm-muted-foreground)]">
             Nenhuma feature flag cadastrada no momento.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-[#30363d]">
+          <div className="overflow-x-auto rounded-lg border border-[var(--cm-border)]">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#30363d] bg-[#0d1117]/60 text-[#8b949e]">
+                <tr className="border-b border-[var(--cm-border)] bg-[var(--cm-background)]/60 text-[var(--cm-muted-foreground)]">
                   <th className="py-2.5 px-3 font-medium">Chave</th>
                   <th className="py-2.5 px-3 font-medium">Valor / Estado</th>
                   <th className="py-2.5 px-3 font-medium">Descrição</th>
@@ -522,7 +522,7 @@ export function AdminSystemTab() {
                   <th className="py-2.5 px-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#30363d]/60">
+              <tbody className="divide-y divide-[var(--cm-border)]/60">
                 {filteredFlags.map((item) => {
                   const isBool = typeof item.value === 'boolean'
                   const isEnabledObj =
@@ -531,8 +531,8 @@ export function AdminSystemTab() {
                   const canQuickToggle = isBool || isEnabledObj
 
                   return (
-                    <tr key={item.key} className="hover:bg-[#0d1117]/30 transition">
-                      <td className="py-2.5 px-3 font-mono font-medium text-[#f0f6fc]">
+                    <tr key={item.key} className="hover:bg-[var(--cm-background)]/30 transition">
+                      <td className="py-2.5 px-3 font-mono font-medium text-[var(--cm-foreground)]">
                         {item.key}
                       </td>
                       <td className="py-2.5 px-3">
@@ -543,22 +543,22 @@ export function AdminSystemTab() {
                             className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold transition ${
                               isActive
                                 ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                                : 'bg-[#30363d]/50 text-[#8b949e] border border-[#30363d]'
+                                : 'bg-[var(--cm-secondary)]/50 text-[var(--cm-muted-foreground)] border border-[var(--cm-border)]'
                             }`}
                           >
-                            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-[#8b949e]'}`} />
+                            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-[var(--cm-muted-foreground)]'}`} />
                             {isActive ? 'Ativa' : 'Inativa'}
                           </button>
                         ) : (
-                          <span className="font-mono text-[11px] text-[#c9d1d9] truncate max-w-[200px] inline-block">
+                          <span className="font-mono text-[11px] text-[var(--cm-foreground)] truncate max-w-[200px] inline-block">
                             {JSON.stringify(item.value)}
                           </span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 text-[#8b949e] max-w-xs truncate">
+                      <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] max-w-xs truncate">
                         {item.description || '—'}
                       </td>
-                      <td className="py-2.5 px-3 text-[#8b949e] whitespace-nowrap">
+                      <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] whitespace-nowrap">
                         {new Date(item.updated_at).toLocaleDateString('pt-BR')}
                       </td>
                       <td className="py-2.5 px-3 text-right">
@@ -566,7 +566,7 @@ export function AdminSystemTab() {
                           <button
                             type="button"
                             onClick={() => openEditConfigModal(item)}
-                            className="px-2 py-0.5 rounded border border-[#30363d] bg-[#0d1117] text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] text-[11px] transition"
+                            className="px-2 py-0.5 rounded border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] text-[11px] transition"
                           >
                             Editar
                           </button>
@@ -589,15 +589,15 @@ export function AdminSystemTab() {
       </div>
 
       {/* Seção 3 — Limites Globais & Cotas */}
-      <div className="p-4 rounded-xl border border-[#30363d] bg-[#161b22] space-y-4">
+      <div className="p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)] space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[#e7bf73] text-sm">⚖️</span>
-              <h3 className="text-sm font-semibold text-[#f0f6fc]">Limites Globais & Cotas</h3>
+              <span className="text-[var(--cm-primary)] text-sm">⚖️</span>
+              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Limites Globais & Cotas</h3>
             </div>
-            <p className="text-xs text-[#8b949e] mt-0.5">
-              Políticas de consumo, rate-limits e restrições operacionais (<code className="text-[#e7bf73]">limit.*</code> e <code className="text-[#e7bf73]">quota.*</code>).
+            <p className="text-xs text-[var(--cm-muted-foreground)] mt-0.5">
+              Políticas de consumo, rate-limits e restrições operacionais (<code className="text-[var(--cm-primary)]">limit.*</code> e <code className="text-[var(--cm-primary)]">quota.*</code>).
             </p>
           </div>
 
@@ -607,12 +607,12 @@ export function AdminSystemTab() {
               value={limitSearchQuery}
               onChange={e => setLimitSearchQuery(e.target.value)}
               placeholder="Buscar limite..."
-              className="px-2.5 py-1 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] placeholder-[#8b949e]/50 focus:border-[#e7bf73] focus:outline-none"
+              className="px-2.5 py-1 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)]/50 focus:border-[var(--cm-primary)] focus:outline-none"
             />
             <button
               type="button"
               onClick={() => openCreateConfigModal('limit')}
-              className="px-3 py-1 rounded-lg bg-gradient-to-r from-[#e7bf73] to-[#d8ae5f] text-xs font-semibold text-[#0d1117] hover:brightness-105 transition"
+              className="px-3 py-1 rounded-lg bg-gradient-to-r from-[var(--cm-primary)] to-[var(--cm-primary)] text-xs font-semibold text-[var(--cm-primary-foreground)] hover:brightness-105 transition"
             >
               + Novo Limite
             </button>
@@ -620,18 +620,18 @@ export function AdminSystemTab() {
         </div>
 
         {isLoading ? (
-          <div className="p-6 text-center text-xs text-[#8b949e]">
+          <div className="p-6 text-center text-xs text-[var(--cm-muted-foreground)]">
             <span className="inline-block animate-spin mr-2">↻</span> Carregando limites...
           </div>
         ) : filteredLimits.length === 0 ? (
-          <div className="p-6 text-center rounded-lg border border-dashed border-[#30363d] bg-[#0d1117]/30 text-xs text-[#8b949e]">
+          <div className="p-6 text-center rounded-lg border border-dashed border-[var(--cm-border)] bg-[var(--cm-background)]/30 text-xs text-[var(--cm-muted-foreground)]">
             Nenhum limite ou cota global configurado.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-[#30363d]">
+          <div className="overflow-x-auto rounded-lg border border-[var(--cm-border)]">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#30363d] bg-[#0d1117]/60 text-[#8b949e]">
+                <tr className="border-b border-[var(--cm-border)] bg-[var(--cm-background)]/60 text-[var(--cm-muted-foreground)]">
                   <th className="py-2.5 px-3 font-medium">Chave</th>
                   <th className="py-2.5 px-3 font-medium">Valor</th>
                   <th className="py-2.5 px-3 font-medium">Descrição</th>
@@ -639,21 +639,21 @@ export function AdminSystemTab() {
                   <th className="py-2.5 px-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#30363d]/60">
+              <tbody className="divide-y divide-[var(--cm-border)]/60">
                 {filteredLimits.map(item => (
-                  <tr key={item.key} className="hover:bg-[#0d1117]/30 transition">
-                    <td className="py-2.5 px-3 font-mono font-medium text-[#f0f6fc]">
+                  <tr key={item.key} className="hover:bg-[var(--cm-background)]/30 transition">
+                    <td className="py-2.5 px-3 font-mono font-medium text-[var(--cm-foreground)]">
                       {item.key}
                     </td>
                     <td className="py-2.5 px-3">
-                      <span className="font-mono text-[11px] text-[#e7bf73] font-semibold bg-[#e7bf73]/10 px-2 py-0.5 rounded border border-[#e7bf73]/20">
+                      <span className="font-mono text-[11px] text-[var(--cm-primary)] font-semibold bg-[var(--cm-primary)]/10 px-2 py-0.5 rounded border border-[var(--cm-primary)]/20">
                         {typeof item.value === 'object' ? JSON.stringify(item.value) : String(item.value)}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-[#8b949e] max-w-xs truncate">
+                    <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] max-w-xs truncate">
                       {item.description || '—'}
                     </td>
-                    <td className="py-2.5 px-3 text-[#8b949e] whitespace-nowrap">
+                    <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] whitespace-nowrap">
                       {new Date(item.updated_at).toLocaleDateString('pt-BR')}
                     </td>
                     <td className="py-2.5 px-3 text-right">
@@ -661,7 +661,7 @@ export function AdminSystemTab() {
                         <button
                           type="button"
                           onClick={() => openEditConfigModal(item)}
-                          className="px-2 py-0.5 rounded border border-[#30363d] bg-[#0d1117] text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] text-[11px] transition"
+                          className="px-2 py-0.5 rounded border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] text-[11px] transition"
                         >
                           Editar
                         </button>
@@ -683,14 +683,14 @@ export function AdminSystemTab() {
       </div>
 
       {/* Seção 4 — Workspaces Multi-tenant */}
-      <div className="p-4 rounded-xl border border-[#30363d] bg-[#161b22] space-y-4">
+      <div className="p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)] space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[#e7bf73] text-sm">📁</span>
-              <h3 className="text-sm font-semibold text-[#f0f6fc]">Workspaces Multi-tenant</h3>
+              <span className="text-[var(--cm-primary)] text-sm">📁</span>
+              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Workspaces Multi-tenant</h3>
             </div>
-            <p className="text-xs text-[#8b949e] mt-0.5">
+            <p className="text-xs text-[var(--cm-muted-foreground)] mt-0.5">
               Metadados de ambientes de trabalho isolados por tenant e usuário.
             </p>
           </div>
@@ -701,24 +701,24 @@ export function AdminSystemTab() {
               value={workspaceSearchQuery}
               onChange={e => setWorkspaceSearchQuery(e.target.value)}
               placeholder="Buscar workspace ou tenant..."
-              className="px-2.5 py-1 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] placeholder-[#8b949e]/50 focus:border-[#e7bf73] focus:outline-none"
+              className="px-2.5 py-1 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)]/50 focus:border-[var(--cm-primary)] focus:outline-none"
             />
           </div>
         </div>
 
         {isLoading ? (
-          <div className="p-6 text-center text-xs text-[#8b949e]">
+          <div className="p-6 text-center text-xs text-[var(--cm-muted-foreground)]">
             <span className="inline-block animate-spin mr-2">↻</span> Carregando workspaces...
           </div>
         ) : filteredWorkspaces.length === 0 ? (
-          <div className="p-6 text-center rounded-lg border border-dashed border-[#30363d] bg-[#0d1117]/30 text-xs text-[#8b949e]">
+          <div className="p-6 text-center rounded-lg border border-dashed border-[var(--cm-border)] bg-[var(--cm-background)]/30 text-xs text-[var(--cm-muted-foreground)]">
             Nenhum workspace ativo encontrado.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-[#30363d]">
+          <div className="overflow-x-auto rounded-lg border border-[var(--cm-border)]">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-[#30363d] bg-[#0d1117]/60 text-[#8b949e]">
+                <tr className="border-b border-[var(--cm-border)] bg-[var(--cm-background)]/60 text-[var(--cm-muted-foreground)]">
                   <th className="py-2.5 px-3 font-medium">Título</th>
                   <th className="py-2.5 px-3 font-medium">Workspace ID</th>
                   <th className="py-2.5 px-3 font-medium">Tenant</th>
@@ -728,21 +728,21 @@ export function AdminSystemTab() {
                   <th className="py-2.5 px-3 font-medium text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#30363d]/60">
+              <tbody className="divide-y divide-[var(--cm-border)]/60">
                 {filteredWorkspaces.map(ws => (
-                  <tr key={ws.id} className="hover:bg-[#0d1117]/30 transition">
-                    <td className="py-2.5 px-3 font-medium text-[#f0f6fc]">{ws.title}</td>
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-[#c9d1d9]">{ws.workspace_id}</td>
+                  <tr key={ws.id} className="hover:bg-[var(--cm-background)]/30 transition">
+                    <td className="py-2.5 px-3 font-medium text-[var(--cm-foreground)]">{ws.title}</td>
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-[var(--cm-foreground)]">{ws.workspace_id}</td>
                     <td className="py-2.5 px-3">
-                      <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-medium bg-[#30363d]/50 text-[#f0f6fc] border border-[#30363d]">
+                      <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-medium bg-[var(--cm-secondary)]/50 text-[var(--cm-foreground)] border border-[var(--cm-border)]">
                         {ws.tenant_name}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-[#8b949e]">{ws.user_email || '—'}</td>
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-[#8b949e] max-w-xs truncate">
+                    <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)]">{ws.user_email || '—'}</td>
+                    <td className="py-2.5 px-3 font-mono text-[11px] text-[var(--cm-muted-foreground)] max-w-xs truncate">
                       {ws.relative_path}
                     </td>
-                    <td className="py-2.5 px-3 text-[#8b949e] whitespace-nowrap">
+                    <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] whitespace-nowrap">
                       {new Date(ws.created_at).toLocaleDateString('pt-BR')}
                     </td>
                     <td className="py-2.5 px-3 text-right">
@@ -763,18 +763,18 @@ export function AdminSystemTab() {
       </div>
 
       {/* Seção 5 — Armazenamento & Paths (Vitrine de Armazenamento - Bloco 7.5 Parte B) */}
-      <div className="p-4 rounded-xl border border-[#30363d] bg-[#161b22] space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[#30363d]/60">
+      <div className="p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)] space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[var(--cm-border)]/60">
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-[#e7bf73] text-sm">💾</span>
-              <h3 className="text-sm font-semibold text-[#f0f6fc]">Armazenamento & Paths do Host</h3>
+              <span className="text-[var(--cm-primary)] text-sm">💾</span>
+              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Armazenamento & Paths do Host</h3>
             </div>
-            <p className="text-xs text-[#8b949e] mt-0.5">
+            <p className="text-xs text-[var(--cm-muted-foreground)] mt-0.5">
               Raízes operacionais no filesystem do servidor e mapeamento absoluto de workspaces ativos.
             </p>
           </div>
-          <span className="px-2.5 py-1 rounded text-[11px] font-medium bg-[#0d1117] text-[#e7bf73] border border-[#e7bf73]/30">
+          <span className="px-2.5 py-1 rounded text-[11px] font-medium bg-[var(--cm-background)] text-[var(--cm-primary)] border border-[var(--cm-primary)]/30">
             Somente Leitura
           </span>
         </div>
@@ -782,20 +782,20 @@ export function AdminSystemTab() {
         {/* 3 Cards de Raízes */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {/* Card 1: Workspaces Root */}
-          <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#0d1117]/80 flex flex-col justify-between gap-3">
+          <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-background)]/80 flex flex-col justify-between gap-3">
             <div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[#8b949e] font-medium">Workspaces Root</span>
-                <span className="text-[10px] text-[#e7bf73]/80 font-mono">storage.workspaces_root</span>
+                <span className="text-[var(--cm-muted-foreground)] font-medium">Workspaces Root</span>
+                <span className="text-[10px] text-[var(--cm-primary)]/80 font-mono">storage.workspaces_root</span>
               </div>
-              <div className="font-mono text-xs text-[#f0f6fc] bg-[#161b22] p-2 rounded-lg border border-[#30363d]/80 mt-2 break-all">
+              <div className="font-mono text-xs text-[var(--cm-foreground)] bg-[var(--cm-card)] p-2 rounded-lg border border-[var(--cm-border)]/80 mt-2 break-all">
                 {workspacesRootPath}
               </div>
             </div>
             <button
               type="button"
               onClick={() => handleCopyText(workspacesRootPath, 'ws-root')}
-              className="w-full py-1.5 px-3 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/40 text-xs font-medium text-[#c9d1d9] hover:text-[#f0f6fc] transition flex items-center justify-center gap-1.5"
+              className="w-full py-1.5 px-3 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/40 text-xs font-medium text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] transition flex items-center justify-center gap-1.5"
             >
               {copiedKey === 'ws-root' ? (
                 <span className="text-emerald-400 font-semibold">✓ Copied!</span>
@@ -806,20 +806,20 @@ export function AdminSystemTab() {
           </div>
 
           {/* Card 2: Uploads Root */}
-          <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#0d1117]/80 flex flex-col justify-between gap-3">
+          <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-background)]/80 flex flex-col justify-between gap-3">
             <div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[#8b949e] font-medium">Uploads Root</span>
-                <span className="text-[10px] text-[#e7bf73]/80 font-mono">storage.uploads_root</span>
+                <span className="text-[var(--cm-muted-foreground)] font-medium">Uploads Root</span>
+                <span className="text-[10px] text-[var(--cm-primary)]/80 font-mono">storage.uploads_root</span>
               </div>
-              <div className="font-mono text-xs text-[#f0f6fc] bg-[#161b22] p-2 rounded-lg border border-[#30363d]/80 mt-2 break-all">
+              <div className="font-mono text-xs text-[var(--cm-foreground)] bg-[var(--cm-card)] p-2 rounded-lg border border-[var(--cm-border)]/80 mt-2 break-all">
                 {uploadsRootPath}
               </div>
             </div>
             <button
               type="button"
               onClick={() => handleCopyText(uploadsRootPath, 'up-root')}
-              className="w-full py-1.5 px-3 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/40 text-xs font-medium text-[#c9d1d9] hover:text-[#f0f6fc] transition flex items-center justify-center gap-1.5"
+              className="w-full py-1.5 px-3 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/40 text-xs font-medium text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] transition flex items-center justify-center gap-1.5"
             >
               {copiedKey === 'up-root' ? (
                 <span className="text-emerald-400 font-semibold">✓ Copied!</span>
@@ -830,20 +830,20 @@ export function AdminSystemTab() {
           </div>
 
           {/* Card 3: Logs Root */}
-          <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#0d1117]/80 flex flex-col justify-between gap-3">
+          <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-background)]/80 flex flex-col justify-between gap-3">
             <div>
               <div className="flex items-center justify-between text-xs">
-                <span className="text-[#8b949e] font-medium">Logs Root</span>
-                <span className="text-[10px] text-[#e7bf73]/80 font-mono">storage.logs_root</span>
+                <span className="text-[var(--cm-muted-foreground)] font-medium">Logs Root</span>
+                <span className="text-[10px] text-[var(--cm-primary)]/80 font-mono">storage.logs_root</span>
               </div>
-              <div className="font-mono text-xs text-[#f0f6fc] bg-[#161b22] p-2 rounded-lg border border-[#30363d]/80 mt-2 break-all">
+              <div className="font-mono text-xs text-[var(--cm-foreground)] bg-[var(--cm-card)] p-2 rounded-lg border border-[var(--cm-border)]/80 mt-2 break-all">
                 {logsRootPath}
               </div>
             </div>
             <button
               type="button"
               onClick={() => handleCopyText(logsRootPath, 'log-root')}
-              className="w-full py-1.5 px-3 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/40 text-xs font-medium text-[#c9d1d9] hover:text-[#f0f6fc] transition flex items-center justify-center gap-1.5"
+              className="w-full py-1.5 px-3 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/40 text-xs font-medium text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] transition flex items-center justify-center gap-1.5"
             >
               {copiedKey === 'log-root' ? (
                 <span className="text-emerald-400 font-semibold">✓ Copied!</span>
@@ -855,25 +855,25 @@ export function AdminSystemTab() {
         </div>
 
         {/* Card: Acesso Seguro ao Servidor */}
-        <div className="p-4 rounded-xl border border-[#e7bf73]/30 bg-gradient-to-r from-[#161b22] via-[#0d1117] to-[#161b22] space-y-3">
+        <div className="p-4 rounded-xl border border-[var(--cm-primary)]/30 bg-gradient-to-r from-[var(--cm-card)] via-[var(--cm-background)] to-[var(--cm-card)] space-y-3">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <span className="text-[#e7bf73]">🔒</span>
-              <h4 className="text-xs font-semibold text-[#f0f6fc]">Acesso Seguro ao Servidor</h4>
+              <span className="text-[var(--cm-primary)]">🔒</span>
+              <h4 className="text-xs font-semibold text-[var(--cm-foreground)]">Acesso Seguro ao Servidor</h4>
             </div>
-            <span className="text-[11px] text-[#8b949e]">
+            <span className="text-[11px] text-[var(--cm-muted-foreground)]">
               O filesystem do host não é exposto pelo painel. Use SSH/SFTP.
             </span>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2.5 rounded-lg border border-[#30363d] bg-[#0d1117]">
-            <div className="font-mono text-xs text-[#e7bf73] break-all select-all">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)]">
+            <div className="font-mono text-xs text-[var(--cm-primary)] break-all select-all">
               {sshExampleCommand}
             </div>
             <button
               type="button"
               onClick={() => handleCopyText(sshExampleCommand, 'ssh-cmd')}
-              className="shrink-0 py-1 px-3 rounded-md bg-[#e7bf73]/15 text-[#e7bf73] hover:bg-[#e7bf73]/25 border border-[#e7bf73]/40 text-xs font-semibold transition"
+              className="shrink-0 py-1 px-3 rounded-md bg-[var(--cm-primary)]/15 text-[var(--cm-primary)] hover:bg-[var(--cm-primary)]/25 border border-[var(--cm-primary)]/40 text-xs font-semibold transition"
             >
               {copiedKey === 'ssh-cmd' ? '✓ Copied!' : 'Copy comando'}
             </button>
@@ -883,7 +883,7 @@ export function AdminSystemTab() {
         {/* Tabela Workspaces e Paths Absolutos */}
         <div className="space-y-3 pt-2">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h4 className="text-xs font-semibold text-[#f0f6fc] flex items-center gap-2">
+            <h4 className="text-xs font-semibold text-[var(--cm-foreground)] flex items-center gap-2">
               <span>📂</span> Mapeamento de Workspaces e Paths Absolutos
             </h4>
             <input
@@ -891,23 +891,23 @@ export function AdminSystemTab() {
               value={storageWsSearchQuery}
               onChange={e => setStorageWsSearchQuery(e.target.value)}
               placeholder="Buscar workspace ou path..."
-              className="px-2.5 py-1 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] placeholder-[#8b949e]/50 focus:border-[#e7bf73] focus:outline-none"
+              className="px-2.5 py-1 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)]/50 focus:border-[var(--cm-primary)] focus:outline-none"
             />
           </div>
 
           {isLoading ? (
-            <div className="p-6 text-center text-xs text-[#8b949e]">
+            <div className="p-6 text-center text-xs text-[var(--cm-muted-foreground)]">
               <span className="inline-block animate-spin mr-2">↻</span> Carregando mapeamento de paths...
             </div>
           ) : storageWorkspaces.length === 0 ? (
-            <div className="p-6 text-center rounded-lg border border-dashed border-[#30363d] bg-[#0d1117]/30 text-xs text-[#8b949e]">
+            <div className="p-6 text-center rounded-lg border border-dashed border-[var(--cm-border)] bg-[var(--cm-background)]/30 text-xs text-[var(--cm-muted-foreground)]">
               Nenhum workspace registrado com mapeamento de path ativo.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-[#30363d]">
+            <div className="overflow-x-auto rounded-lg border border-[var(--cm-border)]">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
-                  <tr className="border-b border-[#30363d] bg-[#0d1117]/60 text-[#8b949e]">
+                  <tr className="border-b border-[var(--cm-border)] bg-[var(--cm-background)]/60 text-[var(--cm-muted-foreground)]">
                     <th className="py-2.5 px-3 font-medium">Título</th>
                     <th className="py-2.5 px-3 font-medium">Workspace ID</th>
                     <th className="py-2.5 px-3 font-medium">Tenant</th>
@@ -916,23 +916,23 @@ export function AdminSystemTab() {
                     <th className="py-2.5 px-3 font-medium text-right">Criado em</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#30363d]/60">
+                <tbody className="divide-y divide-[var(--cm-border)]/60">
                   {storageWorkspaces.map(ws => (
-                    <tr key={ws.id} className="hover:bg-[#0d1117]/30 transition">
-                      <td className="py-2.5 px-3 font-medium text-[#f0f6fc]">{ws.title}</td>
-                      <td className="py-2.5 px-3 font-mono text-[11px] text-[#c9d1d9]">{ws.workspace_id}</td>
+                    <tr key={ws.id} className="hover:bg-[var(--cm-background)]/30 transition">
+                      <td className="py-2.5 px-3 font-medium text-[var(--cm-foreground)]">{ws.title}</td>
+                      <td className="py-2.5 px-3 font-mono text-[11px] text-[var(--cm-foreground)]">{ws.workspace_id}</td>
                       <td className="py-2.5 px-3">
-                        <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-medium bg-[#30363d]/50 text-[#f0f6fc] border border-[#30363d]">
+                        <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-medium bg-[var(--cm-secondary)]/50 text-[var(--cm-foreground)] border border-[var(--cm-border)]">
                           {ws.tenant_name}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-[11px] text-[#8b949e]">
+                      <td className="py-2.5 px-3 font-mono text-[11px] text-[var(--cm-muted-foreground)]">
                         {ws.relative_path}
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-[11px] text-[#e7bf73] break-all">
+                      <td className="py-2.5 px-3 font-mono text-[11px] text-[var(--cm-primary)] break-all">
                         {ws.full_path}
                       </td>
-                      <td className="py-2.5 px-3 text-[#8b949e] whitespace-nowrap text-right">
+                      <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] whitespace-nowrap text-right">
                         {new Date(ws.created_at).toLocaleDateString('pt-BR')}
                       </td>
                     </tr>
@@ -947,7 +947,7 @@ export function AdminSystemTab() {
       {/* Modal 1: Criar / Editar Settings */}
       {isConfigModalOpen && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#0d1117]/80 backdrop-blur-sm" onClick={closeModals} />
+          <div className="absolute inset-0 bg-[var(--cm-background)]/80 backdrop-blur-sm" onClick={closeModals} />
           <div
             role="dialog"
             aria-modal="true"
@@ -960,17 +960,17 @@ export function AdminSystemTab() {
                 closeModals()
               }
             }}
-            className="relative z-10 w-full max-w-lg rounded-2xl border border-[#e7bf73]/25 bg-[#161b22] p-6 shadow-2xl space-y-4 focus:outline-none"
+            className="relative z-10 w-full max-w-lg rounded-2xl border border-[var(--cm-primary)]/25 bg-[var(--cm-card)] p-6 shadow-2xl space-y-4 focus:outline-none"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-[#30363d]">
-              <h3 className="text-sm font-semibold text-[#f0f6fc]">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--cm-border)]">
+              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">
                 {selectedConfig ? 'Editar Parâmetro' : `Novo Parâmetro (${formPrefixType})`}
               </h3>
               <button
                 type="button"
                 onClick={closeModals}
                 disabled={isMutating}
-                className="text-[#8b949e] hover:text-[#f0f6fc] p-1 transition"
+                className="text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] p-1 transition"
               >
                 ✕
               </button>
@@ -978,7 +978,7 @@ export function AdminSystemTab() {
 
             <form onSubmit={handleSaveConfig} className="space-y-4 text-xs">
               <div className="space-y-1">
-                <label className="text-[#8b949e] font-medium">Chave do Parâmetro *</label>
+                <label className="text-[var(--cm-muted-foreground)] font-medium">Chave do Parâmetro *</label>
                 <input
                   type="text"
                   required
@@ -986,12 +986,12 @@ export function AdminSystemTab() {
                   value={formKey}
                   onChange={e => setFormKey(e.target.value)}
                   placeholder="Ex: feature.export_pdf, limit.max_tokens..."
-                  className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] font-mono focus:border-[#e7bf73] focus:outline-none disabled:opacity-60"
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] font-mono focus:border-[var(--cm-primary)] focus:outline-none disabled:opacity-60"
                 />
               </div>
 
               <div className="space-y-1">
-                <label className="text-[#8b949e] font-medium">Valor (JSON ou Primitivo) *</label>
+                <label className="text-[var(--cm-muted-foreground)] font-medium">Valor (JSON ou Primitivo) *</label>
                 <textarea
                   rows={4}
                   required
@@ -999,22 +999,22 @@ export function AdminSystemTab() {
                   value={formValueStr}
                   onChange={e => setFormValueStr(e.target.value)}
                   placeholder='Ex: {"enabled": true} ou 1000'
-                  className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] font-mono focus:border-[#e7bf73] focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] font-mono focus:border-[var(--cm-primary)] focus:outline-none"
                 />
-                <span className="text-[10px] text-[#8b949e]">
+                <span className="text-[10px] text-[var(--cm-muted-foreground)]">
                   Dica: Para feature flags simples, utilize <code>{'{"enabled": true}'}</code> ou <code>true</code>.
                 </span>
               </div>
 
               <div className="space-y-1">
-                <label className="text-[#8b949e] font-medium">Descrição do Impacto</label>
+                <label className="text-[var(--cm-muted-foreground)] font-medium">Descrição do Impacto</label>
                 <input
                   type="text"
                   disabled={isMutating}
                   value={formDescription}
                   onChange={e => setFormDescription(e.target.value)}
                   placeholder="Finalidade ou documento de referência deste parâmetro"
-                  className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] focus:border-[#e7bf73] focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] focus:border-[var(--cm-primary)] focus:outline-none"
                 />
               </div>
 
@@ -1024,19 +1024,19 @@ export function AdminSystemTab() {
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#30363d]">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--cm-border)]">
                 <button
                   type="button"
                   onClick={closeModals}
                   disabled={isMutating}
-                  className="px-3.5 py-1.5 rounded-lg border border-[#30363d] text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] transition font-medium"
+                  className="px-3.5 py-1.5 rounded-lg border border-[var(--cm-border)] text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] transition font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isMutating}
-                  className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#e7bf73] to-[#d8ae5f] text-[#0d1117] font-semibold hover:brightness-105 transition disabled:opacity-50"
+                  className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-[var(--cm-primary)] to-[var(--cm-primary)] text-[var(--cm-primary-foreground)] font-semibold hover:brightness-105 transition disabled:opacity-50"
                 >
                   {isMutating ? 'Saving...' : 'Salvar Parâmetro'}
                 </button>
@@ -1049,7 +1049,7 @@ export function AdminSystemTab() {
       {/* Modal 2: Confirmação de Exclusão de Parâmetro */}
       {isDeleteConfigModalOpen && selectedConfig && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#0d1117]/80 backdrop-blur-sm" onClick={closeModals} />
+          <div className="absolute inset-0 bg-[var(--cm-background)]/80 backdrop-blur-sm" onClick={closeModals} />
           <div
             role="dialog"
             aria-modal="true"
@@ -1062,16 +1062,16 @@ export function AdminSystemTab() {
                 closeModals()
               }
             }}
-            className="relative z-10 w-full max-w-md rounded-2xl border border-red-500/30 bg-[#161b22] p-6 shadow-2xl space-y-4 focus:outline-none"
+            className="relative z-10 w-full max-w-md rounded-2xl border border-red-500/30 bg-[var(--cm-card)] p-6 shadow-2xl space-y-4 focus:outline-none"
           >
             <div className="flex items-center gap-3 text-red-400">
               <span className="text-xl">⚠️</span>
-              <h3 className="text-sm font-semibold text-[#f0f6fc]">Excluir Parâmetro</h3>
+              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Excluir Parâmetro</h3>
             </div>
 
-            <p className="text-xs text-[#8b949e]">
+            <p className="text-xs text-[var(--cm-muted-foreground)]">
               Tem certeza de que deseja excluir a chave{' '}
-              <strong className="text-[#f0f6fc] font-mono">{selectedConfig.key}</strong>?
+              <strong className="text-[var(--cm-foreground)] font-mono">{selectedConfig.key}</strong>?
             </p>
 
             {formError && (
@@ -1080,12 +1080,12 @@ export function AdminSystemTab() {
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#30363d]">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--cm-border)]">
               <button
                 type="button"
                 onClick={closeModals}
                 disabled={isMutating}
-                className="px-3.5 py-1.5 rounded-lg border border-[#30363d] text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] transition text-xs font-medium"
+                className="px-3.5 py-1.5 rounded-lg border border-[var(--cm-border)] text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] transition text-xs font-medium"
               >
                 Cancel
               </button>
@@ -1105,7 +1105,7 @@ export function AdminSystemTab() {
       {/* Modal 3: Confirmação de Arquivamento de Workspace (Soft Delete) */}
       {isArchiveWorkspaceModalOpen && selectedWorkspace && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#0d1117]/80 backdrop-blur-sm" onClick={closeModals} />
+          <div className="absolute inset-0 bg-[var(--cm-background)]/80 backdrop-blur-sm" onClick={closeModals} />
           <div
             role="dialog"
             aria-modal="true"
@@ -1118,17 +1118,17 @@ export function AdminSystemTab() {
                 closeModals()
               }
             }}
-            className="relative z-10 w-full max-w-md rounded-2xl border border-amber-500/30 bg-[#161b22] p-6 shadow-2xl space-y-4 focus:outline-none"
+            className="relative z-10 w-full max-w-md rounded-2xl border border-amber-500/30 bg-[var(--cm-card)] p-6 shadow-2xl space-y-4 focus:outline-none"
           >
             <div className="flex items-center gap-3 text-amber-400">
               <span className="text-xl">📁</span>
-              <h3 className="text-sm font-semibold text-[#f0f6fc]">Arquivar Workspace</h3>
+              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Arquivar Workspace</h3>
             </div>
 
-            <p className="text-xs text-[#8b949e]">
-              Deseja arquivar o workspace <strong className="text-[#f0f6fc]">{selectedWorkspace.title}</strong> (
-              <span className="font-mono text-[#c9d1d9]">{selectedWorkspace.workspace_id}</span>) do tenant{' '}
-              <strong className="text-[#f0f6fc]">{selectedWorkspace.tenant_name}</strong>?
+            <p className="text-xs text-[var(--cm-muted-foreground)]">
+              Deseja arquivar o workspace <strong className="text-[var(--cm-foreground)]">{selectedWorkspace.title}</strong> (
+              <span className="font-mono text-[var(--cm-foreground)]">{selectedWorkspace.workspace_id}</span>) do tenant{' '}
+              <strong className="text-[var(--cm-foreground)]">{selectedWorkspace.tenant_name}</strong>?
             </p>
 
             <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs text-amber-300">
@@ -1142,12 +1142,12 @@ export function AdminSystemTab() {
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#30363d]">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--cm-border)]">
               <button
                 type="button"
                 onClick={closeModals}
                 disabled={isMutating}
-                className="px-3.5 py-1.5 rounded-lg border border-[#30363d] text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] transition text-xs font-medium"
+                className="px-3.5 py-1.5 rounded-lg border border-[var(--cm-border)] text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] transition text-xs font-medium"
               >
                 Cancel
               </button>

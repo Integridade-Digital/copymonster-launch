@@ -309,7 +309,7 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
     return (
       <div className="cm-billing-container" style={{ textAlign: 'center', paddingTop: '6rem' }}>
         <div className="cm-billing-spinner" />
-        <p style={{ marginTop: '1rem', color: '#64748b' }}>Loading pricing plans and subscription status…</p>
+        <p style={{ marginTop: '1rem', color: 'var(--cm-muted-foreground)' }}>Loading pricing plans and subscription status…</p>
       </div>
     )
   }
@@ -345,7 +345,7 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
               <span>🚀 7-Day Free Trial Active</span>
               <span className="cm-billing-banner-badge cm-billing-banner-badge--blue">Pro Access</span>
             </span>
-            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e40af' }}>
+            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--cm-ring)' }}>
               {trialDaysLeft > 0 ? `${trialDaysLeft} days remaining` : 'Expires today'}
             </span>
           </div>
@@ -390,7 +390,7 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
               </span>
             </span>
             {tenant.current_period_end ? (
-              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: '#15803d' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--cm-success)' }}>
                 Next billing date: {new Date(tenant.current_period_end).toLocaleDateString('en-US', {
                   year: 'numeric',
                   month: 'short',
@@ -429,10 +429,10 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
           style={{
             marginBottom: '1.5rem',
             padding: '1rem',
-            backgroundColor: '#fef2f2',
-            border: '1px solid #fecaca',
+            backgroundColor: 'color-mix(in srgb, var(--cm-destructive) 8%, transparent)',
+            border: '1px solid color-mix(in srgb, var(--cm-destructive) 25%, transparent)',
             borderRadius: '8px',
-            color: '#b91c1c',
+            color: 'var(--cm-destructive)',
             fontSize: '0.875rem',
           }}
         >

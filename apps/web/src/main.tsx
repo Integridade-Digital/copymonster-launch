@@ -13,6 +13,7 @@ import { RegisterPage } from './pages/RegisterPage'
 import { ResetPasswordPage } from './pages/ResetPasswordPage'
 import { BillingSuccessPage } from './pages/billing/BillingSuccessPage'
 import { BillingCancelPage } from './pages/billing/BillingCancelPage'
+import './cm-theme.css'
 import './auth.css'
 
 interface DesktopBootGlobal {

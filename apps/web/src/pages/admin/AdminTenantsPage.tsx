@@ -91,24 +91,24 @@ export function AdminTenantsPage() {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[#E7BF73]"></div>
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[var(--cm-primary)]"></div>
       </div>
     )
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', color: '#f0f6fc' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', color: 'var(--cm-foreground)' }}>
       {/* Cabeçalho da Seção */}
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-sm font-semibold text-[#f0f6fc]">Gestão de Tenants</h3>
-          <p className="text-xs text-[#8b949e] mt-1">
+          <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Gestão de Tenants</h3>
+          <p className="text-xs text-[var(--cm-muted-foreground)] mt-1">
             Organizações registradas, planos ativos e controle de status de acesso.
           </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
-          className="adminButton inline-flex items-center justify-center h-8 px-4 bg-[#E7BF73] hover:bg-[#D8AE5F] text-[#0d1117] font-semibold text-xs rounded-md shadow-sm transition-colors cursor-pointer"
+          className="adminButton inline-flex items-center justify-center h-8 px-4 bg-[var(--cm-primary)] hover:bg-[var(--cm-primary)] text-[var(--cm-primary-foreground)] font-semibold text-xs rounded-md shadow-sm transition-colors cursor-pointer"
         >
           Novo Tenant
         </button>
@@ -151,12 +151,12 @@ export function AdminTenantsPage() {
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
           placeholder="Buscar tenant por nome ou slug..."
-          className="adminInput h-8 px-3 text-xs bg-[#0d1117] border border-[#30363d] rounded-md text-[#f0f6fc] placeholder-[#8b949e] focus:outline-none focus:border-[#E7BF73] min-w-[240px]"
+          className="adminInput h-8 px-3 text-xs bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] focus:outline-none focus:border-[var(--cm-primary)] min-w-[240px]"
         />
         <select
           value={statusFilter}
           onChange={e => setStatusFilter(e.target.value as any)}
-          className="adminInput h-8 px-3 text-xs bg-[#0d1117] border border-[#30363d] rounded-md text-[#f0f6fc] focus:outline-none focus:border-[#E7BF73]"
+          className="adminInput h-8 px-3 text-xs bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)]"
         >
           <option value="all">Todos os Status</option>
           <option value="active">Apenas Ativos</option>
@@ -168,7 +168,7 @@ export function AdminTenantsPage() {
               setSearchTerm('')
               setStatusFilter('all')
             }}
-            className="text-xs text-[#8b949e] hover:text-[#f0f6fc] px-2 py-1 underline cursor-pointer"
+            className="text-xs text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] px-2 py-1 underline cursor-pointer"
           >
             Limpar Filtros
           </button>
@@ -178,7 +178,7 @@ export function AdminTenantsPage() {
       {/* Tabela envelopada em .adminCard */}
       <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
         <table className="adminTable w-full text-left border-collapse text-xs">
-          <thead className="bg-[#161b22] text-[#8b949e] uppercase font-semibold text-[11px] border-b border-[#30363d]">
+          <thead className="bg-[var(--cm-card)] text-[var(--cm-muted-foreground)] uppercase font-semibold text-[11px] border-b border-[var(--cm-border)]">
             <tr>
               <th className="py-2.5 px-3">Nome</th>
               <th className="py-2.5 px-3">Slug</th>
@@ -188,18 +188,18 @@ export function AdminTenantsPage() {
               <th className="py-2.5 px-3 text-right">Ações</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#30363d]">
+          <tbody className="divide-y divide-[var(--cm-border)]">
             {filteredTenants.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-xs text-[#8b949e]">
+                <td colSpan={6} className="py-8 text-center text-xs text-[var(--cm-muted-foreground)]">
                   Nenhum tenant encontrado.
                 </td>
               </tr>
             ) : (
               filteredTenants.map(tenant => (
-                <tr key={tenant.id} className="hover:bg-[#1f242c] transition-colors">
-                  <td className="py-2.5 px-3 font-medium text-[#f0f6fc]">{tenant.name}</td>
-                  <td className="py-2.5 px-3 text-[#8b949e] font-mono text-[11px]">{tenant.slug}</td>
+                <tr key={tenant.id} className="hover:bg-[var(--cm-muted)] transition-colors">
+                  <td className="py-2.5 px-3 font-medium text-[var(--cm-foreground)]">{tenant.name}</td>
+                  <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] font-mono text-[11px]">{tenant.slug}</td>
                   <td className="py-2.5 px-3">
                     <span className={`px-2 py-0.5 inline-flex text-[10px] font-semibold rounded border ${
                       tenant.status === 'active'
@@ -211,10 +211,10 @@ export function AdminTenantsPage() {
                       {tenant.status}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 text-[#c9d1d9] font-mono text-[11px] capitalize">
+                  <td className="py-2.5 px-3 text-[var(--cm-foreground)] font-mono text-[11px] capitalize">
                     {tenant.subscription_status || 'trial'}
                   </td>
-                  <td className="py-2.5 px-3 text-[#8b949e] text-[11px]">
+                  <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] text-[11px]">
                     {new Date(tenant.created_at).toLocaleDateString('pt-BR')}
                   </td>
                   <td className="py-2.5 px-3 text-right">
@@ -276,36 +276,36 @@ function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCrea
 
   return (
     <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="relative p-6 border border-[#30363d] w-full max-w-md shadow-2xl rounded-xl bg-[#161b22] text-[#f0f6fc]">
-        <div className="flex justify-between items-center mb-5 pb-3 border-b border-[#30363d]">
+      <div className="relative p-6 border border-[var(--cm-border)] w-full max-w-md shadow-2xl rounded-xl bg-[var(--cm-card)] text-[var(--cm-foreground)]">
+        <div className="flex justify-between items-center mb-5 pb-3 border-b border-[var(--cm-border)]">
           <h3 className="text-sm font-semibold text-white">Criar Novo Tenant</h3>
           <button
             onClick={onClose}
-            className="text-[#8b949e] hover:text-white text-lg font-bold cursor-pointer"
+            className="text-[var(--cm-muted-foreground)] hover:text-white text-lg font-bold cursor-pointer"
           >
             &times;
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-[#8b949e] mb-1.5">Nome</label>
+            <label className="block text-xs font-medium text-[var(--cm-muted-foreground)] mb-1.5">Nome</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Ex: Agência Alpha"
-              className="adminInput w-full h-8 px-3 bg-[#0d1117] border border-[#30363d] rounded-md text-[#f0f6fc] placeholder-[#8b949e] text-xs focus:outline-none focus:border-[#E7BF73]"
+              className="adminInput w-full h-8 px-3 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] text-xs focus:outline-none focus:border-[var(--cm-primary)]"
               required
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[#8b949e] mb-1.5">Slug</label>
+            <label className="block text-xs font-medium text-[var(--cm-muted-foreground)] mb-1.5">Slug</label>
             <input
               type="text"
               value={slug}
               onChange={e => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
               placeholder="ex: agencia-alpha"
-              className="adminInput w-full h-8 px-3 bg-[#0d1117] border border-[#30363d] rounded-md text-[#f0f6fc] placeholder-[#8b949e] text-xs font-mono focus:outline-none focus:border-[#E7BF73]"
+              className="adminInput w-full h-8 px-3 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] text-xs font-mono focus:outline-none focus:border-[var(--cm-primary)]"
               required
             />
           </div>
@@ -313,14 +313,14 @@ function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCrea
             <button
               type="button"
               onClick={onClose}
-              className="h-8 px-3 border border-[#30363d] rounded-md text-xs text-[#8b949e] hover:text-white hover:bg-[#21262d] transition-colors cursor-pointer"
+              className="h-8 px-3 border border-[var(--cm-border)] rounded-md text-xs text-[var(--cm-muted-foreground)] hover:text-white hover:bg-[var(--cm-secondary)] transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isCreating}
-              className="h-8 px-4 bg-[#E7BF73] hover:bg-[#D8AE5F] text-[#0d1117] font-semibold text-xs rounded-md disabled:opacity-50 transition-colors cursor-pointer"
+              className="h-8 px-4 bg-[var(--cm-primary)] hover:bg-[var(--cm-primary)] text-[var(--cm-primary-foreground)] font-semibold text-xs rounded-md disabled:opacity-50 transition-colors cursor-pointer"
             >
               {isCreating ? 'Criando...' : 'Criar Tenant'}
             </button>

@@ -20,8 +20,8 @@ function AuditValueBlock({ label, value }: { label: string; value: unknown }) {
   if (!json) return null
   return (
     <div>
-      <h4 className="font-semibold text-[#8b949e] mb-1 text-xs uppercase tracking-wider">{label}</h4>
-      <pre className="p-3 bg-[#0d1117] border border-[#30363d] rounded-lg text-emerald-400 overflow-x-auto text-xs font-mono">{json}</pre>
+      <h4 className="font-semibold text-[var(--cm-muted-foreground)] mb-1 text-xs uppercase tracking-wider">{label}</h4>
+      <pre className="p-3 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-lg text-emerald-400 overflow-x-auto text-xs font-mono">{json}</pre>
     </div>
   )
 }
@@ -78,11 +78,11 @@ export function AdminAuditPage() {
   }, [logs, resourceFilter])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', color: '#f0f6fc' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', color: 'var(--cm-foreground)' }}>
       {/* Cabeçalho */}
       <div>
-        <h3 className="text-sm font-semibold text-[#f0f6fc]">Trilha de Auditoria</h3>
-        <p className="text-xs text-[#8b949e] mt-1">
+        <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Trilha de Auditoria</h3>
+        <p className="text-xs text-[var(--cm-muted-foreground)] mt-1">
           Registro imutável de mutações, operações de segurança e logs de sistema.
         </p>
       </div>
@@ -129,7 +129,7 @@ export function AdminAuditPage() {
           value={resourceFilter}
           onChange={e => setResourceFilter(e.target.value)}
           placeholder="Filtrar por recurso (ex: tenants, users)..."
-          className="adminInput h-8 px-3 text-xs bg-[#0d1117] border border-[#30363d] rounded-md text-[#f0f6fc] placeholder-[#8b949e] focus:outline-none focus:border-[#E7BF73] min-w-[220px]"
+          className="adminInput h-8 px-3 text-xs bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] focus:outline-none focus:border-[var(--cm-primary)] min-w-[220px]"
         />
         <select
           value={actionFilter}
@@ -137,7 +137,7 @@ export function AdminAuditPage() {
             setActionFilter(e.target.value)
             setPage(0)
           }}
-          className="adminInput h-8 px-3 text-xs bg-[#0d1117] border border-[#30363d] rounded-md text-[#f0f6fc] focus:outline-none focus:border-[#E7BF73]"
+          className="adminInput h-8 px-3 text-xs bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)]"
         >
           <option value="">Todas as Ações</option>
           <option value="create">create</option>
@@ -152,7 +152,7 @@ export function AdminAuditPage() {
               setResourceFilter('')
               setPage(0)
             }}
-            className="text-xs text-[#8b949e] hover:text-[#f0f6fc] px-2 py-1 underline cursor-pointer"
+            className="text-xs text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] px-2 py-1 underline cursor-pointer"
           >
             Limpar Filtros
           </button>
@@ -162,7 +162,7 @@ export function AdminAuditPage() {
       {/* Tabela envelopada em .adminCard */}
       <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
         <table className="adminTable w-full text-left border-collapse text-xs">
-          <thead className="bg-[#161b22] text-[#8b949e] uppercase font-semibold text-[11px] border-b border-[#30363d]">
+          <thead className="bg-[var(--cm-card)] text-[var(--cm-muted-foreground)] uppercase font-semibold text-[11px] border-b border-[var(--cm-border)]">
             <tr>
               <th className="py-2.5 px-3">Data/Hora</th>
               <th className="py-2.5 px-3">Ação</th>
@@ -172,37 +172,37 @@ export function AdminAuditPage() {
               <th className="py-2.5 px-3 text-right">Detalhes</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-[#30363d]">
+          <tbody className="divide-y divide-[var(--cm-border)]">
             {isLoading ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-xs text-[#8b949e]">
+                <td colSpan={6} className="py-8 text-center text-xs text-[var(--cm-muted-foreground)]">
                   Carregando trilha de auditoria...
                 </td>
               </tr>
             ) : filteredLogs.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-8 text-center text-xs text-[#8b949e]">
+                <td colSpan={6} className="py-8 text-center text-xs text-[var(--cm-muted-foreground)]">
                   Nenhum log encontrado.
                 </td>
               </tr>
             ) : (
               filteredLogs.map(log => (
-                <tr key={log.id} className="hover:bg-[#1f242c] transition-colors">
-                  <td className="py-2.5 px-3 text-[#8b949e] font-mono text-[11px]">
+                <tr key={log.id} className="hover:bg-[var(--cm-muted)] transition-colors">
+                  <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] font-mono text-[11px]">
                     {new Date(log.created_at).toLocaleString('pt-BR')}
                   </td>
                   <td className="py-2.5 px-3">
-                    <span className="px-2 py-0.5 inline-flex text-[10px] font-semibold rounded bg-[#21262d] text-[#c9d1d9] border border-[#30363d]">
+                    <span className="px-2 py-0.5 inline-flex text-[10px] font-semibold rounded bg-[var(--cm-secondary)] text-[var(--cm-foreground)] border border-[var(--cm-border)]">
                       {log.action}
                     </span>
                   </td>
-                  <td className="py-2.5 px-3 text-[#f0f6fc] font-medium">{log.resource_type || '-'}</td>
-                  <td className="py-2.5 px-3 text-[#8b949e] font-mono text-[11px]">{log.resource_id ? log.resource_id.slice(0, 8) + '...' : '-'}</td>
-                  <td className="py-2.5 px-3 text-[#8b949e] font-mono text-[11px]">{log.ip_address || '-'}</td>
+                  <td className="py-2.5 px-3 text-[var(--cm-foreground)] font-medium">{log.resource_type || '-'}</td>
+                  <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] font-mono text-[11px]">{log.resource_id ? log.resource_id.slice(0, 8) + '...' : '-'}</td>
+                  <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] font-mono text-[11px]">{log.ip_address || '-'}</td>
                   <td className="py-2.5 px-3 text-right">
                     <button
                       onClick={() => setSelectedLog(log)}
-                      className="text-[#E7BF73] hover:text-[#D8AE5F] text-xs font-medium cursor-pointer"
+                      className="text-[var(--cm-primary)] hover:text-[var(--cm-primary)] text-xs font-medium cursor-pointer"
                     >
                       Ver Payload
                     </button>
@@ -214,20 +214,20 @@ export function AdminAuditPage() {
         </table>
 
         {/* Paginação */}
-        <div className="flex justify-between items-center p-3 border-t border-[#30363d] bg-[#161b22] text-xs text-[#8b949e]">
+        <div className="flex justify-between items-center p-3 border-t border-[var(--cm-border)] bg-[var(--cm-card)] text-xs text-[var(--cm-muted-foreground)]">
           <div>Página {page + 1}</div>
           <div className="space-x-2">
             <button
               onClick={() => setPage(p => Math.max(0, p - 1))}
               disabled={page === 0 || isLoading}
-              className="px-2.5 py-1 border border-[#30363d] rounded text-xs text-[#c9d1d9] disabled:opacity-40 hover:bg-[#21262d] cursor-pointer"
+              className="px-2.5 py-1 border border-[var(--cm-border)] rounded text-xs text-[var(--cm-foreground)] disabled:opacity-40 hover:bg-[var(--cm-secondary)] cursor-pointer"
             >
               Anterior
             </button>
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={logs.length < pageSize || isLoading}
-              className="px-2.5 py-1 border border-[#30363d] rounded text-xs text-[#c9d1d9] disabled:opacity-40 hover:bg-[#21262d] cursor-pointer"
+              className="px-2.5 py-1 border border-[var(--cm-border)] rounded text-xs text-[var(--cm-foreground)] disabled:opacity-40 hover:bg-[var(--cm-secondary)] cursor-pointer"
             >
               Próxima
             </button>
@@ -238,32 +238,32 @@ export function AdminAuditPage() {
       {/* Modal de Detalhes do Log */}
       {selectedLog && (
         <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="relative p-6 border border-[#30363d] w-full max-w-2xl shadow-2xl rounded-xl bg-[#161b22] text-[#f0f6fc] max-h-[85vh] overflow-y-auto space-y-4">
-            <div className="flex justify-between items-center pb-3 border-b border-[#30363d]">
+          <div className="relative p-6 border border-[var(--cm-border)] w-full max-w-2xl shadow-2xl rounded-xl bg-[var(--cm-card)] text-[var(--cm-foreground)] max-h-[85vh] overflow-y-auto space-y-4">
+            <div className="flex justify-between items-center pb-3 border-b border-[var(--cm-border)]">
               <h3 className="text-sm font-semibold text-white">
-                Log de Auditoria: <span className="text-[#E7BF73] font-mono">{selectedLog.action}</span>
+                Log de Auditoria: <span className="text-[var(--cm-primary)] font-mono">{selectedLog.action}</span>
               </h3>
               <button
                 onClick={() => setSelectedLog(null)}
-                className="text-[#8b949e] hover:text-white text-lg font-bold cursor-pointer"
+                className="text-[var(--cm-muted-foreground)] hover:text-white text-lg font-bold cursor-pointer"
               >
                 &times;
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <span className="text-[#8b949e]">Recurso:</span> {selectedLog.resource_type || '-'}
+                <span className="text-[var(--cm-muted-foreground)]">Recurso:</span> {selectedLog.resource_type || '-'}
               </div>
               <div>
-                <span className="text-[#8b949e]">ID Recurso:</span>{' '}
+                <span className="text-[var(--cm-muted-foreground)]">ID Recurso:</span>{' '}
                 <span className="font-mono text-[11px]">{selectedLog.resource_id || '-'}</span>
               </div>
               <div>
-                <span className="text-[#8b949e]">Usuário:</span>{' '}
+                <span className="text-[var(--cm-muted-foreground)]">Usuário:</span>{' '}
                 <span className="font-mono text-[11px]">{selectedLog.user_id || 'Anônimo / Sistema'}</span>
               </div>
               <div>
-                <span className="text-[#8b949e]">Data/Hora:</span>{' '}
+                <span className="text-[var(--cm-muted-foreground)]">Data/Hora:</span>{' '}
                 {new Date(selectedLog.created_at).toLocaleString('pt-BR')}
               </div>
             </div>
@@ -271,10 +271,10 @@ export function AdminAuditPage() {
               <AuditValueBlock label="Valor Anterior (Old)" value={selectedLog.old_value} />
               <AuditValueBlock label="Novo Valor (New)" value={selectedLog.new_value} />
             </div>
-            <div className="flex justify-end pt-3 border-t border-[#30363d]">
+            <div className="flex justify-end pt-3 border-t border-[var(--cm-border)]">
               <button
                 onClick={() => setSelectedLog(null)}
-                className="h-8 px-4 bg-[#21262d] border border-[#30363d] rounded text-xs text-[#c9d1d9] hover:text-white cursor-pointer"
+                className="h-8 px-4 bg-[var(--cm-secondary)] border border-[var(--cm-border)] rounded text-xs text-[var(--cm-foreground)] hover:text-white cursor-pointer"
               >
                 Fechar
               </button>

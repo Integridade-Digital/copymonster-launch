@@ -1,72 +1,42 @@
 /*
  * CopyMonster auth screens & application viewport constraints.
  *
- * Scoped styling with tokens aligned to DeepSuite / CopyMonster official theme
- * (--dsw-static-deepseek-* and --dsw-static-neutral-bluish-* tokens).
+ * Scoped styling on the `--cm-auth-*` tokens, which re-point the CopyMonster
+ * application palette (`--cm-*`, defined in cm-theme.css).
  */
 
 :root {
-  /* Brand colors (CopyMonster official institutional gold) */
-  --cm-auth-primary: var(--dsw-static-deepseek-500, #D8AE5F);
-  --cm-auth-primary-hover: var(--dsw-static-deepseek-400, #E7BF73);
-  --cm-auth-primary-active: var(--dsw-static-deepseek-600, #B0955E);
-  --cm-auth-primary-focus-ring: rgba(216, 174, 95, 0.2);
+  /* Brand */
+  --cm-auth-primary: var(--cm-primary);
+  --cm-auth-primary-hover: color-mix(in srgb, var(--cm-primary) 85%, white);
+  --cm-auth-primary-active: color-mix(in srgb, var(--cm-primary) 85%, black);
+  --cm-auth-primary-focus-ring: color-mix(in srgb, var(--cm-primary) 22%, transparent);
 
   /* Backgrounds & surfaces */
-  --cm-auth-bg: var(--dsw-static-neutral-bluish-60, #FBF0DA);
-  --cm-auth-card-bg: var(--dsw-static-neutral-bluish-00, #ffffff);
-  --cm-auth-card-border: var(--dsw-static-neutral-bluish-150, #e2e6eb);
+  --cm-auth-bg: var(--cm-background);
+  --cm-auth-card-bg: var(--cm-card);
+  --cm-auth-card-border: var(--cm-border);
 
   /* Typography */
-  --cm-auth-text: var(--dsw-static-neutral-bluish-1000, #0f1115);
-  --cm-auth-muted: var(--dsw-static-neutral-bluish-700, #61666b);
-  --cm-auth-caption: var(--dsw-static-neutral-bluish-500, #81858c);
+  --cm-auth-text: var(--cm-foreground);
+  --cm-auth-muted: var(--cm-muted-foreground);
+  --cm-auth-caption: var(--cm-muted-foreground);
 
   /* Form inputs */
-  --cm-auth-input-bg: var(--dsw-static-neutral-bluish-00, #ffffff);
-  --cm-auth-input-border: var(--dsw-static-neutral-bluish-300, #cfd3d6);
-  --cm-auth-input-border-hover: var(--dsw-static-neutral-bluish-400, #adb2b8);
+  --cm-auth-input-bg: var(--cm-muted);
+  --cm-auth-input-border: var(--cm-input);
+  --cm-auth-input-border-hover: color-mix(in srgb, var(--cm-input) 60%, var(--cm-foreground));
 
   /* Status messages */
-  --cm-auth-error-bg: var(--dsw-static-red-50, #fef2f2);
-  --cm-auth-error-text: var(--dsw-static-red-600, #dc2626);
-  --cm-auth-error-border: var(--dsw-static-red-100, #fee2e2);
-  --cm-auth-success-bg: var(--dsw-static-green-100, #f0fdf4);
-  --cm-auth-success-text: var(--dsw-static-green-500, #15803d);
-  --cm-auth-success-border: #bbf7d0;
+  --cm-auth-error-bg: color-mix(in srgb, var(--cm-destructive) 12%, transparent);
+  --cm-auth-error-text: var(--cm-destructive);
+  --cm-auth-error-border: color-mix(in srgb, var(--cm-destructive) 28%, transparent);
+  --cm-auth-success-bg: color-mix(in srgb, var(--cm-success) 12%, transparent);
+  --cm-auth-success-text: var(--cm-success);
+  --cm-auth-success-border: color-mix(in srgb, var(--cm-success) 28%, transparent);
 
   /* Card shadow */
-  --cm-auth-card-shadow: 0 4px 20px -2px rgba(15, 17, 21, 0.08), 0 1px 4px rgba(15, 17, 21, 0.04);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --cm-auth-primary: var(--dsw-static-deepseek-400, #E7BF73);
-    --cm-auth-primary-hover: var(--dsw-static-deepseek-300, #FBF0DA);
-    --cm-auth-primary-active: var(--dsw-static-deepseek-500, #D8AE5F);
-    --cm-auth-primary-focus-ring: rgba(231, 191, 115, 0.25);
-
-    --cm-auth-bg: var(--dsw-static-neutral-bluish-950, #151517);
-    --cm-auth-card-bg: var(--dsw-static-neutral-bluish-875, #232324);
-    --cm-auth-card-border: var(--dsw-static-neutral-bluish-800, #353638);
-
-    --cm-auth-text: var(--dsw-static-neutral-00, #f9fafb);
-    --cm-auth-muted: var(--dsw-static-neutral-bluish-400, #adb2b8);
-    --cm-auth-caption: var(--dsw-static-neutral-bluish-600, #81858c);
-
-    --cm-auth-input-bg: var(--dsw-static-neutral-bluish-900, #1b1b1c);
-    --cm-auth-input-border: var(--dsw-static-neutral-bluish-800, #353638);
-    --cm-auth-input-border-hover: var(--dsw-static-neutral-bluish-700, #494c50);
-
-    --cm-auth-error-bg: rgba(239, 68, 68, 0.12);
-    --cm-auth-error-text: #fca5a5;
-    --cm-auth-error-border: rgba(239, 68, 68, 0.28);
-    --cm-auth-success-bg: rgba(34, 197, 94, 0.12);
-    --cm-auth-success-text: #86efac;
-    --cm-auth-success-border: rgba(34, 197, 94, 0.28);
-
-    --cm-auth-card-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.2);
-  }
+  --cm-auth-card-shadow: var(--cm-shadow);
 }
 
 /*
@@ -165,10 +135,8 @@ body {
   object-fit: contain;
 }
 
-@media (prefers-color-scheme: dark) {
-  .cm-auth-brand-logo {
-    filter: invert(1) brightness(1.2);
-  }
+body[data-ds-dark-theme] .cm-auth-brand-logo {
+  filter: invert(1) brightness(1.2);
 }
 
 .cm-auth-brand-title {
@@ -289,7 +257,7 @@ body {
   padding: 0 1.25rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: #ffffff;
+  color: var(--cm-primary-foreground);
   background: var(--cm-auth-primary);
   border: none;
   border-radius: 20px;

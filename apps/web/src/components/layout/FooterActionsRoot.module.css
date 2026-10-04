@@ -24,7 +24,7 @@
 }
 
 .actionButton:hover {
-  background: rgba(255, 255, 255, 0.08);
+  background: color-mix(in srgb, var(--cm-foreground) 8%, transparent);
 }
 
 .icon {
@@ -32,18 +32,18 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  color: #8b949e;
+  color: var(--cm-muted-foreground);
 }
 
 .actionButton:hover .icon {
-  color: #E7BF73;
+  color: var(--cm-primary);
 }
 
 .label {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: #c9d1d9;
+  color: var(--cm-foreground);
 }
 
 /* Guard: explicit sizing for all icons and SVGs */
@@ -73,7 +73,7 @@
 .mask {
   position: absolute;
   inset: 0;
-  background: rgba(0, 0, 0, 0.65);
+  background: color-mix(in srgb, black 65%, transparent);
   backdrop-filter: blur(4px);
 }
 
@@ -87,10 +87,10 @@
   max-width: calc(100vw - 48px);
   border-radius: 20px;
   overflow: hidden;
-  background: #0d1117;
-  border: 1px solid #30363d;
-  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.55);
-  color: #c9d1d9;
+  background: var(--cm-background);
+  border: 1px solid var(--cm-border);
+  box-shadow: var(--cm-shadow);
+  color: var(--cm-foreground);
   font-family: inherit;
 }
 
@@ -103,8 +103,8 @@
   width: 196px;
   padding: 20px 12px 16px;
   box-sizing: border-box;
-  background: #161b22;
-  border-right: 1px solid #21262d;
+  background: var(--cm-card);
+  border-right: 1px solid var(--cm-secondary);
 }
 
 .railTitle {
@@ -112,7 +112,7 @@
   font-size: 14px;
   line-height: 20px;
   font-weight: 600;
-  color: #f0f6fc;
+  color: var(--cm-foreground);
 }
 
 .railList {
@@ -137,24 +137,24 @@
   font-size: 13px;
   line-height: 20px;
   font-weight: 400;
-  color: #8b949e;
+  color: var(--cm-muted-foreground);
   text-align: left;
   transition: all 0.15s ease;
 }
 
 .railCell:hover {
-  background: rgba(255, 255, 255, 0.05);
-  color: #c9d1d9;
+  background: color-mix(in srgb, var(--cm-foreground) 5%, transparent);
+  color: var(--cm-foreground);
 }
 
 .railCellActive {
-  background: rgba(231, 191, 115, 0.12);
-  color: #E7BF73;
+  background: color-mix(in srgb, var(--cm-primary) 12%, transparent);
+  color: var(--cm-primary);
   font-weight: 500;
 }
 
 .railCellActive .railIcon {
-  color: #E7BF73;
+  color: var(--cm-primary);
 }
 
 .railIcon {
@@ -163,7 +163,7 @@
   justify-content: center;
   flex: none;
   font-size: 14px;
-  color: #8b949e;
+  color: var(--cm-muted-foreground);
 }
 
 .railLabel {
@@ -180,7 +180,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: #0d1117;
+  background: var(--cm-background);
 }
 
 /* Header with Close X */
@@ -192,13 +192,13 @@
   height: 52px;
   padding: 12px 20px;
   box-sizing: border-box;
-  border-bottom: 1px solid #21262d;
+  border-bottom: 1px solid var(--cm-secondary);
 }
 
 .headerTitle {
   font-size: 14px;
   font-weight: 600;
-  color: #f0f6fc;
+  color: var(--cm-foreground);
 }
 
 .closeButton {
@@ -212,13 +212,13 @@
   border-radius: 6px;
   background: transparent;
   cursor: pointer;
-  color: #8b949e;
+  color: var(--cm-muted-foreground);
   transition: all 0.15s ease;
 }
 
 .closeButton:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: #f0f6fc;
+  background: color-mix(in srgb, var(--cm-foreground) 8%, transparent);
+  color: var(--cm-foreground);
 }
 
 /* Body container that scrolls */
@@ -234,7 +234,7 @@
 .bodyScroll h3 {
   font-size: 14px !important;
   font-weight: 600 !important;
-  color: #f0f6fc !important;
+  color: var(--cm-foreground) !important;
   margin: 0 0 8px 0 !important;
   line-height: 20px !important;
 }
@@ -243,7 +243,7 @@
 .bodyScroll .subtitle {
   font-size: 13px !important;
   line-height: 18px !important;
-  color: #8b949e !important;
+  color: var(--cm-muted-foreground) !important;
   margin: 0 0 12px 0 !important;
 }
 
@@ -251,7 +251,7 @@
   display: block;
   font-size: 13px !important;
   font-weight: 500 !important;
-  color: #8b949e !important;
+  color: var(--cm-muted-foreground) !important;
   margin-bottom: 6px !important;
   white-space: nowrap;
 }
@@ -265,11 +265,11 @@
   height: 32px !important;
   font-size: 13px !important;
   line-height: 20px !important;
-  background: #0d1117 !important;
-  border: 1px solid #30363d !important;
+  background: var(--cm-background) !important;
+  border: 1px solid var(--cm-border) !important;
   border-radius: 6px !important;
   padding: 0 12px !important;
-  color: #f0f6fc !important;
+  color: var(--cm-foreground) !important;
   box-sizing: border-box !important;
   outline: none;
   transition: border-color 0.15s ease;
@@ -277,7 +277,7 @@
 
 .bodyScroll input:focus,
 .bodyScroll select:focus {
-  border-color: #E7BF73 !important;
+  border-color: var(--cm-primary) !important;
 }
 
 .bodyScroll button.primary,
@@ -285,8 +285,8 @@
   height: 32px !important;
   font-size: 13px !important;
   font-weight: 500 !important;
-  background: #E7BF73 !important;
-  color: #0d1117 !important;
+  background: var(--cm-primary) !important;
+  color: var(--cm-primary-foreground) !important;
   border: none !important;
   border-radius: 6px !important;
   padding: 0 16px !important;
@@ -307,8 +307,8 @@
   height: 32px !important;
   font-size: 13px !important;
   background: transparent !important;
-  border: 1px solid #30363d !important;
-  color: #f0f6fc !important;
+  border: 1px solid var(--cm-border) !important;
+  color: var(--cm-foreground) !important;
   border-radius: 6px !important;
   padding: 0 16px !important;
   cursor: pointer;
@@ -319,8 +319,8 @@
 }
 
 .bodyScroll button.secondary:hover {
-  background: rgba(255, 255, 255, 0.05) !important;
-  border-color: #8b949e !important;
+  background: color-mix(in srgb, var(--cm-foreground) 5%, transparent) !important;
+  border-color: var(--cm-muted-foreground) !important;
 }
 
 /* Tables in admin tabs */
@@ -334,23 +334,23 @@
 .bodyScroll th {
   font-size: 12px !important;
   font-weight: 500 !important;
-  color: #8b949e !important;
+  color: var(--cm-muted-foreground) !important;
   text-align: left !important;
   padding: 8px 12px !important;
-  border-bottom: 1px solid #30363d !important;
-  background: #161b22 !important;
+  border-bottom: 1px solid var(--cm-border) !important;
+  background: var(--cm-card) !important;
   white-space: nowrap !important;
 }
 
 .bodyScroll td {
   padding: 8px 12px !important;
-  border-bottom: 1px solid #21262d !important;
-  color: #c9d1d9 !important;
+  border-bottom: 1px solid var(--cm-secondary) !important;
+  color: var(--cm-foreground) !important;
   vertical-align: middle !important;
 }
 
 .bodyScroll tr:hover td {
-  background: rgba(255, 255, 255, 0.02) !important;
+  background: color-mix(in srgb, var(--cm-foreground) 2%, transparent) !important;
 }
 
 /* Single-section panel without rail (e.g. Plans) */
@@ -359,13 +359,13 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: #0d1117;
+  background: var(--cm-background);
 }
 
 .adminRestricted {
   padding: 40px;
   text-align: center;
-  color: #8b949e;
+  color: var(--cm-muted-foreground);
   font-size: 14px;
 }
 
@@ -387,8 +387,8 @@
 }
 
 .adminCard, :global(.adminCard) {
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--cm-card);
+  border: 1px solid var(--cm-border);
   border-radius: 8px;
   padding: 16px;
   display: flex;
@@ -400,7 +400,7 @@
   font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: #8b949e;
+  color: var(--cm-muted-foreground);
   margin-bottom: 6px;
   font-weight: 500;
 }
@@ -408,13 +408,13 @@
 .adminCardValue, :global(.adminCardValue) {
   font-size: 20px;
   font-weight: 600;
-  color: #f0f6fc;
+  color: var(--cm-foreground);
   line-height: 1.2;
 }
 
 .adminCardSub, :global(.adminCardSub) {
   font-size: 12px;
-  color: #8b949e;
+  color: var(--cm-muted-foreground);
   margin-top: 4px;
 }
 
@@ -427,9 +427,9 @@
 .adminTable th, :global(.adminTable th) {
   font-size: 12px;
   text-transform: uppercase;
-  color: #8b949e;
-  background: #161b22;
-  border-bottom: 1px solid #30363d;
+  color: var(--cm-muted-foreground);
+  background: var(--cm-card);
+  border-bottom: 1px solid var(--cm-border);
   padding: 8px 12px;
   text-align: left;
   font-weight: 600;
@@ -437,8 +437,8 @@
 
 .adminTable td, :global(.adminTable td) {
   padding: 8px 12px;
-  border-bottom: 1px solid #30363d;
-  color: #c9d1d9;
+  border-bottom: 1px solid var(--cm-border);
+  color: var(--cm-foreground);
 }
 
 .adminInput, :global(.adminInput) {
@@ -446,25 +446,25 @@
   width: 100%;
   height: 32px;
   font-size: 13px;
-  background: #0d1117;
-  border: 1px solid #30363d;
+  background: var(--cm-background);
+  border: 1px solid var(--cm-border);
   border-radius: 6px;
   padding: 0 12px;
   margin-bottom: 16px;
-  color: #f0f6fc;
+  color: var(--cm-foreground);
   box-sizing: border-box;
   outline: none;
   transition: border-color 0.15s ease;
 }
 
 .adminInput:focus, :global(.adminInput:focus) {
-  border-color: #E7BF73;
+  border-color: var(--cm-primary);
 }
 
 .adminLabel, :global(.adminLabel) {
   display: block;
   font-size: 13px;
-  color: #8b949e;
+  color: var(--cm-muted-foreground);
   margin-bottom: 6px;
   font-weight: 500;
 }
@@ -475,8 +475,8 @@
   justify-content: center;
   height: 32px;
   padding: 0 16px;
-  background: #E7BF73;
-  color: #0d1117;
+  background: var(--cm-primary);
+  color: var(--cm-primary-foreground);
   border-radius: 6px;
   font-size: 13px;
   font-weight: 600;
@@ -504,6 +504,6 @@
 
 .sectionSeparator, :global(.sectionSeparator) {
   border: none;
-  border-top: 1px solid #30363d;
+  border-top: 1px solid var(--cm-border);
   margin: 24px 0;
 }

@@ -156,10 +156,10 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
       {activeSection === 'account' && (
         <section>
           <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#f0f6fc', margin: '0 0 4px 0' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: '0 0 4px 0' }}>
               Dados da Conta
             </h3>
-            <p style={{ fontSize: '13px', color: '#8b949e', margin: 0 }}>
+            <p style={{ fontSize: '13px', color: 'var(--cm-muted-foreground)', margin: 0 }}>
               Gerencie suas informações pessoais e detalhes de contato.
             </p>
           </div>
@@ -168,7 +168,7 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
             <div>
               <label
                 htmlFor="email"
-                style={{ display: 'block', fontSize: '13px', color: '#8b949e', marginBottom: '6px', fontWeight: 500 }}
+                style={{ display: 'block', fontSize: '13px', color: 'var(--cm-muted-foreground)', marginBottom: '6px', fontWeight: 500 }}
               >
                 {t('profile.email')}
               </label>
@@ -182,12 +182,12 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
                   width: '100%',
                   height: '32px',
                   fontSize: '13px',
-                  background: '#161b22',
-                  border: '1px solid #30363d',
+                  background: 'var(--cm-card)',
+                  border: '1px solid var(--cm-border)',
                   borderRadius: '6px',
                   padding: '0 12px',
                   marginBottom: '16px',
-                  color: '#8b949e',
+                  color: 'var(--cm-muted-foreground)',
                   boxSizing: 'border-box',
                 }}
               />
@@ -196,7 +196,7 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
             <div>
               <label
                 htmlFor="fullName"
-                style={{ display: 'block', fontSize: '13px', color: '#8b949e', marginBottom: '6px', fontWeight: 500 }}
+                style={{ display: 'block', fontSize: '13px', color: 'var(--cm-muted-foreground)', marginBottom: '6px', fontWeight: 500 }}
               >
                 {t('profile.fullName')}
               </label>
@@ -211,12 +211,12 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
                   width: '100%',
                   height: '32px',
                   fontSize: '13px',
-                  background: '#0d1117',
-                  border: '1px solid #30363d',
+                  background: 'var(--cm-background)',
+                  border: '1px solid var(--cm-border)',
                   borderRadius: '6px',
                   padding: '0 12px',
                   marginBottom: '16px',
-                  color: '#f0f6fc',
+                  color: 'var(--cm-foreground)',
                   boxSizing: 'border-box',
                 }}
               />
@@ -225,7 +225,7 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
             <div>
               <label
                 htmlFor="whatsapp"
-                style={{ display: 'block', fontSize: '13px', color: '#8b949e', marginBottom: '6px', fontWeight: 500 }}
+                style={{ display: 'block', fontSize: '13px', color: 'var(--cm-muted-foreground)', marginBottom: '6px', fontWeight: 500 }}
               >
                 {t('profile.whatsapp')}
               </label>
@@ -243,17 +243,17 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
                   width: '100%',
                   height: '32px',
                   fontSize: '13px',
-                  background: '#0d1117',
-                  border: `1px solid ${whatsappError ? '#f85149' : '#30363d'}`,
+                  background: 'var(--cm-background)',
+                  border: `1px solid ${whatsappError ? 'var(--cm-destructive)' : 'var(--cm-border)'}`,
                   borderRadius: '6px',
                   padding: '0 12px',
                   marginBottom: whatsappError ? '6px' : '16px',
-                  color: '#f0f6fc',
+                  color: 'var(--cm-foreground)',
                   boxSizing: 'border-box',
                 }}
               />
               {whatsappError && (
-                <span style={{ display: 'block', fontSize: '12px', color: '#f85149', marginBottom: '16px' }}>
+                <span style={{ display: 'block', fontSize: '12px', color: 'var(--cm-destructive)', marginBottom: '16px' }}>
                   {whatsappError}
                 </span>
               )}
@@ -265,9 +265,9 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
                   fontSize: '13px',
                   padding: '8px 12px',
                   borderRadius: '6px',
-                  backgroundColor: profileMessage.type === 'success' ? 'rgba(46, 160, 67, 0.15)' : 'rgba(248, 81, 73, 0.15)',
-                  border: `1px solid ${profileMessage.type === 'success' ? '#2ea043' : '#f85149'}`,
-                  color: profileMessage.type === 'success' ? '#3fb950' : '#f85149',
+                  backgroundColor: profileMessage.type === 'success' ? 'color-mix(in srgb, var(--cm-success) 15%, transparent)' : 'color-mix(in srgb, var(--cm-destructive) 15%, transparent)',
+                  border: `1px solid ${profileMessage.type === 'success' ? 'var(--cm-success)' : 'var(--cm-destructive)'}`,
+                  color: profileMessage.type === 'success' ? 'var(--cm-success)' : 'var(--cm-destructive)',
                   marginBottom: '16px',
                 }}
               >
@@ -285,8 +285,8 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
                   justifyContent: 'center',
                   height: '32px',
                   padding: '0 16px',
-                  backgroundColor: '#E7BF73',
-                  color: '#0d1117',
+                  backgroundColor: 'var(--cm-primary)',
+                  color: 'var(--cm-background)',
                   borderRadius: '6px',
                   fontSize: '13px',
                   fontWeight: 600,
@@ -307,10 +307,10 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
       {activeSection === 'security' && (
         <section>
           <div style={{ marginBottom: '20px' }}>
-            <h3 style={{ fontSize: '14px', fontWeight: 600, color: '#f0f6fc', margin: '0 0 4px 0' }}>
+            <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: '0 0 4px 0' }}>
               Segurança & Senha
             </h3>
-            <p style={{ fontSize: '13px', color: '#8b949e', margin: 0 }}>
+            <p style={{ fontSize: '13px', color: 'var(--cm-muted-foreground)', margin: 0 }}>
               Atualize sua senha de acesso para proteger sua conta.
             </p>
           </div>
@@ -319,7 +319,7 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
             <div>
               <label
                 htmlFor="newPassword"
-                style={{ display: 'block', fontSize: '13px', color: '#8b949e', marginBottom: '6px', fontWeight: 500 }}
+                style={{ display: 'block', fontSize: '13px', color: 'var(--cm-muted-foreground)', marginBottom: '6px', fontWeight: 500 }}
               >
                 {t('profile.newPassword')}
               </label>
@@ -334,12 +334,12 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
                   width: '100%',
                   height: '32px',
                   fontSize: '13px',
-                  background: '#0d1117',
-                  border: '1px solid #30363d',
+                  background: 'var(--cm-background)',
+                  border: '1px solid var(--cm-border)',
                   borderRadius: '6px',
                   padding: '0 12px',
                   marginBottom: '16px',
-                  color: '#f0f6fc',
+                  color: 'var(--cm-foreground)',
                   boxSizing: 'border-box',
                 }}
               />
@@ -348,7 +348,7 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
             <div>
               <label
                 htmlFor="confirmPassword"
-                style={{ display: 'block', fontSize: '13px', color: '#8b949e', marginBottom: '6px', fontWeight: 500 }}
+                style={{ display: 'block', fontSize: '13px', color: 'var(--cm-muted-foreground)', marginBottom: '6px', fontWeight: 500 }}
               >
                 {t('profile.confirmPassword')}
               </label>
@@ -363,12 +363,12 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
                   width: '100%',
                   height: '32px',
                   fontSize: '13px',
-                  background: '#0d1117',
-                  border: '1px solid #30363d',
+                  background: 'var(--cm-background)',
+                  border: '1px solid var(--cm-border)',
                   borderRadius: '6px',
                   padding: '0 12px',
                   marginBottom: '16px',
-                  color: '#f0f6fc',
+                  color: 'var(--cm-foreground)',
                   boxSizing: 'border-box',
                 }}
               />
@@ -380,9 +380,9 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
                   fontSize: '13px',
                   padding: '8px 12px',
                   borderRadius: '6px',
-                  backgroundColor: passwordMessage.type === 'success' ? 'rgba(46, 160, 67, 0.15)' : 'rgba(248, 81, 73, 0.15)',
-                  border: `1px solid ${passwordMessage.type === 'success' ? '#2ea043' : '#f85149'}`,
-                  color: passwordMessage.type === 'success' ? '#3fb950' : '#f85149',
+                  backgroundColor: passwordMessage.type === 'success' ? 'color-mix(in srgb, var(--cm-success) 15%, transparent)' : 'color-mix(in srgb, var(--cm-destructive) 15%, transparent)',
+                  border: `1px solid ${passwordMessage.type === 'success' ? 'var(--cm-success)' : 'var(--cm-destructive)'}`,
+                  color: passwordMessage.type === 'success' ? 'var(--cm-success)' : 'var(--cm-destructive)',
                   marginBottom: '16px',
                 }}
               >
@@ -400,8 +400,8 @@ export function ProfilePage({ currentUser, onProfileUpdated, activeSection = 'ac
                   justifyContent: 'center',
                   height: '32px',
                   padding: '0 16px',
-                  backgroundColor: '#E7BF73',
-                  color: '#0d1117',
+                  backgroundColor: 'var(--cm-primary)',
+                  color: 'var(--cm-background)',
                   borderRadius: '6px',
                   fontSize: '13px',
                   fontWeight: 600,

@@ -25,6 +25,12 @@
 - 使用中性 `--dsw-alias-border-*` token 的平面边框与分割线一律 `0.5px`——按钮、输入框、卡片、行分割线，以及以填充盒绘制的分隔线（菜单分隔、对话标题栏接缝、markdown `hr`、竖向轨道线）共用发丝线粗细，Chromium 将其绘制为一个设备像素。dashed 记号与状态色 border 保持 1px；spinner 圆环经 spec 的显式豁免保留原宽度。更宽的中性 solid border 会被 ui-theme elevation spec 拒绝。
 - 可点击产物链接（Markdown 锚点、正文文件引用、网页来源与抓取链接、产物 chips、workflow 成员链接）经 `--dsw-alias-link` 着色、`font-weight: 500`，默认无下划线，hover/focus 时为 3px offset 的点状下划线。紧凑 Thinking Markdown 保持 tertiary 文字色和默认点状下划线（[紧凑展示](../.agents/notes/implemented/bug-fix/2026-09-17-thinking-markdown.zh.md)）。带文字的锚点另以 ui-primitives 的 `LinkIcon` 分类图形（随 `currentColor`）作前置；目的地是已知外部站点时改用该站点自己的标记而非地球；workflow 成员链接与只包图片的锚点不带图形，工具行文件链接保持其灰色点线示能（[可点击链接 Agent Note](../.agents/notes/implemented/feature/2026-09-04-web-clickable-link-styles.zh.md)、[已知站点标记 Agent Note](../.agents/notes/implemented/feature/2026-09-16-known-site-link-marks.zh.md)）。
 
+## CopyMonster 应用主题
+
+`apps/web` 前端在 [`apps/web/src/cm-theme.css`](../apps/web/src/cm-theme.css) 中拥有第二套应用级色板：官方 CopyMonster 明色值位于 `:root`，暗色值位于 `body[data-ds-dark-theme]` 下（该属性由 [ui-layout 主题呈现器](../packages/client/ui-layout/README.zh.md)设置在 `<body>` 上）。
+其 `--cm-*` token 命名了应用绘制的每一种颜色、阴影和遮罩；`apps/web/src` 中的组件 CSS 与 React 内联样式只引用这些 token，不写颜色字面量。
+`pnpm run check:theme`（`scripts/check-theme.sh`）拒绝 `cm-theme.css` 之外任何 `apps/web/src` 文件中的 hex、`rgb()` 或 `hsl()` 字面量。
+
 ## 变更系统
 
 在所属 `ui-theme` 样式表中添加或修改共享 token，然后在功能包中使用其语义别名。公共样式约定发生变化时，更新所属包的参考文档。视觉行为遵循[测试策略](testing.zh.md)；[样式系统 Agent Note](../.agents/notes/implemented/process/2026-07-19-web-styling-system.zh.md) 记录框架依据。

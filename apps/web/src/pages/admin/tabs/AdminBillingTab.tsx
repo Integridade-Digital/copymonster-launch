@@ -172,14 +172,14 @@ export function AdminBillingTab() {
       case 'trial':
       case 'trialing':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#e7bf73]/20 text-[#e7bf73] border border-[#e7bf73]/40">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#e7bf73] animate-pulse" />
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[var(--cm-primary)]/20 text-[var(--cm-primary)] border border-[var(--cm-primary)]/40">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--cm-primary)] animate-pulse" />
             Trialing
           </span>
         )
       case 'trial_expired':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#8b949e]/15 text-[#8b949e] border border-[#8b949e]/30">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[var(--cm-muted-foreground)]/15 text-[var(--cm-muted-foreground)] border border-[var(--cm-muted-foreground)]/30">
             Trial Expired
           </span>
         )
@@ -194,13 +194,13 @@ export function AdminBillingTab() {
       case 'canceled':
       case 'deleted':
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#30363d] text-[#8b949e]">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[var(--cm-secondary)] text-[var(--cm-muted-foreground)]">
             Canceled
           </span>
         )
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[#30363d] text-[#8b949e]">
+          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-[var(--cm-secondary)] text-[var(--cm-muted-foreground)]">
             {status}
           </span>
         )
@@ -212,7 +212,7 @@ export function AdminBillingTab() {
     switch (slug?.toLowerCase()) {
       case 'legend':
         return (
-          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[#e7bf73]/20 text-[#e7bf73] border border-[#e7bf73]/40">
+          <span className="px-2 py-0.5 rounded text-xs font-semibold bg-[var(--cm-primary)]/20 text-[var(--cm-primary)] border border-[var(--cm-primary)]/40">
             {name || 'Legend'}
           </span>
         )
@@ -230,7 +230,7 @@ export function AdminBillingTab() {
         )
       default:
         return (
-          <span className="px-2 py-0.5 rounded text-xs font-medium bg-[#161b22] text-[#8b949e] border border-[#30363d]">
+          <span className="px-2 py-0.5 rounded text-xs font-medium bg-[var(--cm-card)] text-[var(--cm-muted-foreground)] border border-[var(--cm-border)]">
             {name || 'Free'}
           </span>
         )
@@ -240,13 +240,13 @@ export function AdminBillingTab() {
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', color: '#f0f6fc' }}>
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', color: 'var(--cm-foreground)' }}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#30363d]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[var(--cm-border)]">
         <div>
           <div className="flex items-center gap-2.5">
-            <h2 className="text-xl font-bold tracking-tight text-[#f0f6fc]">Billing & Subscriptions</h2>
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#e7bf73]/20 text-[#e7bf73] border border-[#e7bf73]/30">
+            <h2 className="text-xl font-bold tracking-tight text-[var(--cm-foreground)]">Billing & Subscriptions</h2>
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--cm-primary)]/20 text-[var(--cm-primary)] border border-[var(--cm-primary)]/30">
               {kpis?.active_subscriptions ?? 0} active subscriptions
             </span>
             {kpis && (
@@ -255,7 +255,7 @@ export function AdminBillingTab() {
               </span>
             )}
           </div>
-          <p className="text-sm text-[#8b949e] mt-1">
+          <p className="text-sm text-[var(--cm-muted-foreground)] mt-1">
             Global overview of recurring revenue, tenant subscriptions, token consumption, and Stripe lifecycle.
           </p>
         </div>
@@ -265,7 +265,7 @@ export function AdminBillingTab() {
             href={STRIPE_DASHBOARD_BASE}
             target="_blank"
             rel="noopener noreferrer"
-            className="px-3 py-1.5 rounded-lg border border-[#b0955e]/50 bg-[#161b22] hover:bg-[#b0955e]/20 text-xs font-semibold text-[#e7bf73] transition flex items-center gap-1.5 shadow-sm"
+            className="px-3 py-1.5 rounded-lg border border-[var(--cm-primary)]/50 bg-[var(--cm-card)] hover:bg-[var(--cm-primary)]/20 text-xs font-semibold text-[var(--cm-primary)] transition flex items-center gap-1.5 shadow-sm"
           >
             <svg width="14" height="14" className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -276,11 +276,11 @@ export function AdminBillingTab() {
           <button
             onClick={() => loadBillingData(true)}
             disabled={isLoading || isRefreshing}
-            className="px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-xs font-medium text-[#f0f6fc] transition flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/50 text-xs font-medium text-[var(--cm-foreground)] transition flex items-center gap-1.5 disabled:opacity-50"
             title="Refresh billing data"
           >
             <svg width="14" height="14"
-              className={`w-3.5 h-3.5 text-[#8b949e] ${isRefreshing ? 'animate-spin' : ''}`}
+              className={`w-3.5 h-3.5 text-[var(--cm-muted-foreground)] ${isRefreshing ? 'animate-spin' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -295,41 +295,41 @@ export function AdminBillingTab() {
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {/* Estimated MRR */}
-        <div className="p-3.5 rounded-xl border border-[#b0955e]/40 bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e] font-medium flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#e7bf73]" />
+        <div className="p-3.5 rounded-xl border border-[var(--cm-primary)]/40 bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[var(--cm-primary)]" />
             Estimated MRR
           </div>
-          <div className="text-xl font-bold text-[#e7bf73] mt-1">
+          <div className="text-xl font-bold text-[var(--cm-primary)] mt-1">
             {kpis ? formatCurrency(kpis.mrr_estimated_cents) : '-'}
           </div>
         </div>
 
         {/* Active Subscriptions */}
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e] font-medium flex items-center gap-1">
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
             Active Subscriptions
           </div>
-          <div className="text-xl font-bold text-[#f0f6fc] mt-1">
+          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">
             {kpis ? kpis.active_subscriptions.toLocaleString('en-US') : '-'}
           </div>
         </div>
 
         {/* Trialing */}
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e] font-medium flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#d8ae5f]" />
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[var(--cm-primary)]" />
             Trialing
           </div>
-          <div className="text-xl font-bold text-[#d8ae5f] mt-1">
+          <div className="text-xl font-bold text-[var(--cm-primary)] mt-1">
             {kpis ? kpis.trialing_tenants.toLocaleString('en-US') : '-'}
           </div>
         </div>
 
         {/* Past Due */}
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e] font-medium flex items-center gap-1">
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-rose-400" />
             Past Due
           </div>
@@ -339,19 +339,19 @@ export function AdminBillingTab() {
         </div>
 
         {/* Cycle Tokens */}
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70 col-span-2 sm:col-span-1">
-          <div className="text-xs text-[#8b949e] font-medium flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#b0955e]" />
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70 col-span-2 sm:col-span-1">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[var(--cm-primary)]" />
             Cycle Tokens Used
           </div>
-          <div className="text-xl font-bold text-[#f0f6fc] mt-1">
+          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">
             {kpis ? formatTokens(kpis.total_cycle_tokens) : '-'}
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="p-4 rounded-xl border border-[#30363d] bg-[#161b22]/50 space-y-3">
+      <div className="p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/50 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
           {/* Search */}
           <div className="sm:col-span-4 relative">
@@ -360,10 +360,10 @@ export function AdminBillingTab() {
               placeholder="Search by tenant, slug, or Stripe ID..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 pl-9 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f0f6fc] placeholder-[#8b949e] focus:outline-none focus:border-[#e7bf73] transition"
+              className="w-full px-3 py-2 pl-9 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-lg text-sm text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] focus:outline-none focus:border-[var(--cm-primary)] transition"
             />
             <svg width="14" height="14"
-              className="w-4 h-4 text-[#8b949e] absolute left-3 top-2.5"
+              className="w-4 h-4 text-[var(--cm-muted-foreground)] absolute left-3 top-2.5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -373,7 +373,7 @@ export function AdminBillingTab() {
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-2.5 text-xs text-[#8b949e] hover:text-[#f0f6fc]"
+                className="absolute right-2.5 top-2.5 text-xs text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)]"
               >
                 ✕
               </button>
@@ -388,7 +388,7 @@ export function AdminBillingTab() {
                 setSelectedPlan(e.target.value)
                 setCurrentPage(1)
               }}
-              className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73] transition"
+              className="w-full px-3 py-2 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-lg text-sm text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)] transition"
             >
               <option value="">All Plans</option>
               <option value="starter">Starter</option>
@@ -405,7 +405,7 @@ export function AdminBillingTab() {
                 setSelectedStatus(e.target.value)
                 setCurrentPage(1)
               }}
-              className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73] transition"
+              className="w-full px-3 py-2 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-lg text-sm text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)] transition"
             >
               <option value="">All Statuses</option>
               <option value="active">Active</option>
@@ -424,7 +424,7 @@ export function AdminBillingTab() {
                 setSelectedInterval(e.target.value)
                 setCurrentPage(1)
               }}
-              className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73] transition"
+              className="w-full px-3 py-2 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-lg text-sm text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)] transition"
             >
               <option value="">All Intervals</option>
               <option value="month">Monthly</option>
@@ -435,7 +435,7 @@ export function AdminBillingTab() {
 
         {/* Filters Summary */}
         {(debouncedSearch || selectedPlan || selectedStatus || selectedInterval) && (
-          <div className="flex items-center justify-between text-xs text-[#8b949e] pt-2 border-t border-[#30363d]/50">
+          <div className="flex items-center justify-between text-xs text-[var(--cm-muted-foreground)] pt-2 border-t border-[var(--cm-border)]/50">
             <span>Filtered results: {totalCount} tenants.</span>
             <button
               onClick={() => {
@@ -445,7 +445,7 @@ export function AdminBillingTab() {
                 setSelectedInterval('')
                 setCurrentPage(1)
               }}
-              className="text-[#e7bf73] hover:underline"
+              className="text-[var(--cm-primary)] hover:underline"
             >
               Clear all filters
             </button>
@@ -470,10 +470,10 @@ export function AdminBillingTab() {
       )}
 
       {/* Tenants Billing Table */}
-      <div className="border border-[#30363d] rounded-xl overflow-hidden bg-[#161b22]/70">
+      <div className="border border-[var(--cm-border)] rounded-xl overflow-hidden bg-[var(--cm-card)]/70">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-[#f0f6fc]">
-            <thead className="bg-[#161b22] border-b border-[#30363d] text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+          <table className="w-full text-left text-sm text-[var(--cm-foreground)]">
+            <thead className="bg-[var(--cm-card)] border-b border-[var(--cm-border)] text-xs font-semibold text-[var(--cm-muted-foreground)] uppercase tracking-wider">
               <tr>
                 <th className="px-4 py-3">Tenant</th>
                 <th className="px-4 py-3">Plan</th>
@@ -484,12 +484,12 @@ export function AdminBillingTab() {
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#30363d]/60">
+            <tbody className="divide-y divide-[var(--cm-border)]/60">
               {isLoading && !isRefreshing ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-[#8b949e]">
+                  <td colSpan={7} className="px-4 py-12 text-center text-[var(--cm-muted-foreground)]">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <svg width="14" height="14" className="w-6 h-6 animate-spin text-[#e7bf73]" fill="none" viewBox="0 0 24 24">
+                      <svg width="14" height="14" className="w-6 h-6 animate-spin text-[var(--cm-primary)]" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" stroke="currentColor" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                       </svg>
@@ -499,10 +499,10 @@ export function AdminBillingTab() {
                 </tr>
               ) : tenants.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-4 py-12 text-center text-[#8b949e]">
+                  <td colSpan={7} className="px-4 py-12 text-center text-[var(--cm-muted-foreground)]">
                     <div className="flex flex-col items-center justify-center gap-1">
-                      <p className="text-base font-medium text-[#f0f6fc]">No subscriptions found</p>
-                      <p className="text-xs text-[#8b949e]">
+                      <p className="text-base font-medium text-[var(--cm-foreground)]">No subscriptions found</p>
+                      <p className="text-xs text-[var(--cm-muted-foreground)]">
                         {debouncedSearch || selectedPlan || selectedStatus || selectedInterval
                           ? 'Try adjusting your search filters above.'
                           : 'No tenants or billing records registered yet.'}
@@ -517,13 +517,13 @@ export function AdminBillingTab() {
                   const usagePercent = tokenLimit > 0 ? Math.min(100, Math.round((tokenUsage / tokenLimit) * 100)) : 0
 
                   return (
-                    <tr key={row.tenant_id} className="hover:bg-[#30363d]/20 transition-colors">
+                    <tr key={row.tenant_id} className="hover:bg-[var(--cm-secondary)]/20 transition-colors">
                       {/* Tenant */}
                       <td className="px-4 py-3 max-w-[220px]">
-                        <div className="font-medium text-[#f0f6fc] truncate" title={row.tenant_name}>
+                        <div className="font-medium text-[var(--cm-foreground)] truncate" title={row.tenant_name}>
                           {row.tenant_name}
                         </div>
-                        <div className="font-mono text-[11px] text-[#8b949e] truncate mt-0.5" title={row.tenant_slug}>
+                        <div className="font-mono text-[11px] text-[var(--cm-muted-foreground)] truncate mt-0.5" title={row.tenant_slug}>
                           {row.tenant_slug}
                         </div>
                       </td>
@@ -532,7 +532,7 @@ export function AdminBillingTab() {
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           {getPlanBadge(row.plan_slug, row.plan_name)}
-                          <span className="text-[11px] text-[#8b949e] capitalize font-medium">
+                          <span className="text-[11px] text-[var(--cm-muted-foreground)] capitalize font-medium">
                             {row.subscription_interval || 'monthly'}
                           </span>
                         </div>
@@ -549,16 +549,16 @@ export function AdminBillingTab() {
                       {/* Cycle Tokens */}
                       <td className="px-4 py-3 min-w-[150px]">
                         <div className="flex items-center justify-between text-xs mb-1">
-                          <span className="font-mono text-[#f0f6fc]">{formatTokens(tokenUsage)}</span>
-                          <span className="text-[#8b949e] text-[11px]">
+                          <span className="font-mono text-[var(--cm-foreground)]">{formatTokens(tokenUsage)}</span>
+                          <span className="text-[var(--cm-muted-foreground)] text-[11px]">
                             {tokenLimit > 0 ? `/ ${formatTokens(tokenLimit)}` : 'unlimited'}
                           </span>
                         </div>
                         {tokenLimit > 0 && (
-                          <div className="w-full bg-[#0d1117] h-1.5 rounded-full overflow-hidden border border-[#30363d]">
+                          <div className="w-full bg-[var(--cm-background)] h-1.5 rounded-full overflow-hidden border border-[var(--cm-border)]">
                             <div
                               className={`h-full transition-all ${
-                                usagePercent > 90 ? 'bg-rose-500' : usagePercent > 70 ? 'bg-amber-400' : 'bg-[#e7bf73]'
+                                usagePercent > 90 ? 'bg-rose-500' : usagePercent > 70 ? 'bg-amber-400' : 'bg-[var(--cm-primary)]'
                               }`}
                               style={{ width: `${usagePercent}%` }}
                             />
@@ -567,15 +567,15 @@ export function AdminBillingTab() {
                       </td>
 
                       {/* Renewal / Trial Date */}
-                      <td className="px-4 py-3 text-xs text-[#8b949e] whitespace-nowrap">
+                      <td className="px-4 py-3 text-xs text-[var(--cm-muted-foreground)] whitespace-nowrap">
                         {row.subscription_status === 'trialing' || row.subscription_status === 'trial' ? (
                           <div>
-                            <span className="text-[#e7bf73] font-medium block">Trial ends</span>
+                            <span className="text-[var(--cm-primary)] font-medium block">Trial ends</span>
                             <span>{formatDate(row.trial_ends_at)}</span>
                           </div>
                         ) : (
                           <div>
-                            <span className="text-[#f0f6fc] block">Period end</span>
+                            <span className="text-[var(--cm-foreground)] block">Period end</span>
                             <span>{formatDate(row.current_period_end)}</span>
                           </div>
                         )}
@@ -585,19 +585,19 @@ export function AdminBillingTab() {
                       <td className="px-4 py-3 text-xs max-w-[180px]">
                         {row.stripe_customer_id ? (
                           <div className="flex items-center gap-1.5">
-                            <span className="font-mono text-[11px] text-[#8b949e] truncate" title={row.stripe_customer_id}>
+                            <span className="font-mono text-[11px] text-[var(--cm-muted-foreground)] truncate" title={row.stripe_customer_id}>
                               {row.stripe_customer_id}
                             </span>
                             <button
                               onClick={() => handleCopy(row.stripe_customer_id || '', `cust_${row.tenant_id}`)}
-                              className="text-[10px] text-[#8b949e] hover:text-[#e7bf73] transition"
+                              className="text-[10px] text-[var(--cm-muted-foreground)] hover:text-[var(--cm-primary)] transition"
                               title="Copy Customer ID"
                             >
                               {copiedId === `cust_${row.tenant_id}` ? '✓' : 'Copy'}
                             </button>
                           </div>
                         ) : (
-                          <span className="text-[#8b949e] text-[11px] italic">No Stripe customer</span>
+                          <span className="text-[var(--cm-muted-foreground)] text-[11px] italic">No Stripe customer</span>
                         )}
                       </td>
 
@@ -605,7 +605,7 @@ export function AdminBillingTab() {
                       <td className="px-4 py-3 text-right text-xs">
                         <button
                           onClick={() => setInspectingTenant(row)}
-                          className="px-2.5 py-1 rounded bg-[#161b22] border border-[#30363d] hover:border-[#e7bf73] text-[#f0f6fc] hover:text-[#e7bf73] transition font-medium"
+                          className="px-2.5 py-1 rounded bg-[var(--cm-card)] border border-[var(--cm-border)] hover:border-[var(--cm-primary)] text-[var(--cm-foreground)] hover:text-[var(--cm-primary)] transition font-medium"
                           title="Inspect billing details"
                         >
                           Details
@@ -620,12 +620,12 @@ export function AdminBillingTab() {
         </div>
 
         {/* Pagination & Footer */}
-        <div className="px-4 py-3 bg-[#161b22] border-t border-[#30363d] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-[#8b949e]">
+        <div className="px-4 py-3 bg-[var(--cm-card)] border-t border-[var(--cm-border)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-[var(--cm-muted-foreground)]">
           <div className="flex items-center gap-2">
             <span>
               Showing {tenants.length} of {totalCount} subscriptions (Page {currentPage} of {totalPages})
             </span>
-            <span className="text-[#30363d]">|</span>
+            <span className="text-[var(--cm-border)]">|</span>
             <div className="flex items-center gap-1.5">
               <span>Rows per page:</span>
               <select
@@ -634,7 +634,7 @@ export function AdminBillingTab() {
                   setPageSize(Number(e.target.value))
                   setCurrentPage(1)
                 }}
-                className="bg-[#0d1117] border border-[#30363d] rounded px-1.5 py-0.5 text-xs text-[#f0f6fc]"
+                className="bg-[var(--cm-background)] border border-[var(--cm-border)] rounded px-1.5 py-0.5 text-xs text-[var(--cm-foreground)]"
               >
                 <option value={10}>10</option>
                 <option value={25}>25</option>
@@ -648,17 +648,17 @@ export function AdminBillingTab() {
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage <= 1 || isLoading}
-              className="px-2.5 py-1 rounded border border-[#30363d] bg-[#0d1117] hover:bg-[#30363d]/40 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="px-2.5 py-1 rounded border border-[var(--cm-border)] bg-[var(--cm-background)] hover:bg-[var(--cm-secondary)]/40 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               Previous
             </button>
-            <span className="font-medium text-[#f0f6fc] px-1">
+            <span className="font-medium text-[var(--cm-foreground)] px-1">
               {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages || isLoading}
-              className="px-2.5 py-1 rounded border border-[#30363d] bg-[#0d1117] hover:bg-[#30363d]/40 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="px-2.5 py-1 rounded border border-[var(--cm-border)] bg-[var(--cm-background)] hover:bg-[var(--cm-secondary)]/40 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               Next
             </button>
@@ -677,17 +677,17 @@ export function AdminBillingTab() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
         >
-          <div className="w-full max-w-2xl bg-[#161b22] border border-[#30363d] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="w-full max-w-2xl bg-[var(--cm-card)] border border-[var(--cm-border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Drawer Header */}
-            <div className="px-6 py-4 border-b border-[#30363d] flex items-center justify-between bg-[#0d1117]/60">
+            <div className="px-6 py-4 border-b border-[var(--cm-border)] flex items-center justify-between bg-[var(--cm-background)]/60">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#e7bf73]" />
-                <h3 className="text-base font-bold text-[#f0f6fc]">Subscription Audit</h3>
+                <span className="w-2.5 h-2.5 rounded-full bg-[var(--cm-primary)]" />
+                <h3 className="text-base font-bold text-[var(--cm-foreground)]">Subscription Audit</h3>
                 {getStatusBadge(inspectingTenant.subscription_status)}
               </div>
               <button
                 onClick={() => setInspectingTenant(null)}
-                className="text-[#8b949e] hover:text-[#f0f6fc] text-sm p-1 rounded-lg hover:bg-[#30363d]/40 transition"
+                className="text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] text-sm p-1 rounded-lg hover:bg-[var(--cm-secondary)]/40 transition"
                 title="Close (Esc)"
               >
                 ✕
@@ -698,69 +698,69 @@ export function AdminBillingTab() {
             <div className="p-6 overflow-y-auto space-y-5 text-sm">
               {/* Tenant info */}
               <div>
-                <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">Tenant Organization</label>
-                <div className="text-base font-medium text-[#f0f6fc] mt-1">{inspectingTenant.tenant_name}</div>
-                <div className="font-mono text-xs text-[#8b949e] mt-0.5">{inspectingTenant.tenant_slug}</div>
+                <label className="text-xs font-semibold text-[var(--cm-muted-foreground)] uppercase tracking-wider">Tenant Organization</label>
+                <div className="text-base font-medium text-[var(--cm-foreground)] mt-1">{inspectingTenant.tenant_name}</div>
+                <div className="font-mono text-xs text-[var(--cm-muted-foreground)] mt-0.5">{inspectingTenant.tenant_slug}</div>
               </div>
 
               {/* Grid: Plan & Cycle Details */}
-              <div className="grid grid-cols-2 gap-4 p-4 rounded-xl border border-[#30363d] bg-[#0d1117]/60">
+              <div className="grid grid-cols-2 gap-4 p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-background)]/60">
                 <div>
-                  <span className="text-xs text-[#8b949e] block">Contracted Plan</span>
+                  <span className="text-xs text-[var(--cm-muted-foreground)] block">Contracted Plan</span>
                   <div className="mt-1">{getPlanBadge(inspectingTenant.plan_slug, inspectingTenant.plan_name)}</div>
                 </div>
                 <div>
-                  <span className="text-xs text-[#8b949e] block">Billing Cycle</span>
-                  <span className="font-medium text-[#f0f6fc] capitalize">
+                  <span className="text-xs text-[var(--cm-muted-foreground)] block">Billing Cycle</span>
+                  <span className="font-medium text-[var(--cm-foreground)] capitalize">
                     {inspectingTenant.subscription_interval || 'monthly'}
                   </span>
                 </div>
                 <div>
-                  <span className="text-xs text-[#8b949e] block">Monthly Price</span>
-                  <span className="font-medium text-[#f0f6fc]">
+                  <span className="text-xs text-[var(--cm-muted-foreground)] block">Monthly Price</span>
+                  <span className="font-medium text-[var(--cm-foreground)]">
                     {formatCurrency(inspectingTenant.monthly_price_cents || 0)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-xs text-[#8b949e] block">Annual Price</span>
-                  <span className="font-medium text-[#f0f6fc]">
+                  <span className="text-xs text-[var(--cm-muted-foreground)] block">Annual Price</span>
+                  <span className="font-medium text-[var(--cm-foreground)]">
                     {formatCurrency(inspectingTenant.annual_price_cents || 0)}
                   </span>
                 </div>
                 <div>
-                  <span className="text-xs text-[#8b949e] block">Current Period End</span>
-                  <span className="text-xs text-[#f0f6fc]">{formatDate(inspectingTenant.current_period_end)}</span>
+                  <span className="text-xs text-[var(--cm-muted-foreground)] block">Current Period End</span>
+                  <span className="text-xs text-[var(--cm-foreground)]">{formatDate(inspectingTenant.current_period_end)}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-[#8b949e] block">Trial Expiration</span>
-                  <span className="text-xs text-[#f0f6fc]">{formatDate(inspectingTenant.trial_ends_at)}</span>
+                  <span className="text-xs text-[var(--cm-muted-foreground)] block">Trial Expiration</span>
+                  <span className="text-xs text-[var(--cm-foreground)]">{formatDate(inspectingTenant.trial_ends_at)}</span>
                 </div>
               </div>
 
               {/* Plan Limits & Consumption */}
-              <div className="p-4 rounded-xl border border-[#30363d] bg-[#0d1117]/60 space-y-3">
-                <div className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">Plan Limits & Usage</div>
+              <div className="p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-background)]/60 space-y-3">
+                <div className="text-xs font-semibold text-[var(--cm-muted-foreground)] uppercase tracking-wider">Plan Limits & Usage</div>
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
                   <div>
-                    <span className="text-[#8b949e] block">Max Workspaces</span>
-                    <span className="font-medium text-[#f0f6fc]">{inspectingTenant.max_workspaces ?? 'Unlimited'}</span>
+                    <span className="text-[var(--cm-muted-foreground)] block">Max Workspaces</span>
+                    <span className="font-medium text-[var(--cm-foreground)]">{inspectingTenant.max_workspaces ?? 'Unlimited'}</span>
                   </div>
                   <div>
-                    <span className="text-[#8b949e] block">Max Sessions</span>
-                    <span className="font-medium text-[#f0f6fc]">{inspectingTenant.max_sessions ?? 'Unlimited'}</span>
+                    <span className="text-[var(--cm-muted-foreground)] block">Max Sessions</span>
+                    <span className="font-medium text-[var(--cm-foreground)]">{inspectingTenant.max_sessions ?? 'Unlimited'}</span>
                   </div>
                   <div>
-                    <span className="text-[#8b949e] block">Storage</span>
-                    <span className="font-medium text-[#f0f6fc]">{inspectingTenant.storage_gb ?? 0} GB</span>
+                    <span className="text-[var(--cm-muted-foreground)] block">Storage</span>
+                    <span className="font-medium text-[var(--cm-foreground)]">{inspectingTenant.storage_gb ?? 0} GB</span>
                   </div>
                   <div>
-                    <span className="text-[#8b949e] block">AI Tier</span>
-                    <span className="font-medium text-[#d8ae5f] capitalize">{inspectingTenant.ai_tier ?? 'standard'}</span>
+                    <span className="text-[var(--cm-muted-foreground)] block">AI Tier</span>
+                    <span className="font-medium text-[var(--cm-primary)] capitalize">{inspectingTenant.ai_tier ?? 'standard'}</span>
                   </div>
                 </div>
 
-                <div className="pt-2 border-t border-[#30363d]/50">
-                  <div className="flex items-center justify-between text-xs text-[#8b949e] mb-1">
+                <div className="pt-2 border-t border-[var(--cm-border)]/50">
+                  <div className="flex items-center justify-between text-xs text-[var(--cm-muted-foreground)] mb-1">
                     <span>Cycle Tokens: {formatTokens(inspectingTenant.current_period_tokens_used)}</span>
                     <span>Trial Tokens: {formatTokens(inspectingTenant.trial_tokens_used)}</span>
                   </div>
@@ -768,10 +768,10 @@ export function AdminBillingTab() {
               </div>
 
               {/* Stripe Gateway Integration Box */}
-              <div className="p-4 rounded-xl border border-[#b0955e]/40 bg-[#161b22] space-y-3">
+              <div className="p-4 rounded-xl border border-[var(--cm-primary)]/40 bg-[var(--cm-card)] space-y-3">
                 <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-xs font-semibold text-[#e7bf73] uppercase tracking-wider">
-                    <svg width="14" height="14" className="w-4 h-4 text-[#e7bf73]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <div className="flex items-center gap-2 text-xs font-semibold text-[var(--cm-primary)] uppercase tracking-wider">
+                    <svg width="14" height="14" className="w-4 h-4 text-[var(--cm-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z" />
                     </svg>
                     Stripe Customer & Subscription IDs
@@ -781,7 +781,7 @@ export function AdminBillingTab() {
                       href={`${STRIPE_DASHBOARD_BASE}/customers/${inspectingTenant.stripe_customer_id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="px-2.5 py-1 rounded bg-[#b0955e]/20 hover:bg-[#b0955e]/30 border border-[#b0955e]/40 text-[#e7bf73] text-xs font-medium transition flex items-center gap-1"
+                      className="px-2.5 py-1 rounded bg-[var(--cm-primary)]/20 hover:bg-[var(--cm-primary)]/30 border border-[var(--cm-primary)]/40 text-[var(--cm-primary)] text-xs font-medium transition flex items-center gap-1"
                     >
                       <span>Open in Stripe</span>
                       <svg width="14" height="14" className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -792,30 +792,30 @@ export function AdminBillingTab() {
                 </div>
 
                 <div className="space-y-2 text-xs">
-                  <div className="flex items-center justify-between p-2 rounded bg-[#0d1117] border border-[#30363d]">
+                  <div className="flex items-center justify-between p-2 rounded bg-[var(--cm-background)] border border-[var(--cm-border)]">
                     <div className="truncate mr-2">
-                      <span className="text-[#8b949e] block text-[10px]">Stripe Customer ID</span>
-                      <span className="font-mono text-[#f0f6fc]">{inspectingTenant.stripe_customer_id || 'Not assigned'}</span>
+                      <span className="text-[var(--cm-muted-foreground)] block text-[10px]">Stripe Customer ID</span>
+                      <span className="font-mono text-[var(--cm-foreground)]">{inspectingTenant.stripe_customer_id || 'Not assigned'}</span>
                     </div>
                     {inspectingTenant.stripe_customer_id && (
                       <button
                         onClick={() => handleCopy(inspectingTenant.stripe_customer_id || '', 'drawer_cust')}
-                        className="text-xs text-[#8b949e] hover:text-[#e7bf73] whitespace-nowrap transition px-2 py-0.5 rounded border border-[#30363d]"
+                        className="text-xs text-[var(--cm-muted-foreground)] hover:text-[var(--cm-primary)] whitespace-nowrap transition px-2 py-0.5 rounded border border-[var(--cm-border)]"
                       >
                         {copiedId === 'drawer_cust' ? '✓ Copied' : 'Copy'}
                       </button>
                     )}
                   </div>
 
-                  <div className="flex items-center justify-between p-2 rounded bg-[#0d1117] border border-[#30363d]">
+                  <div className="flex items-center justify-between p-2 rounded bg-[var(--cm-background)] border border-[var(--cm-border)]">
                     <div className="truncate mr-2">
-                      <span className="text-[#8b949e] block text-[10px]">Stripe Subscription ID</span>
-                      <span className="font-mono text-[#f0f6fc]">{inspectingTenant.stripe_subscription_id || 'Not assigned'}</span>
+                      <span className="text-[var(--cm-muted-foreground)] block text-[10px]">Stripe Subscription ID</span>
+                      <span className="font-mono text-[var(--cm-foreground)]">{inspectingTenant.stripe_subscription_id || 'Not assigned'}</span>
                     </div>
                     {inspectingTenant.stripe_subscription_id && (
                       <button
                         onClick={() => handleCopy(inspectingTenant.stripe_subscription_id || '', 'drawer_sub')}
-                        className="text-xs text-[#8b949e] hover:text-[#e7bf73] whitespace-nowrap transition px-2 py-0.5 rounded border border-[#30363d]"
+                        className="text-xs text-[var(--cm-muted-foreground)] hover:text-[var(--cm-primary)] whitespace-nowrap transition px-2 py-0.5 rounded border border-[var(--cm-border)]"
                       >
                         {copiedId === 'drawer_sub' ? '✓ Copied' : 'Copy'}
                       </button>
@@ -833,13 +833,13 @@ export function AdminBillingTab() {
             </div>
 
             {/* Drawer Footer */}
-            <div className="px-6 py-4 border-t border-[#30363d] bg-[#0d1117]/60 flex items-center justify-between">
-              <span className="text-xs text-[#8b949e]">
+            <div className="px-6 py-4 border-t border-[var(--cm-border)] bg-[var(--cm-background)]/60 flex items-center justify-between">
+              <span className="text-xs text-[var(--cm-muted-foreground)]">
                 Read-only view. Manage payments and refunds via Stripe Dashboard.
               </span>
               <button
                 onClick={() => setInspectingTenant(null)}
-                className="px-3.5 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-xs font-medium text-[#f0f6fc] transition"
+                className="px-3.5 py-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/50 text-xs font-medium text-[var(--cm-foreground)] transition"
               >
                 Close
               </button>

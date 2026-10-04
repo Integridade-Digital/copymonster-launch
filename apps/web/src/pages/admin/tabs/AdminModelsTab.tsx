@@ -346,15 +346,15 @@ export function AdminModelsTab() {
   return (
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
       {/* Cabeçalho */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#30363d]">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--cm-border)]">
         <div>
           <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-[#f0f6fc]">Catálogo de Models</h2>
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[#e7bf73]/10 text-[#e7bf73] border border-[#e7bf73]/30">
+            <h2 className="text-lg font-semibold text-[var(--cm-foreground)]">Catálogo de Models</h2>
+            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--cm-primary)]/10 text-[var(--cm-primary)] border border-[var(--cm-primary)]/30">
               {activeModels} ativos / {totalModels} total
             </span>
           </div>
-          <p className="text-xs text-[#8b949e] mt-1">
+          <p className="text-xs text-[var(--cm-muted-foreground)] mt-1">
             Gestão de modelos disponíveis, cotas de contexto, precificação e permissões por plano.
           </p>
         </div>
@@ -364,7 +364,7 @@ export function AdminModelsTab() {
             type="button"
             onClick={handleRefresh}
             disabled={isRefreshing || isLoading}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] text-xs font-medium text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] transition disabled:opacity-50"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] text-xs font-medium text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] transition disabled:opacity-50"
           >
             <span className={isRefreshing ? 'animate-spin' : ''}>↻</span>
             Atualizar
@@ -372,7 +372,7 @@ export function AdminModelsTab() {
           <button
             type="button"
             onClick={openCreateModal}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[#e7bf73] to-[#d8ae5f] text-xs font-semibold text-[#0d1117] hover:brightness-105 transition shadow-sm"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-gradient-to-r from-[var(--cm-primary)] to-[var(--cm-primary)] text-xs font-semibold text-[var(--cm-primary-foreground)] hover:brightness-105 transition shadow-sm"
           >
             + Novo Modelo
           </button>
@@ -381,22 +381,22 @@ export function AdminModelsTab() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e]">Total de Models</div>
-          <div className="text-xl font-bold text-[#f0f6fc] mt-1">{totalModels}</div>
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)]">Total de Models</div>
+          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">{totalModels}</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e]">Models Ativos Operacionais</div>
-          <div className="text-xl font-bold text-[#e7bf73] mt-1">{activeModels}</div>
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)]">Models Ativos Operacionais</div>
+          <div className="text-xl font-bold text-[var(--cm-primary)] mt-1">{activeModels}</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e]">Provedores com Models</div>
-          <div className="text-xl font-bold text-[#f0f6fc] mt-1">{providersWithModels}</div>
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)]">Provedores com Models</div>
+          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">{providersWithModels}</div>
         </div>
       </div>
 
       {/* Barra de Filtros */}
-      <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22] flex flex-wrap items-center gap-3">
+      <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)] flex flex-wrap items-center gap-3">
         {/* Busca */}
         <div className="flex-1 min-w-[200px]">
           <input
@@ -404,7 +404,7 @@ export function AdminModelsTab() {
             value={searchQuery}
             onChange={e => setSearchQuery(e.target.value)}
             placeholder="Search by nome ou model_id..."
-            className="w-full px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] placeholder-[#8b949e]/60 focus:border-[#e7bf73] focus:outline-none"
+            className="w-full px-3 py-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)]/60 focus:border-[var(--cm-primary)] focus:outline-none"
           />
         </div>
 
@@ -413,7 +413,7 @@ export function AdminModelsTab() {
           <select
             value={selectedProviderFilter}
             onChange={e => setSelectedProviderFilter(e.target.value)}
-            className="w-full sm:w-auto px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] focus:border-[#e7bf73] focus:outline-none"
+            className="w-full sm:w-auto px-3 py-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] focus:border-[var(--cm-primary)] focus:outline-none"
           >
             <option value="all">Todos os Provedores</option>
             {providers.map(p => (
@@ -429,7 +429,7 @@ export function AdminModelsTab() {
           <select
             value={selectedPlanFilter}
             onChange={e => setSelectedPlanFilter(e.target.value)}
-            className="w-full sm:w-auto px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] focus:border-[#e7bf73] focus:outline-none"
+            className="w-full sm:w-auto px-3 py-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] focus:border-[var(--cm-primary)] focus:outline-none"
           >
             <option value="all">Todos os Plans</option>
             {ALL_PLANS.map(plan => (
@@ -445,7 +445,7 @@ export function AdminModelsTab() {
           <select
             value={selectedCapabilityFilter}
             onChange={e => setSelectedCapabilityFilter(e.target.value)}
-            className="w-full sm:w-auto px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] focus:border-[#e7bf73] focus:outline-none"
+            className="w-full sm:w-auto px-3 py-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] focus:border-[var(--cm-primary)] focus:outline-none"
           >
             <option value="all">Todas as Capacidades</option>
             {CAPABILITY_OPTIONS.map(cap => (
@@ -459,7 +459,7 @@ export function AdminModelsTab() {
 
       {/* Estados: Loading, Error, Vazio */}
       {isLoading ? (
-        <div className="p-12 text-center text-xs text-[#8b949e]">
+        <div className="p-12 text-center text-xs text-[var(--cm-muted-foreground)]">
           <span className="inline-block animate-spin mr-2">↻</span> Carregando catálogo de modelos...
         </div>
       ) : error ? (
@@ -474,30 +474,30 @@ export function AdminModelsTab() {
           </button>
         </div>
       ) : models.length === 0 ? (
-        <div className="p-12 text-center rounded-2xl border border-dashed border-[#30363d] bg-[#161b22]/40 space-y-3">
-          <div className="text-2xl text-[#8b949e]">⚙</div>
-          <div className="text-sm font-medium text-[#f0f6fc]">Nenhum modelo cadastrado</div>
-          <p className="text-xs text-[#8b949e] max-w-sm mx-auto">
+        <div className="p-12 text-center rounded-2xl border border-dashed border-[var(--cm-border)] bg-[var(--cm-card)]/40 space-y-3">
+          <div className="text-2xl text-[var(--cm-muted-foreground)]">⚙</div>
+          <div className="text-sm font-medium text-[var(--cm-foreground)]">Nenhum modelo cadastrado</div>
+          <p className="text-xs text-[var(--cm-muted-foreground)] max-w-sm mx-auto">
             Cadastre os modelos de IA disponíveis para vincular aos planos de assinatura e habilitar os Monster Agents.
           </p>
           <button
             type="button"
             onClick={openCreateModal}
-            className="mt-2 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-[#e7bf73] to-[#d8ae5f] text-xs font-semibold text-[#0d1117] hover:brightness-105 transition"
+            className="mt-2 px-3.5 py-1.5 rounded-lg bg-gradient-to-r from-[var(--cm-primary)] to-[var(--cm-primary)] text-xs font-semibold text-[var(--cm-primary-foreground)] hover:brightness-105 transition"
           >
             + Cadastrar Primeiro Modelo
           </button>
         </div>
       ) : filteredModels.length === 0 ? (
-        <div className="p-8 text-center rounded-xl border border-[#30363d] bg-[#161b22]/50 text-xs text-[#8b949e]">
+        <div className="p-8 text-center rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/50 text-xs text-[var(--cm-muted-foreground)]">
           Nenhum modelo corresponde aos filtros selecionados.
         </div>
       ) : (
         /* Tabela de Models */
-        <div className="overflow-x-auto rounded-xl border border-[#30363d] bg-[#161b22]">
+        <div className="overflow-x-auto rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]">
           <table className="w-full text-left text-xs border-collapse">
             <thead>
-              <tr className="border-b border-[#30363d] bg-[#0d1117]/60 text-[#8b949e]">
+              <tr className="border-b border-[var(--cm-border)] bg-[var(--cm-background)]/60 text-[var(--cm-muted-foreground)]">
                 <th className="py-3 px-4 font-medium">Modelo</th>
                 <th className="py-3 px-4 font-medium">Provedor</th>
                 <th className="py-3 px-4 font-medium">Contexto</th>
@@ -507,11 +507,11 @@ export function AdminModelsTab() {
                 <th className="py-3 px-4 font-medium text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#30363d]/60">
+            <tbody className="divide-y divide-[var(--cm-border)]/60">
               {filteredModels.map((m) => {
 
                 return (
-                  <tr key={m.id} className="hover:bg-[#0d1117]/30 transition group">
+                  <tr key={m.id} className="hover:bg-[var(--cm-background)]/30 transition group">
                     {/* Modelo */}
                     <td className="py-3.5 px-4">
                       <div className="flex items-center gap-2">
@@ -520,12 +520,12 @@ export function AdminModelsTab() {
                           onClick={() => handleToggleActive(m)}
                           title={m.is_active ? 'Modelo ativo (clique para pausar)' : 'Modelo inativo'}
                           className={`w-2 h-2 rounded-full transition ${
-                            m.is_active ? 'bg-emerald-400' : 'bg-[#8b949e]'
+                            m.is_active ? 'bg-emerald-400' : 'bg-[var(--cm-muted-foreground)]'
                           }`}
                         />
                         <div>
-                          <div className="font-medium text-[#f0f6fc]">{m.display_name}</div>
-                          <div className="font-mono text-[11px] text-[#8b949e]">{m.model_id}</div>
+                          <div className="font-medium text-[var(--cm-foreground)]">{m.display_name}</div>
+                          <div className="font-mono text-[11px] text-[var(--cm-muted-foreground)]">{m.model_id}</div>
                         </div>
                       </div>
                     </td>
@@ -533,7 +533,7 @@ export function AdminModelsTab() {
                     {/* Provedor */}
                     <td className="py-3.5 px-4">
                       <div className="flex flex-col gap-0.5">
-                        <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-[11px] font-medium bg-[#30363d]/60 text-[#c9d1d9] border border-[#30363d]">
+                        <span className="inline-flex items-center w-fit px-2 py-0.5 rounded text-[11px] font-medium bg-[var(--cm-secondary)]/60 text-[var(--cm-foreground)] border border-[var(--cm-border)]">
                           {m.provider_name}
                         </span>
                         {!m.provider_is_active && (
@@ -545,7 +545,7 @@ export function AdminModelsTab() {
                     </td>
 
                     {/* Contexto */}
-                    <td className="py-3.5 px-4 text-[#c9d1d9]">
+                    <td className="py-3.5 px-4 text-[var(--cm-foreground)]">
                       {m.context_window >= 1000
                         ? `${Math.round(m.context_window / 1000)}k tokens`
                         : `${m.context_window} tokens`}
@@ -553,7 +553,7 @@ export function AdminModelsTab() {
 
                     {/* Custos */}
                     <td className="py-3.5 px-4">
-                      <div className="font-mono text-[11px] text-[#8b949e]">
+                      <div className="font-mono text-[11px] text-[var(--cm-muted-foreground)]">
                         <div>In: ${Number(m.cost_input_1k).toFixed(6)}</div>
                         <div>Out: ${Number(m.cost_output_1k).toFixed(6)}</div>
                       </div>
@@ -563,7 +563,7 @@ export function AdminModelsTab() {
                     <td className="py-3.5 px-4">
                       <div className="flex flex-wrap gap-1 max-w-[180px]">
                         {m.capabilities?.chat && (
-                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-[#e7bf73]/10 text-[#e7bf73] border border-[#e7bf73]/20">
+                          <span className="px-1.5 py-0.5 rounded text-[10px] bg-[var(--cm-primary)]/10 text-[var(--cm-primary)] border border-[var(--cm-primary)]/20">
                             Chat
                           </span>
                         )}
@@ -604,8 +604,8 @@ export function AdminModelsTab() {
                               key={plan.id}
                               className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium ${
                                 isDefault
-                                  ? 'bg-[#e7bf73]/20 text-[#e7bf73] border border-[#e7bf73]/50 font-semibold'
-                                  : 'bg-[#0d1117] text-[#c9d1d9] border border-[#30363d]'
+                                  ? 'bg-[var(--cm-primary)]/20 text-[var(--cm-primary)] border border-[var(--cm-primary)]/50 font-semibold'
+                                  : 'bg-[var(--cm-background)] text-[var(--cm-foreground)] border border-[var(--cm-border)]'
                               }`}
                             >
                               {plan.label}
@@ -622,7 +622,7 @@ export function AdminModelsTab() {
                         <button
                           type="button"
                           onClick={() => openEditModal(m)}
-                          className="px-2.5 py-1 rounded-md border border-[#30363d] bg-[#0d1117] text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] transition text-xs font-medium"
+                          className="px-2.5 py-1 rounded-md border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] transition text-xs font-medium"
                         >
                           Editar
                         </button>
@@ -646,7 +646,7 @@ export function AdminModelsTab() {
       {/* Modal 1: Criar / Editar Modelo (Padrão Settings) */}
       {isEditModalOpen && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#0d1117]/80 backdrop-blur-sm" onClick={closeModals} />
+          <div className="absolute inset-0 bg-[var(--cm-background)]/80 backdrop-blur-sm" onClick={closeModals} />
           <div
             role="dialog"
             aria-modal="true"
@@ -659,18 +659,18 @@ export function AdminModelsTab() {
                 closeModals()
               }
             }}
-            className="relative z-10 w-full max-w-xl rounded-2xl border border-[#e7bf73]/25 bg-[#161b22] p-6 shadow-2xl space-y-5 focus:outline-none max-h-[90vh] overflow-y-auto"
+            className="relative z-10 w-full max-w-xl rounded-2xl border border-[var(--cm-primary)]/25 bg-[var(--cm-card)] p-6 shadow-2xl space-y-5 focus:outline-none max-h-[90vh] overflow-y-auto"
           >
             {/* Header Modal */}
-            <div className="flex items-center justify-between pb-3 border-b border-[#30363d]">
-              <h3 className="text-sm font-semibold text-[#f0f6fc]">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--cm-border)]">
+              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">
                 {selectedModel ? 'Editar Modelo de IA' : 'Novo Modelo de IA'}
               </h3>
               <button
                 type="button"
                 onClick={closeModals}
                 disabled={isMutating}
-                className="text-[#8b949e] hover:text-[#f0f6fc] p-1 transition"
+                className="text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] p-1 transition"
               >
                 ✕
               </button>
@@ -680,12 +680,12 @@ export function AdminModelsTab() {
             <form onSubmit={handleSaveModel} className="space-y-4 text-xs">
               {/* Provedor */}
               <div className="space-y-1">
-                <label className="text-[#8b949e] font-medium">Provedor de IA *</label>
+                <label className="text-[var(--cm-muted-foreground)] font-medium">Provedor de IA *</label>
                 <select
                   value={formProviderId}
                   onChange={e => setFormProviderId(e.target.value)}
                   disabled={isMutating}
-                  className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] focus:border-[#e7bf73] focus:outline-none"
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] focus:border-[var(--cm-primary)] focus:outline-none"
                 >
                   {providers.length === 0 ? (
                     <option value="">Nenhum provedor disponível</option>
@@ -702,7 +702,7 @@ export function AdminModelsTab() {
               {/* Display Name & Model ID */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[#8b949e] font-medium">Display Name *</label>
+                  <label className="text-[var(--cm-muted-foreground)] font-medium">Display Name *</label>
                   <input
                     type="text"
                     required
@@ -710,11 +710,11 @@ export function AdminModelsTab() {
                     onChange={e => setFormDisplayName(e.target.value)}
                     placeholder="Ex: GPT-4o, Claude 3.5..."
                     disabled={isMutating}
-                    className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] placeholder-[#8b949e]/50 focus:border-[#e7bf73] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)]/50 focus:border-[var(--cm-primary)] focus:outline-none"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[#8b949e] font-medium">Identificador Técnico (model_id) *</label>
+                  <label className="text-[var(--cm-muted-foreground)] font-medium">Identificador Técnico (model_id) *</label>
                   <input
                     type="text"
                     required
@@ -722,7 +722,7 @@ export function AdminModelsTab() {
                     onChange={e => setFormModelId(e.target.value)}
                     placeholder="Ex: gpt-4o, claude-3-5-sonnet..."
                     disabled={isMutating}
-                    className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] font-mono placeholder-[#8b949e]/50 focus:border-[#e7bf73] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] font-mono placeholder-[var(--cm-muted-foreground)]/50 focus:border-[var(--cm-primary)] focus:outline-none"
                   />
                 </div>
               </div>
@@ -730,7 +730,7 @@ export function AdminModelsTab() {
               {/* Context Window & Custos */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1">
-                  <label className="text-[#8b949e] font-medium">Janela Contexto (tokens) *</label>
+                  <label className="text-[var(--cm-muted-foreground)] font-medium">Janela Contexto (tokens) *</label>
                   <input
                     type="number"
                     required
@@ -738,84 +738,84 @@ export function AdminModelsTab() {
                     value={formContextWindow}
                     onChange={e => setFormContextWindow(parseInt(e.target.value, 10) || 0)}
                     disabled={isMutating}
-                    className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] font-mono focus:border-[#e7bf73] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] font-mono focus:border-[var(--cm-primary)] focus:outline-none"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[#8b949e] font-medium">Custo In (1k tokens $)</label>
+                  <label className="text-[var(--cm-muted-foreground)] font-medium">Custo In (1k tokens $)</label>
                   <input
                     type="text"
                     required
                     value={formCostInput}
                     onChange={e => setFormCostInput(e.target.value)}
                     disabled={isMutating}
-                    className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] font-mono focus:border-[#e7bf73] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] font-mono focus:border-[var(--cm-primary)] focus:outline-none"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="text-[#8b949e] font-medium">Custo Out (1k tokens $)</label>
+                  <label className="text-[var(--cm-muted-foreground)] font-medium">Custo Out (1k tokens $)</label>
                   <input
                     type="text"
                     required
                     value={formCostOutput}
                     onChange={e => setFormCostOutput(e.target.value)}
                     disabled={isMutating}
-                    className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] font-mono focus:border-[#e7bf73] focus:outline-none"
+                    className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] font-mono focus:border-[var(--cm-primary)] focus:outline-none"
                   />
                 </div>
               </div>
 
               {/* Capacidades */}
-              <div className="space-y-2 pt-2 border-t border-[#30363d]">
-                <label className="text-[#8b949e] font-medium">Capacidades do Modelo</label>
+              <div className="space-y-2 pt-2 border-t border-[var(--cm-border)]">
+                <label className="text-[var(--cm-muted-foreground)] font-medium">Capacidades do Modelo</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {CAPABILITY_OPTIONS.map(cap => (
                     <label
                       key={cap.id}
-                      className="flex items-center gap-2 p-2 rounded-lg border border-[#30363d] bg-[#0d1117]/60 cursor-pointer hover:border-[#8b949e] transition"
+                      className="flex items-center gap-2 p-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)]/60 cursor-pointer hover:border-[var(--cm-muted-foreground)] transition"
                     >
                       <input
                         type="checkbox"
                         checked={!!formCapabilities[cap.id]}
                         onChange={() => toggleCapability(cap.id)}
                         disabled={isMutating}
-                        className="rounded border-[#30363d] bg-[#161b22] text-[#e7bf73] focus:ring-[#e7bf73]"
+                        className="rounded border-[var(--cm-border)] bg-[var(--cm-card)] text-[var(--cm-primary)] focus:ring-[var(--cm-primary)]"
                       />
-                      <span className="text-[#f0f6fc]">{cap.label}</span>
+                      <span className="text-[var(--cm-foreground)]">{cap.label}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               {/* Allowed Plans */}
-              <div className="space-y-2 pt-2 border-t border-[#30363d]">
-                <label className="text-[#8b949e] font-medium">Plans com Acesso Liberado</label>
+              <div className="space-y-2 pt-2 border-t border-[var(--cm-border)]">
+                <label className="text-[var(--cm-muted-foreground)] font-medium">Plans com Acesso Liberado</label>
                 <div className="grid grid-cols-3 gap-2">
                   {ALL_PLANS.map(plan => (
                     <label
                       key={plan.id}
-                      className="flex items-center gap-2 p-2 rounded-lg border border-[#30363d] bg-[#0d1117]/60 cursor-pointer hover:border-[#8b949e] transition"
+                      className="flex items-center gap-2 p-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)]/60 cursor-pointer hover:border-[var(--cm-muted-foreground)] transition"
                     >
                       <input
                         type="checkbox"
                         checked={formAllowedPlans.includes(plan.id)}
                         onChange={() => toggleAllowedPlan(plan.id)}
                         disabled={isMutating}
-                        className="rounded border-[#30363d] bg-[#161b22] text-[#e7bf73] focus:ring-[#e7bf73]"
+                        className="rounded border-[var(--cm-border)] bg-[var(--cm-card)] text-[var(--cm-primary)] focus:ring-[var(--cm-primary)]"
                       />
-                      <span className="text-[#f0f6fc]">{plan.label}</span>
+                      <span className="text-[var(--cm-foreground)]">{plan.label}</span>
                     </label>
                   ))}
                 </div>
               </div>
 
               {/* Modelo Padrão por Plan */}
-              <div className="space-y-2 pt-2 border-t border-[#30363d]">
+              <div className="space-y-2 pt-2 border-t border-[var(--cm-border)]">
                 <div className="flex items-center justify-between">
-                  <label className="text-[#8b949e] font-medium">
+                  <label className="text-[var(--cm-muted-foreground)] font-medium">
                     Modelo Padrão para os Plans
                   </label>
-                  <span className="text-[10px] text-[#e7bf73]">★ Exclusivo global por plano</span>
+                  <span className="text-[10px] text-[var(--cm-primary)]">★ Exclusivo global por plano</span>
                 </div>
                 <div className="grid grid-cols-3 gap-2">
                   {ALL_PLANS.map((plan) => {
@@ -827,10 +827,10 @@ export function AdminModelsTab() {
                         key={plan.id}
                         className={`flex items-center gap-2 p-2 rounded-lg border transition ${
                           !isAllowed
-                            ? 'opacity-40 border-[#30363d] bg-[#0d1117]/30 cursor-not-allowed'
+                            ? 'opacity-40 border-[var(--cm-border)] bg-[var(--cm-background)]/30 cursor-not-allowed'
                             : isDefault
-                              ? 'border-[#e7bf73]/60 bg-[#e7bf73]/10 cursor-pointer'
-                              : 'border-[#30363d] bg-[#0d1117]/60 cursor-pointer hover:border-[#8b949e]'
+                              ? 'border-[var(--cm-primary)]/60 bg-[var(--cm-primary)]/10 cursor-pointer'
+                              : 'border-[var(--cm-border)] bg-[var(--cm-background)]/60 cursor-pointer hover:border-[var(--cm-muted-foreground)]'
                         }`}
                       >
                         <input
@@ -838,9 +838,9 @@ export function AdminModelsTab() {
                           disabled={!isAllowed || isMutating}
                           checked={isDefault}
                           onChange={() => toggleDefaultForPlan(plan.id)}
-                          className="rounded border-[#30363d] bg-[#161b22] text-[#e7bf73] focus:ring-[#e7bf73]"
+                          className="rounded border-[var(--cm-border)] bg-[var(--cm-card)] text-[var(--cm-primary)] focus:ring-[var(--cm-primary)]"
                         />
-                        <span className="text-[#f0f6fc]">{plan.label}</span>
+                        <span className="text-[var(--cm-foreground)]">{plan.label}</span>
                       </label>
                     )
                   })}
@@ -848,16 +848,16 @@ export function AdminModelsTab() {
               </div>
 
               {/* Status Ativo */}
-              <div className="flex items-center gap-3 pt-2 border-t border-[#30363d]">
+              <div className="flex items-center gap-3 pt-2 border-t border-[var(--cm-border)]">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
                     checked={formIsActive}
                     onChange={e => setFormIsActive(e.target.checked)}
                     disabled={isMutating}
-                    className="rounded border-[#30363d] bg-[#161b22] text-[#e7bf73] focus:ring-[#e7bf73]"
+                    className="rounded border-[var(--cm-border)] bg-[var(--cm-card)] text-[var(--cm-primary)] focus:ring-[var(--cm-primary)]"
                   />
-                  <span className="text-[#f0f6fc] font-medium">Modelo Ativo no Sistema</span>
+                  <span className="text-[var(--cm-foreground)] font-medium">Modelo Ativo no Sistema</span>
                 </label>
               </div>
 
@@ -869,19 +869,19 @@ export function AdminModelsTab() {
               )}
 
               {/* Actions do Modal */}
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#30363d]">
+              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--cm-border)]">
                 <button
                   type="button"
                   onClick={closeModals}
                   disabled={isMutating}
-                  className="px-3.5 py-1.5 rounded-lg border border-[#30363d] text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] transition font-medium"
+                  className="px-3.5 py-1.5 rounded-lg border border-[var(--cm-border)] text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] transition font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isMutating}
-                  className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-[#e7bf73] to-[#d8ae5f] text-[#0d1117] font-semibold hover:brightness-105 transition disabled:opacity-50"
+                  className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-[var(--cm-primary)] to-[var(--cm-primary)] text-[var(--cm-primary-foreground)] font-semibold hover:brightness-105 transition disabled:opacity-50"
                 >
                   {isMutating ? 'Saving...' : selectedModel ? 'Save Changes' : 'Criar Modelo'}
                 </button>
@@ -894,7 +894,7 @@ export function AdminModelsTab() {
       {/* Modal 2: Confirmação de Exclusão */}
       {isDeleteModalOpen && selectedModel && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#0d1117]/80 backdrop-blur-sm" onClick={closeModals} />
+          <div className="absolute inset-0 bg-[var(--cm-background)]/80 backdrop-blur-sm" onClick={closeModals} />
           <div
             role="dialog"
             aria-modal="true"
@@ -907,16 +907,16 @@ export function AdminModelsTab() {
                 closeModals()
               }
             }}
-            className="relative z-10 w-full max-w-md rounded-2xl border border-red-500/30 bg-[#161b22] p-6 shadow-2xl space-y-4 focus:outline-none"
+            className="relative z-10 w-full max-w-md rounded-2xl border border-red-500/30 bg-[var(--cm-card)] p-6 shadow-2xl space-y-4 focus:outline-none"
           >
             <div className="flex items-center gap-3 text-red-400">
               <span className="text-xl">⚠️</span>
-              <h3 className="text-sm font-semibold text-[#f0f6fc]">Excluir Modelo</h3>
+              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Excluir Modelo</h3>
             </div>
 
-            <p className="text-xs text-[#8b949e]">
+            <p className="text-xs text-[var(--cm-muted-foreground)]">
               Tem certeza de que deseja excluir o modelo{' '}
-              <strong className="text-[#f0f6fc]">{selectedModel.display_name}</strong> (
+              <strong className="text-[var(--cm-foreground)]">{selectedModel.display_name}</strong> (
               <span className="font-mono">{selectedModel.model_id}</span>)?
             </p>
 
@@ -935,12 +935,12 @@ export function AdminModelsTab() {
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#30363d]">
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--cm-border)]">
               <button
                 type="button"
                 onClick={closeModals}
                 disabled={isMutating}
-                className="px-3.5 py-1.5 rounded-lg border border-[#30363d] text-[#c9d1d9] hover:text-[#f0f6fc] hover:border-[#8b949e] transition text-xs font-medium"
+                className="px-3.5 py-1.5 rounded-lg border border-[var(--cm-border)] text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] transition text-xs font-medium"
               >
                 Cancel
               </button>

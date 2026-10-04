@@ -1,30 +1,26 @@
-/* Institutional Dark/Gold Billing Palette matching Settings */
+/* Billing views on the CopyMonster application palette (--cm-* tokens). */
 .cm-billing-container {
   max-width: 100%;
   margin: 0 auto;
   padding: 0 4px;
   font-family: inherit;
-  color: #c9d1d9;
+  color: var(--cm-foreground);
 }
-
 .cm-billing-header {
   text-align: center;
   margin-bottom: 24px;
 }
-
 .cm-billing-title {
   font-size: 20px;
   font-weight: 700;
-  color: #f0f6fc;
+  color: var(--cm-foreground);
   margin: 0 0 6px 0;
 }
-
 .cm-billing-subtitle {
   font-size: 13px;
-  color: #8b949e;
+  color: var(--cm-muted-foreground);
   margin: 0;
 }
-
 .cm-billing-toggle-wrap {
   display: flex;
   justify-content: center;
@@ -32,13 +28,12 @@
   gap: 8px;
   margin-bottom: 24px;
 }
-
 .cm-billing-toggle-btn {
   padding: 6px 14px;
   border-radius: 20px;
-  border: 1px solid #30363d;
-  background: #161b22;
-  color: #8b949e;
+  border: 1px solid var(--cm-border);
+  background: var(--cm-card);
+  color: var(--cm-muted-foreground);
   font-size: 12px;
   font-weight: 500;
   cursor: pointer;
@@ -47,72 +42,62 @@
   gap: 6px;
   transition: all 0.15s ease;
 }
-
 .cm-billing-toggle-btn:hover {
-  border-color: #8b949e;
-  color: #c9d1d9;
+  border-color: var(--cm-muted-foreground);
+  color: var(--cm-foreground);
 }
-
 .cm-billing-toggle-btn--active {
-  background: rgba(231, 191, 115, 0.15);
-  border-color: #E7BF73;
-  color: #E7BF73;
+  background: color-mix(in srgb, var(--cm-primary) 15%, transparent);
+  border-color: var(--cm-primary);
+  color: var(--cm-primary);
   font-weight: 600;
 }
-
 .cm-billing-discount-tag {
-  background: #2ea043;
-  color: #ffffff;
+  background: var(--cm-success);
+  color: var(--cm-primary-foreground);
   font-size: 10px;
   padding: 2px 6px;
   border-radius: 10px;
   font-weight: 600;
 }
-
 .cm-billing-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
   margin-bottom: 24px;
 }
-
 @media (max-width: 768px) {
   .cm-billing-grid {
     grid-template-columns: 1fr;
   }
 }
-
 .cm-plan-card {
   position: relative;
-  background: #161b22;
-  border: 1px solid #30363d;
+  background: var(--cm-card);
+  border: 1px solid var(--cm-border);
   border-radius: 12px;
   padding: 20px 16px;
   display: flex;
   flex-direction: column;
   transition: all 0.2s ease;
 }
-
 .cm-plan-card:hover {
-  border-color: #8b949e;
+  border-color: var(--cm-muted-foreground);
 }
-
 .cm-plan-card--featured {
-  border-color: #E7BF73;
-  box-shadow: 0 0 16px rgba(231, 191, 115, 0.1);
+  border-color: var(--cm-primary);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--cm-primary) 10%, transparent);
 }
-
 .cm-plan-card--current {
-  border-color: #388bfd;
+  border-color: var(--cm-ring);
 }
-
 .cm-plan-card-tag {
   position: absolute;
   top: -10px;
   left: 50%;
   transform: translateX(-50%);
-  background: #E7BF73;
-  color: #0d1117;
+  background: var(--cm-primary);
+  color: var(--cm-primary-foreground);
   font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
@@ -120,49 +105,41 @@
   border-radius: 10px;
   letter-spacing: 0.5px;
 }
-
 .cm-plan-header {
   margin-bottom: 12px;
 }
-
 .cm-plan-name {
   font-size: 16px;
   font-weight: 600;
-  color: #f0f6fc;
+  color: var(--cm-foreground);
   margin: 0 0 4px 0;
 }
-
 .cm-plan-desc {
   font-size: 11px;
-  color: #8b949e;
+  color: var(--cm-muted-foreground);
   margin: 0;
   min-height: 32px;
   line-height: 1.4;
 }
-
 .cm-plan-price-wrap {
   display: flex;
   align-items: baseline;
   gap: 4px;
   margin-bottom: 12px;
 }
-
 .cm-plan-price {
   font-size: 26px;
   font-weight: 700;
-  color: #f0f6fc;
+  color: var(--cm-foreground);
 }
-
 .cm-plan-period {
   font-size: 12px;
-  color: #8b949e;
+  color: var(--cm-muted-foreground);
 }
-
 .cm-plan-billing-note {
   font-size: 11px;
-  color: #8b949e;
+  color: var(--cm-muted-foreground);
 }
-
 .cm-plan-action-btn {
   width: 100%;
   padding: 8px 12px;
@@ -174,34 +151,28 @@
   margin-top: auto;
   transition: all 0.15s ease;
 }
-
 .cm-plan-action-btn--primary {
-  background: #E7BF73;
-  color: #0d1117;
+  background: var(--cm-primary);
+  color: var(--cm-primary-foreground);
 }
-
 .cm-plan-action-btn--primary:hover:not(:disabled) {
-  background: #f0ce8a;
+  background: color-mix(in srgb, var(--cm-primary) 85%, white);
 }
-
 .cm-plan-action-btn--secondary {
-  background: #21262d;
-  color: #c9d1d9;
-  border: 1px solid #30363d;
+  background: var(--cm-secondary);
+  color: var(--cm-foreground);
+  border: 1px solid var(--cm-border);
 }
-
 .cm-plan-action-btn--secondary:hover:not(:disabled) {
-  background: #30363d;
-  color: #f0f6fc;
+  background: var(--cm-secondary);
+  color: var(--cm-foreground);
 }
-
 .cm-plan-action-btn--current {
-  background: rgba(56, 139, 253, 0.15);
-  color: #58a6ff;
-  border: 1px solid rgba(56, 139, 253, 0.4);
+  background: color-mix(in srgb, var(--cm-ring) 15%, transparent);
+  color: var(--cm-ring);
+  border: 1px solid color-mix(in srgb, var(--cm-ring) 40%, transparent);
   cursor: default;
 }
-
 .cm-plan-features {
   list-style: none;
   padding: 0;
@@ -210,17 +181,15 @@
   flex-direction: column;
   gap: 8px;
 }
-
 .cm-plan-feature-item {
   display: flex;
   align-items: flex-start;
   gap: 8px;
   font-size: 12px;
-  color: #c9d1d9;
+  color: var(--cm-foreground);
   line-height: 1.4;
 }
-
 .cm-plan-feature-icon {
-  color: #E7BF73;
+  color: var(--cm-primary);
   flex-shrink: 0;
 }

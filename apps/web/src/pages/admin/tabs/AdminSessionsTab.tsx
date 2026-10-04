@@ -269,8 +269,8 @@ export function AdminSessionsTab() {
     switch (status) {
       case 'active':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#e7bf73]/20 text-[#e7bf73] border border-[#e7bf73]/40">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#e7bf73] animate-pulse" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--cm-primary)]/20 text-[var(--cm-primary)] border border-[var(--cm-primary)]/40">
+            <span className="w-1.5 h-1.5 rounded-full bg-[var(--cm-primary)] animate-pulse" />
             Ativa
           </span>
         )
@@ -282,7 +282,7 @@ export function AdminSessionsTab() {
         )
       case 'archived':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#8b949e]/15 text-[#8b949e] border border-[#8b949e]/30">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--cm-muted-foreground)]/15 text-[var(--cm-muted-foreground)] border border-[var(--cm-muted-foreground)]/30">
             Arquivada
           </span>
         )
@@ -294,7 +294,7 @@ export function AdminSessionsTab() {
         )
       default:
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[#30363d] text-[#8b949e]">
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-[var(--cm-secondary)] text-[var(--cm-muted-foreground)]">
             {status}
           </span>
         )
@@ -311,13 +311,13 @@ export function AdminSessionsTab() {
   }, [inspectingSession, workspacesRoot])
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', color: '#f0f6fc' }}>
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', color: 'var(--cm-foreground)' }}>
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#30363d]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[var(--cm-border)]">
         <div>
           <div className="flex items-center gap-2.5">
-            <h2 className="text-xl font-bold tracking-tight text-[#f0f6fc]">Sessions Globais</h2>
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#e7bf73]/20 text-[#e7bf73] border border-[#e7bf73]/30">
+            <h2 className="text-xl font-bold tracking-tight text-[var(--cm-foreground)]">Sessions Globais</h2>
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--cm-primary)]/20 text-[var(--cm-primary)] border border-[var(--cm-primary)]/30">
               Total: {kpis?.total_sessions ?? totalCount}
             </span>
             {kpis && (
@@ -326,7 +326,7 @@ export function AdminSessionsTab() {
               </span>
             )}
           </div>
-          <p className="text-sm text-[#8b949e] mt-1">
+          <p className="text-sm text-[var(--cm-muted-foreground)] mt-1">
             Monitoramento centralizado de sessões de chat, volume de tokens, auditoria e governança.
           </p>
         </div>
@@ -335,11 +335,11 @@ export function AdminSessionsTab() {
           <button
             onClick={() => loadSessionsData(true)}
             disabled={isLoading || isRefreshing}
-            className="px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-xs font-medium text-[#f0f6fc] transition flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/50 text-xs font-medium text-[var(--cm-foreground)] transition flex items-center gap-1.5 disabled:opacity-50"
             title="Atualizar dados"
           >
             <svg width="14" height="14"
-              className={`w-3.5 h-3.5 text-[#8b949e] ${isRefreshing ? 'animate-spin' : ''}`}
+              className={`w-3.5 h-3.5 text-[var(--cm-muted-foreground)] ${isRefreshing ? 'animate-spin' : ''}`}
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -367,42 +367,42 @@ export function AdminSessionsTab() {
 
       {/* KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e] font-medium">Total de Sessions</div>
-          <div className="text-xl font-bold text-[#f0f6fc] mt-1">{kpis ? kpis.total_sessions.toLocaleString('pt-BR') : '-'}</div>
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium">Total de Sessions</div>
+          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">{kpis ? kpis.total_sessions.toLocaleString('pt-BR') : '-'}</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e] font-medium flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#e7bf73]" />
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[var(--cm-primary)]" />
             Ativas
           </div>
-          <div className="text-xl font-bold text-[#e7bf73] mt-1">{kpis ? kpis.active_sessions.toLocaleString('pt-BR') : '-'}</div>
+          <div className="text-xl font-bold text-[var(--cm-primary)] mt-1">{kpis ? kpis.active_sessions.toLocaleString('pt-BR') : '-'}</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e] font-medium flex items-center gap-1">
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-emerald-400" />
             Concluídas
           </div>
-          <div className="text-xl font-bold text-[#f0f6fc] mt-1">{kpis ? kpis.completed_sessions.toLocaleString('pt-BR') : '-'}</div>
+          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">{kpis ? kpis.completed_sessions.toLocaleString('pt-BR') : '-'}</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e] font-medium flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#8b949e]" />
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[var(--cm-muted-foreground)]" />
             Arquivadas
           </div>
-          <div className="text-xl font-bold text-[#8b949e] mt-1">{kpis ? kpis.archived_sessions.toLocaleString('pt-BR') : '-'}</div>
+          <div className="text-xl font-bold text-[var(--cm-muted-foreground)] mt-1">{kpis ? kpis.archived_sessions.toLocaleString('pt-BR') : '-'}</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70 col-span-2 sm:col-span-1">
-          <div className="text-xs text-[#8b949e] font-medium flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#b0955e]" />
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70 col-span-2 sm:col-span-1">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[var(--cm-primary)]" />
             Tokens Consumidos
           </div>
-          <div className="text-xl font-bold text-[#d8ae5f] mt-1">{kpis ? formatTokens(kpis.total_tokens) : '-'}</div>
+          <div className="text-xl font-bold text-[var(--cm-primary)] mt-1">{kpis ? formatTokens(kpis.total_tokens) : '-'}</div>
         </div>
       </div>
 
       {/* Barra de Filtros */}
-      <div className="p-4 rounded-xl border border-[#30363d] bg-[#161b22]/50 space-y-3">
+      <div className="p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/50 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
           {/* Busca por ID, título ou email */}
           <div className="sm:col-span-4 relative">
@@ -411,10 +411,10 @@ export function AdminSessionsTab() {
               placeholder="Search by ID, título ou e-mail..."
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-2 pl-9 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f0f6fc] placeholder-[#8b949e] focus:outline-none focus:border-[#e7bf73] transition"
+              className="w-full px-3 py-2 pl-9 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-lg text-sm text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] focus:outline-none focus:border-[var(--cm-primary)] transition"
             />
             <svg width="14" height="14"
-              className="w-4 h-4 text-[#8b949e] absolute left-3 top-2.5"
+              className="w-4 h-4 text-[var(--cm-muted-foreground)] absolute left-3 top-2.5"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -424,7 +424,7 @@ export function AdminSessionsTab() {
             {searchTerm && (
               <button
                 onClick={() => setSearchTerm('')}
-                className="absolute right-2.5 top-2.5 text-xs text-[#8b949e] hover:text-[#f0f6fc]"
+                className="absolute right-2.5 top-2.5 text-xs text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)]"
               >
                 ✕
               </button>
@@ -439,7 +439,7 @@ export function AdminSessionsTab() {
                 setSelectedTenant(e.target.value)
                 setCurrentPage(1)
               }}
-              className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73] transition"
+              className="w-full px-3 py-2 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-lg text-sm text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)] transition"
             >
               <option value="">Todos os Tenants</option>
               {tenants.map(t => (
@@ -458,7 +458,7 @@ export function AdminSessionsTab() {
                 setSelectedModel(e.target.value)
                 setCurrentPage(1)
               }}
-              className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73] transition"
+              className="w-full px-3 py-2 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-lg text-sm text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)] transition"
             >
               <option value="">Todos os Models</option>
               {availableModels.map(m => (
@@ -477,7 +477,7 @@ export function AdminSessionsTab() {
                 setSelectedStatus(e.target.value)
                 setCurrentPage(1)
               }}
-              className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73] transition"
+              className="w-full px-3 py-2 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-lg text-sm text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)] transition"
             >
               <option value="">Todos os Status</option>
               <option value="active">Ativa</option>
@@ -492,7 +492,7 @@ export function AdminSessionsTab() {
             <select
               value={selectedPeriod}
               onChange={e => setSelectedPeriod(e.target.value as 'all' | '7d' | '30d')}
-              className="w-full px-3 py-2 bg-[#0d1117] border border-[#30363d] rounded-lg text-sm text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73] transition"
+              className="w-full px-3 py-2 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-lg text-sm text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)] transition"
             >
               <option value="all">Todo o Período</option>
               <option value="7d">Últimos 7 dias</option>
@@ -503,7 +503,7 @@ export function AdminSessionsTab() {
 
         {/* Resumo de filtros ativos */}
         {(debouncedSearch || selectedTenant || selectedModel || selectedStatus || selectedPeriod !== 'all') && (
-          <div className="flex items-center justify-between text-xs text-[#8b949e] pt-2 border-t border-[#30363d]/50">
+          <div className="flex items-center justify-between text-xs text-[var(--cm-muted-foreground)] pt-2 border-t border-[var(--cm-border)]/50">
             <span>Filtros aplicados. Encontrados: {totalCount} sessões.</span>
             <button
               onClick={() => {
@@ -514,7 +514,7 @@ export function AdminSessionsTab() {
                 setSelectedPeriod('all')
                 setCurrentPage(1)
               }}
-              className="text-[#e7bf73] hover:underline"
+              className="text-[var(--cm-primary)] hover:underline"
             >
               Limpar todos os filtros
             </button>
@@ -539,10 +539,10 @@ export function AdminSessionsTab() {
       )}
 
       {/* Tabela de Sessions */}
-      <div className="border border-[#30363d] rounded-xl overflow-hidden bg-[#161b22]/70">
+      <div className="border border-[var(--cm-border)] rounded-xl overflow-hidden bg-[var(--cm-card)]/70">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-[#f0f6fc]">
-            <thead className="bg-[#161b22] border-b border-[#30363d] text-xs font-semibold text-[#8b949e] uppercase tracking-wider">
+          <table className="w-full text-left text-sm text-[var(--cm-foreground)]">
+            <thead className="bg-[var(--cm-card)] border-b border-[var(--cm-border)] text-xs font-semibold text-[var(--cm-muted-foreground)] uppercase tracking-wider">
               <tr>
                 <th className="px-4 py-3">Sessão</th>
                 <th className="px-4 py-3">Tenant</th>
@@ -554,12 +554,12 @@ export function AdminSessionsTab() {
                 <th className="px-4 py-3 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#30363d]/60">
+            <tbody className="divide-y divide-[var(--cm-border)]/60">
               {isLoading && !isRefreshing ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-[#8b949e]">
+                  <td colSpan={8} className="px-4 py-12 text-center text-[var(--cm-muted-foreground)]">
                     <div className="flex flex-col items-center justify-center gap-2">
-                      <svg width="14" height="14" className="w-6 h-6 animate-spin text-[#e7bf73]" fill="none" viewBox="0 0 24 24">
+                      <svg width="14" height="14" className="w-6 h-6 animate-spin text-[var(--cm-primary)]" fill="none" viewBox="0 0 24 24">
                         <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                         <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                       </svg>
@@ -569,10 +569,10 @@ export function AdminSessionsTab() {
                 </tr>
               ) : sessions.length === 0 ? (
                 <tr>
-                  <td colSpan={8} className="px-4 py-12 text-center text-[#8b949e]">
+                  <td colSpan={8} className="px-4 py-12 text-center text-[var(--cm-muted-foreground)]">
                     <div className="flex flex-col items-center justify-center gap-1">
-                      <p className="text-base font-medium text-[#f0f6fc]">Nenhuma sessão encontrada</p>
-                      <p className="text-xs text-[#8b949e]">
+                      <p className="text-base font-medium text-[var(--cm-foreground)]">Nenhuma sessão encontrada</p>
+                      <p className="text-xs text-[var(--cm-muted-foreground)]">
                         {debouncedSearch || selectedTenant || selectedModel || selectedStatus
                           ? 'Tente ajustar os filtros acima.'
                           : 'Ainda não há sessões registradas no sistema.'}
@@ -582,19 +582,19 @@ export function AdminSessionsTab() {
                 </tr>
               ) : (
                 sessions.map(row => (
-                  <tr key={row.session_id} className="hover:bg-[#30363d]/20 transition-colors">
+                  <tr key={row.session_id} className="hover:bg-[var(--cm-secondary)]/20 transition-colors">
                     {/* Título e ID Mono */}
                     <td className="px-4 py-3 max-w-[240px]">
-                      <div className="font-medium text-[#f0f6fc] truncate" title={row.title}>
+                      <div className="font-medium text-[var(--cm-foreground)] truncate" title={row.title}>
                         {row.title}
                       </div>
                       <div className="flex items-center gap-1.5 mt-0.5">
-                        <span className="font-mono text-[11px] text-[#8b949e] truncate max-w-[140px]" title={row.session_id}>
+                        <span className="font-mono text-[11px] text-[var(--cm-muted-foreground)] truncate max-w-[140px]" title={row.session_id}>
                           {row.session_id}
                         </span>
                         <button
                           onClick={() => handleCopyId(row.session_id)}
-                          className="text-[10px] text-[#8b949e] hover:text-[#e7bf73] transition"
+                          className="text-[10px] text-[var(--cm-muted-foreground)] hover:text-[var(--cm-primary)] transition"
                           title="Copy ID da sessão"
                         >
                           {copiedId === row.session_id ? '✓ Copied' : 'Copy'}
@@ -603,22 +603,22 @@ export function AdminSessionsTab() {
                     </td>
 
                     {/* Tenant */}
-                    <td className="px-4 py-3 text-xs text-[#f0f6fc]">
+                    <td className="px-4 py-3 text-xs text-[var(--cm-foreground)]">
                       <div className="font-medium truncate max-w-[140px]" title={row.tenant_name}>
                         {row.tenant_name}
                       </div>
-                      <div className="text-[#8b949e] text-[11px] font-mono truncate max-w-[140px]">
+                      <div className="text-[var(--cm-muted-foreground)] text-[11px] font-mono truncate max-w-[140px]">
                         {row.tenant_slug}
                       </div>
                     </td>
 
                     {/* Usuário */}
-                    <td className="px-4 py-3 text-xs text-[#f0f6fc]">
+                    <td className="px-4 py-3 text-xs text-[var(--cm-foreground)]">
                       <div className="font-medium truncate max-w-[160px]" title={row.user_email}>
                         {row.user_full_name || row.user_email}
                       </div>
                       {row.user_full_name && (
-                        <div className="text-[#8b949e] text-[11px] truncate max-w-[160px]" title={row.user_email}>
+                        <div className="text-[var(--cm-muted-foreground)] text-[11px] truncate max-w-[160px]" title={row.user_email}>
                           {row.user_email}
                         </div>
                       )}
@@ -626,13 +626,13 @@ export function AdminSessionsTab() {
 
                     {/* Modelo */}
                     <td className="px-4 py-3 text-xs">
-                      <span className="px-2 py-0.5 rounded-md font-mono text-[11px] bg-[#161b22] border border-[#30363d] text-[#d8ae5f]">
+                      <span className="px-2 py-0.5 rounded-md font-mono text-[11px] bg-[var(--cm-card)] border border-[var(--cm-border)] text-[var(--cm-primary)]">
                         {row.model_used}
                       </span>
                     </td>
 
                     {/* Tokens */}
-                    <td className="px-4 py-3 text-xs font-mono text-right text-[#f0f6fc]">
+                    <td className="px-4 py-3 text-xs font-mono text-right text-[var(--cm-foreground)]">
                       {formatTokens(row.tokens_total)}
                     </td>
 
@@ -642,7 +642,7 @@ export function AdminSessionsTab() {
                     </td>
 
                     {/* Data */}
-                    <td className="px-4 py-3 text-xs text-[#8b949e] whitespace-nowrap">
+                    <td className="px-4 py-3 text-xs text-[var(--cm-muted-foreground)] whitespace-nowrap">
                       {formatDate(row.created_at)}
                     </td>
 
@@ -651,7 +651,7 @@ export function AdminSessionsTab() {
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => setInspectingSession(row)}
-                          className="px-2.5 py-1 rounded bg-[#161b22] border border-[#30363d] hover:border-[#e7bf73] text-[#f0f6fc] hover:text-[#e7bf73] transition font-medium"
+                          className="px-2.5 py-1 rounded bg-[var(--cm-card)] border border-[var(--cm-border)] hover:border-[var(--cm-primary)] text-[var(--cm-foreground)] hover:text-[var(--cm-primary)] transition font-medium"
                           title="Inspecionar metadados e transcript"
                         >
                           Detalhes
@@ -660,7 +660,7 @@ export function AdminSessionsTab() {
                           <button
                             onClick={() => handleArchiveSession(row)}
                             disabled={isSubmittingAction}
-                            className="px-2 py-1 rounded border border-[#30363d] hover:border-[#8b949e] text-[#8b949e] hover:text-[#f0f6fc] transition disabled:opacity-50"
+                            className="px-2 py-1 rounded border border-[var(--cm-border)] hover:border-[var(--cm-muted-foreground)] text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] transition disabled:opacity-50"
                             title="Arquivar sessão"
                           >
                             Arquivar
@@ -684,12 +684,12 @@ export function AdminSessionsTab() {
         </div>
 
         {/* Rodapé e Paginação */}
-        <div className="px-4 py-3 bg-[#161b22] border-t border-[#30363d] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-[#8b949e]">
+        <div className="px-4 py-3 bg-[var(--cm-card)] border-t border-[var(--cm-border)] flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs text-[var(--cm-muted-foreground)]">
           <div className="flex items-center gap-2">
             <span>
               Exibindo {sessions.length} de {totalCount} sessões (Página {currentPage} de {totalPages})
             </span>
-            <span className="text-[#30363d]">|</span>
+            <span className="text-[var(--cm-border)]">|</span>
             <div className="flex items-center gap-1.5">
               <span>Linhas por página:</span>
               <select
@@ -698,7 +698,7 @@ export function AdminSessionsTab() {
                   setPageSize(Number(e.target.value))
                   setCurrentPage(1)
                 }}
-                className="bg-[#0d1117] border border-[#30363d] rounded px-1.5 py-0.5 text-xs text-[#f0f6fc]"
+                className="bg-[var(--cm-background)] border border-[var(--cm-border)] rounded px-1.5 py-0.5 text-xs text-[var(--cm-foreground)]"
               >
                 <option value={10}>10</option>
                 <option value={25}>25</option>
@@ -712,17 +712,17 @@ export function AdminSessionsTab() {
             <button
               onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
               disabled={currentPage <= 1 || isLoading}
-              className="px-2.5 py-1 rounded border border-[#30363d] bg-[#0d1117] hover:bg-[#30363d]/40 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="px-2.5 py-1 rounded border border-[var(--cm-border)] bg-[var(--cm-background)] hover:bg-[var(--cm-secondary)]/40 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               Anterior
             </button>
-            <span className="font-medium text-[#f0f6fc] px-1">
+            <span className="font-medium text-[var(--cm-foreground)] px-1">
               {currentPage} / {totalPages}
             </span>
             <button
               onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
               disabled={currentPage >= totalPages || isLoading}
-              className="px-2.5 py-1 rounded border border-[#30363d] bg-[#0d1117] hover:bg-[#30363d]/40 disabled:opacity-40 disabled:cursor-not-allowed transition"
+              className="px-2.5 py-1 rounded border border-[var(--cm-border)] bg-[var(--cm-background)] hover:bg-[var(--cm-secondary)]/40 disabled:opacity-40 disabled:cursor-not-allowed transition"
             >
               Próxima
             </button>
@@ -741,17 +741,17 @@ export function AdminSessionsTab() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
         >
-          <div className="w-full max-w-2xl bg-[#161b22] border border-[#30363d] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="w-full max-w-2xl bg-[var(--cm-card)] border border-[var(--cm-border)] rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
             {/* Header do Drawer */}
-            <div className="px-6 py-4 border-b border-[#30363d] flex items-center justify-between bg-[#0d1117]/60">
+            <div className="px-6 py-4 border-b border-[var(--cm-border)] flex items-center justify-between bg-[var(--cm-background)]/60">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-[#e7bf73]" />
-                <h3 className="text-base font-bold text-[#f0f6fc]">Inspeção de Sessão</h3>
+                <span className="w-2.5 h-2.5 rounded-full bg-[var(--cm-primary)]" />
+                <h3 className="text-base font-bold text-[var(--cm-foreground)]">Inspeção de Sessão</h3>
                 {getStatusBadge(inspectingSession.status)}
               </div>
               <button
                 onClick={() => setInspectingSession(null)}
-                className="text-[#8b949e] hover:text-[#f0f6fc] text-sm p-1 rounded-lg hover:bg-[#30363d]/40 transition"
+                className="text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] text-sm p-1 rounded-lg hover:bg-[var(--cm-secondary)]/40 transition"
                 title="Close (Esc)"
               >
                 ✕
@@ -762,15 +762,15 @@ export function AdminSessionsTab() {
             <div className="p-6 overflow-y-auto space-y-5 text-sm">
               {/* Título & ID */}
               <div>
-                <label className="text-xs font-semibold text-[#8b949e] uppercase tracking-wider">Título da Sessão</label>
-                <div className="text-base font-medium text-[#f0f6fc] mt-1">{inspectingSession.title}</div>
+                <label className="text-xs font-semibold text-[var(--cm-muted-foreground)] uppercase tracking-wider">Título da Sessão</label>
+                <div className="text-base font-medium text-[var(--cm-foreground)] mt-1">{inspectingSession.title}</div>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="font-mono text-xs bg-[#0d1117] border border-[#30363d] px-2 py-0.5 rounded text-[#e7bf73]">
+                  <span className="font-mono text-xs bg-[var(--cm-background)] border border-[var(--cm-border)] px-2 py-0.5 rounded text-[var(--cm-primary)]">
                     {inspectingSession.session_id}
                   </span>
                   <button
                     onClick={() => handleCopyId(inspectingSession.session_id)}
-                    className="text-xs text-[#8b949e] hover:text-[#e7bf73] transition"
+                    className="text-xs text-[var(--cm-muted-foreground)] hover:text-[var(--cm-primary)] transition"
                   >
                     {copiedId === inspectingSession.session_id ? '✓ ID Copied' : 'Copy ID'}
                   </button>
@@ -778,58 +778,58 @@ export function AdminSessionsTab() {
               </div>
 
               {/* Grid de Metadados */}
-              <div className="grid grid-cols-2 gap-4 p-4 rounded-xl border border-[#30363d] bg-[#0d1117]/60">
+              <div className="grid grid-cols-2 gap-4 p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-background)]/60">
                 <div>
-                  <span className="text-xs text-[#8b949e] block">Tenant</span>
-                  <span className="font-medium text-[#f0f6fc]">{inspectingSession.tenant_name}</span>
-                  <span className="text-[11px] font-mono text-[#8b949e] block mt-0.5">{inspectingSession.tenant_slug}</span>
+                  <span className="text-xs text-[var(--cm-muted-foreground)] block">Tenant</span>
+                  <span className="font-medium text-[var(--cm-foreground)]">{inspectingSession.tenant_name}</span>
+                  <span className="text-[11px] font-mono text-[var(--cm-muted-foreground)] block mt-0.5">{inspectingSession.tenant_slug}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-[#8b949e] block">Usuário</span>
-                  <span className="font-medium text-[#f0f6fc]">{inspectingSession.user_full_name || inspectingSession.user_email}</span>
-                  <span className="text-[11px] text-[#8b949e] block mt-0.5">{inspectingSession.user_email}</span>
+                  <span className="text-xs text-[var(--cm-muted-foreground)] block">Usuário</span>
+                  <span className="font-medium text-[var(--cm-foreground)]">{inspectingSession.user_full_name || inspectingSession.user_email}</span>
+                  <span className="text-[11px] text-[var(--cm-muted-foreground)] block mt-0.5">{inspectingSession.user_email}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-[#8b949e] block">Modelo Utilizado</span>
-                  <span className="font-mono text-xs text-[#d8ae5f] mt-0.5 inline-block">
+                  <span className="text-xs text-[var(--cm-muted-foreground)] block">Modelo Utilizado</span>
+                  <span className="font-mono text-xs text-[var(--cm-primary)] mt-0.5 inline-block">
                     {inspectingSession.model_used}
                   </span>
                 </div>
                 <div>
-                  <span className="text-xs text-[#8b949e] block">Tokens Registrados</span>
-                  <span className="font-mono text-xs text-[#f0f6fc] mt-0.5 inline-block">
+                  <span className="text-xs text-[var(--cm-muted-foreground)] block">Tokens Registrados</span>
+                  <span className="font-mono text-xs text-[var(--cm-foreground)] mt-0.5 inline-block">
                     {inspectingSession.tokens_total.toLocaleString('pt-BR')} ({formatTokens(inspectingSession.tokens_total)})
                   </span>
                 </div>
                 <div>
-                  <span className="text-xs text-[#8b949e] block">Criada em</span>
-                  <span className="text-xs text-[#f0f6fc]">{formatDate(inspectingSession.created_at)}</span>
+                  <span className="text-xs text-[var(--cm-muted-foreground)] block">Criada em</span>
+                  <span className="text-xs text-[var(--cm-foreground)]">{formatDate(inspectingSession.created_at)}</span>
                 </div>
                 <div>
-                  <span className="text-xs text-[#8b949e] block">Last Updated</span>
-                  <span className="text-xs text-[#f0f6fc]">{formatDate(inspectingSession.updated_at)}</span>
+                  <span className="text-xs text-[var(--cm-muted-foreground)] block">Last Updated</span>
+                  <span className="text-xs text-[var(--cm-foreground)]">{formatDate(inspectingSession.updated_at)}</span>
                 </div>
               </div>
 
               {/* Card Informativo do Filesystem */}
-              <div className="p-4 rounded-xl border border-[#b0955e]/40 bg-[#161b22] space-y-2.5">
-                <div className="flex items-center gap-2 text-xs font-semibold text-[#e7bf73] uppercase tracking-wider">
-                  <svg width="14" height="14" className="w-4 h-4 text-[#e7bf73]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-4 rounded-xl border border-[var(--cm-primary)]/40 bg-[var(--cm-card)] space-y-2.5">
+                <div className="flex items-center gap-2 text-xs font-semibold text-[var(--cm-primary)] uppercase tracking-wider">
+                  <svg width="14" height="14" className="w-4 h-4 text-[var(--cm-primary)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   Transcript no Filesystem (.jsonl)
                 </div>
-                <p className="text-xs text-[#8b949e] leading-relaxed">
+                <p className="text-xs text-[var(--cm-muted-foreground)] leading-relaxed">
                   O transcript completo desta sessão está gravado como stream de eventos no filesystem do servidor.
                   Para auditar as mensagens brutas via terminal SSH, execute o comando abaixo:
                 </p>
-                <div className="p-2.5 rounded-lg bg-[#0d1117] border border-[#30363d] flex items-center justify-between gap-2">
-                  <code className="text-xs font-mono text-[#d8ae5f] break-all select-all">
+                <div className="p-2.5 rounded-lg bg-[var(--cm-background)] border border-[var(--cm-border)] flex items-center justify-between gap-2">
+                  <code className="text-xs font-mono text-[var(--cm-primary)] break-all select-all">
                     {sshTranscriptCommand}
                   </code>
                   <button
                     onClick={() => handleCopyCommand(sshTranscriptCommand)}
-                    className="px-2.5 py-1 text-xs font-medium rounded border border-[#30363d] bg-[#161b22] hover:bg-[#30363d] text-[#f0f6fc] whitespace-nowrap transition"
+                    className="px-2.5 py-1 text-xs font-medium rounded border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)] text-[var(--cm-foreground)] whitespace-nowrap transition"
                   >
                     {copiedCommand ? '✓ Copied' : 'Copy'}
                   </button>
@@ -838,10 +838,10 @@ export function AdminSessionsTab() {
             </div>
 
             {/* Rodapé do Drawer com Actions */}
-            <div className="px-6 py-4 border-t border-[#30363d] bg-[#0d1117]/60 flex items-center justify-between">
+            <div className="px-6 py-4 border-t border-[var(--cm-border)] bg-[var(--cm-background)]/60 flex items-center justify-between">
               <button
                 onClick={() => handleCopyId(inspectingSession.session_id)}
-                className="px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-xs font-medium text-[#f0f6fc] transition"
+                className="px-3 py-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/50 text-xs font-medium text-[var(--cm-foreground)] transition"
               >
                 {copiedId === inspectingSession.session_id ? '✓ ID Copied' : 'Copy ID'}
               </button>
@@ -851,7 +851,7 @@ export function AdminSessionsTab() {
                   <button
                     onClick={() => handleArchiveSession(inspectingSession)}
                     disabled={isSubmittingAction}
-                    className="px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-xs font-medium text-[#8b949e] hover:text-[#f0f6fc] transition disabled:opacity-50"
+                    className="px-3 py-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/50 text-xs font-medium text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] transition disabled:opacity-50"
                   >
                     Arquivar
                   </button>
@@ -880,17 +880,17 @@ export function AdminSessionsTab() {
           }}
           className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm"
         >
-          <div className="w-full max-w-md bg-[#161b22] border border-rose-900/50 rounded-2xl shadow-2xl p-6 space-y-4">
+          <div className="w-full max-w-md bg-[var(--cm-card)] border border-rose-900/50 rounded-2xl shadow-2xl p-6 space-y-4">
             <div className="flex items-center gap-2.5 text-rose-400">
               <div className="w-8 h-8 rounded-full bg-rose-950/60 border border-rose-900/60 flex items-center justify-center font-bold">
                 !
               </div>
-              <h3 className="text-base font-bold text-[#f0f6fc]">Confirm Deletion (Purge)</h3>
+              <h3 className="text-base font-bold text-[var(--cm-foreground)]">Confirm Deletion (Purge)</h3>
             </div>
 
-            <p className="text-xs text-[#8b949e] leading-relaxed">
+            <p className="text-xs text-[var(--cm-muted-foreground)] leading-relaxed">
               Você está prestes a purgar a sessão{' '}
-              <strong className="text-[#f0f6fc]">"{sessionToPurge.title}"</strong> ({sessionToPurge.session_id}).
+              <strong className="text-[var(--cm-foreground)]">"{sessionToPurge.title}"</strong> ({sessionToPurge.session_id}).
             </p>
 
             <div className="p-3 bg-rose-950/30 border border-rose-900/40 rounded-xl text-xs text-rose-300 space-y-1">
@@ -905,7 +905,7 @@ export function AdminSessionsTab() {
               <button
                 onClick={() => setSessionToPurge(null)}
                 disabled={isSubmittingAction}
-                className="px-3.5 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-xs font-medium text-[#8b949e] hover:text-[#f0f6fc] transition"
+                className="px-3.5 py-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/50 text-xs font-medium text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] transition"
               >
                 Cancel
               </button>

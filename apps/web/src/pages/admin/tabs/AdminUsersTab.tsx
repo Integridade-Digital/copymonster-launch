@@ -339,17 +339,17 @@ export function AdminUsersTab() {
   const isLastOwner = activeActionUser?.role === 'owner' && (tenantOwnerCount !== null && tenantOwnerCount <= 1)
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', color: '#f0f6fc' }}>
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', color: 'var(--cm-foreground)' }}>
       {/* Header & Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[#30363d]">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[var(--cm-border)]">
         <div>
-          <h2 className="text-xl font-bold tracking-tight text-[#f0f6fc] flex items-center gap-2">
+          <h2 className="text-xl font-bold tracking-tight text-[var(--cm-foreground)] flex items-center gap-2">
             <span>Users & Members</span>
-            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#e7bf73]/20 text-[#e7bf73] border border-[#e7bf73]/30">
+            <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[var(--cm-primary)]/20 text-[var(--cm-primary)] border border-[var(--cm-primary)]/30">
               {totalCount} total
             </span>
           </h2>
-          <p className="text-sm text-[#8b949e] mt-1">
+          <p className="text-sm text-[var(--cm-muted-foreground)] mt-1">
             Gestão de identidades, papéis (roles) e status de acesso nos tenants da plataforma.
           </p>
         </div>
@@ -360,11 +360,11 @@ export function AdminUsersTab() {
               loadKPIs()
             }}
             disabled={isLoading}
-            className="px-3 py-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-xs font-medium text-[#f0f6fc] transition flex items-center gap-1.5 disabled:opacity-50"
+            className="px-3 py-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/50 text-xs font-medium text-[var(--cm-foreground)] transition flex items-center gap-1.5 disabled:opacity-50"
             title="Atualizar lista"
           >
             <svg width="14" height="14"
-              className={`w-3.5 h-3.5 text-[#8b949e] ${isLoading ? 'animate-spin' : ''}`}
+              className={`w-3.5 h-3.5 text-[var(--cm-muted-foreground)] ${isLoading ? 'animate-spin' : ''}`}
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -378,33 +378,33 @@ export function AdminUsersTab() {
 
       {/* Cards de Métricas / KPIs */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e] font-medium">Total de Users</div>
-          <div className="text-xl font-bold text-[#f0f6fc] mt-1">{kpis ? kpis.total : '-'}</div>
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium">Total de Users</div>
+          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">{kpis ? kpis.total : '-'}</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e] font-medium flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#e7bf73]" />
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[var(--cm-primary)]" />
             <span>Owners</span>
           </div>
-          <div className="text-xl font-bold text-[#e7bf73] mt-1">{kpis ? kpis.owners : '-'}</div>
+          <div className="text-xl font-bold text-[var(--cm-primary)] mt-1">{kpis ? kpis.owners : '-'}</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e] font-medium flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#b0955e]" />
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[var(--cm-primary)]" />
             <span>Admins</span>
           </div>
-          <div className="text-xl font-bold text-[#f0f6fc] mt-1">{kpis ? kpis.admins : '-'}</div>
+          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">{kpis ? kpis.admins : '-'}</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70">
-          <div className="text-xs text-[#8b949e] font-medium flex items-center gap-1">
-            <span className="w-2 h-2 rounded-full bg-[#8b949e]" />
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium flex items-center gap-1">
+            <span className="w-2 h-2 rounded-full bg-[var(--cm-muted-foreground)]" />
             <span>Members</span>
           </div>
-          <div className="text-xl font-bold text-[#f0f6fc] mt-1">{kpis ? kpis.members : '-'}</div>
+          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">{kpis ? kpis.members : '-'}</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[#30363d] bg-[#161b22]/70 col-span-2 sm:col-span-1">
-          <div className="text-xs text-[#8b949e] font-medium flex items-center gap-1">
+        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70 col-span-2 sm:col-span-1">
+          <div className="text-xs text-[var(--cm-muted-foreground)] font-medium flex items-center gap-1">
             <span className="w-2 h-2 rounded-full bg-rose-500" />
             <span>Suspensos</span>
           </div>
@@ -413,7 +413,7 @@ export function AdminUsersTab() {
       </div>
 
       {/* Barra de Filtros */}
-      <div className="p-4 rounded-xl border border-[#30363d] bg-[#161b22]/40 space-y-3">
+      <div className="p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/40 space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-12 gap-3">
           {/* Busca por texto */}
           <div className="sm:col-span-5 relative">
@@ -422,10 +422,10 @@ export function AdminUsersTab() {
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
               placeholder="Search by e-mail ou nome..."
-              className="w-full px-3 py-2 pl-9 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] placeholder-[#8b949e] focus:outline-none focus:border-[#e7bf73] transition"
+              className="w-full px-3 py-2 pl-9 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] focus:outline-none focus:border-[var(--cm-primary)] transition"
             />
             <svg width="14" height="14"
-              className="w-4 h-4 text-[#8b949e] absolute left-2.5 top-2.5"
+              className="w-4 h-4 text-[var(--cm-muted-foreground)] absolute left-2.5 top-2.5"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -442,7 +442,7 @@ export function AdminUsersTab() {
                 setSelectedRole(e.target.value)
                 setCurrentPage(1)
               }}
-              className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73] transition"
+              className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)] transition"
             >
               <option value="">Todas as Roles</option>
               <option value="owner">Owner</option>
@@ -459,7 +459,7 @@ export function AdminUsersTab() {
                 setSelectedStatus(e.target.value)
                 setCurrentPage(1)
               }}
-              className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73] transition"
+              className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)] transition"
             >
               <option value="">Todos Status</option>
               <option value="active">Ativo</option>
@@ -475,7 +475,7 @@ export function AdminUsersTab() {
                 setSelectedTenant(e.target.value)
                 setCurrentPage(1)
               }}
-              className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73] transition truncate"
+              className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)] transition truncate"
             >
               <option value="">Todos os Tenants</option>
               {tenants.map(t => (
@@ -489,10 +489,10 @@ export function AdminUsersTab() {
 
         {hasActiveFilters && (
           <div className="flex items-center justify-between text-xs pt-1">
-            <span className="text-[#8b949e]">Filtros ativos aplicados</span>
+            <span className="text-[var(--cm-muted-foreground)]">Filtros ativos aplicados</span>
             <button
               onClick={handleClearFilters}
-              className="text-[#e7bf73] hover:text-[#d8ae5f] underline transition"
+              className="text-[var(--cm-primary)] hover:text-[var(--cm-primary)] underline transition"
             >
               Limpar todos os filtros
             </button>
@@ -519,11 +519,11 @@ export function AdminUsersTab() {
       )}
 
       {/* Tabela de Users */}
-      <div className="border border-[#30363d] rounded-xl overflow-hidden bg-[#0d1117]/60">
+      <div className="border border-[var(--cm-border)] rounded-xl overflow-hidden bg-[var(--cm-background)]/60">
         <div className="overflow-x-auto min-h-[300px]">
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="border-b border-[#30363d] bg-[#161b22]/90 text-[#8b949e] uppercase font-semibold tracking-wider">
+              <tr className="border-b border-[var(--cm-border)] bg-[var(--cm-card)]/90 text-[var(--cm-muted-foreground)] uppercase font-semibold tracking-wider">
                 <th className="py-3 px-4">Usuário</th>
                 <th className="py-3 px-4">Tenant</th>
                 <th className="py-3 px-4">Papel (Role)</th>
@@ -532,25 +532,25 @@ export function AdminUsersTab() {
                 <th className="py-3 px-4 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#30363d]/50">
+            <tbody className="divide-y divide-[var(--cm-border)]/50">
               {isLoading ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-[#8b949e]">
+                  <td colSpan={6} className="py-12 text-center text-[var(--cm-muted-foreground)]">
                     <div className="flex flex-col items-center justify-center gap-3">
-                      <div className="w-6 h-6 rounded-full border-2 border-[#e7bf73] border-t-transparent animate-spin" />
+                      <div className="w-6 h-6 rounded-full border-2 border-[var(--cm-primary)] border-t-transparent animate-spin" />
                       <span>Carregando usuários...</span>
                     </div>
                   </td>
                 </tr>
               ) : users.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="py-12 text-center text-[#8b949e]">
+                  <td colSpan={6} className="py-12 text-center text-[var(--cm-muted-foreground)]">
                     {hasActiveFilters ? (
                       <div className="space-y-2">
-                        <p className="text-[#f0f6fc]">Nenhum usuário corresponde aos filtros aplicados.</p>
+                        <p className="text-[var(--cm-foreground)]">Nenhum usuário corresponde aos filtros aplicados.</p>
                         <button
                           onClick={handleClearFilters}
-                          className="text-[#e7bf73] hover:text-[#d8ae5f] underline transition"
+                          className="text-[var(--cm-primary)] hover:text-[var(--cm-primary)] underline transition"
                         >
                           Limpar filtros
                         </button>
@@ -566,24 +566,24 @@ export function AdminUsersTab() {
                   const isMenuOpen = actionMenuOpenRow === rowKey
 
                   return (
-                    <tr key={rowKey} className="hover:bg-[#161b22] transition-colors">
+                    <tr key={rowKey} className="hover:bg-[var(--cm-card)] transition-colors">
                       <td className="py-3 px-4">
-                        <div className="font-medium text-[#f0f6fc]">{user.full_name || 'Sem nome'}</div>
-                        <div className="text-[#8b949e] font-mono text-[11px]">{user.email}</div>
+                        <div className="font-medium text-[var(--cm-foreground)]">{user.full_name || 'Sem nome'}</div>
+                        <div className="text-[var(--cm-muted-foreground)] font-mono text-[11px]">{user.email}</div>
                       </td>
 
                       <td className="py-3 px-4">
                         {user.tenant_name ? (
                           <div>
-                            <span className="text-[#f0f6fc] font-medium">{user.tenant_name}</span>
+                            <span className="text-[var(--cm-foreground)] font-medium">{user.tenant_name}</span>
                             {user.tenant_slug && (
-                              <span className="text-[10px] text-[#8b949e] block font-mono">
+                              <span className="text-[10px] text-[var(--cm-muted-foreground)] block font-mono">
                                 /{user.tenant_slug}
                               </span>
                             )}
                           </div>
                         ) : (
-                          <span className="text-[#8b949e] italic">Sem tenant</span>
+                          <span className="text-[var(--cm-muted-foreground)] italic">Sem tenant</span>
                         )}
                       </td>
 
@@ -592,16 +592,16 @@ export function AdminUsersTab() {
                           <span
                             className={`inline-flex items-center px-2 py-0.5 rounded-md text-[11px] font-medium uppercase border ${
                               user.role === 'owner'
-                                ? 'bg-[#e7bf73]/15 text-[#e7bf73] border-[#e7bf73]/30'
+                                ? 'bg-[var(--cm-primary)]/15 text-[var(--cm-primary)] border-[var(--cm-primary)]/30'
                                 : user.role === 'admin'
-                                  ? 'bg-[#b0955e]/15 text-[#fbf0da] border-[#b0955e]/30'
-                                  : 'bg-[#30363d]/50 text-[#8b949e] border-[#30363d]'
+                                  ? 'bg-[var(--cm-primary)]/15 text-[var(--cm-primary)] border-[var(--cm-primary)]/30'
+                                  : 'bg-[var(--cm-secondary)]/50 text-[var(--cm-muted-foreground)] border-[var(--cm-border)]'
                             }`}
                           >
                             {user.role}
                           </span>
                         ) : (
-                          <span className="text-[#8b949e]">-</span>
+                          <span className="text-[var(--cm-muted-foreground)]">-</span>
                         )}
                       </td>
 
@@ -622,7 +622,7 @@ export function AdminUsersTab() {
                         </span>
                       </td>
 
-                      <td className="py-3 px-4 text-[#8b949e]">
+                      <td className="py-3 px-4 text-[var(--cm-muted-foreground)]">
                         {formatDate(user.created_at)}
                       </td>
 
@@ -632,7 +632,7 @@ export function AdminUsersTab() {
                             e.stopPropagation()
                             setActionMenuOpenRow(isMenuOpen ? null : rowKey)
                           }}
-                          className="p-1.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/60 text-[#8b949e] hover:text-[#f0f6fc] transition"
+                          className="p-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/60 text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] transition"
                           title="Actions do usuário"
                         >
                           <svg width="14" height="14" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -648,7 +648,7 @@ export function AdminUsersTab() {
                         {isMenuOpen && (
                           <div
                             onClick={e => e.stopPropagation()}
-                            className="absolute right-4 mt-1 w-44 rounded-lg border border-[#30363d] bg-[#161b22] shadow-2xl z-30 py-1 text-left text-xs text-[#f0f6fc]"
+                            className="absolute right-4 mt-1 w-44 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] shadow-2xl z-30 py-1 text-left text-xs text-[var(--cm-foreground)]"
                           >
                             <button
                               onClick={() => {
@@ -656,9 +656,9 @@ export function AdminUsersTab() {
                                 openRoleModal(user)
                               }}
                               disabled={!user.membership_id}
-                              className="w-full px-3 py-2 hover:bg-[#30363d]/40 flex items-center gap-2 text-left transition disabled:opacity-40"
+                              className="w-full px-3 py-2 hover:bg-[var(--cm-secondary)]/40 flex items-center gap-2 text-left transition disabled:opacity-40"
                             >
-                              <svg width="14" height="14" className="w-3.5 h-3.5 text-[#e7bf73]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <svg width="14" height="14" className="w-3.5 h-3.5 text-[var(--cm-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                               </svg>
                               <span>Alterar Role</span>
@@ -669,7 +669,7 @@ export function AdminUsersTab() {
                                 setActionMenuOpenRow(null)
                                 openStatusModal(user)
                               }}
-                              className={`w-full px-3 py-2 hover:bg-[#30363d]/40 flex items-center gap-2 text-left transition ${
+                              className={`w-full px-3 py-2 hover:bg-[var(--cm-secondary)]/40 flex items-center gap-2 text-left transition ${
                                 user.user_status === 'suspended' ? 'text-emerald-400' : 'text-rose-400'
                               }`}
                             >
@@ -695,9 +695,9 @@ export function AdminUsersTab() {
                                 setActionMenuOpenRow(null)
                                 openResetPasswordModal(user)
                               }}
-                              className="w-full px-3 py-2 hover:bg-[#30363d]/40 flex items-center gap-2 text-left transition text-[#f0f6fc]"
+                              className="w-full px-3 py-2 hover:bg-[var(--cm-secondary)]/40 flex items-center gap-2 text-left transition text-[var(--cm-foreground)]"
                             >
-                              <svg width="14" height="14" className="w-3.5 h-3.5 text-[#b0955e]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <svg width="14" height="14" className="w-3.5 h-3.5 text-[var(--cm-primary)]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                               </svg>
                               <span>Resetar Senha</span>
@@ -714,8 +714,8 @@ export function AdminUsersTab() {
         </div>
 
         {/* Paginação */}
-        <div className="p-4 border-t border-[#30363d] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-[#161b22]/30">
-          <div className="flex items-center gap-2 text-[#8b949e]">
+        <div className="p-4 border-t border-[var(--cm-border)] flex flex-col sm:flex-row items-center justify-between gap-3 text-xs bg-[var(--cm-card)]/30">
+          <div className="flex items-center gap-2 text-[var(--cm-muted-foreground)]">
             <span>Exibindo</span>
             <select
               value={pageSize}
@@ -723,7 +723,7 @@ export function AdminUsersTab() {
                 setPageSize(Number(e.target.value))
                 setCurrentPage(1)
               }}
-              className="px-2 py-1 rounded border border-[#30363d] bg-[#0d1117] text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73]"
+              className="px-2 py-1 rounded border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)]"
             >
               <option value={10}>10</option>
               <option value={25}>25</option>
@@ -734,21 +734,21 @@ export function AdminUsersTab() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[#8b949e]">
+            <span className="text-[var(--cm-muted-foreground)]">
               Página {currentPage} de {totalPages}
             </span>
             <div className="flex items-center gap-1">
               <button
                 onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
                 disabled={currentPage <= 1 || isLoading}
-                className="px-2.5 py-1 rounded border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-[#f0f6fc] disabled:opacity-40 disabled:cursor-not-allowed transition"
+                className="px-2.5 py-1 rounded border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/50 text-[var(--cm-foreground)] disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 Anterior
               </button>
               <button
                 onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
                 disabled={currentPage >= totalPages || isLoading}
-                className="px-2.5 py-1 rounded border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-[#f0f6fc] disabled:opacity-40 disabled:cursor-not-allowed transition"
+                className="px-2.5 py-1 rounded border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/50 text-[var(--cm-foreground)] disabled:opacity-40 disabled:cursor-not-allowed transition"
               >
                 Próxima
               </button>
@@ -764,7 +764,7 @@ export function AdminUsersTab() {
       {/* Modal 1: Alterar Role (Role) */}
       {activeModalType === 'role' && activeActionUser && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#0d1117]/80 backdrop-blur-sm" onClick={closeModal} />
+          <div className="absolute inset-0 bg-[var(--cm-background)]/80 backdrop-blur-sm" onClick={closeModal} />
           <div
             role="dialog"
             aria-modal="true"
@@ -777,14 +777,14 @@ export function AdminUsersTab() {
                 closeModal()
               }
             }}
-            className="relative z-10 w-full max-w-md rounded-2xl border border-[#e7bf73]/25 bg-[#161b22] p-6 shadow-2xl space-y-5 focus:outline-none"
+            className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--cm-primary)]/25 bg-[var(--cm-card)] p-6 shadow-2xl space-y-5 focus:outline-none"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-[#30363d]">
-              <h3 className="text-sm font-semibold text-[#f0f6fc]">Alterar Role de Usuário</h3>
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--cm-border)]">
+              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Alterar Role de Usuário</h3>
               <button
                 onClick={closeModal}
                 disabled={isMutating}
-                className="text-[#8b949e] hover:text-[#f0f6fc] p-1 transition"
+                className="text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] p-1 transition"
               >
                 ✕
               </button>
@@ -792,27 +792,27 @@ export function AdminUsersTab() {
 
             <div className="space-y-4 text-xs">
               <div>
-                <span className="text-[#8b949e] block mb-1">Usuário:</span>
-                <div className="p-2.5 rounded-lg border border-[#30363d] bg-[#0d1117]">
-                  <div className="text-[#f0f6fc] font-medium">{activeActionUser.full_name || 'Sem nome'}</div>
-                  <div className="text-[#8b949e] font-mono text-[11px]">{activeActionUser.email}</div>
+                <span className="text-[var(--cm-muted-foreground)] block mb-1">Usuário:</span>
+                <div className="p-2.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)]">
+                  <div className="text-[var(--cm-foreground)] font-medium">{activeActionUser.full_name || 'Sem nome'}</div>
+                  <div className="text-[var(--cm-muted-foreground)] font-mono text-[11px]">{activeActionUser.email}</div>
                 </div>
               </div>
 
               <div>
-                <span className="text-[#8b949e] block mb-1">Tenant vinculado:</span>
-                <div className="text-[#f0f6fc] font-medium p-2.5 rounded-lg border border-[#30363d] bg-[#0d1117]">
+                <span className="text-[var(--cm-muted-foreground)] block mb-1">Tenant vinculado:</span>
+                <div className="text-[var(--cm-foreground)] font-medium p-2.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)]">
                   {activeActionUser.tenant_name || 'Nenhum'}
                 </div>
               </div>
 
               <div>
-                <label className="text-[#8b949e] block mb-1">Selecione o novo papel:</label>
+                <label className="text-[var(--cm-muted-foreground)] block mb-1">Selecione o novo papel:</label>
                 <select
                   value={selectedNewRole}
                   onChange={e => setSelectedNewRole(e.target.value as 'owner' | 'admin' | 'member')}
                   disabled={isMutating}
-                  className="w-full px-3 py-2 rounded-lg border border-[#30363d] bg-[#0d1117] text-xs text-[#f0f6fc] focus:outline-none focus:border-[#e7bf73]"
+                  className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)]"
                 >
                   {(['owner', 'admin', 'member'] as const).map((r) => {
                     const isCurrent = activeActionUser.role === r
@@ -857,7 +857,7 @@ export function AdminUsersTab() {
                 <button
                   onClick={closeModal}
                   disabled={isMutating}
-                  className="w-1/2 px-4 py-2.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-[#8b949e] hover:text-[#f0f6fc] transition font-medium"
+                  className="w-1/2 px-4 py-2.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/50 text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] transition font-medium"
                 >
                   Cancel
                 </button>
@@ -869,9 +869,9 @@ export function AdminUsersTab() {
                     (isSelf && selectedNewRole !== activeActionUser.role) ||
                     (isLastOwner && selectedNewRole !== 'owner')
                   }
-                  className="w-1/2 px-4 py-2.5 rounded-lg border border-[#e7bf73]/30 bg-[#e7bf73] hover:bg-[#d8ae5f] text-[#0d1117] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-1/2 px-4 py-2.5 rounded-lg border border-[var(--cm-primary)]/30 bg-[var(--cm-primary)] hover:bg-[var(--cm-primary)] text-[var(--cm-primary-foreground)] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {isMutating && <div className="w-3.5 h-3.5 border-2 border-[#0d1117] border-t-transparent rounded-full animate-spin" />}
+                  {isMutating && <div className="w-3.5 h-3.5 border-2 border-[var(--cm-primary-foreground)] border-t-transparent rounded-full animate-spin" />}
                   <span>Salvar Alteração</span>
                 </button>
               </div>
@@ -883,7 +883,7 @@ export function AdminUsersTab() {
       {/* Modal 2: Suspender / Reativar Conta */}
       {activeModalType === 'status' && activeActionUser && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#0d1117]/80 backdrop-blur-sm" onClick={closeModal} />
+          <div className="absolute inset-0 bg-[var(--cm-background)]/80 backdrop-blur-sm" onClick={closeModal} />
           <div
             role="dialog"
             aria-modal="true"
@@ -896,23 +896,23 @@ export function AdminUsersTab() {
                 closeModal()
               }
             }}
-            className="relative z-10 w-full max-w-md rounded-2xl border border-[#e7bf73]/25 bg-[#161b22] p-6 shadow-2xl space-y-5 focus:outline-none"
+            className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--cm-primary)]/25 bg-[var(--cm-card)] p-6 shadow-2xl space-y-5 focus:outline-none"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-[#30363d]">
-              <h3 className="text-sm font-semibold text-[#f0f6fc]">
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--cm-border)]">
+              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">
                 {activeActionUser.user_status === 'suspended' ? 'Reativar Usuário' : 'Suspender Usuário'}
               </h3>
               <button
                 onClick={closeModal}
                 disabled={isMutating}
-                className="text-[#8b949e] hover:text-[#f0f6fc] p-1 transition"
+                className="text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] p-1 transition"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-4 text-xs">
-              <p className="text-[#8b949e]">
+              <p className="text-[var(--cm-muted-foreground)]">
                 {activeActionUser.user_status === 'suspended' ? (
                   <>Tem certeza de que deseja restabelecer o acesso à plataforma para o usuário abaixo?</>
                 ) : (
@@ -923,9 +923,9 @@ export function AdminUsersTab() {
                 )}
               </p>
 
-              <div className="p-3 rounded-lg border border-[#30363d] bg-[#0d1117] space-y-1">
-                <div className="text-[#f0f6fc] font-medium">{activeActionUser.full_name || 'Sem nome'}</div>
-                <div className="text-[#8b949e] font-mono text-[11px]">{activeActionUser.email}</div>
+              <div className="p-3 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] space-y-1">
+                <div className="text-[var(--cm-foreground)] font-medium">{activeActionUser.full_name || 'Sem nome'}</div>
+                <div className="text-[var(--cm-muted-foreground)] font-mono text-[11px]">{activeActionUser.email}</div>
                 <div className="text-[11px] pt-1">
                   Status atual:{' '}
                   <span className={activeActionUser.user_status === 'suspended' ? 'text-rose-400 font-semibold' : 'text-emerald-400 font-semibold'}>
@@ -956,7 +956,7 @@ export function AdminUsersTab() {
                 <button
                   onClick={closeModal}
                   disabled={isMutating}
-                  className="w-1/2 px-4 py-2.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-[#8b949e] hover:text-[#f0f6fc] transition font-medium"
+                  className="w-1/2 px-4 py-2.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/50 text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] transition font-medium"
                 >
                   Cancel
                 </button>
@@ -965,7 +965,7 @@ export function AdminUsersTab() {
                   disabled={isMutating || isSelf}
                   className={`w-1/2 px-4 py-2.5 rounded-lg font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2 ${
                     activeActionUser.user_status === 'suspended'
-                      ? 'bg-emerald-500 hover:bg-emerald-600 text-[#0d1117]'
+                      ? 'bg-emerald-500 hover:bg-emerald-600 text-[var(--cm-primary-foreground)]'
                       : 'bg-rose-500 hover:bg-rose-600 text-white'
                   }`}
                 >
@@ -981,7 +981,7 @@ export function AdminUsersTab() {
       {/* Modal 3: Resetar Senha */}
       {activeModalType === 'reset_password' && activeActionUser && (
         <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[#0d1117]/80 backdrop-blur-sm" onClick={closeModal} />
+          <div className="absolute inset-0 bg-[var(--cm-background)]/80 backdrop-blur-sm" onClick={closeModal} />
           <div
             role="dialog"
             aria-modal="true"
@@ -994,28 +994,28 @@ export function AdminUsersTab() {
                 closeModal()
               }
             }}
-            className="relative z-10 w-full max-w-md rounded-2xl border border-[#e7bf73]/25 bg-[#161b22] p-6 shadow-2xl space-y-5 focus:outline-none"
+            className="relative z-10 w-full max-w-md rounded-2xl border border-[var(--cm-primary)]/25 bg-[var(--cm-card)] p-6 shadow-2xl space-y-5 focus:outline-none"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-[#30363d]">
-              <h3 className="text-sm font-semibold text-[#f0f6fc]">Enviar Reset de Senha</h3>
+            <div className="flex items-center justify-between pb-3 border-b border-[var(--cm-border)]">
+              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Enviar Reset de Senha</h3>
               <button
                 onClick={closeModal}
                 disabled={isMutating}
-                className="text-[#8b949e] hover:text-[#f0f6fc] p-1 transition"
+                className="text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] p-1 transition"
               >
                 ✕
               </button>
             </div>
 
             <div className="space-y-4 text-xs">
-              <p className="text-[#8b949e]">
+              <p className="text-[var(--cm-muted-foreground)]">
                 Um e-mail de redefinição de senha seguro será enviado diretamente ao endereço do usuário cadastrado no Supabase Auth.
               </p>
 
-              <div className="p-3 rounded-lg border border-[#30363d] bg-[#0d1117]">
-                <div className="text-[#8b949e] text-[11px]">Destinatário:</div>
-                <div className="text-[#f0f6fc] font-medium mt-0.5">{activeActionUser.full_name || 'Sem nome'}</div>
-                <div className="text-[#e7bf73] font-mono text-[11px] mt-0.5">{activeActionUser.email}</div>
+              <div className="p-3 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)]">
+                <div className="text-[var(--cm-muted-foreground)] text-[11px]">Destinatário:</div>
+                <div className="text-[var(--cm-foreground)] font-medium mt-0.5">{activeActionUser.full_name || 'Sem nome'}</div>
+                <div className="text-[var(--cm-primary)] font-mono text-[11px] mt-0.5">{activeActionUser.email}</div>
               </div>
 
               {modalFeedback && (
@@ -1034,16 +1034,16 @@ export function AdminUsersTab() {
                 <button
                   onClick={closeModal}
                   disabled={isMutating}
-                  className="w-1/2 px-4 py-2.5 rounded-lg border border-[#30363d] bg-[#161b22] hover:bg-[#30363d]/50 text-[#8b949e] hover:text-[#f0f6fc] transition font-medium"
+                  className="w-1/2 px-4 py-2.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/50 text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] transition font-medium"
                 >
                   Cancel
                 </button>
                 <button
                   onClick={handleResetPassword}
                   disabled={isMutating}
-                  className="w-1/2 px-4 py-2.5 rounded-lg border border-[#e7bf73]/30 bg-[#e7bf73] hover:bg-[#d8ae5f] text-[#0d1117] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-1/2 px-4 py-2.5 rounded-lg border border-[var(--cm-primary)]/30 bg-[var(--cm-primary)] hover:bg-[var(--cm-primary)] text-[var(--cm-primary-foreground)] font-semibold transition disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                 >
-                  {isMutating && <div className="w-3.5 h-3.5 border-2 border-[#0d1117] border-t-transparent rounded-full animate-spin" />}
+                  {isMutating && <div className="w-3.5 h-3.5 border-2 border-[var(--cm-primary-foreground)] border-t-transparent rounded-full animate-spin" />}
                   <span>Enviar E-mail</span>
                 </button>
               </div>

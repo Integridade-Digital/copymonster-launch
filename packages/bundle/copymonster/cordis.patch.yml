@@ -7,6 +7,12 @@
 # profile:
 #   dsh --profile web --patch ./packages/bundle/copymonster/cordis.patch.yml
 
+- id: system-prompt
+  config:
+    includeHarnessIdentity: false
+    personaPrefix: 'You are CopyMonster AI, an autonomous copywriting and funnel agent.'
+    personaSuffix: Your working directory is {{cwd}}.
+
 - insert:
     # CopyMonster identity service (ctx.auth) + the `auth` Typert Context kind.
     - id: auth-context

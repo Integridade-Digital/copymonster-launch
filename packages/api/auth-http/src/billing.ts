@@ -325,6 +325,25 @@ export async function handlePortal(ctx: Context, req: IncomingMessage, res: Serv
 /**
  * Handle POST /api/billing/webhook: Process incoming Stripe events.
  */
+
+/** Parse Stripe timestamp (seconds or ISO string) to an ISO 8601 string. */
+function parseTimestampToIso(value: unknown): string | undefined {
+  if (typeof value === 'number' && !isNaN(value) && value > 0) {
+    return new Date(value * 1000).toISOString()
+  }
+  if (typeof value === 'string' && value.trim() !== '') {
+    const num = Number(value)
+    if (!isNaN(num) && num > 0) {
+      return new Date(num * 1000).toISOString()
+    }
+    const d = new Date(value)
+    if (!isNaN(d.getTime())) {
+      return d.toISOString()
+    }
+  }
+  return undefined
+}
+
 export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: ServerResponse): Promise<void> {
   if (req.method !== 'POST') {
     sendJson(res, 405, { error: 'method_not_allowed' })
@@ -336,11 +355,14 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
 
   const rawBody = await readRawBody(req)
 
-  if (webhookSecret) {
-    if (!sig || typeof sig !== 'string' || !verifyStripeSignature(rawBody, sig, webhookSecret)) {
-      sendJson(res, 400, { error: 'invalid_webhook_signature' })
-      return
-    }
+  if (!webhookSecret) {
+    sendJson(res, 500, { error: 'stripe_webhook_secret_not_configured' })
+    return
+  }
+
+  if (!sig || typeof sig !== 'string' || !verifyStripeSignature(rawBody, sig, webhookSecret)) {
+    sendJson(res, 400, { error: 'invalid_webhook_signature' })
+    return
   }
 
   const payload = parseJsonObject(rawBody)
@@ -358,16 +380,24 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
         const tenantId = optionalString(objectField(object, 'metadata'), 'tenant_id')
           ?? optionalString(objectField(subscriptionData, 'metadata'), 'tenant_id')
 
+        const rawPeriodEnd = object['current_period_end'] ?? subscriptionData['current_period_end']
+        const currentPeriodEnd = parseTimestampToIso(rawPeriodEnd)
+
         if (tenantId !== undefined) {
+          const tenantUpdates: Database['public']['Tables']['tenants']['Update'] = {
+            stripe_customer_id: optionalString(object, 'customer') ?? null,
+            stripe_subscription_id: optionalString(object, 'subscription') ?? null,
+            subscription_status: 'active',
+            trial_used: true,
+            updated_at: new Date().toISOString(),
+          }
+          if (currentPeriodEnd !== undefined) {
+            tenantUpdates.current_period_end = currentPeriodEnd
+          }
+
           await supabaseAdminClient
             .from('tenants')
-            .update({
-              stripe_customer_id: optionalString(object, 'customer') ?? null,
-              stripe_subscription_id: optionalString(object, 'subscription') ?? null,
-              subscription_status: 'active',
-              trial_used: true,
-              updated_at: new Date().toISOString(),
-            })
+            .update(tenantUpdates)
             .eq('id', tenantId)
         }
         break
@@ -398,6 +428,11 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
         const interval = optionalString(objectField(price, 'recurring'), 'interval')
         if (interval !== undefined) updates.subscription_interval = interval
         if (planId !== undefined) updates.plan_id = planId
+
+        const currentPeriodEnd = parseTimestampToIso(object['current_period_end'])
+        if (currentPeriodEnd !== undefined) {
+          updates.current_period_end = currentPeriodEnd
+        }
 
         const customerId = optionalString(object, 'customer')
         if (customerId !== undefined) {

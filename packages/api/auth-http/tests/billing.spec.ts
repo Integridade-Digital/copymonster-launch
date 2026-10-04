@@ -466,6 +466,20 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
   })
 
   describe('handleWebhook', () => {
+    it('should reject webhook with 500 when STRIPE_WEBHOOK_SECRET is not configured', async () => {
+      delete process.env.STRIPE_WEBHOOK_SECRET
+      const payload = JSON.stringify({ type: 'checkout.session.completed' })
+      const req = createMockReq({
+        method: 'POST',
+        headers: { 'stripe-signature': 't=12345,v1=any' },
+        body: payload,
+      })
+      const res = createMockRes()
+      await handleWebhook(mockContext, req, res)
+      expect(res.statusCode).toBe(500)
+      expect(res.json()).toEqual({ error: 'stripe_webhook_secret_not_configured' })
+    })
+
     const webhookSecret = 'whsec_test_suite_key_999'
 
     beforeEach(() => {
@@ -514,6 +528,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
           object: {
             customer: 'cus_tenant_abc',
             subscription: 'sub_active_123',
+            current_period_end: 1735689600,
             metadata: {
               tenant_id: 'ten_001',
             },
@@ -546,6 +561,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
           stripe_subscription_id: 'sub_active_123',
           subscription_status: 'active',
           trial_used: true,
+          current_period_end: '2025-01-01T00:00:00.000Z',
         }),
       )
       expect(eqMock).toHaveBeenCalledWith('id', 'ten_001')
@@ -560,6 +576,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
             customer: 'cus_tenant_abc',
             status: 'active',
             cancel_at_period_end: false,
+            current_period_end: 1735689600,
             items: {
               data: [
                 {
@@ -614,6 +631,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
           cancel_at_period_end: false,
           subscription_interval: 'month',
           plan_id: 'plan_pro',
+          current_period_end: '2025-01-01T00:00:00.000Z',
         }),
       )
       expect(tenantEqMock).toHaveBeenCalledWith('stripe_customer_id', 'cus_tenant_abc')

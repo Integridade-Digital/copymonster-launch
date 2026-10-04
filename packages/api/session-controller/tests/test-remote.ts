@@ -1,5 +1,6 @@
 /** Test-only direct Remote face over the Session Controller's internal controllers. */
 
+import { resolveUserSandboxRoot } from '@deepseek-ai/dsh-workspace'
 import { SessionLogOffset } from '@deepseek-ai/dsh-session'
 import type { Context } from '@deepseek-ai/cordis'
 import type { ModelSelection as AgentModelSelection } from '@deepseek-ai/dsh-agent'
@@ -221,6 +222,18 @@ export function installSessionReadTestServices(ctx: Context): void {
   if (ctx.get('sessionQuery') === undefined) new TestSessionQuery(ctx)
 }
 
+export const TEST_IDENTITY = {
+  userId: 'test-user',
+  tenantId: 'test-tenant',
+  role: 'member' as const,
+  email: 'test@example.com',
+}
+
+/** A cwd inside the test identity's sandbox, for test session headers. */
+export function testSandboxCwd(name: string = 'project'): string {
+  return `${resolveUserSandboxRoot(TEST_IDENTITY.tenantId, TEST_IDENTITY.userId)}/${name}`
+}
+
 function installControllers(
   ctx: Context,
   defaults: TestSessionRemoteDefaults,
@@ -228,6 +241,12 @@ function installControllers(
   const found = installed.get(ctx)
   if (found !== undefined) return found
 
+  if (ctx.get('auth') === undefined) {
+    ctx.provide('auth', {
+      resolveIdentity: (token: string) =>
+        token === 'test-token' ? Promise.resolve(TEST_IDENTITY) : Promise.resolve(undefined),
+    } as never)
+  }
   if (ctx.get('typert') === undefined) {
     const dispose = (): void => {}
     ctx.provide('typert', {
@@ -275,11 +294,12 @@ function installControllers(
     } as never)
   }
   installSessionReadTestServices(ctx)
+  const authCtx = ctx.extend({ authIdentity: TEST_IDENTITY })
   const cwd = vi.spyOn(process, 'cwd').mockReturnValue(defaults.cwd)
   let controller: SessionController
   try {
     controller = new SessionController(
-      ctx,
+      authCtx,
       {
         ...defaults.nativeOpen === undefined ? {} : { nativeOpen: defaults.nativeOpen },
       },

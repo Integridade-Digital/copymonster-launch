@@ -104,6 +104,8 @@ export interface SessionEventStreamOptions {
   readonly carrierFailed?: (error: RemoteStreamCarrierError) => void
   /** Publish a terminal stream, page, or protocol failure after opening. */
   readonly failed: (error: unknown) => void
+  /** Reads the bearer token the Host re-verifies before reading data. */
+  readonly authToken?: () => string | undefined
 }
 
 /**
@@ -146,6 +148,8 @@ export class SessionEventStream extends RemoteJournalStream<
    * @param address - durable ordinary-Session or direct-subagent address.
    * @param options - Session event-window destinations.
    */
+  private readonly authToken: (() => string | undefined) | undefined
+
   constructor(
     private readonly remote: SessionRemotes,
     private readonly address: SessionAddress,
@@ -166,6 +170,7 @@ export class SessionEventStream extends RemoteJournalStream<
         : { carrierFailed: options.carrierFailed }),
       failed: options.failed,
     })
+    this.authToken = options.authToken
   }
 
   /** @inheritdoc */
@@ -176,10 +181,12 @@ export class SessionEventStream extends RemoteJournalStream<
     SessionHistoryRecord, number, SessionJournalPage, SessionAssistantStreamFrame
   >> {
     let assistantRevision: number | undefined
+    const authToken = this.authToken?.()
     for await (const frame of this.remote.session.follow({
       address: this.address,
       assistantStream: true,
       ...(request.maxMessages === undefined ? {} : { maxMessages: request.maxMessages }),
+      ...(authToken === undefined ? {} : { authToken }),
     }, signal)) {
       if (frame.type === 'snapshot') {
         for (const record of frame.records) assertSessionWireEvent(record.event)

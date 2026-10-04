@@ -18,6 +18,7 @@ import type {
 import { SessionQueryError, type SessionObservation } from '@deepseek-ai/dsh-session-query'
 import type {} from '@deepseek-ai/dsh-subagent'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+import { assertPathInSandbox } from '@deepseek-ai/dsh-workspace'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import type {
   SessionAddress,
@@ -72,9 +73,10 @@ export class SessionHistoryController {
    * Read one message-aligned history page without activating an Agent.
    * @param request - durable address and backwards-page cursor.
    * @param signal - caller cancellation for persistence reads.
+   * @param sandboxRoot - confined root; when supplied, the Session's cwd must be inside it.
    * @returns a contiguous event page.
    */
-  async page(request: SessionPageRequest, signal: AbortSignal): Promise<SessionPage> {
+  async page(request: SessionPageRequest, signal: AbortSignal, sandboxRoot?: string): Promise<SessionPage> {
     validatePageRequest(request)
     const throughSeq: SessionSeqCursor = request.throughSeq === -1
       ? -1
@@ -82,7 +84,7 @@ export class SessionHistoryController {
     const beforeSeq = request.beforeSeq === undefined
       ? undefined
       : SessionLogOffset(request.beforeSeq)
-    using source = await this.sourceFor(request.address, signal, false)
+    using source = await this.sourceFor(request.address, signal, false, sandboxRoot)
     signal.throwIfAborted()
     const sourceLog = source.events
     const sourceCursor: SessionSeqCursor = sourceLog.at(-1)?.seq ?? -1
@@ -114,9 +116,10 @@ export class SessionHistoryController {
    * Follow events appended after an initial cursor on one durable address.
    * @param request - durable address and last committed sequence already held by the caller.
    * @param signal - stream cancellation owned by the Remote carrier.
+   * @param sandboxRoot - confined root; when supplied, the Session's cwd must be inside it.
    * @returns a complete opening snapshot followed by gap-free durable events and opted-in assistant frames.
    */
-  async *follow(request: SessionFollowRequest, signal: AbortSignal): AsyncIterable<SessionFollowFrame> {
+  async *follow(request: SessionFollowRequest, signal: AbortSignal, sandboxRoot?: string): AsyncIterable<SessionFollowFrame> {
     validateFollowRequest(request)
     const { address } = request
     const target = addressId(address)
@@ -175,7 +178,7 @@ export class SessionHistoryController {
     const onAbort = (): void => { notify() }
     signal.addEventListener('abort', onAbort, { once: true })
     try {
-      using source = await this.sourceFor(address, signal, true)
+      using source = await this.sourceFor(address, signal, true, sandboxRoot)
       const events = source.events
       signal.throwIfAborted()
       const cursor = source.cursor
@@ -243,6 +246,7 @@ export class SessionHistoryController {
     address: SessionAddress,
     signal: AbortSignal,
     withProjections: boolean,
+    sandboxRoot?: string,
   ): Promise<SessionObservation> {
     const sessionId = addressId(address)
     try {
@@ -253,6 +257,14 @@ export class SessionHistoryController {
       if (observation.header.cwd === undefined) {
         observation[Symbol.dispose]()
         rejectNotFound(address)
+      }
+      if (sandboxRoot !== undefined) {
+        try {
+          assertPathInSandbox(observation.header.cwd, sandboxRoot)
+        } catch {
+          observation[Symbol.dispose]()
+          throw new RemoteError('session/unauthorized', 'session is outside the caller sandbox', {})
+        }
       }
       try {
         validateAddress(

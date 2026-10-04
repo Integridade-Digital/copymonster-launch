@@ -17,7 +17,7 @@ import { CommandId } from '@deepseek-ai/dsh-commands/brand'
 // Side-effect type imports: the configuration-event SessionEventMap merges.
 import type {} from '@deepseek-ai/dsh-permission-presets'
 import type {} from '@deepseek-ai/dsh-sandbox-policy'
-import { createSessionTestRemote, type TestSessionRemote } from './test-remote.ts'
+import { createSessionTestRemote, testSandboxCwd, type TestSessionRemote } from './test-remote.ts'
 
 async function harness(): Promise<{ ctx: Context; remote: TestSessionRemote; attach: (session: Session) => Promise<void> }> {
   const ctx = new Context()
@@ -56,7 +56,7 @@ async function listBlank(remote: TestSessionRemote, id: string): Promise<boolean
 describe('summary blank = conversation not started', () => {
   it('standalone events (command lifecycle, plan/mode, title) keep the session blank', async () => {
     const { ctx, remote, attach } = await harness()
-    const session = ctx.sessions.create()
+    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
     await attach(session)
     expect(await listBlank(remote, session.id)).toBe(true)
     appendStandalone(session)
@@ -65,7 +65,7 @@ describe('summary blank = conversation not started', () => {
 
   it('the first turn clears blank', async () => {
     const { ctx, remote, attach } = await harness()
-    const session = ctx.sessions.create()
+    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
     await attach(session)
     appendStandalone(session)
     session.append('turn/start', { turn: 0 })

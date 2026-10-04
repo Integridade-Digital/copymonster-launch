@@ -26,6 +26,7 @@ import {
 } from '@deepseek-ai/dsh-session-persistence'
 import {
   createSessionTestRemote,
+  testSandboxCwd,
   testSessionPersistence,
 } from './test-remote.ts'
 
@@ -50,7 +51,7 @@ function inboxFor(): Inbox {
 }
 
 function header(id: string, createdAt: number, extra: Partial<SessionHeader> = {}): SessionHeader {
-  return { version: SESSION_FORMAT_VERSION, id: sid(id), createdAt, isSeeded: false, cwd: '/proj', ...extra }
+  return { version: SESSION_FORMAT_VERSION, id: sid(id), createdAt, isSeeded: false, cwd: testSandboxCwd(), ...extra }
 }
 
 function providePersistence(ctx: Context, persistence: Record<string, unknown>): () => void {
@@ -201,7 +202,7 @@ describe('attached updatedAt tracks human prompts', () => {
         },
         { type: 'turn/end', seq: SessionSeq(2), time: worked + 1, data: { turn: 1, reason: { kind: 'completed' } } },
       ],
-      meta: { cwd: '/proj', createdAt: 500 },
+      meta: { cwd: testSandboxCwd(), createdAt: 500 },
     })
     await ctx.agents.register({ id: resumed.id, session: resumed, status: 'idle', ctx } as Agent)
     const boundary = resumed.snapshotEvents().at(-1)
@@ -401,7 +402,7 @@ describe('Remote Agent and Session lookup policy', () => {
       inspect,
     })
     const liveSession = ctx.sessions.create(sid('session-remote-live-child'), {
-      meta: { cwd: '/proj', parentSession: sid('session-parent'), origin: 'subagent' },
+      meta: { cwd: testSandboxCwd(), parentSession: sid('session-parent'), origin: 'subagent' },
     })
     const liveAgent = { id: liveSession.id, session: liveSession, status: 'idle', ctx } as Agent
     await ctx.agents.register(liveAgent)
@@ -443,7 +444,7 @@ describe('Remote Agent and Session lookup policy', () => {
     })
     vi.spyOn(ctx.agents, 'resume').mockImplementationOnce(async () => {
       const session = ctx.sessions.create(sessionId, {
-        meta: { cwd: '/proj', origin: 'subagent' },
+        meta: { cwd: testSandboxCwd(), origin: 'subagent' },
       })
       const published = { id: session.id, session, status: 'idle', ctx } as Agent
       await ctx.agents.register(published)
@@ -533,7 +534,7 @@ describe('subagent ownership fence', () => {
       })
     }
 
-    const create = await remote.create(request({ sessionId, cwd: '/proj' }))
+    const create = await remote.create(request({ sessionId, cwd: testSandboxCwd() }))
     expect(create.ok).toBe(false)
     if (!create.ok) expect(create.error.code).toBe('session/agent-busy')
     expect(resume).not.toHaveBeenCalled()
@@ -584,12 +585,12 @@ describe('subagent ownership fence', () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     await ctx.plugin(AgentRegistry)
-    const parentSession = ctx.sessions.create(sid('session-parent'), { meta: { cwd: '/proj' } })
+    const parentSession = ctx.sessions.create(sid('session-parent'), { meta: { cwd: testSandboxCwd() } })
     const parent = { id: parentSession.id, session: parentSession, status: 'idle', ctx } as Agent
     await ctx.agents.register(parent)
 
     const originSession = ctx.sessions.create(sid('session-origin-child'), {
-      meta: { cwd: '/proj', parentSession: parent.id, origin: 'subagent' },
+      meta: { cwd: testSandboxCwd(), parentSession: parent.id, origin: 'subagent' },
     })
     const cancel = vi.fn()
     const updateInbox = vi.fn(() => 'applied' as const)
@@ -604,7 +605,7 @@ describe('subagent ownership fence', () => {
     await ctx.agents.register(originChild)
 
     const startingSession = ctx.sessions.create(sid('session-starting-child'), {
-      meta: { cwd: '/proj', parentSession: parent.id },
+      meta: { cwd: testSandboxCwd(), parentSession: parent.id },
     })
     const startingChild = { id: startingSession.id, session: startingSession, status: 'idle', ctx } as Agent
     ctx.agents.enter(startingChild, parent)
@@ -632,7 +633,7 @@ describe('subagent ownership fence', () => {
     expect(selection.ok).toBe(false)
     if (!selection.ok) expect(selection.error.code).toBe('session/agent-busy')
 
-    const create = await remote.create(request({ sessionId: originChild.id, cwd: '/proj' }))
+    const create = await remote.create(request({ sessionId: originChild.id, cwd: testSandboxCwd() }))
     expect(create.ok).toBe(false)
     if (!create.ok) expect(create.error.code).toBe('session/agent-busy')
 
@@ -650,7 +651,7 @@ describe('subagent ownership fence', () => {
         time: 1,
         data: { version: 2, mode: 'continuable', provider: 'spawn', label: 'ancestor' },
       }],
-      meta: { cwd: '/proj', parentSession: sid('session-source'), isSeeded: true },
+      meta: { cwd: testSandboxCwd(), parentSession: sid('session-source'), isSeeded: true },
       inheritedEventCount: SessionLogOffset(1),
     })
     const followup = vi.fn()
@@ -673,7 +674,7 @@ describe('subagent ownership fence', () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)
     await ctx.plugin(AgentRegistry)
-    const session = ctx.sessions.create(sid('session-browser-zone'), { meta: { cwd: '/proj' } })
+    const session = ctx.sessions.create(sid('session-browser-zone'), { meta: { cwd: testSandboxCwd() } })
     const followup = vi.fn()
     const agent = {
       id: session.id, session, inbox: inboxFor(), status: 'idle', ctx, followup,
@@ -926,11 +927,11 @@ describe('sessions.prompt synchronous rejection', () => {
       inspect: () => Promise.resolve({ meta, events: [] as SessionEvent[] })    })
     // The raced winner: a live parent-owned subagent publishes the identity
     // while the generic cold resume is in flight, so the resume collides.
-    const parentSession = ctx.sessions.create(sid('race-parent'), { meta: { cwd: '/proj' } })
+    const parentSession = ctx.sessions.create(sid('race-parent'), { meta: { cwd: testSandboxCwd() } })
     const parent = { id: parentSession.id, session: parentSession, status: 'idle', ctx } as Agent
     await ctx.agents.register(parent)
     const childSession = ctx.sessions.create(sessionId, {
-      meta: { cwd: '/proj', parentSession: parent.id, origin: 'subagent' },
+      meta: { cwd: testSandboxCwd(), parentSession: parent.id, origin: 'subagent' },
     })
     const child = { id: sessionId, session: childSession, status: 'idle', ctx } as unknown as Agent
     vi.spyOn(ctx.agents, 'resume').mockImplementationOnce(async () => {

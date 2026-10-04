@@ -588,6 +588,7 @@ export class Session implements SessionFace {
     this.openState = 'loading'
     this.openError = null
     this.notifier.markDirty()
+    const actx = this.actx
     const events = new SessionEventStream(this.remote, this.sessionAddress(), {
       publish: (change) => {
         if (generation !== this.openGeneration || this.events !== events) return
@@ -596,6 +597,15 @@ export class Session implements SessionFace {
       failed: (error) => {
         this.failEventStream(events, generation, error)
       },
+      ...(actx === undefined ? {} : {
+        authToken: () => {
+          try {
+            return actx.typert.contexts.getClient('auth')?.identity(actx) as string | undefined
+          } catch {
+            return undefined
+          }
+        },
+      }),
     })
     this.events = events
     try {

@@ -16,7 +16,7 @@ import {
 } from '@deepseek-ai/dsh-llm'
 import type { MessageSource } from '@deepseek-ai/dsh-llm'
 import { SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
-import type { SessionEvent, SessionHeader, SessionId, UserMessage } from '@deepseek-ai/dsh-session'
+import type { Session, SessionEvent, SessionHeader, SessionId, UserMessage } from '@deepseek-ai/dsh-session'
 import { SessionQueryError, type SessionObservation } from '@deepseek-ai/dsh-session-query'
 import { SessionTitleInvalidError } from '@deepseek-ai/dsh-session-title'
 import { canonicalClientTimeZone } from '@deepseek-ai/dsh-util-time'
@@ -186,10 +186,12 @@ export class SessionCommandController {
   /**
    * Normalize and append a user-owned Session title.
    * @param request - Session identity and proposed title.
+   * @param sandboxRoot - confined root; when supplied, the Session's cwd must be inside it.
    * @returns the accepted title and durable event sequence.
    */
-  async rename(request: SessionRenameRequest): Promise<SessionRenameValue> {
+  async rename(request: SessionRenameRequest, sandboxRoot?: string): Promise<SessionRenameValue> {
     const agent = await this.resolveAgent(request.sessionId)
+    this.assertSessionInSandbox(agent.session, sandboxRoot)
     const titles = this.ctx.get('sessionTitle')
     if (titles === undefined) {
       throw new RemoteError('gateway/internal', 'renaming is unavailable: this deployment mounts no session-title service', {})
@@ -212,9 +214,10 @@ export class SessionCommandController {
   /**
    * Create a new ordinary Session from one completed-turn prefix.
    * @param request - source Session and optional event anchor.
+   * @param sandboxRoot - confined root; when supplied, the source Session's cwd must be inside it.
    * @returns the new Session identity.
    */
-  async fork(request: SessionForkRequest): Promise<SessionForkValue> {
+  async fork(request: SessionForkRequest, sandboxRoot?: string): Promise<SessionForkValue> {
     let atSeq: ReturnType<typeof SessionSeq> | undefined
     try {
       atSeq = request.atSeq === undefined ? undefined : SessionSeq(request.atSeq)
@@ -236,6 +239,9 @@ export class SessionCommandController {
         `fork source unavailable for session "${request.sessionId}": ${String(error)}`,
         {},
       )
+    }
+    if (sandboxRoot !== undefined && observed.header.cwd !== undefined) {
+      this.assertCwdInSandbox(observed.header.cwd, sandboxRoot)
     }
     using source = observed
     const lastSeq = source.events.at(-1)?.seq ?? -1
@@ -309,9 +315,10 @@ export class SessionCommandController {
   /**
    * Reject empty content, then admit one prompt after Agent and attachment validation.
    * @param request - Session identity, prompt content, source metadata, and delivery mode.
+   * @param sandboxRoot - confined root; when supplied, the Session's cwd must be inside it.
    * @returns acknowledgement that the Agent accepted the prompt.
    */
-  async prompt(request: SessionPromptRequest): Promise<SessionPromptValue> {
+  async prompt(request: SessionPromptRequest, sandboxRoot?: string): Promise<SessionPromptValue> {
     if (!hasPromptContent(request.content)) {
       throw new RemoteError(
         'gateway/bad-request',
@@ -330,6 +337,7 @@ export class SessionCommandController {
       )
     }
     const agent = await this.resolveAgent(request.sessionId)
+    this.assertSessionInSandbox(agent.session, sandboxRoot)
     if (hasPromptRequest(agent, request.requestId)) return { accepted: true }
     const selection = this.agents.selectionFor(agent).current
     if (!routeServed(this.ctx, selection.provider)) {
@@ -531,6 +539,21 @@ export class SessionCommandController {
     const found = await this.agents.resolveAgent(sessionId)
     if ('error' in found) throw found.error
     return found.agent
+  }
+
+  private assertSessionInSandbox(session: Session, sandboxRoot?: string): void {
+    if (sandboxRoot === undefined) return
+    const cwd = session.header.cwd
+    if (cwd === undefined) return
+    this.assertCwdInSandbox(cwd, sandboxRoot)
+  }
+
+  private assertCwdInSandbox(cwd: string, sandboxRoot: string): void {
+    try {
+      assertPathInSandbox(cwd, sandboxRoot)
+    } catch {
+      throw new RemoteError('session/unauthorized', 'session is outside the caller sandbox', {})
+    }
   }
 
   private rejectCreation(sessionId: SessionId, error: unknown): never {

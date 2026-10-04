@@ -16,7 +16,7 @@ import type { Agent, AgentHandle, CreateAgentOptions } from '@deepseek-ai/dsh-ag
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import SessionTitleService from '@deepseek-ai/dsh-session-title'
 import type { Session, SessionId } from '@deepseek-ai/dsh-session'
-import { createSessionTestRemote } from './test-remote.ts'
+import { createSessionTestRemote, testSandboxCwd } from './test-remote.ts'
 
 const sid = (id: string): SessionId => id as SessionId
 
@@ -52,7 +52,7 @@ async function composed(withTitles = true): Promise<Context> {
 
 /** Register one live agent whose log holds `turns` completed turns. */
 async function liveAgent(ctx: Context, id: string, turns: number): Promise<Session> {
-  const session = ctx.sessions.create(sid(id), { meta: { cwd: '/proj' } })
+  const session = ctx.sessions.create(sid(id), { meta: { cwd: testSandboxCwd() } })
   for (let turn = 1; turn <= turns; turn++) {
     session.append('turn/start', { turn })
     session.append('user/message', createUserMessage({

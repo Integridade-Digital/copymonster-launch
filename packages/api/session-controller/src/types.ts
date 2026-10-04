@@ -455,6 +455,8 @@ export interface SessionFollowRequest {
   readonly maxMessages?: number
   /** Include process-local assistant presentation frames for the Web client. */
   readonly assistantStream?: true
+  /** Bearer token the Host re-verifies before reading data. */
+  readonly authToken?: string
 }
 
 /** One active assistant attempt in a reconnect opening snapshot. */

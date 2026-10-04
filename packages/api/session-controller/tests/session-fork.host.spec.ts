@@ -13,7 +13,7 @@ import type { Session, SessionEvent, SessionHeader, SessionId } from '@deepseek-
 import SystemPrompt from '@deepseek-ai/dsh-system-prompt'
 import type { Workspace } from '@deepseek-ai/dsh-workspace'
 import {
-  createSessionTestRemote, installSessionReadTestServices, testSessionPersistence,
+  createSessionTestRemote, installSessionReadTestServices, testSandboxCwd, testSessionPersistence,
 } from './test-remote.ts'
 
 const sid = (id: string): SessionId => id as SessionId
@@ -60,7 +60,7 @@ async function liveAgent(
   tail: Tail = 'none',
   lineage: { parentSession?: SessionId; origin?: 'subagent' } = {},
 ): Promise<Session> {
-  const session = ctx.sessions.create(sid(id), { meta: { cwd: '/proj', ...lineage } })
+  const session = ctx.sessions.create(sid(id), { meta: { cwd: testSandboxCwd(), ...lineage } })
   for (let turn = 1; turn <= turns; turn++) {
     session.append('turn/start', { turn })
     session.append('user/message', createUserMessage({
@@ -148,7 +148,7 @@ describe('sessions.fork', () => {
       'turn/start', 'user/message', 'turn/end', 'session/end-seed',
     ])
     expect(child?.header.parentSession).toBe(source.id)
-    expect(child?.header.cwd).toBe('/proj')
+    expect(child?.header.cwd).toBe(testSandboxCwd())
     await ctx.fiber.dispose()
   })
 
@@ -189,7 +189,7 @@ describe('sessions.fork', () => {
     expect(attachSession).toHaveBeenCalledWith(response.value.sessionId)
     expect(ctx.sessions.get(response.value.sessionId)?.header).toMatchObject({
       parentSession: grandchild.id,
-      cwd: '/proj',
+      cwd: testSandboxCwd(),
     })
     expect(ctx.sessions.get(response.value.sessionId)?.header.origin).toBeUndefined()
     await ctx.fiber.dispose()
@@ -203,7 +203,7 @@ describe('sessions.fork', () => {
       version: SESSION_FORMAT_VERSION,
       id: sourceId,
       createdAt: 1,
-      cwd: '/proj',
+      cwd: testSandboxCwd(),
       parentSession: parentId,
       isSeeded: false,
       origin: 'subagent',
@@ -245,7 +245,7 @@ describe('sessions.fork', () => {
     expect(ctx.agents.get(sourceId)).toBeUndefined()
     expect(ctx.sessions.get(response.value.sessionId)?.header).toMatchObject({
       parentSession: sourceId,
-      cwd: '/proj',
+      cwd: testSandboxCwd(),
     })
     expect(ctx.sessions.get(response.value.sessionId)?.header.origin).toBeUndefined()
     await ctx.fiber.dispose()

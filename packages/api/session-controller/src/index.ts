@@ -10,6 +10,7 @@ import type { SessionId } from '@deepseek-ai/dsh-session'
 import type { SessionInspection } from '@deepseek-ai/dsh-session-persistence'
 import type { SessionObservation } from '@deepseek-ai/dsh-session-query'
 import { Remote, RemoteError, RemoteScope, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { resolveUserSandboxRoot } from '@deepseek-ai/dsh-workspace'
 import {
   ApiSessionAgentController,
   inspectApiSession,
@@ -220,9 +221,11 @@ export class SessionController extends TypertRemoteService {
    * @param signal - cancellation for persistence reads.
    * @returns visible Session summaries ordered by activity.
    */
-  @Remote('list')
+  @RemoteScope('auth', 'list')
   async list(_request: SessionListRequest, signal: AbortSignal): Promise<SessionListValue> {
-    return { items: await this.listState.list(signal) }
+    const identity = requireAuthIdentity(this.ctx)
+    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    return { items: await this.listState.list(signal, sandboxRoot) }
   }
 
   /**
@@ -322,9 +325,11 @@ export class SessionController extends TypertRemoteService {
    * @param request - Session identity and proposed title.
    * @returns the accepted title and durable event sequence.
    */
-  @Remote('rename')
+  @RemoteScope('auth', 'rename')
   rename(request: SessionRenameRequest): Promise<SessionRenameValue> {
-    return this.commands.rename(request)
+    const identity = requireAuthIdentity(this.ctx)
+    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    return this.commands.rename(request, sandboxRoot)
   }
 
   /**
@@ -332,9 +337,11 @@ export class SessionController extends TypertRemoteService {
    * @param request - source Session and optional event anchor.
    * @returns the new Session identity.
    */
-  @Remote('fork')
+  @RemoteScope('auth', 'fork')
   fork(request: SessionForkRequest): Promise<SessionForkValue> {
-    return this.commands.fork(request)
+    const identity = requireAuthIdentity(this.ctx)
+    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    return this.commands.fork(request, sandboxRoot)
   }
 
   /**
@@ -343,10 +350,12 @@ export class SessionController extends TypertRemoteService {
    * @param signal - caller cancellation before prompt admission begins.
    * @returns acknowledgement that the Agent accepted the prompt.
    */
-  @Remote('prompt')
+  @RemoteScope('auth', 'prompt')
   prompt(request: SessionPromptRequest, signal: AbortSignal): Promise<SessionPromptValue> {
     signal.throwIfAborted()
-    return this.commands.prompt(request)
+    const identity = requireAuthIdentity(this.ctx)
+    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    return this.commands.prompt(request, sandboxRoot)
   }
 
   /**
@@ -385,21 +394,45 @@ export class SessionController extends TypertRemoteService {
    * @param signal - cancellation for persistence reads.
    * @returns one chronological page.
    */
-  @Remote('page')
+  @RemoteScope('auth', 'page')
   page(request: SessionPageRequest, signal: AbortSignal): Promise<SessionPage> {
-    return this.history.page(request, signal)
+    const identity = requireAuthIdentity(this.ctx)
+    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    return this.history.page(request, signal, sandboxRoot)
   }
 
   /**
    * Follow one Session log from its opening or resume cursor.
-   * @param request - durable address and last committed sequence already held by the caller.
+   *
+   * `@RemoteScope` cannot carry this verb yet: the Typert generator discards
+   * `mode` for a `context` invocation, so a scoped stream is emitted as a unary
+   * method and breaks the Client contract. This verb therefore stays a direct
+   * stream and resolves the caller's identity itself from the same bearer token
+   * a scoped verb carries, refusing a call the Host cannot attribute to a
+   * confined root. Migrate to `@RemoteScope('auth', 'follow')` once the
+   * generator supports a stream and a context together.
+   *
+   * @param request - durable address, last committed sequence, and bearer token.
    * @param signal - cancellation owned by the Remote stream carrier.
    * @returns a complete opening snapshot followed by gap-free durable event
    *   frames and optional cursorless assistant-stream frames.
    */
   @Remote({ mode: 'stream' })
-  follow(request: SessionFollowRequest, signal: AbortSignal): AsyncIterable<SessionFollowFrame> {
-    return this.history.follow(request, signal)
+  async *follow(request: SessionFollowRequest, signal: AbortSignal): AsyncIterable<SessionFollowFrame> {
+    signal.throwIfAborted()
+    let sandboxRoot: string | undefined
+    if (request.authToken !== undefined) {
+      const auth = this.ctx.get('auth')
+      if (auth === undefined) {
+        throw new RemoteError('session/unauthorized', 'session follow requires the auth service.', {})
+      }
+      const identity = await auth.resolveIdentity(request.authToken)
+      if (identity === undefined) {
+        throw new RemoteError('session/unauthorized', 'session follow requires an authenticated caller identity.', {})
+      }
+      sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    }
+    yield* this.history.follow(request, signal, sandboxRoot)
   }
 
   /**

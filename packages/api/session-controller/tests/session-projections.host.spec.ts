@@ -30,7 +30,7 @@ import {
   mountAgentLoopTestDependencies,
   mountAgentLoopTestHarness,
 } from '@deepseek-ai/dsh-agent-loop-testkit'
-import { createSessionTestRemote, testSessionPersistence, type TestSessionRemote } from './test-remote.ts'
+import { createSessionTestRemote, testSandboxCwd, testSessionPersistence, type TestSessionRemote } from './test-remote.ts'
 
 const ownedContexts = new Set<Context>()
 afterEach(async () => {
@@ -128,7 +128,7 @@ async function harness(withRegistry: boolean): Promise<{
   if (!withRegistry) {
     await ctx.plugin(SessionStore)
     await ctx.plugin(AgentRegistry)
-    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
     return {
       ctx,
       session,
@@ -140,7 +140,7 @@ async function harness(withRegistry: boolean): Promise<{
   const agent = await loop.create(
     SessionId(`session-projections-${String(nextHarnessSession++)}`),
     {},
-    { cwd: '/workspace' },
+    { cwd: testSandboxCwd() },
   )
   return {
     ctx,
@@ -167,7 +167,7 @@ describe('session.history projections block', () => {
     await ctx.plugin(SessionStore)
     await ctx.plugin(AgentRegistry)
     await ctx.plugin(SessionProjectionRegistry)
-    const parent = ctx.sessions.create(SessionId('wire-seed-parent'), { meta: { cwd: '/workspace' } })
+    const parent = ctx.sessions.create(SessionId('wire-seed-parent'), { meta: { cwd: testSandboxCwd() } })
     parent.append('turn/start', { turn: 1 })
     parent.append('turn/end', { turn: 1, reason: { kind: 'completed' } })
     const inheritedEventCount = parent.seq
@@ -175,7 +175,7 @@ describe('session.history projections block', () => {
       seed: parent.snapshotEvents(),
       inheritedEventCount,
       meta: {
-        cwd: '/workspace',
+        cwd: testSandboxCwd(),
         parentSession: parent.id,
         isSeeded: true,
       },
@@ -187,7 +187,7 @@ describe('session.history projections block', () => {
       version: SESSION_FORMAT_VERSION,
       id: child.id,
       createdAt: child.header.createdAt,
-      cwd: '/workspace',
+      cwd: testSandboxCwd(),
       parentSession: parent.id,
       isSeeded: true,
     })
@@ -241,7 +241,7 @@ describe('session.history projections block', () => {
     await mountAgentLoopTestDependencies(ctx)
     await mountAgentLoopTestHarness(ctx)
     const coldId = SessionId('cold-persisted-queue')
-    const meta: SessionHeader = { version: SESSION_FORMAT_VERSION, id: coldId, createdAt: 1, cwd: '/tmp', isSeeded: false }
+    const meta: SessionHeader = { version: SESSION_FORMAT_VERSION, id: coldId, createdAt: 1, cwd: testSandboxCwd(), isSeeded: false }
     const message = createUserMessage({
       content: [{ type: 'text', text: 'survive process restart' }],
       source: { kind: 'user' },
@@ -493,7 +493,7 @@ describe('session.list projections column', () => {
   it('lists the latest preset selected by a blank Session instead of its creation preset', async () => {
     const { ctx } = await harness(true)
     const session = ctx.sessions.create(SessionId('preset-list'), {
-      meta: { cwd: '/workspace', agentPreset: 'standard' },
+      meta: { cwd: testSandboxCwd(), agentPreset: 'standard' },
     })
     ctx.sessionProjections.register(agentPresetProjectionDefinition)
     const gateway = remote(ctx)
@@ -536,7 +536,7 @@ describe('session.list projections column', () => {
     const coldId = SessionId('session-cold-listing')
     const load = () => { throw new Error('list must not load event logs') }
     ctx.provide('sessionPersistence', testSessionPersistence(ctx, {
-      list: async () => [{ version: SESSION_FORMAT_VERSION, id: coldId, createdAt: 5, isSeeded: false, cwd: '/tmp' }],
+      list: async () => [{ version: SESSION_FORMAT_VERSION, id: coldId, createdAt: 5, isSeeded: false, cwd: testSandboxCwd() }],
       inspect: load,
       open: load,
     }) as never)
@@ -587,7 +587,7 @@ describe('session.list projections column', () => {
       const secret = 'private prompt text from the cache'
       let session: Session | undefined
       const owner = await ctx.plugin(Object.assign((sessionCtx: Context) => {
-        session = sessionCtx.sessions.create(id, { meta: { createdAt: 5, cwd: '/workspace' } })
+        session = sessionCtx.sessions.create(id, { meta: { createdAt: 5, cwd: testSandboxCwd() } })
       }, { inject: ['sessions'] }))
       if (session === undefined) throw new Error('session was not created')
       session.append('turn/start', { turn: 1 })
@@ -625,7 +625,7 @@ describe('session.list projections column', () => {
     const { ctx } = await harness(true)
     const coldId = SessionId('session-cold-uncached')
     ctx.provide('sessionPersistence', testSessionPersistence(ctx, {
-      list: async () => [{ version: SESSION_FORMAT_VERSION, id: coldId, createdAt: 5, isSeeded: false, cwd: '/tmp' }],
+      list: async () => [{ version: SESSION_FORMAT_VERSION, id: coldId, createdAt: 5, isSeeded: false, cwd: testSandboxCwd() }],
     }) as never)
     const response = await remote(ctx).list(request({}))
     if (!response.ok) throw new Error('unreachable')

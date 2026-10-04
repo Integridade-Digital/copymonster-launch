@@ -1,7 +1,17 @@
 import { t } from '../../locales';
 
+const SENSITIVE_PATTERNS = [
+  /@deepseek-ai(?:\/[^\s'"`]+)?/i,
+  /\/packages(?:\/[^\s'"`]*)?/i,
+  /\/tmp(?:\/[^\s'"`]*)?/i,
+  /\/var(?:\/[^\s'"`]*)?/i,
+  /(?:^|[\s"'`(=])(?:\/[a-zA-Z0-9_.-]+){2,}/,
+  /(?:[a-zA-Z]:\\[a-zA-Z0-9_.\-\\]+)/,
+];
+
 /**
  * Utilitário de formatação e categorização de mensagens de erro de autenticação em EN/ZH.
+ * Redige mensagens cruas para evitar vazamento de paths internos ou detalhes sensíveis de infraestrutura.
  */
 export function formatAuthError(error: unknown, fallbackMessage?: string): string {
   if (error === null || error === undefined) return fallbackMessage || t('auth.error.unknown');
@@ -27,6 +37,24 @@ export function formatAuthError(error: unknown, fallbackMessage?: string): strin
   if (lower.includes('password should be at least')) {
     return t('auth.error.passwordTooShort');
   }
+  if (lower.includes('token has expired') || lower.includes('otp_expired') || lower.includes('invalid link') || lower.includes('link has expired')) {
+    return t('auth.error.tokenExpired');
+  }
+  if (lower.includes('user not found')) {
+    return t('auth.error.userNotFound');
+  }
+  if (lower.includes('invalid email') || lower.includes('valid email')) {
+    return t('auth.error.invalidEmail');
+  }
+  if (lower.includes('jwt expired') || lower.includes('session expired') || lower.includes('session from session_id claim')) {
+    return t('auth.error.sessionExpired');
+  }
+  if (lower.includes('new password should be different') || lower.includes('same password')) {
+    return t('auth.error.samePassword');
+  }
+  if (lower.includes('provider is disabled') || lower.includes('signups not allowed') || lower.includes('signup is disabled')) {
+    return t('auth.error.providerDisabled');
+  }
 
   // Rate-limiting / excesso de tentativas (429)
   if (lower.includes('too many requests') || lower.includes('rate limit')) {
@@ -48,7 +76,15 @@ export function formatAuthError(error: unknown, fallbackMessage?: string): strin
     return t('auth.error.serviceUnavailable');
   }
 
-  return rawMessage;
+  // Bloquear regex que revele caminhos do sistema ou pacotes internos
+  for (const pattern of SENSITIVE_PATTERNS) {
+    if (pattern.test(rawMessage)) {
+      return fallbackMessage || t('auth.error.generic');
+    }
+  }
+
+  // Fallback seguro: não exibir mensagem crua não mapeada
+  return fallbackMessage || t('auth.error.generic');
 }
 
 export const getFriendlyAuthErrorMessage = formatAuthError;

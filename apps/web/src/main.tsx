@@ -1,4 +1,4 @@
-import { t, LocaleProvider } from './locales';
+import { t } from './locales'
 import { FooterActionsRoot } from './components/layout/FooterActionsRoot'
 /** Browser entry for the Web client. */
 import React from 'react'
@@ -82,6 +82,49 @@ interface ErrorBoundaryState {
   error: Error | null
 }
 
+const SENSITIVE_ERROR_PATTERNS = [
+  /@deepseek-ai(?:\/[^\s'"`]+)?/i,
+  /\/packages(?:\/[^\s'"`]*)?/i,
+  /\/tmp(?:\/[^\s'"`]*)?/i,
+  /\/var(?:\/[^\s'"`]*)?/i,
+  /(?:^|[\s"'`(=])(?:\/[a-zA-Z0-9_]+){2,}/,
+  /(?:[a-zA-Z]:\\[a-zA-Z0-9_\\]+)/,
+]
+
+function sanitizeClientErrorMessage(error: unknown): string {
+  if (!error) return 'Algo deu errado. Recarregue a página.'
+
+  const raw = error instanceof Error
+    ? error.message
+    : typeof error === 'object' && error !== null && 'message' in error
+      ? String((error as { message: unknown }).message)
+      : String(error)
+
+  // Bloquear regex que revele @deepseek-ai/*, /packages/, /tmp/, /var/, caminhos absolutos
+  for (const pattern of SENSITIVE_ERROR_PATTERNS) {
+    if (pattern.test(raw)) {
+      return 'Algo deu errado. Recarregue a página.'
+    }
+  }
+
+  const lower = raw.toLowerCase()
+  if (lower.includes('dynamically imported module') || lower.includes('failed to fetch dynamically imported module')) {
+    return 'Falha ao carregar componente da aplicação (código: ERR_MODULE_LOAD). Recarregue a página.'
+  }
+  if (lower.includes('networkerror') || lower.includes('failed to fetch') || lower.includes('network request failed')) {
+    return 'Falha na conexão de rede (código: ERR_NETWORK). Verifique sua conexão e recarregue a página.'
+  }
+  if (lower.includes('quotaexceedederror') || lower.includes('storage quota')) {
+    return 'Limite de armazenamento do navegador atingido (código: ERR_STORAGE_QUOTA).'
+  }
+  if (lower.includes('securityerror') || lower.includes('blocked')) {
+    return 'Ação bloqueada por política de segurança (código: ERR_SECURITY).'
+  }
+
+  // Fallback seguro: nunca exibir mensagem crua
+  return 'Algo deu errado. Recarregue a página.'
+}
+
 class WebAppErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
   constructor(props: ErrorBoundaryProps) {
     super(props)
@@ -108,7 +151,7 @@ class WebAppErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
               Ocorreu uma falha inesperada durante a inicialização do ambiente de trabalho:
             </p>
             <div className="cm-auth-alert cm-auth-alert--error" style={{ marginTop: '1rem', textAlign: 'left', wordBreak: 'break-word' }}>
-              {this.state.error?.message ?? t('auth.error.unknown')}
+              {sanitizeClientErrorMessage(this.state.error)}
             </div>
             <button
               type="button"

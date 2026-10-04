@@ -27,9 +27,7 @@
 
 ## CopyMonster 应用主题
 
-`apps/web` 前端在 [`apps/web/src/cm-theme.css`](../apps/web/src/cm-theme.css) 中拥有第二套应用级色板：官方 CopyMonster 明色值位于 `:root`，暗色值位于 `body[data-ds-dark-theme]` 下（该属性由 [ui-layout 主题呈现器](../packages/client/ui-layout/README.zh.md)设置在 `<body>` 上）。
-其 `--cm-*` token 命名了应用绘制的每一种颜色、阴影和遮罩；`apps/web/src` 中的组件 CSS 与 React 内联样式只引用这些 token，不写颜色字面量。
-`pnpm run check:theme`（`scripts/check-theme.sh`）拒绝 `cm-theme.css` 之外任何 `apps/web/src` 文件中的 hex、`rgb()` 或 `hsl()` 字面量。
+`apps/web` 前端在 [`apps/web/src/cm-theme.css`](../apps/web/src/cm-theme.css) 中拥有第二套应用级色板：官方 CopyMonster 明色值位于 `:root`，暗色值位于 `body[data-ds-dark-theme]` 下（该属性由 [ui-layout 主题呈现器](../packages/client/ui-layout/README.zh.md)设置在 `<body>` 上）。其 `--cm-*` token 命名了应用绘制的每一种颜色、阴影和遮罩；`apps/web/src` 中的组件 CSS 与 React 内联样式只引用这些 token、不写颜色字面量，而 `pnpm run check:theme`（`scripts/check-theme.sh`）会拒绝 `cm-theme.css` 之外任何 `apps/web/src` 文件中的 hex、`rgb()` 或 `hsl()` 字面量。
 
 ## 变更系统
 

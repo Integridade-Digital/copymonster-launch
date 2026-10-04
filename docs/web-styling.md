@@ -27,9 +27,7 @@ Global style sheets belong in `ui-theme/src/styles/`. Component styles live besi
 
 ## CopyMonster application theme
 
-The `apps/web` frontend owns a second, application-level palette in [`apps/web/src/cm-theme.css`](../apps/web/src/cm-theme.css): official CopyMonster light values on `:root` and dark values under `body[data-ds-dark-theme]`, the attribute the [ui-layout theme presenter](../packages/client/ui-layout/README.md) sets on `<body>`.
-Its `--cm-*` tokens name every color, shadow, and overlay the app draws; feature CSS and React inline styles in `apps/web/src` reference those tokens and never contain a color literal.
-`pnpm run check:theme` (`scripts/check-theme.sh`) rejects a hex, `rgb()`, or `hsl()` literal anywhere in `apps/web/src` outside `cm-theme.css`.
+The `apps/web` frontend owns a second, application-level palette in [`apps/web/src/cm-theme.css`](../apps/web/src/cm-theme.css): official CopyMonster light values on `:root` and dark values under `body[data-ds-dark-theme]`, the attribute the [ui-layout theme presenter](../packages/client/ui-layout/README.md) sets on `<body>`. Its `--cm-*` tokens name every color, shadow, and overlay the app draws; feature CSS and React inline styles in `apps/web/src` reference those tokens and never contain a color literal, which `pnpm run check:theme` (`scripts/check-theme.sh`) rejects as a hex, `rgb()`, or `hsl()` literal anywhere in `apps/web/src` outside `cm-theme.css`.
 
 ## Changing the system
 

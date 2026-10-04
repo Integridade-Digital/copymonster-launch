@@ -20,7 +20,11 @@ export function AppFrame({ title = 'Plans & Billing', children, onClose }: AppFr
     <div className="cm-app-frame">
       <header className="cm-app-topbar">
         <div className="cm-topbar-breadcrumb">
-          <span className="cm-breadcrumb-brand">CopyMonster</span>
+          <img
+            src="/brand-text.png"
+            alt="CopyMonster"
+            className="cm-breadcrumb-brand"
+          />
           <span className="cm-breadcrumb-sep">/</span>
           <span className="cm-breadcrumb-current">{title}</span>
         </div>

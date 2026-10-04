@@ -27,8 +27,9 @@
 }
 
 .cm-breadcrumb-brand {
-  font-weight: 600;
-  color: var(--cm-primary);
+  height: 18px;
+  display: inline-block;
+  vertical-align: middle;
 }
 
 .cm-breadcrumb-sep {

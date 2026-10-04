@@ -71,3 +71,13 @@ body[data-ds-dark-theme] {
   --cm-shadow: 0 4px 24px -2px rgba(0, 0, 0, 0.35), 0 1px 4px rgba(0, 0, 0, 0.2);
   --cm-overlay: rgba(0, 0, 0, 0.65);
 }
+
+/* A11y Focus-Visible & Touch Targets (Bloco 4) */
+:focus-visible {
+  outline: 2px solid var(--cm-primary, #E7BF73) !important;
+  outline-offset: 2px !important;
+}
+
+button, input[type="button"], input[type="submit"], .cm-btn, .adminButton {
+  min-height: 44px;
+}

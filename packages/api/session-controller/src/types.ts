@@ -185,6 +185,7 @@ export const SESSION_SEARCH_SNIPPET_MAX_CODE_POINTS = 240
 
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
+    'session/subscription-inactive': { readonly message?: string; readonly subscriptionStatus?: string }
     'session/model-unavailable': { readonly provider: string; readonly model: string }
     /** The call carried no authenticated caller identity. */
     'session/unauthorized': {}

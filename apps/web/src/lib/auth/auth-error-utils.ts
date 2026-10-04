@@ -1,10 +1,10 @@
+import { t } from '../../locales';
+
 /**
- * Utilitário de formatação e categorização de mensagens de erro de autenticação.
- * Converte erros técnicos ou em inglês do Supabase em mensagens claras em português,
- * distinguindo erros de credenciais (400) de falhas de rede/servidor (500/timeout).
+ * Utilitário de formatação e categorização de mensagens de erro de autenticação em EN/ZH.
  */
-export function formatAuthError(error: unknown, fallbackMessage: string): string {
-  if (error === null || error === undefined) return fallbackMessage;
+export function formatAuthError(error: unknown, fallbackMessage?: string): string {
+  if (error === null || error === undefined) return fallbackMessage || t('auth.error.unknown');
 
   const rawMessage = error instanceof Error
     ? error.message
@@ -16,21 +16,21 @@ export function formatAuthError(error: unknown, fallbackMessage: string): string
 
   // Erros de credenciais e validação (400)
   if (lower.includes('invalid login credentials') || lower.includes('invalid_credentials')) {
-    return 'E-mail ou senha incorretos. Verifique seus dados e tente novamente.';
+    return t('auth.error.invalidCredentials');
   }
   if (lower.includes('email not confirmed')) {
-    return 'E-mail ainda não confirmado. Verifique sua caixa de entrada e spam para ativar sua conta.';
+    return t('auth.error.emailNotConfirmed');
   }
   if (lower.includes('user already registered') || lower.includes('already registered')) {
-    return 'Este e-mail já está cadastrado. Faça login ou recupere sua senha.';
+    return t('auth.error.alreadyRegistered');
   }
   if (lower.includes('password should be at least')) {
-    return 'A senha é muito curta. Utilize ao menos 8 caracteres.';
+    return t('auth.error.passwordTooShort');
   }
 
   // Rate-limiting / excesso de tentativas (429)
   if (lower.includes('too many requests') || lower.includes('rate limit')) {
-    return 'Muitas tentativas consecutivas. Por segurança, aguarde alguns instantes antes de tentar novamente.';
+    return t('auth.error.tooManyRequests');
   }
 
   // Falhas de rede, timeout e indisponibilidade de servidor (500/offline)
@@ -41,12 +41,14 @@ export function formatAuthError(error: unknown, fallbackMessage: string): string
     lower.includes('abort') ||
     lower.includes('timeout')
   ) {
-    return 'Falha de conexão com o servidor. Verifique sua conexão com a internet e tente novamente.';
+    return t('auth.error.networkFailed');
   }
 
   if (lower.includes('500') || lower.includes('internal server error') || lower.includes('bad gateway')) {
-    return 'O serviço de autenticação está temporariamente instável. Tente novamente em instantes.';
+    return t('auth.error.serviceUnavailable');
   }
 
   return rawMessage;
 }
+
+export const getFriendlyAuthErrorMessage = formatAuthError;

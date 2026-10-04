@@ -225,7 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = useCallback(async (data: { fullName?: string; whatsapp?: string }): Promise<{ error: Error | null }> => {
     try {
-      if (!user) throw new Error('Usuário não autenticado');
+      if (!user) throw new Error('User not authenticated');
 
       const { error: authError } = await supabaseClient.auth.updateUser({
         data: {

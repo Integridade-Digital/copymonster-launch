@@ -24,4 +24,15 @@ export function t(key: TranslationKey, params?: Record<string, string | number>)
   return text
 }
 
+
+export function setActiveLocale(locale: LocaleId): void {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('dsh_locale', locale)
+    localStorage.setItem('locale', locale)
+    window.dispatchEvent(new Event('storage'))
+  }
+}
+
 export { en, zh }
+export * from './LocaleContext'
+

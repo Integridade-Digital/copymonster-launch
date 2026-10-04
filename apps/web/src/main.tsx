@@ -1,3 +1,4 @@
+import { t, LocaleProvider } from './locales';
 import { FooterActionsRoot } from './components/layout/FooterActionsRoot'
 /** Browser entry for the Web client. */
 import React from 'react'
@@ -101,13 +102,13 @@ class WebAppErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
         <div className="cm-auth-page">
           <div className="cm-auth-card" style={{ maxWidth: '480px', textAlign: 'center' }}>
             <h2 className="cm-auth-title" style={{ color: 'var(--cm-auth-error-text)' }}>
-              Erro ao inicializar o CopyMonster
+              {t('auth.error.initTitle')}
             </h2>
             <p className="cm-auth-subtitle" style={{ marginTop: '0.75rem' }}>
               Ocorreu uma falha inesperada durante a inicialização do ambiente de trabalho:
             </p>
             <div className="cm-auth-alert cm-auth-alert--error" style={{ marginTop: '1rem', textAlign: 'left', wordBreak: 'break-word' }}>
-              {this.state.error?.message ?? 'Erro desconhecido'}
+              {this.state.error?.message ?? t('auth.error.unknown')}
             </div>
             <button
               type="button"
@@ -115,7 +116,7 @@ class WebAppErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
               className="cm-auth-button"
               style={{ marginTop: '1.25rem' }}
             >
-              Recarregar aplicação
+              {t('common.reload')}
             </button>
           </div>
         </div>
@@ -181,7 +182,7 @@ function WorkspaceBootProgress() {
   return (
     <div className="cm-auth-boot" role="status" aria-live="polite">
       <span className="cm-auth-spinner" aria-hidden="true" />
-      <span>Carregando ambiente de trabalho…</span>
+      <span>{t('auth.error.loadingWorkspace')}</span>
     </div>
   )
 }
@@ -195,7 +196,7 @@ function HostBootUnavailable() {
     <div className="cm-auth-page">
       <div className="cm-auth-card" style={{ maxWidth: '480px', textAlign: 'center' }}>
         <h2 className="cm-auth-title" style={{ color: 'var(--cm-auth-error-text)' }}>
-          Sessão do host indisponível
+          {t('auth.error.hostUnavailableTitle')}
         </h2>
         <p className="cm-auth-subtitle" style={{ marginTop: '0.75rem' }}>
           O servidor não atende a rota de entrada que estabelece a sessão do host. Inicie o
@@ -282,7 +283,7 @@ function AppRoutes() {
       <div className="cm-auth-page">
         <div className="cm-auth-card" style={{ maxWidth: '440px', textAlign: 'center' }}>
           <h2 className="cm-auth-title" style={{ color: 'var(--cm-auth-error-text)' }}>
-            Erro de conexão
+            {t('auth.error.connectionErrorTitle')}
           </h2>
           <p className="cm-auth-subtitle" style={{ marginTop: '0.5rem' }}>
             Não foi possível comunicar com o servidor de autenticação.
@@ -297,7 +298,7 @@ function AppRoutes() {
               className="cm-auth-button"
               style={{ marginTop: '1.25rem' }}
             >
-              Tentar novamente
+              {t('common.retry')}
             </button>
           )}
         </div>

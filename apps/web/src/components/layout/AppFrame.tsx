@@ -1,3 +1,4 @@
+import { t } from '../../locales';
 import React from 'react'
 import './AppFrame.css'
 
@@ -37,7 +38,7 @@ export function AppFrame({ title = 'Plans & Billing', children, onClose }: AppFr
             <path d="M19 12H5" />
             <path d="M12 19l-7-7 7-7" />
           </svg>
-          Voltar ao Chat
+          {t('common.backToChat')}
         </button>
       </header>
       <main className="cm-app-content">

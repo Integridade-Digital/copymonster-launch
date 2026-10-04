@@ -52,6 +52,7 @@ export interface RemoteErrorDetailsMap {
   'gateway/cancelled': {}
   /** Carrier, dispatch, or unclassified Host failure. */
   'gateway/internal': {}
+  'session/subscription-inactive': { readonly message?: string; readonly subscriptionStatus?: string }
 }
 
 /** Every declared Remote failure code. */

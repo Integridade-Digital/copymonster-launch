@@ -1,3 +1,4 @@
+import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
 /** Session commands whose activation policy is explicit at each Remote method. */
 
 import { randomUUID } from 'node:crypto'
@@ -86,6 +87,31 @@ export class SessionCommandController {
    * @returns the Session identity and resolved preset when configured.
    */
   async create(request: SessionCreateRequest, identity: UserIdentity): Promise<SessionCreateValue> {
+    // Subscription gate: check tenant status before creating session
+    if (identity?.tenantId) {
+      try {
+        const { data: tenant, error: tenantErr } = await supabaseAdminClient
+          .from('tenants')
+          .select('subscription_status')
+          .eq('id', identity.tenantId)
+          .single()
+
+        if (!tenantErr && tenant?.subscription_status) {
+          const status = tenant.subscription_status
+          if (['trial_expired', 'canceled', 'past_due'].includes(status)) {
+            throw new RemoteError(
+              'session/subscription-inactive',
+              'Your subscription is inactive. Please upgrade.',
+              { message: 'Your subscription is inactive. Please upgrade.', subscriptionStatus: status },
+            )
+          }
+        }
+      } catch (error) {
+        if (error instanceof RemoteError) {
+          throw error
+        }
+      }
+    }
     if (request.workspaceId !== undefined && request.cwd !== undefined) {
       throw new RemoteError('gateway/bad-request', 'session.create accepts workspaceId or cwd, not both', {})
     }

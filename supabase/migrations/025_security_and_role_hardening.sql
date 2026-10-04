@@ -1,6 +1,6 @@
 -- Migration 025: Blindagem de Segurança e RLS
--- 1. Hardening de is_admin_or_owner() amarrado exclusivamente ao tenant ativo em user_tenant_roles
--- 2. Recriação com DROP prévio e hardening (search_path = public) das 5 RPCs SECURITY DEFINER
+-- 1. Hardening de is_admin_or_owner() amarrado exclusivamente ao tenant ativo em user_tenant_roles (sem DROP, preservando as 19 policies dependentes)
+-- 2. Recriação e hardening (search_path = public) das RPCs SECURITY DEFINER (DROP apenas onde há consolidação/renomeação de assinatura)
 -- 3. Revogação de privilégios públicos e concessão restrita (authenticated/service_role) nas 5 RPCs
 -- 4. Habilitação de RLS em public.trial_rate_limits com deny default
 -- 5. Correção e padronização de colunas em public.audit_logs
@@ -8,12 +8,11 @@
 BEGIN;
 
 -- ==============================================================================
--- 1. REESCRITA DE is_admin_or_owner() COM DROP PRÉVIO
+-- 1. REESCRITA DE is_admin_or_owner()
 -- Autoridade SÓ via public.user_tenant_roles no tenant ativo.
 -- NUNCA confiar em app_metadata.role ou user_metadata.role do JWT.
+-- NOTA: Sem DROP para preservar as 19 policies dependentes (assinatura inalterada).
 -- ==============================================================================
-DROP FUNCTION IF EXISTS public.is_admin_or_owner();
-
 CREATE OR REPLACE FUNCTION public.is_admin_or_owner()
 RETURNS BOOLEAN
 LANGUAGE plpgsql
@@ -68,10 +67,11 @@ BEGIN
 END $$;
 
 -- ==============================================================================
--- 3. RECRIAÇÃO DAS 5 RPCS SECURITY DEFINER COM DROP ANTES DO CREATE OR REPLACE
+-- 3. RECRIAÇÃO DAS 5 RPCS SECURITY DEFINER
+-- Regra estrita: DROP apenas quando a assinatura muda de verdade.
 -- ==============================================================================
 
--- 3.1 get_admin_workspaces (Drop de assinaturas legadas de 0 e 6 argumentos)
+-- 3.1 get_admin_workspaces (Consolidação de assinaturas distintas: legada de 0 argumentos e definitiva de 6 argumentos)
 DROP FUNCTION IF EXISTS public.get_admin_workspaces();
 DROP FUNCTION IF EXISTS public.get_admin_workspaces(TEXT, UUID, BOOLEAN, BOOLEAN, INT, INT);
 
@@ -155,7 +155,7 @@ BEGIN
 END;
 $$;
 
--- 3.2 get_system_secret (Drop prévio para prevenir erro 42P13 ao renomear/recriar parâmetro)
+-- 3.2 get_system_secret (DROP necessário para compatibilidade com renomeação de parâmetro p_key no Postgres)
 DROP FUNCTION IF EXISTS public.get_system_secret(TEXT);
 
 CREATE OR REPLACE FUNCTION public.get_system_secret(p_key TEXT)
@@ -199,9 +199,7 @@ BEGIN
 END;
 $$;
 
--- 3.3 get_llm_encryption_key
-DROP FUNCTION IF EXISTS public.get_llm_encryption_key();
-
+-- 3.3 get_llm_encryption_key (Assinatura idêntica `()`: CREATE OR REPLACE sem DROP)
 CREATE OR REPLACE FUNCTION public.get_llm_encryption_key()
 RETURNS TEXT
 LANGUAGE plpgsql
@@ -223,9 +221,7 @@ BEGIN
 END;
 $$;
 
--- 3.4 get_my_profile
-DROP FUNCTION IF EXISTS public.get_my_profile();
-
+-- 3.4 get_my_profile (Assinatura idêntica `()`: CREATE OR REPLACE sem DROP)
 CREATE OR REPLACE FUNCTION public.get_my_profile()
 RETURNS JSONB
 LANGUAGE plpgsql
@@ -272,9 +268,7 @@ BEGIN
 END;
 $$;
 
--- 3.5 increment_tenant_token_usage
-DROP FUNCTION IF EXISTS public.increment_tenant_token_usage(UUID, BIGINT);
-
+-- 3.5 increment_tenant_token_usage (Assinatura idêntica `(UUID, BIGINT)`: CREATE OR REPLACE sem DROP)
 CREATE OR REPLACE FUNCTION public.increment_tenant_token_usage(
   p_tenant_id UUID,
   p_tokens BIGINT

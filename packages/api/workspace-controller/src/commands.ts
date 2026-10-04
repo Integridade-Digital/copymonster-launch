@@ -52,7 +52,7 @@ export class WorkspaceCommands {
         const sandboxRoot = await ensureUserSandboxDirectory(identity.tenantId, identity.userId)
         const targetPath = isAbsolute(request.path)
           ? assertPathInSandbox(request.path, sandboxRoot)
-          : resolve(sandboxRoot, request.path)
+          : assertPathInSandbox(resolve(sandboxRoot, request.path), sandboxRoot)
         const existing = await this.ctx.workspaceRegistry.resolveByPath(targetPath)
         if (existing !== undefined) {
           return { workspace: workspaceView(existing), created: false }

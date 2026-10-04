@@ -1,3 +1,4 @@
+import { resolve } from 'node:path'
 import { afterEach, describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { DirectoryPickerCapability } from '@deepseek-ai/dsh-host-directory-picker'
@@ -185,5 +186,40 @@ describe('DirectoryPicker and Workspace Tenant Isolation (authenticated)', () =>
     expect(result.created).toBe(true)
     expect(result.workspace.path).toContain(userSandbox)
     expect(result.workspace.path).toContain('default')
+  })
+  it('strictly rejects path traversal on workspace.create for both relative and absolute paths', async () => {
+    const ctx = new Context()
+    roots.push(ctx)
+
+    const tenantId = 'tenant-traversal'
+    const userId = 'user-traversal'
+    const userSandbox = resolveUserSandboxRoot(tenantId, userId)
+
+    await ctx.plugin(makeAuthPlugin(tenantId, userId))
+
+    ctx.provide('workspaceRegistry', {
+      resolveByPath: async (_p: string) => undefined,
+      create: async (p: string) => ({ id: 'ws-valid', title: 'Valid', path: p, sessionIds: [] }),
+      get: (_id: string) => undefined,
+      delete: async () => true,
+    })
+
+    const commands = new WorkspaceCommands(ctx)
+    const identity = { tenantId, userId, role: 'member', email: 'user@example.com' } as UserIdentity
+
+    // 1. workspace.create com "../../../../etc/passwd" -> deve falhar com erro de sandbox
+    await expect(commands.create({ path: '../../../../etc/passwd' }, identity)).rejects.toThrow(
+      /Security Violation: Path traversal forbidden/i,
+    )
+
+    // 2. workspace.create com "subdir/../../../etc" -> deve falhar
+    await expect(commands.create({ path: 'subdir/../../../etc' }, identity)).rejects.toThrow(
+      /Security Violation: Path traversal forbidden/i,
+    )
+
+    // 3. workspace.create com "subdir/projeto-valido" -> deve passar
+    const valid = await commands.create({ path: 'subdir/projeto-valido' }, identity)
+    expect(valid.created).toBe(true)
+    expect(valid.workspace.path).toBe(resolve(userSandbox, 'subdir/projeto-valido'))
   })
 })

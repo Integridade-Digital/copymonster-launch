@@ -8,6 +8,7 @@ import type {
   ModelReasoning,
   ModelSelection,
 } from './types.ts'
+import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 
 interface DbModelMetadata {
   id?: string
@@ -99,8 +100,8 @@ export async function buildModelCatalog(
             ? { contextWindow: dbModel.context_window }
             : resolved.context?.contextWindow !== undefined
               ? { contextWindow: resolved.context.contextWindow }
-              : (model as unknown as Record<string, unknown>).contextWindow !== undefined
-                ? { contextWindow: (model as unknown as Record<string, unknown>).contextWindow }
+              : typeof (model as Record<string, unknown>).contextWindow === 'number'
+                ? { contextWindow: (model as Record<string, unknown>).contextWindow }
                 : {}),
           ...(dbModel?.cost_input_1k !== undefined
             ? { costInput1k: Number(dbModel.cost_input_1k) }
@@ -113,21 +114,21 @@ export async function buildModelCatalog(
               ? { costOutput1k: Number((model as unknown as Record<string, unknown>).costOutput1k) }
               : {}),
           ...(dbModel?.capabilities !== undefined
-            ? { capabilities: dbModel.capabilities }
-            : (resolved as unknown as Record<string, unknown>).capabilities !== undefined
-              ? { capabilities: (resolved as unknown as Record<string, unknown>).capabilities }
-              : (model as unknown as Record<string, unknown>).capabilities !== undefined
-                ? { capabilities: (model as unknown as Record<string, unknown>).capabilities }
+            ? { capabilities: dbModel.capabilities as Record<string, JsonValue> }
+            : (resolved as Record<string, unknown>).capabilities !== undefined
+              ? { capabilities: (resolved as Record<string, unknown>).capabilities as Record<string, JsonValue> }
+              : (model as Record<string, unknown>).capabilities !== undefined
+                ? { capabilities: (model as Record<string, unknown>).capabilities as Record<string, JsonValue> }
                 : {}),
           ...(dbModel?.is_default_for_plans !== undefined
-            ? { isDefaultForPlans: dbModel.is_default_for_plans }
-            : (model as unknown as Record<string, unknown>).isDefaultForPlans !== undefined
-              ? { isDefaultForPlans: (model as unknown as Record<string, unknown>).isDefaultForPlans }
+            ? { isDefaultForPlans: dbModel.is_default_for_plans as readonly string[] }
+            : (model as Record<string, unknown>).isDefaultForPlans !== undefined
+              ? { isDefaultForPlans: (model as Record<string, unknown>).isDefaultForPlans as readonly string[] }
               : {}),
           ...(dbModel?.allowed_plans !== undefined
-            ? { allowedPlans: dbModel.allowed_plans }
-            : (model as unknown as Record<string, unknown>).allowedPlans !== undefined
-              ? { allowedPlans: (model as unknown as Record<string, unknown>).allowedPlans }
+            ? { allowedPlans: dbModel.allowed_plans as readonly string[] }
+            : (model as Record<string, unknown>).allowedPlans !== undefined
+              ? { allowedPlans: (model as Record<string, unknown>).allowedPlans as readonly string[] }
               : {}),
         }
         return entry

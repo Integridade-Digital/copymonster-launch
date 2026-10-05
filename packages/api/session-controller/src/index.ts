@@ -18,6 +18,8 @@ import {
 } from './agent.ts'
 import { requireAuthIdentity } from './auth-identity.ts'
 import { SessionCommandController } from './commands.ts'
+import { sessionTenantMap } from './commands.ts'
+import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
 import { SessionControlController } from './control.ts'
 import { SessionHistoryController } from './history.ts'
 import { SessionFileReferences } from './file-references.ts'
@@ -59,6 +61,7 @@ import type {
 
 export type * from './types.ts'
 export { ApiSessionNotFound } from './agent.ts'
+export { sessionTenantMap } from './commands.ts'
 export { SessionFileReferences } from './file-references.ts'
 export { SessionSkillCatalog } from './skill-catalog.ts'
 
@@ -149,6 +152,7 @@ export class SessionController extends TypertRemoteService {
       ctx.emit('api-session/added', this.listState.summaryFor(session))
     })
     ctx.on('session/disposed', (session) => {
+      sessionTenantMap.delete(session)
       ctx.emit('api-session/removed', session.id)
     })
     ctx.on('agent/status', ({ agent, status }) => {
@@ -169,6 +173,43 @@ export class SessionController extends TypertRemoteService {
       }
       if (event.type !== 'user/message' || event.data.source.kind !== 'user') return
       ctx.emit('api-session/activity', session.id, event.time)
+    })
+
+    ctx.on('session/event', (session, event) => {
+      if ((event as { type: string }).type === 'session/end') {
+        sessionTenantMap.delete(session)
+        return
+      }
+      if (event.type !== 'turn/end') return
+      const tenantInfo = sessionTenantMap.get(session)
+      if (!tenantInfo) return
+      const turn = event.data.turn
+      const turnEvents = session.snapshotEvents().filter(
+        e => (e.type === 'assistant/message' || e.type === 'assistant/attempt')
+          && 'turn' in e.data
+          && e.data.turn === turn,
+      )
+      let turnTokens = 0
+      for (const e of turnEvents) {
+        if ('usage' in e.data && e.data.usage) {
+          turnTokens += (e.data.usage.inputTokens ?? 0)
+                     + (e.data.usage.outputTokens ?? 0)
+        }
+      }
+      if (turnTokens > 0) {
+        void (async () => {
+          try {
+            await (supabaseAdminClient as unknown as {
+              rpc: (name: string, params: Record<string, unknown>) => Promise<{ error: unknown }>
+            }).rpc('increment_tenant_token_usage', {
+              p_tenant_id: tenantInfo.tenantId,
+              p_tokens: Math.round(turnTokens),
+            })
+          } catch (err) {
+            console.warn('[metering] failed to increment token usage', err)
+          }
+        })()
+      }
     })
   }
 
@@ -355,7 +396,7 @@ export class SessionController extends TypertRemoteService {
     signal.throwIfAborted()
     const identity = requireAuthIdentity(this.ctx)
     const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
-    return this.commands.prompt(request, sandboxRoot)
+    return this.commands.prompt(request, sandboxRoot, identity)
   }
 
   /**

@@ -70,6 +70,8 @@ function hasPromptContent(content: readonly PromptContentCandidate[]): boolean {
 }
 
 /** Implements Session business commands delegated by the Session Controller Remote service. */
+export const sessionTenantMap = new WeakMap<Session, { tenantId: string; userId: string }>()
+
 export class SessionCommandController {
   /**
    * @param ctx - Host context carrying Agent, model, attachment, title, and Workspace services.
@@ -150,6 +152,12 @@ export class SessionCommandController {
       )
     } catch (error) {
       this.rejectCreation(sessionId, error)
+    }
+    if (identity?.tenantId && typeof adopted.session === 'object' && adopted.session !== null) {
+      sessionTenantMap.set(adopted.session, {
+        tenantId: identity.tenantId,
+        userId: identity.userId,
+      })
     }
     if (workspace !== undefined) {
       try {
@@ -344,7 +352,7 @@ export class SessionCommandController {
    * @param sandboxRoot - confined root; when supplied, the Session's cwd must be inside it.
    * @returns acknowledgement that the Agent accepted the prompt.
    */
-  async prompt(request: SessionPromptRequest, sandboxRoot?: string): Promise<SessionPromptValue> {
+  async prompt(request: SessionPromptRequest, sandboxRoot?: string, identity?: UserIdentity): Promise<SessionPromptValue> {
     if (!hasPromptContent(request.content)) {
       throw new RemoteError(
         'gateway/bad-request',
@@ -364,6 +372,12 @@ export class SessionCommandController {
     }
     const agent = await this.resolveAgent(request.sessionId)
     this.assertSessionInSandbox(agent.session, sandboxRoot)
+    if (identity?.tenantId && typeof agent.session === 'object' && agent.session !== null) {
+      sessionTenantMap.set(agent.session, {
+        tenantId: identity.tenantId,
+        userId: identity.userId,
+      })
+    }
     if (hasPromptRequest(agent, request.requestId)) return { accepted: true }
     const selection = this.agents.selectionFor(agent).current
     if (!routeServed(this.ctx, selection.provider)) {

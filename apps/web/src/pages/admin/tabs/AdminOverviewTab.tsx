@@ -146,17 +146,16 @@ export function AdminOverviewTab() {
 
   if (isLoading) {
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-[var(--cm-muted-foreground)]">
-        <div className="w-8 h-8 border-2 border-[var(--cm-primary)] border-t-transparent rounded-full animate-spin mb-4" />
-        <p className="text-sm">Carregando indicadores do painel...</p>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px', color: 'var(--cm-muted-foreground)' }}>
+        <span className="cm-auth-spinner" style={{ marginBottom: '16px' }} aria-hidden="true" />
+        <p style={{ fontSize: '13px', margin: 0 }}>Carregando indicadores do painel...</p>
       </div>
     )
   }
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Header com Status de Saúde e Botão de Atualizar */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-[var(--cm-border)]">
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', color: 'var(--cm-foreground)' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--cm-border)' }}>
         <div>
           <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: '0 0 4px 0' }}>Overview da Plataforma</h3>
           <p style={{ fontSize: '13px', color: 'var(--cm-muted-foreground)', margin: 0 }}>
@@ -164,25 +163,24 @@ export function AdminOverviewTab() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          {/* Status do Banco e Latência (Problema 2 resolvido) */}
-          <div className="px-3 py-1.5 rounded-lg bg-[var(--cm-background)] border border-[var(--cm-border)] flex items-center gap-2">
-            <span className="text-xs text-[var(--cm-muted-foreground)]">Banco:</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderRadius: '8px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)' }}>
+            <span style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>Banco:</span>
             {health.dbStatus === 'operational' && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-emerald-400">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 500, color: 'var(--cm-success)' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--cm-success)', display: 'inline-block' }} />
                 Operacional ({health.dbLatencyMs}ms)
               </span>
             )}
             {health.dbStatus === 'degraded' && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-400">
-                <span className="w-2 h-2 rounded-full bg-amber-400" />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 500, color: 'var(--cm-primary)' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--cm-primary)', display: 'inline-block' }} />
                 Degradado ({health.dbLatencyMs}ms)
               </span>
             )}
             {health.dbStatus === 'down' && (
-              <span className="inline-flex items-center gap-1.5 text-xs font-medium text-rose-400">
-                <span className="w-2 h-2 rounded-full bg-rose-400" />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 500, color: 'var(--cm-destructive)' }}>
+                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--cm-destructive)', display: 'inline-block' }} />
                 Indisponível
               </span>
             )}
@@ -191,16 +189,16 @@ export function AdminOverviewTab() {
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            className="px-3 py-1.5 rounded-lg text-xs font-medium bg-[var(--cm-primary)]/10 hover:bg-[var(--cm-primary)]/20 text-[var(--cm-primary)] border border-[var(--cm-primary)]/30 transition flex items-center gap-1.5 disabled:opacity-50"
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-primary) 10%, transparent)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)', cursor: 'pointer', opacity: isRefreshing ? 0.5 : 1 }}
           >
             {isRefreshing ? (
               <>
-                <span className="w-3 h-3 border-2 border-[var(--cm-primary)] border-t-transparent rounded-full animate-spin" />
+                <span style={{ width: '14px', height: '14px', border: '2px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', display: 'inline-block', animation: 'cm-auth-spin 0.7s linear infinite' }} />
                 Atualizando...
               </>
             ) : (
               <>
-                <svg width="14" height="14" className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
                 Recalcular Métricas
@@ -211,15 +209,13 @@ export function AdminOverviewTab() {
       </div>
 
       {error && (
-        <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg text-rose-400 text-xs flex items-center justify-between">
+        <div style={{ padding: '12px', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', borderRadius: '8px', color: 'var(--cm-destructive)', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-rose-400 hover:text-rose-300">✕</button>
+          <button onClick={() => setError(null)} style={{ color: 'var(--cm-destructive)', cursor: 'pointer', background: 'none', border: 'none', fontSize: '14px' }}>✕</button>
         </div>
       )}
 
-      {/* Grid de 5 KPIs */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
-        {/* KPI 1: MRR / ARR */}
         <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
           <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>MRR Estimado</div>
           <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-primary)' }}>
@@ -230,7 +226,6 @@ export function AdminOverviewTab() {
           </div>
         </div>
 
-        {/* KPI 2: Users Ativos */}
         <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
           <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>Users Ativos (Hoje)</div>
           <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-foreground)' }}>
@@ -241,7 +236,6 @@ export function AdminOverviewTab() {
           </div>
         </div>
 
-        {/* KPI 3: Tokens Consumidos */}
         <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
           <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>Tokens (Hoje)</div>
           <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-foreground)' }}>
@@ -252,7 +246,6 @@ export function AdminOverviewTab() {
           </div>
         </div>
 
-        {/* KPI 4: Sessions Totais */}
         <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
           <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>Sessions Totais</div>
           <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-foreground)' }}>
@@ -263,7 +256,6 @@ export function AdminOverviewTab() {
           </div>
         </div>
 
-        {/* KPI 5: Saúde do Sistema */}
         <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
           <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>Saúde do Sistema</div>
           <div style={{ fontSize: '20px', fontWeight: 600, color: health.dbStatus === 'operational' ? 'var(--cm-success)' : health.dbStatus === 'degraded' ? 'var(--cm-primary)' : 'var(--cm-destructive)' }}>
@@ -275,37 +267,34 @@ export function AdminOverviewTab() {
         </div>
       </div>
 
-      {/* Seção Central: Distribuição por Modelo e Histórico */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Distribuição por Modelo */}
-        <div className="p-4 rounded-xl bg-[var(--cm-card)] border border-[var(--cm-border)] flex flex-col justify-between">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
+        <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--cm-card)', border: '1px solid var(--cm-border)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
-            <div className="flex items-center justify-between mb-3">
-              <h4 className="text-sm font-semibold text-[var(--cm-foreground)]">Models Mais Utilizados</h4>
-              <span className="text-[11px] text-[var(--cm-muted-foreground)]">Top 10 por volume</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+              <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Models Mais Utilizados</h4>
+              <span style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)' }}>Top 10 por volume</span>
             </div>
 
             {modelStats.length === 0 ? (
-              <div className="py-8 text-center text-xs text-[var(--cm-muted-foreground)]">
+              <div style={{ padding: '32px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
                 Nenhuma sessão indexada com registro de modelo até o momento.
               </div>
             ) : (
-              <div className="space-y-3">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {modelStats.map((item, idx) => {
                   const maxCount = modelStats[0]?.session_count || 1
                   const pct = Math.round((item.session_count / maxCount) * 100)
                   return (
-                    <div key={idx} className="space-y-1">
-                      <div className="flex justify-between text-xs">
-                        <span className="font-mono text-[var(--cm-foreground)]">{item.model}</span>
-                        <span className="text-[var(--cm-muted-foreground)]">
+                    <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                        <span style={{ fontFamily: 'monospace', color: 'var(--cm-foreground)' }}>{item.model}</span>
+                        <span style={{ color: 'var(--cm-muted-foreground)' }}>
                           {formatNumber(item.session_count)} sessões ({formatTokens(item.tokens_sum)} tokens)
                         </span>
                       </div>
-                      <div className="w-full h-1.5 rounded-full bg-[var(--cm-background)] overflow-hidden">
+                      <div style={{ height: '6px', borderRadius: '3px', background: 'var(--cm-secondary)', overflow: 'hidden' }}>
                         <div
-                          className="h-full rounded-full bg-[var(--cm-primary)]"
-                          style={{ width: `${pct}%` }}
+                          style={{ height: '100%', borderRadius: '3px', background: 'var(--cm-primary)', width: `${pct}%` }}
                         />
                       </div>
                     </div>
@@ -316,35 +305,34 @@ export function AdminOverviewTab() {
           </div>
         </div>
 
-        {/* Histórico Recente de Métricas (Tabela) */}
-        <div className="p-4 rounded-xl bg-[var(--cm-card)] border border-[var(--cm-border)]">
-          <div className="flex items-center justify-between mb-3">
-            <h4 className="text-sm font-semibold text-[var(--cm-foreground)]">Histórico Recente (Snapshot Diário)</h4>
-            <span className="text-[11px] text-[var(--cm-muted-foreground)]">Últimos 14 dias</span>
+        <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--cm-card)', border: '1px solid var(--cm-border)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
+            <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Histórico Recente (Snapshot Diário)</h4>
+            <span style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)' }}>Últimos 14 dias</span>
           </div>
 
           {history.length === 0 ? (
-            <div className="py-8 text-center text-xs text-[var(--cm-muted-foreground)]">
+            <div style={{ padding: '32px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
               Nenhum snapshot diário gerado. Clique em &quot;Recalcular Métricas&quot; acima para registrar o primeiro.
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <div style={{ overflowX: 'auto' }}>
+              <table className="adminTable">
                 <thead>
-                  <tr className="border-b border-[var(--cm-border)] text-[var(--cm-muted-foreground)]">
-                    <th className="pb-2 font-medium">Data</th>
-                    <th className="pb-2 font-medium">Users</th>
-                    <th className="pb-2 font-medium">Tokens</th>
-                    <th className="pb-2 font-medium">MRR</th>
+                  <tr>
+                    <th>Data</th>
+                    <th>Users</th>
+                    <th>Tokens</th>
+                    <th>MRR</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--cm-border)]/50">
+                <tbody>
                   {history.map(row => (
-                    <tr key={row.date} className="text-[var(--cm-foreground)]">
-                      <td className="py-2 font-mono text-[11px]">{row.date}</td>
-                      <td className="py-2">{formatNumber(row.active_users)}</td>
-                      <td className="py-2 text-[var(--cm-muted-foreground)]">{formatTokens(row.tokens_consumed)}</td>
-                      <td className="py-2 text-[var(--cm-primary)] font-medium">{formatCurrency(row.estimated_mrr)}</td>
+                    <tr key={row.date}>
+                      <td style={{ fontFamily: 'monospace', fontSize: '11px' }}>{row.date}</td>
+                      <td>{formatNumber(row.active_users)}</td>
+                      <td style={{ color: 'var(--cm-muted-foreground)' }}>{formatTokens(row.tokens_consumed)}</td>
+                      <td style={{ color: 'var(--cm-primary)', fontWeight: 500 }}>{formatCurrency(row.estimated_mrr)}</td>
                     </tr>
                   ))}
                 </tbody>

@@ -51,25 +51,20 @@ export function AdminSystemTab() {
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Feedback de cópia
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
 
-  // Filtros
   const [flagSearchQuery, setFlagSearchQuery] = useState<string>('')
   const [limitSearchQuery, setLimitSearchQuery] = useState<string>('')
   const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState<string>('')
   const [storageWsSearchQuery, setStorageWsSearchQuery] = useState<string>('')
 
-  // Modais
   const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false)
   const [isDeleteConfigModalOpen, setIsDeleteConfigModalOpen] = useState<boolean>(false)
   const [isArchiveWorkspaceModalOpen, setIsArchiveWorkspaceModalOpen] = useState<boolean>(false)
 
-  // Item selecionado para edição/exclusão
   const [selectedConfig, setSelectedConfig] = useState<SystemConfigItem | null>(null)
   const [selectedWorkspace, setSelectedWorkspace] = useState<WorkspaceItem | null>(null)
 
-  // Campos do formulário de config
   const [formKey, setFormKey] = useState<string>('')
   const [formValueStr, setFormValueStr] = useState<string>('')
   const [formDescription, setFormDescription] = useState<string>('')
@@ -77,7 +72,6 @@ export function AdminSystemTab() {
   const [formError, setFormError] = useState<string | null>(null)
   const [isMutating, setIsMutating] = useState<boolean>(false)
 
-  // Role para copiar texto para o clipboard com feedback
   const handleCopyText = (text: string, key: string) => {
     if (!navigator?.clipboard?.writeText) return
     navigator.clipboard.writeText(text).then(() => {
@@ -90,7 +84,6 @@ export function AdminSystemTab() {
     })
   }
 
-  // Carregar dados
   const loadData = useCallback(async (isSilent = false) => {
     if (!isSilent) setIsLoading(true)
     setError(null)
@@ -103,7 +96,6 @@ export function AdminSystemTab() {
 
       if (configsRes.error) throw new Error(configsRes.error.message)
       if (workspacesRes.error) throw new Error(workspacesRes.error.message)
-      // storageRes pode não existir ainda se a migration 017 não tiver sido rodada, tratar graciosamente
       if (!storageRes.error && storageRes.data) {
         setStorageData(storageRes.data as StoragePathsData)
       } else if (storageRes.error) {
@@ -130,7 +122,6 @@ export function AdminSystemTab() {
     loadData(true)
   }
 
-  // Segmentação de configs
   const featureFlags = useMemo(() => {
     return configs.filter(c => c.key.startsWith('feature.'))
   }, [configs])
@@ -139,7 +130,6 @@ export function AdminSystemTab() {
     return configs.filter(c => c.key.startsWith('limit.') || c.key.startsWith('quota.'))
   }, [configs])
 
-  // KPIs
   const totalConfigs = configs.length
   const activeFlagsCount = useMemo(() => {
     return featureFlags.filter((f) => {
@@ -153,7 +143,6 @@ export function AdminSystemTab() {
   const totalLimitsCount = limitConfigs.length
   const totalWorkspacesCount = workspaces.length
 
-  // Mascaramento da Supabase URL
   const maskedSupabaseUrl = useMemo(() => {
     const rawUrl = (import.meta as any).env?.VITE_SUPABASE_URL || ''
     if (!rawUrl) return 'Not configured'
@@ -165,7 +154,6 @@ export function AdminSystemTab() {
     }
   }, [])
 
-  // Modais de Criação / Edição de Config
   const openCreateConfigModal = (type: 'feature' | 'limit' | 'quota') => {
     setSelectedConfig(null)
     setFormPrefixType(type)
@@ -217,7 +205,6 @@ export function AdminSystemTab() {
     setFormError(null)
   }
 
-  // Toggle direto de Feature Flag booleana
   const handleToggleFeatureFlag = async (item: SystemConfigItem) => {
     if (item.is_secret || item.key.startsWith('system.')) return
 
@@ -245,7 +232,6 @@ export function AdminSystemTab() {
     }
   }
 
-  // Salvar Config (Create / Update)
   const handleSaveConfig = async (e: React.FormEvent) => {
     e.preventDefault()
     setFormError(null)
@@ -287,7 +273,6 @@ export function AdminSystemTab() {
     }
   }
 
-  // Deletar Config
   const handleDeleteConfig = async () => {
     if (!selectedConfig) return
     setIsMutating(true)
@@ -308,7 +293,6 @@ export function AdminSystemTab() {
     }
   }
 
-  // Arquivar Workspace (Soft Delete)
   const handleArchiveWorkspace = async () => {
     if (!selectedWorkspace) return
     setIsMutating(true)
@@ -329,7 +313,6 @@ export function AdminSystemTab() {
     }
   }
 
-  // Filtros aplicados
   const filteredFlags = useMemo(() => {
     const q = flagSearchQuery.toLowerCase().trim()
     if (!q) return featureFlags
@@ -378,125 +361,124 @@ export function AdminSystemTab() {
   const sshExampleCommand = `ssh operador@servidor "cd ${workspacesRootPath} && ls -la"`
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px' }}>
-      {/* Cabeçalho */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[var(--cm-border)]">
+    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', color: 'var(--cm-foreground)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--cm-border)' }}>
         <div>
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-[var(--cm-foreground)]">Configurações do Sistema</h2>
-            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-[var(--cm-primary)]/10 text-[var(--cm-primary)] border border-[var(--cm-primary)]/30">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Configurações do Sistema</h2>
+            <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: 'color-mix(in srgb, var(--cm-primary) 15%, transparent)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)' }}>
               Ambiente Operacional
             </span>
           </div>
-          <p className="text-xs text-[var(--cm-muted-foreground)] mt-1">
+          <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', margin: '4px 0 0 0' }}>
             Parâmetros globais do servidor, feature flags ativas, cotas, diretórios e workspaces multi-tenant.
           </p>
         </div>
-
         <button
           type="button"
           onClick={handleRefresh}
           disabled={isRefreshing || isLoading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] text-xs font-medium text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] transition disabled:opacity-50"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', fontSize: '12px', fontWeight: 500, color: 'var(--cm-foreground)', cursor: 'pointer', opacity: (isRefreshing || isLoading) ? 0.5 : 1 }}
         >
-          <span className={isRefreshing ? 'animate-spin' : ''}>↻</span>
+          <span style={isRefreshing ? { display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--cm-border)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', animation: 'cm-auth-spin 0.7s linear infinite' } : undefined}>↻</span>
           Atualizar
         </button>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
-          <div className="text-xs text-[var(--cm-muted-foreground)]">Total Parâmetros</div>
-          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">{totalConfigs}</div>
+      <div className="adminGrid">
+        <div className="adminCard">
+          <div className="adminCardLabel">Total Parâmetros</div>
+          <div className="adminCardValue">{totalConfigs}</div>
+          <div className="adminCardSub">Configurações ativas</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
-          <div className="text-xs text-[var(--cm-muted-foreground)]">Feature Flags Ativas</div>
-          <div className="text-xl font-bold text-[var(--cm-primary)] mt-1">{activeFlagsCount}</div>
+        <div className="adminCard">
+          <div className="adminCardLabel">Feature Flags Ativas</div>
+          <div className="adminCardValue" style={{ color: 'var(--cm-primary)' }}>{activeFlagsCount}</div>
+          <div className="adminCardSub">Habilitadas</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
-          <div className="text-xs text-[var(--cm-muted-foreground)]">Limites & Cotas</div>
-          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">{totalLimitsCount}</div>
+        <div className="adminCard">
+          <div className="adminCardLabel">Limites & Cotas</div>
+          <div className="adminCardValue">{totalLimitsCount}</div>
+          <div className="adminCardSub">Políticas de consumo</div>
         </div>
-        <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)]/70">
-          <div className="text-xs text-[var(--cm-muted-foreground)]">Workspaces Ativos</div>
-          <div className="text-xl font-bold text-[var(--cm-foreground)] mt-1">{totalWorkspacesCount}</div>
+        <div className="adminCard">
+          <div className="adminCardLabel">Workspaces Ativos</div>
+          <div className="adminCardValue">{totalWorkspacesCount}</div>
+          <div className="adminCardSub">Multi-tenant</div>
         </div>
       </div>
 
-      {/* Estado Geral de Error */}
       {error && (
-        <div className="p-4 rounded-xl border border-red-500/30 bg-red-500/10 text-xs text-red-400 flex items-center justify-between">
+        <div style={{ padding: '10px 14px', borderRadius: '8px', fontSize: '13px', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', color: 'var(--cm-destructive)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <span>{error}</span>
           <button
             type="button"
             onClick={() => loadData()}
-            className="underline hover:text-red-300 ml-4 font-medium"
+            style={{ padding: '4px 10px', borderRadius: '6px', background: 'color-mix(in srgb, var(--cm-destructive) 20%, transparent)', color: 'var(--cm-destructive)', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
           >
             Tentar novamente
           </button>
         </div>
       )}
 
-      {/* Seção 1 — Ambiente & Sistema */}
-      <div className="p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)] space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="text-[var(--cm-primary)] text-sm">🖥</span>
-            <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Ambiente & Servidor</h3>
+      <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ color: 'var(--cm-primary)', fontSize: '14px' }}>🖥</span>
+            <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Ambiente & Servidor</h3>
           </div>
-          <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-[var(--cm-background)] text-[var(--cm-muted-foreground)] border border-[var(--cm-border)]">
+          <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 500, background: 'var(--cm-background)', color: 'var(--cm-muted-foreground)', border: '1px solid var(--cm-border)' }}>
             DSH Web Frontend
           </span>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-1 text-xs">
-          <div className="p-3 rounded-lg border border-[var(--cm-border)]/60 bg-[var(--cm-background)]/60">
-            <span className="text-[var(--cm-muted-foreground)] block text-[11px]">Modo de Execução</span>
-            <span className="font-mono text-[var(--cm-foreground)] font-medium mt-1 inline-block">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '12px' }}>
+          <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px' }}>
+            <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', fontSize: '11px' }}>Modo de Execução</span>
+            <span style={{ fontFamily: 'monospace', color: 'var(--cm-foreground)', fontWeight: 500, display: 'inline-block', marginTop: '4px' }}>
               {(import.meta as any).env?.MODE || 'production'}
             </span>
           </div>
-          <div className="p-3 rounded-lg border border-[var(--cm-border)]/60 bg-[var(--cm-background)]/60">
-            <span className="text-[var(--cm-muted-foreground)] block text-[11px]">Endpoint Supabase</span>
-            <span className="font-mono text-[var(--cm-foreground)] font-medium mt-1 inline-block">
+          <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px' }}>
+            <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', fontSize: '11px' }}>Endpoint Supabase</span>
+            <span style={{ fontFamily: 'monospace', color: 'var(--cm-foreground)', fontWeight: 500, display: 'inline-block', marginTop: '4px' }}>
               {maskedSupabaseUrl}
             </span>
           </div>
-          <div className="p-3 rounded-lg border border-[var(--cm-border)]/60 bg-[var(--cm-background)]/60">
-            <span className="text-[var(--cm-muted-foreground)] block text-[11px]">Raiz de Instalação no Host</span>
-            <span className="text-amber-400/90 font-medium mt-1 inline-block">
+          <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px' }}>
+            <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', fontSize: '11px' }}>Raiz de Instalação no Host</span>
+            <span style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500, display: 'inline-block', marginTop: '4px' }}>
               Não exposta por razões de segurança
             </span>
           </div>
         </div>
       </div>
 
-      {/* Seção 2 — Feature Flags */}
-      <div className="p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)] space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[var(--cm-primary)] text-sm">🚩</span>
-              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Feature Flags</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: 'var(--cm-primary)', fontSize: '14px' }}>🚩</span>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Feature Flags</h3>
             </div>
-            <p className="text-xs text-[var(--cm-muted-foreground)] mt-0.5">
-              Habilitação gradual e controle dinâmico de funcionalidades (<code className="text-[var(--cm-primary)]">feature.*</code>).
+            <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', margin: '4px 0 0 0' }}>
+              Habilitação gradual e controle dinâmico de funcionalidades (<code style={{ color: 'var(--cm-primary)' }}>feature.*</code>).
             </p>
           </div>
-
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input
               type="text"
               value={flagSearchQuery}
               onChange={e => setFlagSearchQuery(e.target.value)}
               placeholder="Buscar flag..."
-              className="px-2.5 py-1 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)]/50 focus:border-[var(--cm-primary)] focus:outline-none"
+              className="adminInput"
+              style={{ width: '200px', marginBottom: 0 }}
             />
             <button
               type="button"
               onClick={() => openCreateConfigModal('feature')}
-              className="px-3 py-1 rounded-lg bg-gradient-to-r from-[var(--cm-primary)] to-[var(--cm-primary)] text-xs font-semibold text-[var(--cm-primary-foreground)] hover:brightness-105 transition"
+              className="adminButton"
+              style={{ fontSize: '12px' }}
             >
               + Nova Flag
             </button>
@@ -504,26 +486,27 @@ export function AdminSystemTab() {
         </div>
 
         {isLoading ? (
-          <div className="p-6 text-center text-xs text-[var(--cm-muted-foreground)]">
-            <span className="inline-block animate-spin mr-2">↻</span> Carregando feature flags...
+          <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
+            <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--cm-border)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', marginRight: '8px', animation: 'cm-auth-spin 0.7s linear infinite' }} />
+            Carregando feature flags...
           </div>
         ) : filteredFlags.length === 0 ? (
-          <div className="p-6 text-center rounded-lg border border-dashed border-[var(--cm-border)] bg-[var(--cm-background)]/30 text-xs text-[var(--cm-muted-foreground)]">
+          <div style={{ padding: '24px', textAlign: 'center', borderRadius: '8px', border: '1px dashed var(--cm-border)', background: 'color-mix(in srgb, var(--cm-background) 30%, transparent)', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
             Nenhuma feature flag cadastrada no momento.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-[var(--cm-border)]">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
+            <table className="adminTable">
               <thead>
-                <tr className="border-b border-[var(--cm-border)] bg-[var(--cm-background)]/60 text-[var(--cm-muted-foreground)]">
-                  <th className="py-2.5 px-3 font-medium">Chave</th>
-                  <th className="py-2.5 px-3 font-medium">Valor / Estado</th>
-                  <th className="py-2.5 px-3 font-medium">Descrição</th>
-                  <th className="py-2.5 px-3 font-medium">Atualizado em</th>
-                  <th className="py-2.5 px-3 font-medium text-right">Actions</th>
+                <tr>
+                  <th>Chave</th>
+                  <th>Valor / Estado</th>
+                  <th>Descrição</th>
+                  <th>Atualizado em</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--cm-border)]/60">
+              <tbody>
                 {filteredFlags.map((item) => {
                   const isBool = typeof item.value === 'boolean'
                   const isEnabledObj =
@@ -532,49 +515,45 @@ export function AdminSystemTab() {
                   const canQuickToggle = isBool || isEnabledObj
 
                   return (
-                    <tr key={item.key} className="hover:bg-[var(--cm-background)]/30 transition">
-                      <td className="py-2.5 px-3 font-mono font-medium text-[var(--cm-foreground)]">
+                    <tr key={item.key}>
+                      <td style={{ fontFamily: 'monospace', fontWeight: 500, color: 'var(--cm-foreground)' }}>
                         {item.key}
                       </td>
-                      <td className="py-2.5 px-3">
+                      <td>
                         {canQuickToggle ? (
                           <button
                             type="button"
                             onClick={() => handleToggleFeatureFlag(item)}
-                            className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[11px] font-semibold transition ${
-                              isActive
-                                ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40'
-                                : 'bg-[var(--cm-secondary)]/50 text-[var(--cm-muted-foreground)] border border-[var(--cm-border)]'
-                            }`}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', border: `1px solid ${isActive ? 'color-mix(in srgb, var(--cm-success) 30%, transparent)' : 'var(--cm-border)'}`, background: isActive ? 'color-mix(in srgb, var(--cm-success) 15%, transparent)' : 'transparent', color: isActive ? 'var(--cm-success)' : 'var(--cm-muted-foreground)' }}
                           >
-                            <span className={`w-1.5 h-1.5 rounded-full ${isActive ? 'bg-emerald-400' : 'bg-[var(--cm-muted-foreground)]'}`} />
+                            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isActive ? 'var(--cm-success)' : 'var(--cm-muted-foreground)', display: 'inline-block' }} />
                             {isActive ? 'Ativa' : 'Inativa'}
                           </button>
                         ) : (
-                          <span className="font-mono text-[11px] text-[var(--cm-foreground)] truncate max-w-[200px] inline-block">
+                          <span style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cm-foreground)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }}>
                             {JSON.stringify(item.value)}
                           </span>
                         )}
                       </td>
-                      <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] max-w-xs truncate">
+                      <td style={{ color: 'var(--cm-muted-foreground)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                         {item.description || '—'}
                       </td>
-                      <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] whitespace-nowrap">
+                      <td style={{ color: 'var(--cm-muted-foreground)', whiteSpace: 'nowrap' }}>
                         {formatDate(item.updated_at)}
                       </td>
-                      <td className="py-2.5 px-3 text-right">
-                        <div className="inline-flex items-center gap-1.5">
+                      <td style={{ textAlign: 'right' }}>
+                        <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                           <button
                             type="button"
                             onClick={() => openEditConfigModal(item)}
-                            className="px-2 py-0.5 rounded border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] text-[11px] transition"
+                            style={{ height: '28px', padding: '0 10px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: 'pointer', fontSize: '11px' }}
                           >
                             Editar
                           </button>
                           <button
                             type="button"
                             onClick={() => openDeleteConfigModal(item)}
-                            className="px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-[11px] transition"
+                            style={{ height: '28px', padding: '0 10px', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', borderRadius: '6px', color: 'var(--cm-destructive)', cursor: 'pointer', fontSize: '11px' }}
                           >
                             Excluir
                           </button>
@@ -589,31 +568,31 @@ export function AdminSystemTab() {
         )}
       </div>
 
-      {/* Seção 3 — Limites Globais & Cotas */}
-      <div className="p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)] space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[var(--cm-primary)] text-sm">⚖️</span>
-              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Limites Globais & Cotas</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: 'var(--cm-primary)', fontSize: '14px' }}>⚖️</span>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Limites Globais & Cotas</h3>
             </div>
-            <p className="text-xs text-[var(--cm-muted-foreground)] mt-0.5">
-              Políticas de consumo, rate-limits e restrições operacionais (<code className="text-[var(--cm-primary)]">limit.*</code> e <code className="text-[var(--cm-primary)]">quota.*</code>).
+            <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', margin: '4px 0 0 0' }}>
+              Políticas de consumo, rate-limits e restrições operacionais (<code style={{ color: 'var(--cm-primary)' }}>limit.*</code> e <code style={{ color: 'var(--cm-primary)' }}>quota.*</code>).
             </p>
           </div>
-
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input
               type="text"
               value={limitSearchQuery}
               onChange={e => setLimitSearchQuery(e.target.value)}
               placeholder="Buscar limite..."
-              className="px-2.5 py-1 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)]/50 focus:border-[var(--cm-primary)] focus:outline-none"
+              className="adminInput"
+              style={{ width: '200px', marginBottom: 0 }}
             />
             <button
               type="button"
               onClick={() => openCreateConfigModal('limit')}
-              className="px-3 py-1 rounded-lg bg-gradient-to-r from-[var(--cm-primary)] to-[var(--cm-primary)] text-xs font-semibold text-[var(--cm-primary-foreground)] hover:brightness-105 transition"
+              className="adminButton"
+              style={{ fontSize: '12px' }}
             >
               + Novo Limite
             </button>
@@ -621,55 +600,56 @@ export function AdminSystemTab() {
         </div>
 
         {isLoading ? (
-          <div className="p-6 text-center text-xs text-[var(--cm-muted-foreground)]">
-            <span className="inline-block animate-spin mr-2">↻</span> Carregando limites...
+          <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
+            <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--cm-border)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', marginRight: '8px', animation: 'cm-auth-spin 0.7s linear infinite' }} />
+            Carregando limites...
           </div>
         ) : filteredLimits.length === 0 ? (
-          <div className="p-6 text-center rounded-lg border border-dashed border-[var(--cm-border)] bg-[var(--cm-background)]/30 text-xs text-[var(--cm-muted-foreground)]">
+          <div style={{ padding: '24px', textAlign: 'center', borderRadius: '8px', border: '1px dashed var(--cm-border)', background: 'color-mix(in srgb, var(--cm-background) 30%, transparent)', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
             Nenhum limite ou cota global configurado.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-[var(--cm-border)]">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
+            <table className="adminTable">
               <thead>
-                <tr className="border-b border-[var(--cm-border)] bg-[var(--cm-background)]/60 text-[var(--cm-muted-foreground)]">
-                  <th className="py-2.5 px-3 font-medium">Chave</th>
-                  <th className="py-2.5 px-3 font-medium">Valor</th>
-                  <th className="py-2.5 px-3 font-medium">Descrição</th>
-                  <th className="py-2.5 px-3 font-medium">Atualizado em</th>
-                  <th className="py-2.5 px-3 font-medium text-right">Actions</th>
+                <tr>
+                  <th>Chave</th>
+                  <th>Valor</th>
+                  <th>Descrição</th>
+                  <th>Atualizado em</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--cm-border)]/60">
+              <tbody>
                 {filteredLimits.map(item => (
-                  <tr key={item.key} className="hover:bg-[var(--cm-background)]/30 transition">
-                    <td className="py-2.5 px-3 font-mono font-medium text-[var(--cm-foreground)]">
+                  <tr key={item.key}>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 500, color: 'var(--cm-foreground)' }}>
                       {item.key}
                     </td>
-                    <td className="py-2.5 px-3">
-                      <span className="font-mono text-[11px] text-[var(--cm-primary)] font-semibold bg-[var(--cm-primary)]/10 px-2 py-0.5 rounded border border-[var(--cm-primary)]/20">
+                    <td>
+                      <span style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cm-primary)', fontWeight: 600, background: 'color-mix(in srgb, var(--cm-primary) 10%, transparent)', padding: '2px 8px', borderRadius: '4px', border: '1px solid color-mix(in srgb, var(--cm-primary) 20%, transparent)' }}>
                         {typeof item.value === 'object' ? JSON.stringify(item.value) : String(item.value)}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] max-w-xs truncate">
+                    <td style={{ color: 'var(--cm-muted-foreground)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {item.description || '—'}
                     </td>
-                    <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] whitespace-nowrap">
+                    <td style={{ color: 'var(--cm-muted-foreground)', whiteSpace: 'nowrap' }}>
                       {formatDate(item.updated_at)}
                     </td>
-                    <td className="py-2.5 px-3 text-right">
-                      <div className="inline-flex items-center gap-1.5">
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                         <button
                           type="button"
                           onClick={() => openEditConfigModal(item)}
-                          className="px-2 py-0.5 rounded border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] text-[11px] transition"
+                          style={{ height: '28px', padding: '0 10px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: 'pointer', fontSize: '11px' }}
                         >
                           Editar
                         </button>
                         <button
                           type="button"
                           onClick={() => openDeleteConfigModal(item)}
-                          className="px-2 py-0.5 rounded border border-red-500/20 bg-red-500/10 text-red-400 hover:bg-red-500/20 text-[11px] transition"
+                          style={{ height: '28px', padding: '0 10px', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', borderRadius: '6px', color: 'var(--cm-destructive)', cursor: 'pointer', fontSize: '11px' }}
                         >
                           Excluir
                         </button>
@@ -683,74 +663,74 @@ export function AdminSystemTab() {
         )}
       </div>
 
-      {/* Seção 4 — Workspaces Multi-tenant */}
-      <div className="p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)] space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[var(--cm-primary)] text-sm">📁</span>
-              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Workspaces Multi-tenant</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: 'var(--cm-primary)', fontSize: '14px' }}>📁</span>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Workspaces Multi-tenant</h3>
             </div>
-            <p className="text-xs text-[var(--cm-muted-foreground)] mt-0.5">
+            <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', margin: '4px 0 0 0' }}>
               Metadados de ambientes de trabalho isolados por tenant e usuário.
             </p>
           </div>
-
-          <div className="flex items-center gap-2">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <input
               type="text"
               value={workspaceSearchQuery}
               onChange={e => setWorkspaceSearchQuery(e.target.value)}
               placeholder="Buscar workspace ou tenant..."
-              className="px-2.5 py-1 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)]/50 focus:border-[var(--cm-primary)] focus:outline-none"
+              className="adminInput"
+              style={{ width: '240px', marginBottom: 0 }}
             />
           </div>
         </div>
 
         {isLoading ? (
-          <div className="p-6 text-center text-xs text-[var(--cm-muted-foreground)]">
-            <span className="inline-block animate-spin mr-2">↻</span> Carregando workspaces...
+          <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
+            <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--cm-border)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', marginRight: '8px', animation: 'cm-auth-spin 0.7s linear infinite' }} />
+            Carregando workspaces...
           </div>
         ) : filteredWorkspaces.length === 0 ? (
-          <div className="p-6 text-center rounded-lg border border-dashed border-[var(--cm-border)] bg-[var(--cm-background)]/30 text-xs text-[var(--cm-muted-foreground)]">
+          <div style={{ padding: '24px', textAlign: 'center', borderRadius: '8px', border: '1px dashed var(--cm-border)', background: 'color-mix(in srgb, var(--cm-background) 30%, transparent)', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
             Nenhum workspace ativo encontrado.
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-lg border border-[var(--cm-border)]">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
+            <table className="adminTable">
               <thead>
-                <tr className="border-b border-[var(--cm-border)] bg-[var(--cm-background)]/60 text-[var(--cm-muted-foreground)]">
-                  <th className="py-2.5 px-3 font-medium">Título</th>
-                  <th className="py-2.5 px-3 font-medium">Workspace ID</th>
-                  <th className="py-2.5 px-3 font-medium">Tenant</th>
-                  <th className="py-2.5 px-3 font-medium">Owner</th>
-                  <th className="py-2.5 px-3 font-medium">Caminho Relativo</th>
-                  <th className="py-2.5 px-3 font-medium">Criado em</th>
-                  <th className="py-2.5 px-3 font-medium text-right">Actions</th>
+                <tr>
+                  <th>Título</th>
+                  <th>Workspace ID</th>
+                  <th>Tenant</th>
+                  <th>Owner</th>
+                  <th>Caminho Relativo</th>
+                  <th>Criado em</th>
+                  <th style={{ textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[var(--cm-border)]/60">
+              <tbody>
                 {filteredWorkspaces.map(ws => (
-                  <tr key={ws.id} className="hover:bg-[var(--cm-background)]/30 transition">
-                    <td className="py-2.5 px-3 font-medium text-[var(--cm-foreground)]">{ws.title}</td>
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-[var(--cm-foreground)]">{ws.workspace_id}</td>
-                    <td className="py-2.5 px-3">
-                      <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-medium bg-[var(--cm-secondary)]/50 text-[var(--cm-foreground)] border border-[var(--cm-border)]">
+                  <tr key={ws.id}>
+                    <td style={{ fontWeight: 500, color: 'var(--cm-foreground)' }}>{ws.title}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cm-foreground)' }}>{ws.workspace_id}</td>
+                    <td>
+                      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-secondary) 50%, transparent)', color: 'var(--cm-foreground)', border: '1px solid var(--cm-border)' }}>
                         {ws.tenant_name}
                       </span>
                     </td>
-                    <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)]">{ws.user_email || '—'}</td>
-                    <td className="py-2.5 px-3 font-mono text-[11px] text-[var(--cm-muted-foreground)] max-w-xs truncate">
+                    <td style={{ color: 'var(--cm-muted-foreground)' }}>{ws.user_email || '—'}</td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cm-muted-foreground)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {ws.relative_path}
                     </td>
-                    <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] whitespace-nowrap">
+                    <td style={{ color: 'var(--cm-muted-foreground)', whiteSpace: 'nowrap' }}>
                       {formatDate(ws.created_at)}
                     </td>
-                    <td className="py-2.5 px-3 text-right">
+                    <td style={{ textAlign: 'right' }}>
                       <button
                         type="button"
                         onClick={() => openArchiveWorkspaceModal(ws)}
-                        className="px-2.5 py-1 rounded border border-amber-500/30 bg-amber-500/10 text-amber-300 hover:bg-amber-500/20 text-[11px] font-medium transition"
+                        style={{ height: '28px', padding: '0 10px', background: 'color-mix(in srgb, var(--cm-primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)', borderRadius: '6px', color: 'var(--cm-primary)', cursor: 'pointer', fontSize: '11px', fontWeight: 500 }}
                       >
                         Arquivar
                       </button>
@@ -763,91 +743,86 @@ export function AdminSystemTab() {
         )}
       </div>
 
-      {/* Seção 5 — Armazenamento & Paths (Vitrine de Armazenamento - Bloco 7.5 Parte B) */}
-      <div className="p-4 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-card)] space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-2 border-b border-[var(--cm-border)]/60">
+      <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px', paddingBottom: '8px', borderBottom: '1px solid var(--cm-border)' }}>
           <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[var(--cm-primary)] text-sm">💾</span>
-              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Armazenamento & Paths do Host</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: 'var(--cm-primary)', fontSize: '14px' }}>💾</span>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Armazenamento & Paths do Host</h3>
             </div>
-            <p className="text-xs text-[var(--cm-muted-foreground)] mt-0.5">
+            <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', margin: '4px 0 0 0' }}>
               Raízes operacionais no filesystem do servidor e mapeamento absoluto de workspaces ativos.
             </p>
           </div>
-          <span className="px-2.5 py-1 rounded text-[11px] font-medium bg-[var(--cm-background)] text-[var(--cm-primary)] border border-[var(--cm-primary)]/30">
+          <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 500, background: 'var(--cm-background)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)' }}>
             Somente Leitura
           </span>
         </div>
 
-        {/* 3 Cards de Raízes */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {/* Card 1: Workspaces Root */}
-          <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-background)]/80 flex flex-col justify-between gap-3">
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
+          <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[var(--cm-muted-foreground)] font-medium">Workspaces Root</span>
-                <span className="text-[10px] text-[var(--cm-primary)]/80 font-mono">storage.workspaces_root</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                <span style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500 }}>Workspaces Root</span>
+                <span style={{ fontSize: '10px', color: 'var(--cm-primary)', fontFamily: 'monospace', opacity: 0.8 }}>storage.workspaces_root</span>
               </div>
-              <div className="font-mono text-xs text-[var(--cm-foreground)] bg-[var(--cm-card)] p-2 rounded-lg border border-[var(--cm-border)]/80 mt-2 break-all">
+              <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--cm-foreground)', background: 'var(--cm-card)', padding: '8px', borderRadius: '8px', border: '1px solid var(--cm-border)', marginTop: '8px', wordBreak: 'break-all' }}>
                 {workspacesRootPath}
               </div>
             </div>
             <button
               type="button"
               onClick={() => handleCopyText(workspacesRootPath, 'ws-root')}
-              className="w-full py-1.5 px-3 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/40 text-xs font-medium text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] transition flex items-center justify-center gap-1.5"
+              style={{ width: '100%', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', fontSize: '12px', fontWeight: 500, color: 'var(--cm-foreground)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
               {copiedKey === 'ws-root' ? (
-                <span className="text-emerald-400 font-semibold">✓ Copied!</span>
+                <span style={{ color: 'var(--cm-success)', fontWeight: 600 }}>✓ Copied!</span>
               ) : (
                 <span>📋 Copy path</span>
               )}
             </button>
           </div>
 
-          {/* Card 2: Uploads Root */}
-          <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-background)]/80 flex flex-col justify-between gap-3">
+          <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[var(--cm-muted-foreground)] font-medium">Uploads Root</span>
-                <span className="text-[10px] text-[var(--cm-primary)]/80 font-mono">storage.uploads_root</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                <span style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500 }}>Uploads Root</span>
+                <span style={{ fontSize: '10px', color: 'var(--cm-primary)', fontFamily: 'monospace', opacity: 0.8 }}>storage.uploads_root</span>
               </div>
-              <div className="font-mono text-xs text-[var(--cm-foreground)] bg-[var(--cm-card)] p-2 rounded-lg border border-[var(--cm-border)]/80 mt-2 break-all">
+              <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--cm-foreground)', background: 'var(--cm-card)', padding: '8px', borderRadius: '8px', border: '1px solid var(--cm-border)', marginTop: '8px', wordBreak: 'break-all' }}>
                 {uploadsRootPath}
               </div>
             </div>
             <button
               type="button"
               onClick={() => handleCopyText(uploadsRootPath, 'up-root')}
-              className="w-full py-1.5 px-3 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/40 text-xs font-medium text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] transition flex items-center justify-center gap-1.5"
+              style={{ width: '100%', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', fontSize: '12px', fontWeight: 500, color: 'var(--cm-foreground)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
               {copiedKey === 'up-root' ? (
-                <span className="text-emerald-400 font-semibold">✓ Copied!</span>
+                <span style={{ color: 'var(--cm-success)', fontWeight: 600 }}>✓ Copied!</span>
               ) : (
                 <span>📋 Copy path</span>
               )}
             </button>
           </div>
 
-          {/* Card 3: Logs Root */}
-          <div className="p-3.5 rounded-xl border border-[var(--cm-border)] bg-[var(--cm-background)]/80 flex flex-col justify-between gap-3">
+          <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-[var(--cm-muted-foreground)] font-medium">Logs Root</span>
-                <span className="text-[10px] text-[var(--cm-primary)]/80 font-mono">storage.logs_root</span>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
+                <span style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500 }}>Logs Root</span>
+                <span style={{ fontSize: '10px', color: 'var(--cm-primary)', fontFamily: 'monospace', opacity: 0.8 }}>storage.logs_root</span>
               </div>
-              <div className="font-mono text-xs text-[var(--cm-foreground)] bg-[var(--cm-card)] p-2 rounded-lg border border-[var(--cm-border)]/80 mt-2 break-all">
+              <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--cm-foreground)', background: 'var(--cm-card)', padding: '8px', borderRadius: '8px', border: '1px solid var(--cm-border)', marginTop: '8px', wordBreak: 'break-all' }}>
                 {logsRootPath}
               </div>
             </div>
             <button
               type="button"
               onClick={() => handleCopyText(logsRootPath, 'log-root')}
-              className="w-full py-1.5 px-3 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-card)] hover:bg-[var(--cm-secondary)]/40 text-xs font-medium text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] transition flex items-center justify-center gap-1.5"
+              style={{ width: '100%', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', fontSize: '12px', fontWeight: 500, color: 'var(--cm-foreground)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
               {copiedKey === 'log-root' ? (
-                <span className="text-emerald-400 font-semibold">✓ Copied!</span>
+                <span style={{ color: 'var(--cm-success)', fontWeight: 600 }}>✓ Copied!</span>
               ) : (
                 <span>📋 Copy path</span>
               )}
@@ -855,36 +830,34 @@ export function AdminSystemTab() {
           </div>
         </div>
 
-        {/* Card: Acesso Seguro ao Servidor */}
-        <div className="p-4 rounded-xl border border-[var(--cm-primary)]/30 bg-gradient-to-r from-[var(--cm-card)] via-[var(--cm-background)] to-[var(--cm-card)] space-y-3">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="text-[var(--cm-primary)]">🔒</span>
-              <h4 className="text-xs font-semibold text-[var(--cm-foreground)]">Acesso Seguro ao Servidor</h4>
+        <div style={{ background: 'var(--cm-background)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: 'var(--cm-primary)' }}>🔒</span>
+              <h4 style={{ fontSize: '12px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Acesso Seguro ao Servidor</h4>
             </div>
-            <span className="text-[11px] text-[var(--cm-muted-foreground)]">
+            <span style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)' }}>
               O filesystem do host não é exposto pelo painel. Use SSH/SFTP.
             </span>
           </div>
 
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-2.5 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)]">
-            <div className="font-mono text-xs text-[var(--cm-primary)] break-all select-all">
+          <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '10px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-background)' }}>
+            <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--cm-primary)', wordBreak: 'break-all', userSelect: 'all' }}>
               {sshExampleCommand}
             </div>
             <button
               type="button"
               onClick={() => handleCopyText(sshExampleCommand, 'ssh-cmd')}
-              className="shrink-0 py-1 px-3 rounded-md bg-[var(--cm-primary)]/15 text-[var(--cm-primary)] hover:bg-[var(--cm-primary)]/25 border border-[var(--cm-primary)]/40 text-xs font-semibold transition"
+              style={{ padding: '4px 12px', borderRadius: '6px', background: 'color-mix(in srgb, var(--cm-primary) 15%, transparent)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 40%, transparent)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
               {copiedKey === 'ssh-cmd' ? '✓ Copied!' : 'Copy comando'}
             </button>
           </div>
         </div>
 
-        {/* Tabela Workspaces e Paths Absolutos */}
-        <div className="space-y-3 pt-2">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <h4 className="text-xs font-semibold text-[var(--cm-foreground)] flex items-center gap-2">
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+            <h4 style={{ fontSize: '12px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span>📂</span> Mapeamento de Workspaces e Paths Absolutos
             </h4>
             <input
@@ -892,48 +865,50 @@ export function AdminSystemTab() {
               value={storageWsSearchQuery}
               onChange={e => setStorageWsSearchQuery(e.target.value)}
               placeholder="Buscar workspace ou path..."
-              className="px-2.5 py-1 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-xs text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)]/50 focus:border-[var(--cm-primary)] focus:outline-none"
+              className="adminInput"
+              style={{ width: '240px', marginBottom: 0 }}
             />
           </div>
 
           {isLoading ? (
-            <div className="p-6 text-center text-xs text-[var(--cm-muted-foreground)]">
-              <span className="inline-block animate-spin mr-2">↻</span> Carregando mapeamento de paths...
+            <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
+              <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--cm-border)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', marginRight: '8px', animation: 'cm-auth-spin 0.7s linear infinite' }} />
+              Carregando mapeamento de paths...
             </div>
           ) : storageWorkspaces.length === 0 ? (
-            <div className="p-6 text-center rounded-lg border border-dashed border-[var(--cm-border)] bg-[var(--cm-background)]/30 text-xs text-[var(--cm-muted-foreground)]">
+            <div style={{ padding: '24px', textAlign: 'center', borderRadius: '8px', border: '1px dashed var(--cm-border)', background: 'color-mix(in srgb, var(--cm-background) 30%, transparent)', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
               Nenhum workspace registrado com mapeamento de path ativo.
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-lg border border-[var(--cm-border)]">
-              <table className="w-full text-left text-xs border-collapse">
+            <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
+              <table className="adminTable">
                 <thead>
-                  <tr className="border-b border-[var(--cm-border)] bg-[var(--cm-background)]/60 text-[var(--cm-muted-foreground)]">
-                    <th className="py-2.5 px-3 font-medium">Título</th>
-                    <th className="py-2.5 px-3 font-medium">Workspace ID</th>
-                    <th className="py-2.5 px-3 font-medium">Tenant</th>
-                    <th className="py-2.5 px-3 font-medium">Caminho Relativo</th>
-                    <th className="py-2.5 px-3 font-medium">Caminho Completo (Host)</th>
-                    <th className="py-2.5 px-3 font-medium text-right">Criado em</th>
+                  <tr>
+                    <th>Título</th>
+                    <th>Workspace ID</th>
+                    <th>Tenant</th>
+                    <th>Caminho Relativo</th>
+                    <th>Caminho Completo (Host)</th>
+                    <th style={{ textAlign: 'right' }}>Criado em</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[var(--cm-border)]/60">
+                <tbody>
                   {storageWorkspaces.map(ws => (
-                    <tr key={ws.id} className="hover:bg-[var(--cm-background)]/30 transition">
-                      <td className="py-2.5 px-3 font-medium text-[var(--cm-foreground)]">{ws.title}</td>
-                      <td className="py-2.5 px-3 font-mono text-[11px] text-[var(--cm-foreground)]">{ws.workspace_id}</td>
-                      <td className="py-2.5 px-3">
-                        <span className="inline-flex px-2 py-0.5 rounded text-[11px] font-medium bg-[var(--cm-secondary)]/50 text-[var(--cm-foreground)] border border-[var(--cm-border)]">
+                    <tr key={ws.id}>
+                      <td style={{ fontWeight: 500, color: 'var(--cm-foreground)' }}>{ws.title}</td>
+                      <td style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cm-foreground)' }}>{ws.workspace_id}</td>
+                      <td>
+                        <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-secondary) 50%, transparent)', color: 'var(--cm-foreground)', border: '1px solid var(--cm-border)' }}>
                           {ws.tenant_name}
                         </span>
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-[11px] text-[var(--cm-muted-foreground)]">
+                      <td style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cm-muted-foreground)' }}>
                         {ws.relative_path}
                       </td>
-                      <td className="py-2.5 px-3 font-mono text-[11px] text-[var(--cm-primary)] break-all">
+                      <td style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cm-primary)', wordBreak: 'break-all' }}>
                         {ws.full_path}
                       </td>
-                      <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] whitespace-nowrap text-right">
+                      <td style={{ color: 'var(--cm-muted-foreground)', whiteSpace: 'nowrap', textAlign: 'right' }}>
                         {formatDate(ws.created_at)}
                       </td>
                     </tr>
@@ -945,10 +920,12 @@ export function AdminSystemTab() {
         </div>
       </div>
 
-      {/* Modal 1: Criar / Editar Settings */}
       {isConfigModalOpen && (
-        <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[var(--cm-background)]/80 backdrop-blur-sm" onClick={closeModals} />
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+            onClick={closeModals}
+          />
           <div
             role="dialog"
             aria-modal="true"
@@ -961,25 +938,25 @@ export function AdminSystemTab() {
                 closeModals()
               }
             }}
-            className="relative z-10 w-full max-w-lg rounded-2xl border border-[var(--cm-primary)]/25 bg-[var(--cm-card)] p-6 shadow-2xl space-y-4 focus:outline-none"
+            style={{ position: 'relative', width: '100%', maxWidth: '520px', margin: '24px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--cm-shadow)', maxHeight: '80vh', overflowY: 'auto' }}
           >
-            <div className="flex items-center justify-between pb-3 border-b border-[var(--cm-border)]">
-              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--cm-border)', marginBottom: '16px' }}>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>
                 {selectedConfig ? 'Editar Parâmetro' : `Novo Parâmetro (${formPrefixType})`}
               </h3>
               <button
                 type="button"
                 onClick={closeModals}
                 disabled={isMutating}
-                className="text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] p-1 transition"
+                style={{ cursor: isMutating ? 'not-allowed' : 'pointer', background: 'none', border: 'none', color: 'var(--cm-muted-foreground)', fontSize: '16px' }}
               >
                 ✕
               </button>
             </div>
 
-            <form onSubmit={handleSaveConfig} className="space-y-4 text-xs">
-              <div className="space-y-1">
-                <label className="text-[var(--cm-muted-foreground)] font-medium">Chave do Parâmetro *</label>
+            <form onSubmit={handleSaveConfig} style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '12px' }}>
+              <div>
+                <label style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>Chave do Parâmetro *</label>
                 <input
                   type="text"
                   required
@@ -987,12 +964,13 @@ export function AdminSystemTab() {
                   value={formKey}
                   onChange={e => setFormKey(e.target.value)}
                   placeholder="Ex: feature.export_pdf, limit.max_tokens..."
-                  className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] font-mono focus:border-[var(--cm-primary)] focus:outline-none disabled:opacity-60"
+                  className="adminInput"
+                  style={{ fontFamily: 'monospace', opacity: (Boolean(selectedConfig) || isMutating) ? 0.5 : 1, marginBottom: 0 }}
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[var(--cm-muted-foreground)] font-medium">Valor (JSON ou Primitivo) *</label>
+              <div>
+                <label style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>Valor (JSON ou Primitivo) *</label>
                 <textarea
                   rows={4}
                   required
@@ -1000,44 +978,47 @@ export function AdminSystemTab() {
                   value={formValueStr}
                   onChange={e => setFormValueStr(e.target.value)}
                   placeholder='Ex: {"enabled": true} ou 1000'
-                  className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] font-mono focus:border-[var(--cm-primary)] focus:outline-none"
+                  className="adminInput"
+                  style={{ fontFamily: 'monospace', opacity: isMutating ? 0.5 : 1, marginBottom: 0 }}
                 />
-                <span className="text-[10px] text-[var(--cm-muted-foreground)]">
+                <span style={{ fontSize: '10px', color: 'var(--cm-muted-foreground)', display: 'block', marginTop: '4px' }}>
                   Dica: Para feature flags simples, utilize <code>{'{"enabled": true}'}</code> ou <code>true</code>.
                 </span>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[var(--cm-muted-foreground)] font-medium">Descrição do Impacto</label>
+              <div>
+                <label style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>Descrição do Impacto</label>
                 <input
                   type="text"
                   disabled={isMutating}
                   value={formDescription}
                   onChange={e => setFormDescription(e.target.value)}
                   placeholder="Finalidade ou documento de referência deste parâmetro"
-                  className="w-full px-3 py-2 rounded-lg border border-[var(--cm-border)] bg-[var(--cm-background)] text-[var(--cm-foreground)] focus:border-[var(--cm-primary)] focus:outline-none"
+                  className="adminInput"
+                  style={{ opacity: isMutating ? 0.5 : 1, marginBottom: 0 }}
                 />
               </div>
 
               {formError && (
-                <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-400">
+                <div style={{ padding: '10px 14px', borderRadius: '8px', fontSize: '13px', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', color: 'var(--cm-destructive)' }}>
                   {formError}
                 </div>
               )}
 
-              <div className="flex items-center justify-end gap-2 pt-3 border-t border-[var(--cm-border)]">
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '12px', borderTop: '1px solid var(--cm-border)' }}>
                 <button
                   type="button"
                   onClick={closeModals}
                   disabled={isMutating}
-                  className="px-3.5 py-1.5 rounded-lg border border-[var(--cm-border)] text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] transition font-medium"
+                  style={{ height: '32px', padding: '0 16px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: isMutating ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 500, opacity: isMutating ? 0.5 : 1 }}
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isMutating}
-                  className="px-4 py-1.5 rounded-lg bg-gradient-to-r from-[var(--cm-primary)] to-[var(--cm-primary)] text-[var(--cm-primary-foreground)] font-semibold hover:brightness-105 transition disabled:opacity-50"
+                  className="adminButton"
+                  style={{ opacity: isMutating ? 0.5 : 1 }}
                 >
                   {isMutating ? 'Saving...' : 'Salvar Parâmetro'}
                 </button>
@@ -1047,10 +1028,12 @@ export function AdminSystemTab() {
         </div>
       )}
 
-      {/* Modal 2: Confirmação de Exclusão de Parâmetro */}
       {isDeleteConfigModalOpen && selectedConfig && (
-        <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[var(--cm-background)]/80 backdrop-blur-sm" onClick={closeModals} />
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+            onClick={closeModals}
+          />
           <div
             role="dialog"
             aria-modal="true"
@@ -1063,30 +1046,30 @@ export function AdminSystemTab() {
                 closeModals()
               }
             }}
-            className="relative z-10 w-full max-w-md rounded-2xl border border-red-500/30 bg-[var(--cm-card)] p-6 shadow-2xl space-y-4 focus:outline-none"
+            style={{ position: 'relative', width: '100%', maxWidth: '480px', margin: '24px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--cm-shadow)' }}
           >
-            <div className="flex items-center gap-3 text-red-400">
-              <span className="text-xl">⚠️</span>
-              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Excluir Parâmetro</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--cm-destructive)' }}>
+              <span style={{ fontSize: '20px' }}>⚠️</span>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Excluir Parâmetro</h3>
             </div>
 
-            <p className="text-xs text-[var(--cm-muted-foreground)]">
+            <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '12px', marginBottom: 0 }}>
               Tem certeza de que deseja excluir a chave{' '}
-              <strong className="text-[var(--cm-foreground)] font-mono">{selectedConfig.key}</strong>?
+              <strong style={{ color: 'var(--cm-foreground)', fontFamily: 'monospace' }}>{selectedConfig.key}</strong>?
             </p>
 
             {formError && (
-              <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-400">
+              <div style={{ padding: '10px 14px', borderRadius: '8px', fontSize: '13px', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', color: 'var(--cm-destructive)', marginTop: '12px' }}>
                 {formError}
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--cm-border)]">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '12px', marginTop: '16px', borderTop: '1px solid var(--cm-border)' }}>
               <button
                 type="button"
                 onClick={closeModals}
                 disabled={isMutating}
-                className="px-3.5 py-1.5 rounded-lg border border-[var(--cm-border)] text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] transition text-xs font-medium"
+                style={{ height: '32px', padding: '0 16px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: isMutating ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 500, opacity: isMutating ? 0.5 : 1 }}
               >
                 Cancel
               </button>
@@ -1094,7 +1077,7 @@ export function AdminSystemTab() {
                 type="button"
                 onClick={handleDeleteConfig}
                 disabled={isMutating}
-                className="px-4 py-1.5 rounded-lg bg-red-500/20 border border-red-500/40 text-red-300 hover:bg-red-500/30 transition text-xs font-semibold disabled:opacity-50"
+                style={{ height: '32px', padding: '0 16px', background: 'color-mix(in srgb, var(--cm-destructive) 20%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 40%, transparent)', borderRadius: '6px', color: 'var(--cm-destructive)', cursor: isMutating ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 600, opacity: isMutating ? 0.5 : 1 }}
               >
                 {isMutating ? 'Deleting...' : 'Confirm Deletion'}
               </button>
@@ -1103,10 +1086,12 @@ export function AdminSystemTab() {
         </div>
       )}
 
-      {/* Modal 3: Confirmação de Arquivamento de Workspace (Soft Delete) */}
       {isArchiveWorkspaceModalOpen && selectedWorkspace && (
-        <div className="fixed inset-0 z-[1050] flex items-center justify-center p-4">
-          <div className="absolute inset-0 bg-[var(--cm-background)]/80 backdrop-blur-sm" onClick={closeModals} />
+        <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div
+            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+            onClick={closeModals}
+          />
           <div
             role="dialog"
             aria-modal="true"
@@ -1119,36 +1104,36 @@ export function AdminSystemTab() {
                 closeModals()
               }
             }}
-            className="relative z-10 w-full max-w-md rounded-2xl border border-amber-500/30 bg-[var(--cm-card)] p-6 shadow-2xl space-y-4 focus:outline-none"
+            style={{ position: 'relative', width: '100%', maxWidth: '480px', margin: '24px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--cm-shadow)' }}
           >
-            <div className="flex items-center gap-3 text-amber-400">
-              <span className="text-xl">📁</span>
-              <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Arquivar Workspace</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--cm-primary)' }}>
+              <span style={{ fontSize: '20px' }}>📁</span>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Arquivar Workspace</h3>
             </div>
 
-            <p className="text-xs text-[var(--cm-muted-foreground)]">
-              Deseja arquivar o workspace <strong className="text-[var(--cm-foreground)]">{selectedWorkspace.title}</strong> (
-              <span className="font-mono text-[var(--cm-foreground)]">{selectedWorkspace.workspace_id}</span>) do tenant{' '}
-              <strong className="text-[var(--cm-foreground)]">{selectedWorkspace.tenant_name}</strong>?
+            <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '12px', marginBottom: 0 }}>
+              Deseja arquivar o workspace <strong style={{ color: 'var(--cm-foreground)' }}>{selectedWorkspace.title}</strong> (
+              <span style={{ fontFamily: 'monospace', color: 'var(--cm-foreground)' }}>{selectedWorkspace.workspace_id}</span>) do tenant{' '}
+              <strong style={{ color: 'var(--cm-foreground)' }}>{selectedWorkspace.tenant_name}</strong>?
             </p>
 
-            <div className="p-3 rounded-lg border border-amber-500/30 bg-amber-500/10 text-xs text-amber-300">
+            <div style={{ padding: '12px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-primary) 10%, transparent)', fontSize: '12px', color: 'var(--cm-primary)', marginTop: '12px' }}>
               <strong>Nota de Segurança:</strong> Esta ação realiza um arquivamento lógico (soft delete).
               A pasta física de arquivos no servidor <strong>NÃO</strong> é excluída.
             </div>
 
             {formError && (
-              <div className="p-3 rounded-lg border border-red-500/30 bg-red-500/10 text-xs text-red-400">
+              <div style={{ padding: '10px 14px', borderRadius: '8px', fontSize: '13px', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', color: 'var(--cm-destructive)', marginTop: '12px' }}>
                 {formError}
               </div>
             )}
 
-            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--cm-border)]">
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', paddingTop: '12px', marginTop: '16px', borderTop: '1px solid var(--cm-border)' }}>
               <button
                 type="button"
                 onClick={closeModals}
                 disabled={isMutating}
-                className="px-3.5 py-1.5 rounded-lg border border-[var(--cm-border)] text-[var(--cm-foreground)] hover:text-[var(--cm-foreground)] hover:border-[var(--cm-muted-foreground)] transition text-xs font-medium"
+                style={{ height: '32px', padding: '0 16px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: isMutating ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 500, opacity: isMutating ? 0.5 : 1 }}
               >
                 Cancel
               </button>
@@ -1156,7 +1141,7 @@ export function AdminSystemTab() {
                 type="button"
                 onClick={handleArchiveWorkspace}
                 disabled={isMutating}
-                className="px-4 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 hover:bg-amber-500/30 transition text-xs font-semibold disabled:opacity-50"
+                style={{ height: '32px', padding: '0 16px', background: 'color-mix(in srgb, var(--cm-primary) 20%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-primary) 40%, transparent)', borderRadius: '6px', color: 'var(--cm-primary)', cursor: isMutating ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 600, opacity: isMutating ? 0.5 : 1 }}
               >
                 {isMutating ? 'Arquivando...' : 'Confirm Arquivamento'}
               </button>

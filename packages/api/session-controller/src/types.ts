@@ -124,6 +124,12 @@ export interface ModelCatalogModel {
   readonly name: string
   readonly description?: string
   readonly reasoning?: ModelReasoning
+  readonly contextWindow?: number
+  readonly costInput1k?: number
+  readonly costOutput1k?: number
+  readonly capabilities?: Record<string, JsonValue>
+  readonly isDefaultForPlans?: readonly string[]
+  readonly allowedPlans?: readonly string[]
 }
 
 /** One provider and its successfully loaded model catalog. */

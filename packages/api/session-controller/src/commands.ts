@@ -1,3 +1,4 @@
+import { upsertSessionIndex } from './session-db-sync.ts'
 import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
 /** Session commands whose activation policy is explicit at each Remote method. */
 
@@ -158,6 +159,12 @@ export class SessionCommandController {
         tenantId: identity.tenantId,
         userId: identity.userId,
       })
+      upsertSessionIndex({
+        sessionId: String(sessionId),
+        tenantId: identity.tenantId,
+        userId: identity.userId,
+        status: 'active',
+      })
     }
     if (workspace !== undefined) {
       try {
@@ -232,6 +239,15 @@ export class SessionCommandController {
     }
     try {
       const accepted = titles.rename(agent.session, request.title)
+      const tenantInfo = typeof agent.session === 'object' && agent.session !== null
+        ? sessionTenantMap.get(agent.session)
+        : undefined
+      upsertSessionIndex({
+        sessionId: String(request.sessionId),
+        tenantId: tenantInfo?.tenantId,
+        userId: tenantInfo?.userId,
+        title: accepted.title,
+      })
       return { title: accepted.title, seq: accepted.eventSeq }
     } catch (error) {
       if (error instanceof SessionTitleInvalidError) {

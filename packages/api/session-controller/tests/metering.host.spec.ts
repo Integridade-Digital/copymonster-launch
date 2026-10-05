@@ -1,3 +1,4 @@
+import type { Session } from '@deepseek-ai/dsh-session'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
@@ -89,14 +90,17 @@ describe('Token Metering (turn/end and sessionTenantMap)', () => {
       seq: SessionSeq(0),
       time: 1,
       data: { turn: 1, reason: 'complete' },
-    } as unknown as Session)
+    } as never)
 
     await new Promise(r => setTimeout(r, 20))
 
-    expect(rpcMock).toHaveBeenCalledTimes(1)
     expect(rpcMock).toHaveBeenCalledWith('increment_tenant_token_usage', {
       p_tenant_id: 'tenant-abc-123',
       p_tokens: 500, // (150+50) + (200+100)
+    })
+    expect(rpcMock).toHaveBeenCalledWith('runtime_increment_session_tokens', {
+      p_session_id: 'session-123',
+      p_tokens: 500,
     })
   })
 
@@ -124,7 +128,7 @@ describe('Token Metering (turn/end and sessionTenantMap)', () => {
       seq: SessionSeq(0),
       time: 1,
       data: { turn: 1, reason: 'complete' },
-    } as unknown as Session)
+    } as never)
 
     await new Promise(r => setTimeout(r, 20))
 
@@ -149,7 +153,7 @@ describe('Token Metering (turn/end and sessionTenantMap)', () => {
       seq: SessionSeq(0),
       time: 1,
       data: {},
-    } as unknown as Session)
+    } as never)
 
     expect(sessionTenantMap.get(sessionA)).toBeUndefined()
     expect(sessionTenantMap.get(sessionB)).toBeDefined()
@@ -191,12 +195,13 @@ describe('Token Metering (turn/end and sessionTenantMap)', () => {
         seq: SessionSeq(0),
         time: 1,
         data: { turn: 1, reason: 'complete' },
-      } as unknown as Session)
+      } as never)
     }).not.toThrow()
 
     await new Promise(r => setTimeout(r, 20))
 
-    expect(rpcMock).toHaveBeenCalledTimes(1)
+    expect(rpcMock).toHaveBeenCalledWith('increment_tenant_token_usage', expect.anything())
+    expect(rpcMock).toHaveBeenCalledWith('runtime_increment_session_tokens', expect.anything())
     expect(warnSpy).toHaveBeenCalledWith(
       '[metering] failed to increment token usage',
       expect.any(Error),

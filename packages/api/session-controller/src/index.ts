@@ -19,6 +19,7 @@ import {
 import { requireAuthIdentity } from './auth-identity.ts'
 import { SessionCommandController } from './commands.ts'
 import { sessionTenantMap } from './commands.ts'
+import { incrementSessionTokens, markSessionStatus, upsertSessionIndex } from './session-db-sync.ts'
 import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
 import { SessionControlController } from './control.ts'
 import { SessionHistoryController } from './history.ts'
@@ -62,6 +63,7 @@ import type {
 export type * from './types.ts'
 export { ApiSessionNotFound } from './agent.ts'
 export { sessionTenantMap } from './commands.ts'
+export * from './session-db-sync.ts'
 export { SessionFileReferences } from './file-references.ts'
 export { SessionSkillCatalog } from './skill-catalog.ts'
 
@@ -153,6 +155,7 @@ export class SessionController extends TypertRemoteService {
     })
     ctx.on('session/disposed', (session) => {
       sessionTenantMap.delete(session)
+      markSessionStatus(session.id, 'completed')
       ctx.emit('api-session/removed', session.id)
     })
     ctx.on('agent/status', ({ agent, status }) => {
@@ -209,6 +212,19 @@ export class SessionController extends TypertRemoteService {
             console.warn('[metering] failed to increment token usage', err)
           }
         })()
+        incrementSessionTokens(session.id, turnTokens)
+      }
+      try {
+        const agent = ctx.agents?.get(session.id)
+        const modelUsed = agent ? this.agents.selectionFor(agent)?.current?.model : undefined
+        if (modelUsed) {
+          upsertSessionIndex({
+            sessionId: session.id,
+            model: modelUsed,
+          })
+        }
+      } catch {
+        // model selection is optional
       }
     })
   }

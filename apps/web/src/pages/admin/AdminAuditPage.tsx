@@ -1,3 +1,4 @@
+import { formatDateTime } from '../../lib/format'
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../lib/supabase/client'
 
@@ -189,7 +190,7 @@ export function AdminAuditPage() {
               filteredLogs.map(log => (
                 <tr key={log.id} className="hover:bg-[var(--cm-muted)] transition-colors">
                   <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] font-mono text-[11px]">
-                    {new Date(log.created_at).toLocaleString('pt-BR')}
+                    {formatDateTime(log.created_at)}
                   </td>
                   <td className="py-2.5 px-3">
                     <span className="px-2 py-0.5 inline-flex text-[10px] font-semibold rounded bg-[var(--cm-secondary)] text-[var(--cm-foreground)] border border-[var(--cm-border)]">
@@ -264,7 +265,7 @@ export function AdminAuditPage() {
               </div>
               <div>
                 <span className="text-[var(--cm-muted-foreground)]">Data/Hora:</span>{' '}
-                {new Date(selectedLog.created_at).toLocaleString('pt-BR')}
+                {formatDateTime(selectedLog.created_at)}
               </div>
             </div>
             <div className="space-y-3 pt-2">

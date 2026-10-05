@@ -1,3 +1,4 @@
+import { formatDate } from '../../../lib/format'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase/client'
 
@@ -559,7 +560,7 @@ export function AdminSystemTab() {
                         {item.description || '—'}
                       </td>
                       <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] whitespace-nowrap">
-                        {new Date(item.updated_at).toLocaleDateString('pt-BR')}
+                        {formatDate(item.updated_at)}
                       </td>
                       <td className="py-2.5 px-3 text-right">
                         <div className="inline-flex items-center gap-1.5">
@@ -654,7 +655,7 @@ export function AdminSystemTab() {
                       {item.description || '—'}
                     </td>
                     <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] whitespace-nowrap">
-                      {new Date(item.updated_at).toLocaleDateString('pt-BR')}
+                      {formatDate(item.updated_at)}
                     </td>
                     <td className="py-2.5 px-3 text-right">
                       <div className="inline-flex items-center gap-1.5">
@@ -743,7 +744,7 @@ export function AdminSystemTab() {
                       {ws.relative_path}
                     </td>
                     <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] whitespace-nowrap">
-                      {new Date(ws.created_at).toLocaleDateString('pt-BR')}
+                      {formatDate(ws.created_at)}
                     </td>
                     <td className="py-2.5 px-3 text-right">
                       <button
@@ -933,7 +934,7 @@ export function AdminSystemTab() {
                         {ws.full_path}
                       </td>
                       <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] whitespace-nowrap text-right">
-                        {new Date(ws.created_at).toLocaleDateString('pt-BR')}
+                        {formatDate(ws.created_at)}
                       </td>
                     </tr>
                   ))}

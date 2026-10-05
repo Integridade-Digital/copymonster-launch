@@ -143,28 +143,6 @@ export interface DisplayFailure {
   readonly message: string
 }
 
-/**
- * Convert a durable failure to locale-independent fields safe for Chat.
- * @param failure - Failure preserved by a Session event.
- * @returns Sanitized message and optional stable provider code.
- */
-const SENSITIVE_FAILURE_PATTERNS = [
-  /@deepseek-ai(?:\/[^\s'"`]+)?/i,
-  /\/packages(?:\/[^\s'"`]*)?/i,
-  /\/tmp(?:\/[^\s'"`]*)?/i,
-  /\/var(?:\/[^\s'"`]*)?/i,
-  /(?:^|[\s"'`(=])(?:\/[a-zA-Z0-9_]+){2,}/,
-  /(?:[a-zA-Z]:\\[a-zA-Z0-9_\\]+)/,
-]
-
-function sanitizeFailureText(raw: string, code?: string): string {
-  for (const pattern of SENSITIVE_FAILURE_PATTERNS) {
-    if (pattern.test(raw)) {
-      return code ? `An unexpected error occurred (${code}). Please try again.` : 'An unexpected error occurred. Please try again.'
-    }
-  }
-  return raw
-}
 
 /**
  * Convert a durable failure to locale-independent fields safe for Chat.

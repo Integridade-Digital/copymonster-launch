@@ -1,3 +1,4 @@
+import { formatCurrency, formatDate } from '../../../lib/format'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase/client'
 
@@ -136,9 +137,8 @@ export function AdminBillingTab() {
   }
 
   // Format currency
-  const formatCurrency = (cents: number) => {
-    const amount = (cents || 0) / 100
-    return amount.toLocaleString('en-US', { style: 'currency', currency: 'USD' })
+  const formatCurrencyLocal = (cents: number) => {
+    return formatCurrency((cents || 0) / 100)
   }
 
   // Format tokens
@@ -251,7 +251,7 @@ export function AdminBillingTab() {
             </span>
             {kpis && (
               <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
-                MRR: {formatCurrency(kpis.mrr_estimated_cents)}
+                MRR: {formatCurrencyLocal(kpis.mrr_estimated_cents)}
               </span>
             )}
           </div>
@@ -301,7 +301,7 @@ export function AdminBillingTab() {
             Estimated MRR
           </div>
           <div className="text-xl font-bold text-[var(--cm-primary)] mt-1">
-            {kpis ? formatCurrency(kpis.mrr_estimated_cents) : '-'}
+            {kpis ? formatCurrencyLocal(kpis.mrr_estimated_cents) : '-'}
           </div>
         </div>
 
@@ -718,13 +718,13 @@ export function AdminBillingTab() {
                 <div>
                   <span className="text-xs text-[var(--cm-muted-foreground)] block">Monthly Price</span>
                   <span className="font-medium text-[var(--cm-foreground)]">
-                    {formatCurrency(inspectingTenant.monthly_price_cents || 0)}
+                    {formatCurrencyLocal(inspectingTenant.monthly_price_cents || 0)}
                   </span>
                 </div>
                 <div>
                   <span className="text-xs text-[var(--cm-muted-foreground)] block">Annual Price</span>
                   <span className="font-medium text-[var(--cm-foreground)]">
-                    {formatCurrency(inspectingTenant.annual_price_cents || 0)}
+                    {formatCurrencyLocal(inspectingTenant.annual_price_cents || 0)}
                   </span>
                 </div>
                 <div>

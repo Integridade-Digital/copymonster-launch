@@ -1,3 +1,4 @@
+import { formatDate } from '../../lib/format'
 import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../lib/supabase/client'
 
@@ -215,7 +216,7 @@ export function AdminTenantsPage() {
                     {tenant.subscription_status || 'trial'}
                   </td>
                   <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] text-[11px]">
-                    {new Date(tenant.created_at).toLocaleDateString('pt-BR')}
+                    {formatDate(tenant.created_at)}
                   </td>
                   <td className="py-2.5 px-3 text-right">
                     {tenant.status === 'active' ? (

@@ -1,3 +1,4 @@
+import { formatCurrency } from '../../../lib/format'
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase/client'
 
@@ -130,12 +131,7 @@ export function AdminOverviewTab() {
     }
   }
 
-  const formatCurrency = (val: number) => {
-    return new Intl.NumberFormat('pt-BR', {
-      style: 'currency',
-      currency: 'BRL',
-    }).format(val || 0)
-  }
+
 
   const formatNumber = (val: number) => {
     return new Intl.NumberFormat('pt-BR').format(val || 0)

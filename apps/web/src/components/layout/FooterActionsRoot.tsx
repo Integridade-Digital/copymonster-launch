@@ -91,6 +91,7 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
           className={css.actionButton}
           onClick={() => setActiveModal('plans')}
           title={wide ? undefined : t('common.plans')}
+          aria-label={t('common.plans')}
           aria-haspopup="dialog"
         >
           <span className={css.icon} aria-hidden="true">
@@ -108,6 +109,7 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
           className={css.actionButton}
           onClick={() => setActiveModal('profile')}
           title={wide ? undefined : t('common.profile')}
+          aria-label={t('common.profile')}
           aria-haspopup="dialog"
         >
           <span className={css.icon} aria-hidden="true">
@@ -127,6 +129,7 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
             className={css.actionButton}
             onClick={() => setActiveModal('admin')}
             title={wide ? undefined : t('common.admin')}
+            aria-label={t('common.admin')}
             aria-haspopup="dialog"
           >
             <span className={css.icon} aria-hidden="true">
@@ -149,6 +152,7 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
             window.dispatchEvent(new CustomEvent('copymonster:logout'))
           }}
           title={wide ? undefined : t('common.signOut')}
+          aria-label={t('common.signOut')}
         >
           <span className={css.icon} aria-hidden="true">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

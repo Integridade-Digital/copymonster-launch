@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { AdminOverviewTab } from '../../pages/admin/tabs/AdminOverviewTab'
 import { AdminUsersTab } from '../../pages/admin/tabs/AdminUsersTab'
 import { AdminTenantsTab } from '../../pages/admin/tabs/AdminTenantsTab'
@@ -53,24 +54,8 @@ export function AdminModal({ isOpen, onClose, triggerRef, role }: AdminModalProp
   const [activeTab, setActiveTab] = useState<AdminTabKey>('overview')
   const lang = getActiveLocale()
 
-  useEffect(() => {
-    if (!isOpen) return
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.preventDefault()
-        onClose()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    panelRef.current?.focus()
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      triggerRef?.current?.focus()
-    }
-  }, [isOpen, onClose, triggerRef])
+  const titleId = useId()
+  useFocusTrap(panelRef, { isOpen, onClose, triggerRef })
 
   if (!isOpen) return null
 
@@ -85,7 +70,7 @@ export function AdminModal({ isOpen, onClose, triggerRef, role }: AdminModalProp
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={t('common.admin')}
+        aria-labelledby={titleId}
         tabIndex={-1}
         className={css.panel}
       >
@@ -116,7 +101,7 @@ export function AdminModal({ isOpen, onClose, triggerRef, role }: AdminModalProp
             {/* Right Content Area */}
             <div className={css.contentArea}>
               <div className={css.header}>
-                <div className={css.headerTitle}>{activeTabTitle}</div>
+                <h3 id={titleId} className={css.headerTitle}>{activeTabTitle}</h3>
                 <button
                   type="button"
                   className={css.closeButton}
@@ -145,7 +130,7 @@ export function AdminModal({ isOpen, onClose, triggerRef, role }: AdminModalProp
         ) : (
           <div className={css.singlePanelContent}>
             <div className={css.header}>
-              <div className={css.headerTitle}>{t('common.admin')}</div>
+              <h3 id={titleId} className={css.headerTitle}>{t('common.admin')}</h3>
               <button
                 type="button"
                 className={css.closeButton}

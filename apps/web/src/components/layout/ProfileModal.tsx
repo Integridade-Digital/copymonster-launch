@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { ProfilePage, ProfileUser, ProfileSectionKey } from '../../pages/ProfilePage'
 import { t, getActiveLocale } from '../../locales'
 import css from './FooterActionsRoot.module.css'
@@ -28,24 +29,8 @@ export function ProfileModal({ isOpen, onClose, triggerRef, currentUser, onProfi
   const [activeSection, setActiveSection] = useState<ProfileSectionKey>('account')
   const lang = getActiveLocale()
 
-  useEffect(() => {
-    if (!isOpen) return
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.stopPropagation()
-        onClose()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    panelRef.current?.focus()
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      triggerRef?.current?.focus()
-    }
-  }, [isOpen, onClose, triggerRef])
+  const titleId = useId()
+  useFocusTrap(panelRef, { isOpen, onClose, triggerRef })
 
   if (!isOpen) return null
 
@@ -59,7 +44,7 @@ export function ProfileModal({ isOpen, onClose, triggerRef, currentUser, onProfi
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={t('profile.title')}
+        aria-labelledby={titleId}
         tabIndex={-1}
         className={css.panel}
       >
@@ -88,7 +73,7 @@ export function ProfileModal({ isOpen, onClose, triggerRef, currentUser, onProfi
         {/* Right Content Area */}
         <div className={css.contentArea}>
           <div className={css.header}>
-            <div className={css.headerTitle}>{activeTitle}</div>
+            <h3 id={titleId} className={css.headerTitle}>{activeTitle}</h3>
             <button
               type="button"
               className={css.closeButton}

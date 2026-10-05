@@ -11,6 +11,7 @@
   align-items: center;
   gap: 8px;
   width: 100%;
+  min-height: 44px;
   padding: 8px 12px;
   background: transparent;
   border: none;
@@ -126,7 +127,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  height: 36px;
+  min-height: 44px;
   padding: 0 12px;
   box-sizing: border-box;
   border: none;
@@ -506,4 +507,83 @@
   border: none;
   border-top: 1px solid var(--cm-border);
   margin: 24px 0;
+}
+
+/* Back buttons touch target >= 44px */
+.backButton,
+:global(.backButton),
+button.backButton,
+:global(button.backButton) {
+  min-height: 44px;
+  min-width: 44px;
+}
+
+/* ==========================================================================
+   Modal Responsiveness (< 768px) - UX-05
+   ========================================================================== */
+@media (max-width: 768px) {
+  .panel {
+    width: calc(100vw - 16px);
+    max-width: calc(100vw - 16px);
+    height: calc(100vh - 16px);
+    border-radius: 12px;
+    flex-direction: column;
+  }
+
+  .navRail {
+    width: 100%;
+    max-width: 100%;
+    flex-direction: row;
+    align-items: center;
+    border-right: none;
+    border-bottom: 1px solid var(--cm-secondary);
+    padding: 8px 12px;
+    gap: 8px;
+    overflow-x: auto;
+  }
+
+  .railTitle {
+    display: none;
+  }
+
+  .railList {
+    flex-direction: row;
+    overflow-x: auto;
+    overflow-y: hidden;
+    gap: 6px;
+    width: 100%;
+    padding-bottom: 2px;
+  }
+
+  .railCell {
+    white-space: nowrap;
+    flex-shrink: 0;
+    min-height: 44px;
+  }
+
+  .contentArea {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .bodyScroll {
+    padding: 16px;
+  }
+
+  .adminContainer,
+  :global(.adminContainer) {
+    flex-direction: column;
+  }
+
+  .adminTabBar,
+  :global(.adminTabBar) {
+    overflow-x: auto;
+    width: 100%;
+    max-width: 100%;
+  }
+
+  .adminContent,
+  :global(.adminContent) {
+    padding: 16px;
+  }
 }

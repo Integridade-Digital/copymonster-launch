@@ -1,4 +1,5 @@
-import { useEffect, useRef } from 'react'
+import { useId, useRef } from 'react'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { PlansPage, type PlansUser } from '../../pages/billing/PlansPage'
 import { t } from '../../locales'
 import css from './FooterActionsRoot.module.css'
@@ -13,24 +14,8 @@ interface PlansModalProps {
 export function PlansModal({ isOpen, onClose, triggerRef, currentUser }: PlansModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    if (!isOpen) return
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        event.stopPropagation()
-        onClose()
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    panelRef.current?.focus()
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      triggerRef?.current?.focus()
-    }
-  }, [isOpen, onClose, triggerRef])
+  const titleId = useId()
+  useFocusTrap(panelRef, { isOpen, onClose, triggerRef })
 
   if (!isOpen) return null
 
@@ -41,13 +26,13 @@ export function PlansModal({ isOpen, onClose, triggerRef, currentUser }: PlansMo
         ref={panelRef}
         role="dialog"
         aria-modal="true"
-        aria-label={t('plans.title')}
+        aria-labelledby={titleId}
         tabIndex={-1}
         className={css.panel}
       >
         <div className={css.singlePanelContent}>
           <div className={css.header}>
-            <div className={css.headerTitle}>{t('plans.title')}</div>
+            <h3 id={titleId} className={css.headerTitle}>{t('plans.title')}</h3>
             <button
               type="button"
               className={css.closeButton}

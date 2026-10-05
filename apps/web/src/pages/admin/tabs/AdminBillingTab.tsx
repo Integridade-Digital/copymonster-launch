@@ -1,4 +1,4 @@
-import { formatCurrency, formatDate } from '../../../lib/format'
+import { formatCurrency } from '../../../lib/format'
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase/client'
 

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /** Section, setup-card, and hand-written editor behavior over a scripted wire face. */
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Schema from '@deepseek-ai/schemastery'
 import { bindSnapshotSelector, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import type {
@@ -26,6 +26,18 @@ import { en } from '../src/client/locales.ts'
 import { settingsSchema } from './settings-schema.client.ts'
 
 afterEach(cleanup)
+
+const authGlobal = globalThis as { __DSH_AUTH__?: { accessToken?: string; role?: string } }
+
+// The page publishes this session before the section renders; the fail-closed
+// cases below overwrite or clear it to drop the caller's privilege.
+beforeEach(() => {
+  authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', role: 'admin' }
+})
+
+afterEach(() => {
+  delete authGlobal.__DSH_AUTH__
+})
 
 const t: ModelsSectionInjected['t'] = key => en[key]
 const OPENAI_TARGET = { provider: 'openai', displayName: 'openai' }
@@ -307,6 +319,24 @@ async function mountDeepSeekCard(overrides: Parameters<typeof scriptedFace>[0] =
 }
 
 describe('ModelsSection', () => {
+  it('refuses provider configuration from a non-admin caller', () => {
+    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', role: 'user' }
+    render(<ModelsSection {...({} as ModelsSectionProps)} />)
+    expect(screen.getByText('Acesso Restrito')).toBeTruthy()
+  })
+
+  it('refuses provider configuration when no session is published', () => {
+    delete authGlobal.__DSH_AUTH__
+    render(<ModelsSection {...({} as ModelsSectionProps)} />)
+    expect(screen.getByText('Acesso Restrito')).toBeTruthy()
+  })
+
+  it('admits provider configuration for an owner', () => {
+    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', role: 'owner' }
+    render(<ModelsSection {...({} as ModelsSectionProps)} />)
+    expect(screen.queryByText('Acesso Restrito')).toBeNull()
+  })
+
   it('hides both add actions when their settings namespaces are absent', async () => {
     const scripted = scriptedFace()
     scripted.face.settings.describe.mockResolvedValue(remoteOk({ writable: true, hasDocument: false, namespaces: [] }))

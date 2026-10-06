@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /** Model-list editing, endpoint interrogation, and hand-declared provider creation. */
 import { within, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import Schema from '@deepseek-ai/schemastery'
 import { bindSnapshotSelector, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import type { SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
@@ -18,6 +18,18 @@ import { en } from '../src/client/locales.ts'
 import { settingsSchema } from './settings-schema.client.ts'
 
 afterEach(cleanup)
+
+const authGlobal = globalThis as { __DSH_AUTH__?: { accessToken?: string; role?: string } }
+
+// The page publishes this session before the section renders, which is what
+// admits the provider forms these cases drive.
+beforeEach(() => {
+  authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', role: 'admin' }
+})
+
+afterEach(() => {
+  delete authGlobal.__DSH_AUTH__
+})
 
 const t: ModelsSectionInjected['t'] = key => en[key]
 

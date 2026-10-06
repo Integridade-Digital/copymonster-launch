@@ -51,20 +51,17 @@ function assertNever(_value: never): never {
  * @returns the onboarding modal or null when onboarding needs no intervention.
  */
 
+/**
+ * Whether the published browser session holds an owner or admin role, which is
+ * what admits this setup prompt. Fail-closed: a missing session, a missing
+ * access token, or a missing role claim completes onboarding instead of
+ * prompting, because the page publishes the role with the token it publishes
+ * for wire auth.
+ */
 function isClientAdminOrOwner(): boolean {
-  if (typeof globalThis === 'undefined') return true
   const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; role?: string } }).__DSH_AUTH__
-  if (!session || !session.accessToken) return true
-  if (session.role) return session.role === 'owner' || session.role === 'admin'
-  try {
-    const parts = session.accessToken.split('.')
-    if (parts[1]) {
-      const payload = JSON.parse(atob(parts[1]))
-      const role = payload.user_role || payload.role
-      if (role) return role === 'owner' || role === 'admin'
-    }
-  } catch {}
-  return false
+  if (session?.accessToken === undefined) return false
+  return session.role === 'owner' || session.role === 'admin'
 }
 
 export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): ReactNode {

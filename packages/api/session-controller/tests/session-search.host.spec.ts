@@ -17,7 +17,7 @@ import {
   type SessionSearchHit,
   type SessionSearchRequest,
 } from '@deepseek-ai/dsh-session-query'
-import { createSessionTestRemote, testSessionPersistence } from './test-remote.ts'
+import { createSessionTestRemote, testSessionPersistence, testSandboxCwd } from './test-remote.ts'
 import { ApiSessionList } from '../src/list.ts'
 
 const sid = (value: string): SessionId => value as SessionId
@@ -27,7 +27,7 @@ function request(query: string): { query: string } {
   return { query }
 }
 
-function header(id: string, cwd: string | null = '/project'): SessionHeader {
+function header(id: string, cwd: string | null = testSandboxCwd()): SessionHeader {
   return {
     version: SESSION_FORMAT_VERSION,
     id: sid(id),
@@ -106,12 +106,12 @@ describe('session.search', () => {
 
   it('searches only list-visible ids and current conversation-message events', async () => {
     const ctx = await baseContext()
-    const live = ctx.sessions.create(sid('live'), { meta: header('live', '/live') })
+    const live = ctx.sessions.create(sid('live'), { meta: header('live', testSandboxCwd('live')) })
     live.append('user/message', createUserMessage({
       content: [{ type: 'text', text: 'live text' }],
       source: { kind: 'user' },
     }), { surfaceOp: 'append' })
-    const cold = header('cold', '/cold')
+    const cold = header('cold', testSandboxCwd('cold'))
     const legacy = header('legacy', null)
     ctx.provide('sessionPersistence', testSessionPersistence(ctx, {
       list: () => Promise.resolve([cold, legacy]),
@@ -180,6 +180,30 @@ describe('session.search', () => {
       limit: 20,
     })
     expect(exec.signal).toBe(signal)
+  })
+
+  it('excludes sessions whose cwd is outside the caller sandbox', async () => {
+    const ctx = await baseContext()
+    const visible = hit('visible')
+    const foreignHeader = header('foreign', '/outside-sandbox/project')
+    ctx.sessions.create(visible.header.id, { meta: visible.header })
+    ctx.sessions.create(foreignHeader.id, { meta: foreignHeader })
+    const searchSessions = vi.fn(() => Promise.resolve({
+      items: [visible, { ...hit('foreign'), header: foreignHeader }],
+    }))
+    installSearchQuery(ctx, searchSessions)
+    const remote = createSessionTestRemote(ctx, defaults)
+
+    const response = await remote.search(request('anything'), new AbortController().signal)
+
+    expect(response).toEqual({
+      ok: true,
+      value: {
+        items: [{ sessionId: 'visible', snippet: 'match 0' }],
+        hasMore: false,
+      },
+    })
+    expect(searchSessions).toHaveBeenCalledOnce()
   })
 
   it('rejects invalid wire queries before invoking the search provider', async () => {
@@ -765,9 +789,10 @@ describe('session.search', () => {
 
   it('keeps visibility sets above SQLite variable limits out of provider bindings', async () => {
     const ctx = await baseContext()
+    const root = testSandboxCwd()
     const cold = Array.from(
       { length: 32_751 },
-      (_, index) => header(`cold-${index}`, `/cold-${index}`),
+      (_, index) => header(`cold-${index}`, `${root}/cold-${index}`),
     )
     ctx.provide('sessionPersistence', testSessionPersistence(ctx, {
       list: () => Promise.resolve(cold),
@@ -796,7 +821,7 @@ describe('session.search', () => {
   it('propagates cancellation through the lightweight visibility listing', async () => {
     const ctx = await baseContext()
     const controller = new AbortController()
-    const cold = Array.from({ length: 32 }, (_, index) => header(`cold-${index}`, `/cold-${index}`))
+    const cold = Array.from({ length: 32 }, (_, index) => header(`cold-${index}`, testSandboxCwd(`cold-${index}`)))
     const list = vi.fn((signal?: AbortSignal) => {
       expect(signal).toBe(controller.signal)
       controller.abort()
@@ -829,7 +854,7 @@ describe('session.search', () => {
 
   it('does not stat or open cold artifacts while collecting search visibility', async () => {
     const ctx = await baseContext()
-    const cold = Array.from({ length: 16 }, (_, index) => header(`cold-${index}`, `/cold-${index}`))
+    const cold = Array.from({ length: 16 }, (_, index) => header(`cold-${index}`, testSandboxCwd(`cold-${index}`)))
     const stat = vi.fn()
     const inspect = vi.fn()
     ctx.provide('sessionPersistence', testSessionPersistence(ctx, {

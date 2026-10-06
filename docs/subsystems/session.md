@@ -775,7 +775,7 @@ inspect( sessionId: SessionId, signal?: AbortSignal, ): Promise<SessionInspectio
  * @param signal - cancellation for persistence reads.
  * @returns visible Session summaries ordered by activity.
  */
-@Remote('list') async list(_request: SessionListRequest, signal: AbortSignal): Promise<SessionListValue>
+@RemoteScope('auth', 'list') async list(_request: SessionListRequest, signal: AbortSignal): Promise<SessionListValue>
 
 /**
  * Search visible Session content without resuming an Agent.
@@ -783,14 +783,14 @@ inspect( sessionId: SessionId, signal?: AbortSignal, ): Promise<SessionInspectio
  * @param signal - cancellation for list and search reads.
  * @returns authorized bounded Session search results.
  */
-@Remote('search') search(request: SessionSearchRequest, signal: AbortSignal): Promise<SessionSearchValue>
+@RemoteScope('auth', 'search') search(request: SessionSearchRequest, signal: AbortSignal): Promise<SessionSearchValue>
 
 /**
  * Create or idempotently adopt one ordinary Session.
  * @param request - requested identity, location, and Agent preset.
  * @returns the Session identity and resolved preset when configured.
  */
-@Remote('create') create(request: SessionCreateRequest): Promise<SessionCreateValue>
+@RemoteScope('auth', 'create') create(request: SessionCreateRequest): Promise<SessionCreateValue>
 
 /**
  * Select one Session-local model after explicitly resuming the Session.
@@ -831,14 +831,14 @@ workspaceDesktop(): { name: string; available: boolean; fileManager: 'finder' | 
  * @param request - Session identity and proposed title.
  * @returns the accepted title and durable event sequence.
  */
-@Remote('rename') rename(request: SessionRenameRequest): Promise<SessionRenameValue>
+@RemoteScope('auth', 'rename') rename(request: SessionRenameRequest): Promise<SessionRenameValue>
 
 /**
  * Fork one cold-readable completed-turn prefix into a new Session.
  * @param request - source Session and optional event anchor.
  * @returns the new Session identity.
  */
-@Remote('fork') fork(request: SessionForkRequest): Promise<SessionForkValue>
+@RemoteScope('auth', 'fork') fork(request: SessionForkRequest): Promise<SessionForkValue>
 
 /**
  * Admit one prompt after explicitly resuming its Session.
@@ -846,7 +846,7 @@ workspaceDesktop(): { name: string; available: boolean; fileManager: 'finder' | 
  * @param signal - caller cancellation before prompt admission begins.
  * @returns acknowledgement that the Agent accepted the prompt.
  */
-@Remote('prompt') prompt(request: SessionPromptRequest, signal: AbortSignal): Promise<SessionPromptValue>
+@RemoteScope('auth', 'prompt') prompt(request: SessionPromptRequest, signal: AbortSignal): Promise<SessionPromptValue>
 
 /**
  * Read one image proven reachable from the addressed Session log.
@@ -875,16 +875,25 @@ workspaceDesktop(): { name: string; available: boolean; fileManager: 'finder' | 
  * @param signal - cancellation for persistence reads.
  * @returns one chronological page.
  */
-@Remote('page') page(request: SessionPageRequest, signal: AbortSignal): Promise<SessionPage>
+@RemoteScope('auth', 'page') page(request: SessionPageRequest, signal: AbortSignal): Promise<SessionPage>
 
 /**
  * Follow one Session log from its opening or resume cursor.
- * @param request - durable address and last committed sequence already held by the caller.
+ *
+ * `@RemoteScope` cannot carry this verb yet: the Typert generator discards
+ * `mode` for a `context` invocation, so a scoped stream is emitted as a unary
+ * method and breaks the Client contract. This verb therefore stays a direct
+ * stream and resolves the caller's identity itself from the same bearer token
+ * a scoped verb carries, refusing a call the Host cannot attribute to a
+ * confined root. Migrate to `@RemoteScope('auth', 'follow')` once the
+ * generator supports a stream and a context together.
+ *
+ * @param request - durable address, last committed sequence, and bearer token.
  * @param signal - cancellation owned by the Remote stream carrier.
  * @returns a complete opening snapshot followed by gap-free durable event
  *   frames and optional cursorless assistant-stream frames.
  */
-@Remote({ mode: 'stream' }) follow(request: SessionFollowRequest, signal: AbortSignal): AsyncIterable<SessionFollowFrame>
+@Remote({ mode: 'stream' }) async *follow(request: SessionFollowRequest, signal: AbortSignal): AsyncIterable<SessionFollowFrame>
 
 /**
  * Stream a complete live-control baseline followed by replacement frames.

@@ -291,9 +291,11 @@ export class SessionController extends TypertRemoteService {
    * @param signal - cancellation for list and search reads.
    * @returns authorized bounded Session search results.
    */
-  @Remote('search')
+  @RemoteScope('auth', 'search')
   search(request: SessionSearchRequest, signal: AbortSignal): Promise<SessionSearchValue> {
-    return this.listState.search(request.query, signal)
+    const identity = requireAuthIdentity(this.ctx)
+    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    return this.listState.search(request.query, signal, sandboxRoot)
   }
 
   /**

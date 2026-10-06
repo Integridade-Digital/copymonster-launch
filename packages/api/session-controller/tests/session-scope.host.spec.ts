@@ -2,10 +2,12 @@ import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
-import SessionStore, { SESSION_FORMAT_VERSION, SessionId } from '@deepseek-ai/dsh-session'
+import SessionStore, { SESSION_FORMAT_VERSION, SessionId, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { SessionHeader } from '@deepseek-ai/dsh-session'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
+import { SessionQueryEngine, type SessionSearchHit, type SessionSearchRequest } from '@deepseek-ai/dsh-session-query'
 import { resolveUserSandboxRoot } from '@deepseek-ai/dsh-workspace'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { SessionCommandController } from '../src/commands.ts'
 import { ApiSessionList } from '../src/list.ts'
 import { SessionHistoryController } from '../src/history.ts'
@@ -36,6 +38,44 @@ function sessionHeader(sessionId: string, cwd: string): SessionHeader {
   }
 }
 
+function searchHit(header: SessionHeader, snippet: string): SessionSearchHit {
+  return {
+    header,
+    live: false,
+    persisted: true,
+    bestMatch: {
+      sessionId: header.id,
+      seq: SessionSeq(1),
+      type: 'user/message',
+      time: 2,
+      surface: 'current',
+      snippet,
+    },
+  }
+}
+
+/** Query engine with a programmable full-text provider for isolation tests. */
+class ProgrammaticSearchQuery extends SessionQueryEngine {
+  constructor(
+    ctx: Context,
+    private readonly search: (
+      ...args: Parameters<SessionQueryEngine['searchSessions']>
+    ) => Promise<unknown>,
+  ) {
+    super(ctx)
+  }
+
+  override searchSessions(
+    ...args: Parameters<SessionQueryEngine['searchSessions']>
+  ): ReturnType<SessionQueryEngine['searchSessions']> {
+    return this.search(...args) as ReturnType<SessionQueryEngine['searchSessions']>
+  }
+
+  override searchEvents(): Promise<never> {
+    return Promise.reject(new Error('event search is not configured in this test'))
+  }
+}
+
 async function listContext(sessions: readonly SessionHeader[]): Promise<Context> {
   const ctx = new Context()
   await ctx.plugin(SessionStore)
@@ -44,6 +84,24 @@ async function listContext(sessions: readonly SessionHeader[]): Promise<Context>
     inspect: () => Promise.resolve(undefined),
   }) as never)
   installSessionReadTestServices(ctx)
+  return ctx
+}
+
+/** List context whose query engine delegates searchSessions to a programmable provider. */
+async function searchContext(
+  sessions: readonly SessionHeader[],
+  searchSessions: (
+    ...args: Parameters<SessionQueryEngine['searchSessions']>
+  ) => Promise<unknown>,
+): Promise<Context> {
+  const ctx = new Context()
+  await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
+  ctx.provide('sessionPersistence', testSessionPersistence(ctx, {
+    list: () => Promise.resolve(sessions),
+    inspect: () => Promise.resolve(undefined),
+  }) as never)
+  new ProgrammaticSearchQuery(ctx, searchSessions)
   return ctx
 }
 
@@ -80,6 +138,24 @@ describe('Session multi-tenant isolation', () => {
     const idsB = itemsB.map(item => item.sessionId)
     expect(idsB).toContain('session-b')
     expect(idsB).not.toContain('session-nocwd')
+  })
+
+  it('user B cannot search user A sessions', async () => {
+    const headerA = sessionHeader('session-a', `${sandboxA}/project-a`)
+    const headerB = sessionHeader('session-b', `${sandboxB}/project-b`)
+    const searchSessions = vi.fn((_request: SessionSearchRequest) => Promise.resolve({
+      items: [searchHit(headerA, 'secret a'), searchHit(headerB, 'match b')],
+    }))
+    const ctx = await searchContext([headerA, headerB], searchSessions)
+    const list = new ApiSessionList(ctx)
+
+    const response = await list.search('query', new AbortController().signal, sandboxB)
+
+    expect(response).toEqual({
+      items: [{ sessionId: 'session-b', snippet: 'match b' }],
+      hasMore: false,
+    })
+    expect(searchSessions).toHaveBeenCalledOnce()
   })
 
   it('user B cannot page user A session', async () => {

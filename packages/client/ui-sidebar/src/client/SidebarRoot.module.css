@@ -566,4 +566,11 @@
   max-width: 100%;
   user-select: none;
   -webkit-user-drag: none;
+  /* Light mode (default) — wordmark preto */
+  content: url('/brand-text-black.png');
+}
+
+/* Dark mode — wordmark branco */
+:global(body[data-ds-dark-theme]) .brandWordmark {
+  content: url('/brand-text.png');
 }

@@ -267,6 +267,7 @@ Legenda esforço: **S** < 1 dia · **M** 1–5 dias · **L** > 1 semana.
 | SEC-21 | 1.7 | `pnpm audit`: 1 critical (vitest 1.6.1), 43 high (js-yaml, pnpm, vite, undici…) | `pnpm-lock.yaml`; pkg jsons | MÉDIO | Bump vitest ≥3.2.6 (ou alinhar 4.x), js-yaml ≥4.3.0; triage o resto (maioria dev tooling) | M |
 | SEC-22 | 1.4 | `assertPathInSandbox` lexical (sem realpath no alvo) — symlink p/ fora passaria | `packages/workspace/workspace/src/sandbox.ts:79-90` | BAIXO | `realpath` o alvo antes do `startsWith` | S |
 | SEC-23 | 1.3 | `search_path` não fixado em `trigger_initialize_tenant_trial`, `increment_tenant_token_usage`, `log_audit_event` | `007:70,104`; `002:245` | BAIXO | `SET search_path = public` nas funções vivas | S |
+| SEC-24 | 1.4/3.1 | Bug 2 — chat compartilhado: `session.search` exposto sem `@RemoteScope('auth')` e sem confinar o `cwd` das sessões visíveis ao chamador | `packages/api/session-controller/src/index.ts` (verb `search`); `packages/api/session-controller/src/list.ts` | ALTO | **RESOLVIDO** — escopo auth + `assertPathInSandbox` em `search`; SHAs `0a881b6685` (mock de teste) + `3e4dffe1fc` (fix) | S |
 
 | # | Eixo | Item | Arquivo:linha | Severidade | Recomendação | Esforço |
 |---|---|---|---|---|---|---|
@@ -314,6 +315,8 @@ Legenda esforço: **S** < 1 dia · **M** 1–5 dias · **L** > 1 semana.
 | UX-10 | 4.1 | Acentos fora da paleta (azuis #58a6ff/#388bfd/#388bfd, verde #2ea043, laranja #ff6b00) | `billing.css:64,106,200`; `AdminAuditPage.tsx:110`; `AppFrame.css:31` | BAIXO | Restringir accents a gold+neutros; tokens CSS | S |
 | UX-11 | 4.1 | Fontes 10–11px em admin (71× text-[11px], 25× text-[10px]) | grep em `apps/web/src` | BAIXO | Floor de 12px | S |
 | UX-12 | 4.2 | Spinners/skeletons não padronizados em componente | múltiplos tabs | BAIXO | Extrair `<Spinner/>`/`<Skeleton/>` | S |
+| UX-13 | 4.2 | Bug 3 — primeira execução travada: Fase 4 incompleta, `workspace.ensureInitial()` exposto sem caller no frontend; composer inerte com `sessionId === undefined`; toda criação de sessão exige workspace existente | `packages/api/workspace-controller/src/index.ts:69-71`; `packages/client/ui-conversation/src/client/skeleton/ConversationContent.tsx:135`; `packages/client/ui-workspace/src/client/navigation.ts` | ALTO | **RESOLVIDO** — provisionamento no boot do `ui-workspace` + navegação não-terminal com registro vazio (SHA `52c2cd597f`); âncora/contenção do diálogo browse ao sandbox já em `6c825bd0b9` | S |
+| UX-14 | 4.2 | Bug 1 — menu de modelos em Settings sem gating por role visível ao usuário comum no shell DSH; a auditoria só documentou o gate do `AdminModal` | `packages/client/ui-settings-models/src/client/ModelsSection.tsx`; `apps/web/src/components/layout/AdminModal.tsx:77` | ALTO | Gate por role no entry de Settings + defesa server-side; **PENDENTE — diagnóstico e fix no próximo passo do plano** | S |
 
 | # | Eixo | Item | Arquivo:linha | Severidade | Recomendação | Esforço |
 |---|---|---|---|---|---|---|

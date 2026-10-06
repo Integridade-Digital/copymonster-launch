@@ -69,7 +69,7 @@ agent-presets:
   default: minimal
 ```
 
-客户端只需写入 `modeSelectionEnabled` 即可显示或隐藏选择，[Web GUI 设置开关](../../client/ui-agent-preset/README.zh.md)正是这样做的。选择器隐藏期间由部署默认值生效；再次开启时恢复已保存的用户 `default`，尚未保存时则继续使用部署默认值。模式选择保持开启时，选择默认模式会写入用户覆盖值，仅供此后创建的会话使用。由于该策略归 Host 所有，它适用于 Web、CLI、SDK 与 headless 调用方此后创建的全部未显式指定 preset 的会话；显式指定的 preset 与任何既有会话均不受影响。
+客户端只需写入 `modeSelectionEnabled` 即可显示或隐藏选择，[Web GUI 设置开关](../../client/ui-agent-preset/README.zh.md)正是这样做的。选择器隐藏期间由部署默认值生效；再次开启时恢复已保存的用户 `default`，尚未保存时则继续使用部署默认值。模式选择保持开启时，选择默认模式会写入用户覆盖值，仅供此后创建的会话使用。由于该策略归 Host 所有，它适用于 Web、CLI、SDK 与 headless 调用方此后创建的全部未显式指定 preset 的会话；显式指定的 preset 与任何既有会话均不受影响。当生效默认值的组合不可用——例如移除的插件 bundle、损坏的文件或过期的用户选择——未命名的新会话改为按部署 `default` 组合，Host 同时记录一条警告；显式指定的 preset 仍会因其自身损坏的组合而失败。
 
 ### 创作 preset
 

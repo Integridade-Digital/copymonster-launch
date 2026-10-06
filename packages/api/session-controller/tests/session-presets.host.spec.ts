@@ -33,6 +33,8 @@ function roster(ids: readonly string[]): unknown {
   })
   return {
     defaultId: ids[0],
+    // No preset in this fake is broken, so the policy default always mounts.
+    defaultMountId: () => Promise.resolve(ids[0] ?? ''),
     resolve: (id?: string) => {
       const wanted = id ?? ids[0] ?? ''
       if (!ids.includes(wanted)) {

@@ -259,6 +259,38 @@ export class AgentPresets extends TypertRemoteService {
   }
 
   /**
+   * The preset id an unnamed new session composes.
+   *
+   * The selection policy's default is used while its composition is usable.
+   * When that preset is unusable — a removed plugin bundle, a corrupted
+   * composition file, or a stale user choice — the deployment's configured
+   * default takes over and a warning records the substitution, because one
+   * unusable default must not fail every new session. An explicit preset
+   * request never falls back; only the unnamed default is repaired.
+   * @returns the preset id to compose, or the unusable policy default when the
+   * configured default is unusable or absent too, so the caller reports that
+   * preset's own failure.
+   */
+  async defaultMountId(): Promise<string> {
+    const preferred = await this.resolve()
+    if (preferred.broken === undefined) return preferred.id
+    if (preferred.id === this.config.default) return preferred.id
+    let fallback: AgentPreset
+    try {
+      fallback = await this.resolve(this.config.default)
+    } catch {
+      // A configured default absent from the roots is not a fallback candidate;
+      // the caller reports the preferred preset's own failure instead.
+      return preferred.id
+    }
+    if (fallback.broken !== undefined) return preferred.id
+    this.ctx.logger.warn(
+      `agent-presets: default preset "${preferred.id}" is unusable (${preferred.broken}); composing "${fallback.id}" instead`,
+    )
+    return fallback.id
+  }
+
+  /**
    * Every preset the configured roots currently supply.
    * @returns the presets, first-root-wins per id.
    */

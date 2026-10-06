@@ -386,7 +386,9 @@ export class ApiSessionAgentController {
     if (presets === undefined) {
       return { setup: (_agentCtx, agent) => { this.installSelection(agent) } }
     }
-    const resolvedId = (await presets.resolve(presetId)).id
+    const resolvedId = presetId === undefined
+      ? await presets.defaultMountId()
+      : (await presets.resolve(presetId)).id
     return {
       agentPreset: resolvedId,
       setup: async (agentCtx, agent) => {

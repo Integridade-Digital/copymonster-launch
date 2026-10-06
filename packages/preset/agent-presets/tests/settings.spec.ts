@@ -19,7 +19,7 @@ import ToolRuntime from '@deepseek-ai/dsh-tools'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
 import AgentLoop from '@deepseek-ai/dsh-agent-loop'
 import FileSettingsProvider from '@deepseek-ai/dsh-settings-file'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import AgentPresets, { COMPOSITION_FILE, SETTINGS_NAMESPACE } from '@deepseek-ai/dsh-agent-presets'
 
 const FIXTURES = join(dirname(fileURLToPath(import.meta.url)), 'fixtures')
@@ -38,6 +38,7 @@ afterEach(async () => {
  */
 async function harness(
   extraRoots: readonly { path: string; trust: 'system' | 'user' }[] = [],
+  defaultPreset = 'standard',
 ): Promise<{ ctx: Context; settingsFile: string; settingsFiber: { dispose: () => unknown } }> {
   const home = await mkdtemp(join(tmpdir(), 'dsh-preset-settings-'))
   roots.push(home)
@@ -57,7 +58,12 @@ async function harness(
   await ctx.plugin(AgentLoop, { agents: [] })
   const settingsFiber = ctx.plugin(FileSettingsProvider, { path: settingsFile, watch: false })
   await settingsFiber
-  await ctx.plugin(AgentPresets, { default: 'standard', roots: [...ROOTS, ...extraRoots], includeShippedRoot: false, includeUserRoot: false })
+  await ctx.plugin(AgentPresets, {
+    default: defaultPreset,
+    roots: [...ROOTS, ...extraRoots],
+    includeShippedRoot: false,
+    includeUserRoot: false,
+  })
   return { ctx, settingsFile, settingsFiber }
 }
 
@@ -171,6 +177,45 @@ describe('the default preset as a user setting', () => {
 
     await expect(ctx.agentPresets.resolve())
       .rejects.toThrow(/preset "no-such-preset" not found/)
+  })
+})
+
+describe('an unusable default preset', () => {
+  /** A user root holding one preset directory with no composition, so discovery reports it broken. */
+  async function brokenRoot(): Promise<{ path: string; trust: 'user' }> {
+    const root = await mkdtemp(join(tmpdir(), 'dsh-preset-unusable-'))
+    roots.push(root)
+    await mkdir(join(root, 'ghost'))
+    return { path: root, trust: 'user' }
+  }
+
+  it('composes the policy default while it is usable', async () => {
+    const { ctx } = await harness()
+    await ctx.settings.update(NS, { default: 'minimal' })
+
+    expect(await ctx.agentPresets.defaultMountId()).toBe('minimal')
+  })
+
+  it('falls back to the configured default when the user default is unusable', async () => {
+    const { ctx } = await harness([await brokenRoot()])
+    const warn = vi.spyOn(ctx.logger, 'warn')
+    await ctx.settings.update(NS, { default: 'ghost' })
+
+    expect(await ctx.agentPresets.defaultMountId()).toBe('standard')
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining('"ghost"'))
+  })
+
+  it('keeps the configured default when it is itself unusable', async () => {
+    const { ctx } = await harness([await brokenRoot()], 'ghost')
+
+    expect(await ctx.agentPresets.defaultMountId()).toBe('ghost')
+  })
+
+  it('reports the user default when the configured default is absent', async () => {
+    const { ctx } = await harness([await brokenRoot()], 'no-such-preset')
+    await ctx.settings.update(NS, { default: 'ghost' })
+
+    expect(await ctx.agentPresets.defaultMountId()).toBe('ghost')
   })
 })
 

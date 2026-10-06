@@ -452,15 +452,18 @@ describe('ApiSession create or adoption', () => {
       list: () => Promise.resolve([childMeta]),
       inspect: () => Promise.resolve({ meta: childMeta, events: [] }),
     })
-    child.ctx.provide('agentPresets', {
+    const roster = {
       resolve: () => {
         child.ctx.sessions.create(childMeta.id, {
           meta: { ...childMeta, parentSession: SessionId('parent'), origin: 'subagent' },
         })
         return Promise.resolve({ id: 'standard' })
       },
+      // The unnamed default resolves through the real roster's own resolution.
+      defaultMountId: async (): Promise<string> => (await roster.resolve()).id,
       mount: () => Promise.resolve(),
-    } as never)
+    }
+    child.ctx.provide('agentPresets', roster as never)
     await expect(child.agents.resolveAgent(childMeta.id)).resolves.toMatchObject({
       error: { code: 'session/agent-busy' },
     })

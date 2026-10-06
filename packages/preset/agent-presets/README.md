@@ -69,7 +69,7 @@ agent-presets:
   default: minimal
 ```
 
-A client shows or hides selection by writing only `modeSelectionEnabled`; the [Web GUI settings switch](../../client/ui-agent-preset/README.md) does exactly that. The deployment default governs while selection is hidden; re-enabling it restores the saved user `default`, or keeps the deployment default when none has been saved. While mode selection stays enabled, choosing a default writes a user override for sessions created later. Because the Host owns the policy, it applies to every subsequently created session whose caller omits a preset, including Web, CLI, SDK, and headless callers; an explicitly named preset and every existing session remain unchanged.
+A client shows or hides selection by writing only `modeSelectionEnabled`; the [Web GUI settings switch](../../client/ui-agent-preset/README.md) does exactly that. The deployment default governs while selection is hidden; re-enabling it restores the saved user `default`, or keeps the deployment default when none has been saved. While mode selection stays enabled, choosing a default writes a user override for sessions created later. Because the Host owns the policy, it applies to every subsequently created session whose caller omits a preset, including Web, CLI, SDK, and headless callers; an explicitly named preset and every existing session remain unchanged. When the effective default's composition is unusable — a removed plugin bundle, a corrupted file, or a stale user choice — an unnamed new session composes the deployment `default` instead and the Host records a warning; an explicit preset request still fails on its own broken composition.
 
 ### Authoring presets
 

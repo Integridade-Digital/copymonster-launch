@@ -30,7 +30,8 @@ const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
 
 function controllerAgents(overrides: object = {}): ApiSessionAgentController {
   return {
-    ensureSession: () => Promise.resolve(),
+    ensureSession: (sessionId: SessionId) =>
+      Promise.resolve({ id: sessionId, session: { id: sessionId } } as unknown as Agent),
     composeAgent: () => Promise.resolve({ setup: () => {} }),
     presetForSession: () => undefined,
     presetForObservation: () => undefined,

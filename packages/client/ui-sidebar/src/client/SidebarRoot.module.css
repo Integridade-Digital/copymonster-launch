@@ -558,3 +558,12 @@
     animation: none;
   }
 }
+
+.brandWordmark {
+  display: block;
+  height: 24px;
+  width: auto;
+  max-width: 100%;
+  user-select: none;
+  -webkit-user-drag: none;
+}

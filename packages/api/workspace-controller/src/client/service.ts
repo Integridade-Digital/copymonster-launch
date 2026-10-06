@@ -40,6 +40,11 @@ export interface IWorkspaces {
    */
   create(input: { path: string }): Promise<WorkspaceView>
   /**
+   * Auto-provision or resolve the caller's initial default Workspace.
+   * @returns the initial Workspace.
+   */
+  ensureInitial(): Promise<WorkspaceView>
+  /**
    * Rename a Workspace.
    * @param workspaceId - target Workspace.
    * @param title - new display title.
@@ -97,6 +102,12 @@ export class WorkspaceController extends Service implements IWorkspaces {
   async create(input: { path: string }): Promise<WorkspaceView> {
     const result = await this.model.create(input)
     if (!result.ok) throw new WorkspaceCreateError(result.error)
+    return result.value.workspace
+  }
+
+  async ensureInitial(): Promise<WorkspaceView> {
+    const result = await this.model.ensureInitial()
+    if (!result.ok) throw commandError('initial provisioning', result.error)
     return result.value.workspace
   }
 

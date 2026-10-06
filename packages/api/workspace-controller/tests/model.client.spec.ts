@@ -197,6 +197,24 @@ describe('ClientWorkspaceModel', () => {
     expect(model.getSnapshot().items[0]?.workspaceId).toBe('created')
   })
 
+  it('auto-provisions the initial Workspace and prepends the returned row', async () => {
+    const remote = new FakeWorkspaceRemote()
+    const model = modelFor(remote)
+    await expect(model.ensureInitial()).resolves.toMatchObject({ ok: true })
+    expect(remote.calls).toContainEqual({ method: 'ensureInitial', request: {} })
+    expect(model.getSnapshot().items[0]?.workspaceId).toBe('default')
+  })
+
+  it('installs no row when auto-provisioning fails', async () => {
+    const remote = new FakeWorkspaceRemote()
+    const model = modelFor(remote)
+    remote.onEnsureInitial = () => Promise.resolve(workspaceError(
+      new RemoteError('workspace/invalid-path', 'provision rejected', { path: '/rejected' }),
+    ))
+    await expect(model.ensureInitial()).resolves.toMatchObject({ ok: false })
+    expect(model.getSnapshot().items).toEqual([])
+  })
+
   it('lets newer stream order outrank unary echoes and rolls failures back', async () => {
     const remote = new FakeWorkspaceRemote()
     const model = modelFor(remote)

@@ -88,6 +88,9 @@ export const workspaceWorld: RemoteTable = {
     'workspace/create': (request: WorkspaceCreateRequest): RemoteResult<WorkspaceCreateValue> => ok({
       workspace: workspace('created', { path: request.path }), created: true,
     }),
+    'workspace/ensureInitial': (): RemoteResult<WorkspaceCreateValue> => ok({
+      workspace: workspace('default'), created: true,
+    }),
     'workspace/rename': (request: WorkspaceRenameRequest): RemoteResult<WorkspaceValue> => ok({
       workspace: workspace(String(request.workspaceId), { title: request.title }),
     }),

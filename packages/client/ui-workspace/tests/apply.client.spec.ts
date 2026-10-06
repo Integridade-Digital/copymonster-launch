@@ -10,7 +10,10 @@ import { WorkspacePicker } from '../src/client/WorkspacePicker.tsx'
 import { apply as hostApply } from '../src/index.ts'
 import type { SessionReference } from '@deepseek-ai/dsh-api-session-controller/client'
 
-async function bench() {
+async function bench(options: {
+  workspacesPhase?: 'pending' | 'ready'
+  workspaceItems?: readonly unknown[]
+} = {}) {
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   const create = vi.fn(async (input: { name: string } | { path: string }) => ({
@@ -45,14 +48,37 @@ async function bench() {
   ) => await operation(retain(target)))
   const fork = vi.fn(async () => 'forked' as never)
   const subscribe = () => () => {}
+  const ensureInitial = vi.fn(async () => ({
+    workspaceId: 'ws-initial' as never,
+    path: '/var/cm/tenant/user/workspaces/default',
+    title: 'default', sessionIds: [], createdAt: '0', updatedAt: '0',
+  }))
+  const workspaceState = {
+    phase: options.workspacesPhase ?? ('ready' as const),
+    items: options.workspaceItems ?? ([] as readonly unknown[]),
+  }
+  const workspacesListeners = new Set<() => void>()
+  const setWorkspaces = (
+    phase: 'pending' | 'ready',
+    items: readonly unknown[],
+  ): void => {
+    workspaceState.phase = phase
+    workspaceState.items = items
+    for (const listener of [...workspacesListeners]) listener()
+  }
   ctx.provide('workspaces', {
     list: {
       getSnapshot: () => ({
-        items: [], archivedSessionIds: [], state: 'idle', phase: 'ready', error: null,
+        items: workspaceState.items, archivedSessionIds: [], state: 'idle',
+        phase: workspaceState.phase, error: null,
       }),
-      subscribe,
+      subscribe: (listener: () => void) => {
+        workspacesListeners.add(listener)
+        return () => { workspacesListeners.delete(listener) }
+      },
     },
     create,
+    ensureInitial,
     rename,
     delete: vi.fn(async () => undefined),
     insertBefore: vi.fn(async () => undefined),
@@ -90,6 +116,7 @@ async function bench() {
   return {
     ctx, slots: ctx.get('slots') as SlotRegistry, locale, create, rename,
     retain, using, selectPanel, search, renameSession, binding, fork, pickDirectory,
+    ensureInitial, setWorkspaces,
   }
 }
 
@@ -208,6 +235,42 @@ describe('ui-workspace apply', () => {
     const browser = (b.slots.entries('sidebar.workspaces')[0]!.inject as () => WorkspaceBrowserInjected)()
     await expect(browser.searchSessions('needle', new AbortController().signal))
       .rejects.toThrow('index unavailable')
+  })
+
+  it('requests the initial workspace once when the registry settles empty', async () => {
+    const b = await bench()
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    expect(b.ensureInitial).toHaveBeenCalledExactlyOnceWith()
+    // Later empty notifications do not re-request the same provisioning.
+    b.setWorkspaces('ready', [])
+    expect(b.ensureInitial).toHaveBeenCalledExactlyOnceWith()
+  })
+
+  it('does not request provisioning while the registry is unknown or occupied', async () => {
+    const b = await bench({ workspacesPhase: 'pending' })
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    expect(b.ensureInitial).not.toHaveBeenCalled()
+    b.setWorkspaces('ready', [{
+      workspaceId: 'ws-one', path: '/w/one', title: 'one',
+      sessionIds: [], createdAt: '0', updatedAt: '0',
+    }])
+    expect(b.ensureInitial).not.toHaveBeenCalled()
+    b.setWorkspaces('ready', [])
+    expect(b.ensureInitial).toHaveBeenCalledExactlyOnceWith()
+  })
+
+  it('reports a failed initial provisioning request without breaking apply', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
+    try {
+      const b = await bench()
+      b.ensureInitial.mockRejectedValueOnce(new Error('wire down'))
+      await b.ctx.plugin({ inject: [...inject], apply }).await()
+      await vi.waitFor(() => {
+        expect(warn).toHaveBeenCalledWith('initial workspace provisioning failed:', expect.any(Error))
+      })
+    } finally {
+      warn.mockRestore()
+    }
   })
 
   it('unregisters every entry on teardown', async () => {

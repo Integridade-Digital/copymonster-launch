@@ -84,6 +84,24 @@ export function apply(ctx: Context): void {
   ctx.slots.provideRoot({ hooks: { workspaces: workspaces.list } })
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-workspace: dictionaries')
 
+  // A registry that settles with no Workspace requests the auto-provisioned
+  // default once, so the first Session opens without a manual pick; a failed
+  // request leaves the manual picker path as the recovery.
+  ctx.effect(() => {
+    let requested = false
+    const check = (): void => {
+      const snapshot = workspaces.list.getSnapshot()
+      if (requested || snapshot.phase !== 'ready' || snapshot.items.length > 0) return
+      requested = true
+      void workspaces.ensureInitial().catch((reason: unknown) => {
+        console.warn('initial workspace provisioning failed:', reason)
+      })
+    }
+    const unsubscribe = workspaces.list.subscribe(check)
+    check()
+    return unsubscribe
+  }, 'ui-workspace: ensure-initial')
+
   const searchSessions: WorkspaceBrowserInjected['searchSessions'] = async (query, signal) => {
     const result = await sessions.search(query, signal)
     if (!result.ok) throw new Error(result.error.message)

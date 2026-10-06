@@ -759,6 +759,8 @@ describe('workspaces action face', () => {
   it('records every IWorkspaces verb with inert defaults and honors stubs', async () => {
     const runtime = await SlotTestRuntime.create()
     const ws = runtime.workspaces
+    const initial = await ws.ensureInitial()
+    expect(initial.title).toBe('default')
     const created = await ws.create({ path: '/tmp/alpha' })
     expect(created.title).toBe('/tmp/alpha')
     const registered = await ws.create({ path: '/tmp/beta' })
@@ -778,9 +780,10 @@ describe('workspaces action face', () => {
     await ws.unarchiveSession('s0' as SessionId)
     expect(ws.list.getSnapshot().archivedSessionIds).toEqual(['s1'])
     expect(ws.calls.map(c => c.method)).toEqual(
-      ['create', 'create', 'rename', 'delete', 'insertBefore', 'insertSessionBefore',
-        'archiveSession', 'archiveSession', 'unarchiveSession'])
+      ['ensureInitial', 'create', 'create', 'rename', 'delete', 'insertBefore',
+        'insertSessionBefore', 'archiveSession', 'archiveSession', 'unarchiveSession'])
 
+    ws.stub('ensureInitial', () => Promise.resolve({ workspaceId: 'ws-init', title: 'D', path: '/d', sessionIds: [] } as never))
     ws.stub('create', () => Promise.resolve({ workspaceId: 'ws-x', title: 'X', path: '/x', sessionIds: [] } as never))
     ws.stub('rename', () => Promise.resolve({ workspaceId: 'w1', title: 'S', path: '/s', sessionIds: [] } as never))
     ws.stub('delete', () => Promise.resolve())
@@ -790,6 +793,7 @@ describe('workspaces action face', () => {
     ws.stub('archiveSession', () => Promise.resolve())
     ws.stub('unarchiveSession', () => Promise.resolve())
     expect((await ws.create({ path: '/y' })).title).toBe('X')
+    expect((await ws.ensureInitial()).title).toBe('D')
     expect((await ws.rename('w1' as WorkspaceId, 'z')).title).toBe('S')
     await ws.delete('w1' as WorkspaceId)
     await ws.insertBefore('w2' as WorkspaceId)

@@ -184,6 +184,7 @@ class FakeWorkspaces implements IWorkspaces {
   }
 
   declare readonly create: IWorkspaces['create']
+  declare readonly ensureInitial: IWorkspaces['ensureInitial']
   declare readonly rename: IWorkspaces['rename']
   declare readonly delete: IWorkspaces['delete']
   declare readonly insertBefore: IWorkspaces['insertBefore']
@@ -482,6 +483,16 @@ describe('UiWorkspaceService', () => {
     b.sessions.list.set(sessionState())
     await vi.waitFor(() => {
       expect(b.sessions.retain).toHaveBeenCalledWith(sid('created-newest'), { source: 'mainView' })
+    })
+  })
+
+  it('opens a Workspace that lands after an empty registry settles ready', async () => {
+    const b = bench()
+    b.workspaces.list.set(workspaceState())
+    b.sessions.list.set(sessionState())
+    b.workspaces.list.set(workspaceState([workspace('late')]))
+    await vi.waitFor(() => {
+      expect(b.sessions.retain).toHaveBeenCalledWith(sid('created-late'), { source: 'mainView' })
     })
   })
 

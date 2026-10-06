@@ -92,6 +92,16 @@ export class ClientWorkspaceModel implements WorkspaceFollowSink {
   }
 
   /**
+   * Auto-provision or resolve the initial default Workspace and merge the unary result immediately.
+   * @returns generated Remote result.
+   */
+  async ensureInitial(): Promise<RemoteResult<WorkspaceCreateValue>> {
+    const result = await this.remote.ensureInitial()
+    if (result.ok) this.upsert(result.value.workspace)
+    return result
+  }
+
+  /**
    * Rename a Workspace and merge the unary result immediately.
    * @param workspaceId - target Workspace.
    * @param title - new display title.

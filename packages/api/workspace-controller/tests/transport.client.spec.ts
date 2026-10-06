@@ -321,6 +321,7 @@ describe('WorkspaceController', () => {
     expect(controller.list).toBe(model)
     expect(client.ctx.workspaces.list).toBe(model)
     await expect(controller.create({ path: '/work/created' })).resolves.toMatchObject({ workspaceId: 'created' })
+    await expect(controller.ensureInitial()).resolves.toMatchObject({ workspaceId: 'default' })
     await expect(controller.rename(wid('one'), 'renamed')).resolves.toMatchObject({ title: 'renamed' })
     await expect(controller.insertBefore(wid('one'))).resolves.toBeUndefined()
     await expect(controller.insertSessionBefore(wid('one'), sid('session'))).resolves.toMatchObject({
@@ -331,6 +332,7 @@ describe('WorkspaceController', () => {
     await expect(controller.delete(wid('one'))).resolves.toBeUndefined()
     // Each command crosses the wire as one positional request object.
     expect(mock.log.requests('workspace/create')).toEqual([{ path: '/work/created' }])
+    expect(mock.log.calls('workspace/ensureInitial')).toHaveLength(1)
     expect(mock.log.requests('workspace/rename')).toEqual([{ workspaceId: 'one', title: 'renamed' }])
     expect(mock.log.requests('workspace/insertBefore')).toEqual([{ workspaceId: 'one' }])
     expect(mock.log.requests('workspace/insertSessionBefore')).toEqual([{ workspaceId: 'one', sessionId: 'session' }])
@@ -349,6 +351,10 @@ describe('WorkspaceController', () => {
     const create = controller.create({ path: '/missing' })
     await expect(create).rejects.toBeInstanceOf(WorkspaceCreateError)
     await expect(create).rejects.toThrow('workspace create failed: workspace/invalid-path: missing path')
+
+    mock.remote.workspace.ensureInitial.mockResolvedValueOnce(err(new RemoteError('workspace/invalid-path', 'missing path', { path: '/missing' })))
+    await expect(controller.ensureInitial())
+      .rejects.toThrow('workspace initial provisioning failed: workspace/invalid-path: missing path')
 
     mock.remote.workspace.rename.mockResolvedValueOnce(err(missingWorkspace))
     await expect(controller.rename(wid('missing'), 'name')).rejects.toThrow('workspace rename failed: workspace/not-found: gone')

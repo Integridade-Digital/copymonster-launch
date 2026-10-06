@@ -81,6 +81,23 @@ export class TestWorkspaces implements IWorkspaces {
   }
 
   /**
+   * Auto-provision the initial default Workspace (recorded). The default
+   * echoes a minimal view.
+   * @returns the initial Workspace view.
+   */
+  async ensureInitial(): Promise<WorkspaceView> {
+    this.calls.push({ method: 'ensureInitial', args: [] })
+    const stub = this.stubs.get('ensureInitial')
+    if (stub !== undefined) return await (stub() as Promise<WorkspaceView>)
+    return {
+      workspaceId: 'ws-initial' as WorkspaceId,
+      title: 'default',
+      path: '/default',
+      sessionIds: [],
+    } as unknown as WorkspaceView
+  }
+
+  /**
    * Rename a Workspace (recorded). The default echoes a minimal view.
    * @param workspaceId - target workspace.
    * @param title - new title.

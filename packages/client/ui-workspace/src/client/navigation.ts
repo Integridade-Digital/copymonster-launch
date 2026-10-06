@@ -256,7 +256,8 @@ class UiWorkspaceService extends Service implements UiWorkspace {
       }
       const target = recentWorkspace(workspace.items, sessions.byId)
       if (target === undefined) {
-        initial = 'done'
+        // The empty registry is not terminal: the auto-provisioned default
+        // arrives as a later store change, which reconciles while waiting.
         return
       }
       initial = 'connecting'

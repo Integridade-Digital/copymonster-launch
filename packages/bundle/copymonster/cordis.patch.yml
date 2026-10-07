@@ -21,3 +21,8 @@
     # node:http routes on ctx.webServer that report the caller identity.
     - id: auth-http
       name: '@deepseek-ai/dsh-api-auth-http'
+
+    # Brand image routes served with the correct media type and revalidating
+    # cache headers, so a replaced logo shows without changing its URL.
+    - id: brand-assets
+      name: '@deepseek-ai/dsh-host-brand-assets'

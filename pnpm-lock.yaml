@@ -255,6 +255,9 @@ importers:
       '@deepseek-ai/dsh-hooks-codex':
         specifier: workspace:^
         version: link:../../packages/hooks/hooks-codex
+      '@deepseek-ai/dsh-host-brand-assets':
+        specifier: workspace:^
+        version: link:../../packages/host/brand-assets
       '@deepseek-ai/dsh-http-proxy':
         specifier: workspace:^
         version: link:../../packages/util/http-proxy
@@ -1984,6 +1987,9 @@ importers:
       '@deepseek-ai/dsh-api-auth-http':
         specifier: workspace:*
         version: link:../../api/auth-http
+      '@deepseek-ai/dsh-host-brand-assets':
+        specifier: workspace:*
+        version: link:../../host/brand-assets
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^
@@ -7814,6 +7820,28 @@ importers:
       '@deepseek-ai/dsh-tools':
         specifier: workspace:^
         version: link:../../core/tools
+
+  packages/host/brand-assets:
+    dependencies:
+      '@deepseek-ai/dsh-host-webserver':
+        specifier: workspace:^
+        version: link:../webserver
+      '@deepseek-ai/dsh-web-frontend':
+        specifier: workspace:^
+        version: link:../../../apps/web
+    devDependencies:
+      '@deepseek-ai/cordis':
+        specifier: workspace:^
+        version: link:../../../vendor/cordis
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.20.0
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+      vitest:
+        specifier: ^1.0.0
+        version: 1.6.1(@types/node@22.20.0)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.3.0))(lightningcss@1.32.0)(supports-color@9.4.0)
 
   packages/host/directory-picker:
     devDependencies:

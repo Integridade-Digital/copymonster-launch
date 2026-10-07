@@ -109,7 +109,8 @@
     "@deepseek-ai/dsh-constants": "workspace:^",
     "@deepseek-ai/dsh-supabase-client": "workspace:^",
     "@deepseek-ai/dsh-api-auth-context": "workspace:^",
-    "@deepseek-ai/dsh-api-auth-http": "workspace:^"
+    "@deepseek-ai/dsh-api-auth-http": "workspace:^",
+    "@deepseek-ai/dsh-host-brand-assets": "workspace:^"
   },
   "devDependencies": {
     "@agentclientprotocol/sdk": "1.4.0",

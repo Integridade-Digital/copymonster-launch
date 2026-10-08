@@ -16,8 +16,15 @@ export class SupabaseRuntimeCatalog implements RuntimeCatalog {
   /** @inheritdoc */
   async load(): Promise<readonly RuntimeProviderEntry[]> {
     const { supabaseAdminClient } = await import('@deepseek-ai/dsh-supabase-client')
-    const { data, error } = await supabaseAdminClient.rpc('get_runtime_llm_catalog')
-    if (error !== null) throw new Error(`get_runtime_llm_catalog failed: ${error.message}`)
-    return (data ?? []) as readonly RuntimeProviderEntry[]
+    // The generated `Database` type lists only a subset of RPCs; the service-role
+    // call is typed at this wire boundary, mirroring session-controller.
+    const client = supabaseAdminClient as unknown as {
+      rpc(name: string): Promise<{ data: unknown; error: unknown }>
+    }
+    const { data, error } = await client.rpc('get_runtime_llm_catalog')
+    if (error !== null && error !== undefined) {
+      throw new Error(`get_runtime_llm_catalog failed: ${String(error)}`)
+    }
+    return (Array.isArray(data) ? data : []) as readonly RuntimeProviderEntry[]
   }
 }

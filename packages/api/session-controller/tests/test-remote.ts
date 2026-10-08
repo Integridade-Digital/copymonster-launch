@@ -31,6 +31,7 @@ import {
   type RemoteResult,
 } from '@deepseek-ai/dsh-typert-protocol'
 import SessionController from '../src/index.ts'
+import type { TenantQuotaCheck } from '../src/commands.ts'
 import type {
   ModelCatalog,
   SessionAttachmentRequest,
@@ -94,6 +95,8 @@ export interface TestSessionRemoteDefaults {
   readonly openPath?: (path: string, signal: AbortSignal) => Promise<void>
   readonly revealPath?: (path: string, signal: AbortSignal) => Promise<void>
   readonly canOpenPath?: () => boolean
+  /** Tenant quota check; defaults to always-allow outside the quota suites. */
+  readonly checkTenantQuota?: TenantQuotaCheck
 }
 
 const installed = new WeakMap<Context, SessionController>()
@@ -307,6 +310,8 @@ function installControllers(
         ...defaults.openPath === undefined ? {} : { openPath: defaults.openPath },
         ...defaults.revealPath === undefined ? {} : { revealPath: defaults.revealPath },
         ...defaults.canOpenPath === undefined ? {} : { canOpenPath: defaults.canOpenPath },
+        checkTenantQuota: defaults.checkTenantQuota
+          ?? (() => Promise.resolve({ allowed: true, reason: 'ok', remainingTokens: 1_000_000 })),
       },
     )
   } finally {

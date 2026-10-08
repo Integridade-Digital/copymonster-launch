@@ -192,6 +192,14 @@ export const SESSION_SEARCH_SNIPPET_MAX_CODE_POINTS = 240
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
     'session/subscription-inactive': { readonly message?: string; readonly subscriptionStatus?: string }
+    /** The tenant exhausted its plan tokens (or an equivalent quota reason). */
+    'session/quota-exceeded': {
+      readonly message?: string
+      readonly reason?: string
+      readonly remainingTokens?: number
+    }
+    /** The quota check could not answer and the gate failed closed. */
+    'session/quota-check-failed': { readonly operation?: string }
     'session/model-unavailable': { readonly provider: string; readonly model: string }
     /** The call carried no authenticated caller identity. */
     'session/unauthorized': {}

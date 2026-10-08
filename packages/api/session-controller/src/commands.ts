@@ -56,6 +56,47 @@ import type {
   SessionRequestId,
 } from './types.ts'
 
+/** Gate policy for the tenant token quota: `enforce` blocks, `observe` only logs. */
+export type QuotaGateMode = 'enforce' | 'observe'
+
+/** CopyMonster refusal when the tenant has exhausted its plan tokens. */
+const QUOTA_EXCEEDED_MESSAGE = 'Limite de tokens do plano atingido. Faça upgrade para continuar.'
+
+/** Fail-closed refusal when the quota RPC cannot answer. */
+const QUOTA_UNAVAILABLE_MESSAGE = 'Não foi possível validar sua cota de tokens no momento. Tente novamente.'
+
+/** One `check_tenant_quota` row. */
+interface TenantQuotaRow {
+  allowed?: boolean
+  reason?: string
+  remaining_tokens?: number
+}
+
+/** Normalized tenant quota result consumed by the gate. */
+export interface TenantQuotaResult {
+  readonly allowed: boolean
+  readonly reason: string
+  readonly remainingTokens: number
+}
+
+/** Injectable tenant quota check; the default reads `check_tenant_quota` via service_role. */
+export type TenantQuotaCheck = (tenantId: string) => Promise<TenantQuotaResult>
+
+/** Default quota check: `check_tenant_quota` through the service-role client. */
+async function fetchTenantQuota(tenantId: string): Promise<TenantQuotaResult> {
+  const client = supabaseAdminClient as unknown as {
+    rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error: unknown }>
+  }
+  const { data, error } = await client.rpc('check_tenant_quota', { p_tenant_id: tenantId })
+  if (error !== null && error !== undefined) throw new Error(`check_tenant_quota failed: ${String(error)}`)
+  const row = (Array.isArray(data) ? data[0] : data) as TenantQuotaRow | undefined
+  return {
+    allowed: row?.allowed === true,
+    reason: typeof row?.reason === 'string' ? row.reason : 'unknown',
+    remainingTokens: typeof row?.remaining_tokens === 'number' ? row.remaining_tokens : 0,
+  }
+}
+
 interface SessionReadState {
   readonly id: SessionId
   readonly header: SessionHeader
@@ -81,6 +122,8 @@ export class SessionCommandController {
   constructor(
     private readonly ctx: Context,
     private readonly agents: ApiSessionAgentController,
+    private readonly quotaGateMode?: QuotaGateMode,
+    private readonly quotaCheck?: TenantQuotaCheck,
   ) {}
 
   /**
@@ -115,6 +158,7 @@ export class SessionCommandController {
         }
       }
     }
+    await this.assertTenantQuota(identity, 'session.create')
     if (request.workspaceId !== undefined && request.cwd !== undefined) {
       throw new RemoteError('gateway/bad-request', 'session.create accepts workspaceId or cwd, not both', {})
     }
@@ -395,6 +439,7 @@ export class SessionCommandController {
       })
     }
     if (hasPromptRequest(agent, request.requestId)) return { accepted: true }
+    await this.assertTenantQuota(identity, 'session.prompt')
     const selection = this.agents.selectionFor(agent).current
     if (!routeServed(this.ctx, selection.provider)) {
       throw new RemoteError(
@@ -589,6 +634,47 @@ export class SessionCommandController {
     }
     agent.cancel({ kind: 'user' }, { keepInbox: true })
     return { accepted: true }
+  }
+
+  /**
+   * Enforce the tenant token quota before a session-mutating command through
+   * `check_tenant_quota`. Fail-closed: a refused or unreachable check blocks
+   * unless the gate runs in `observe` mode, which only logs.
+   * @param identity - authenticated caller; a missing tenant skips the gate.
+   * @param operation - command name used in diagnostics.
+   */
+  private async assertTenantQuota(identity: UserIdentity | undefined, operation: string): Promise<void> {
+    if (identity?.tenantId === undefined || identity.tenantId === '') return
+    const mode = this.resolveQuotaGateMode()
+    let result: TenantQuotaResult
+    try {
+      result = await (this.quotaCheck ?? fetchTenantQuota)(identity.tenantId)
+    } catch (error) {
+      // `check_tenant_quota` is a wire boundary: any transport failure fails closed.
+      void error
+      if (mode === 'observe') {
+        this.ctx.logger.warn('session-controller: quota check unavailable for %s (observe mode)', operation)
+        return
+      }
+      throw new RemoteError('session/quota-check-failed', QUOTA_UNAVAILABLE_MESSAGE, { operation })
+    }
+    if (result.allowed) return
+    if (mode === 'observe') {
+      this.ctx.logger.warn(
+        'session-controller: quota gate would block %s (reason=%s remaining=%d)',
+        operation, result.reason, result.remainingTokens,
+      )
+      return
+    }
+    throw new RemoteError('session/quota-exceeded', QUOTA_EXCEEDED_MESSAGE, {
+      message: QUOTA_EXCEEDED_MESSAGE, reason: result.reason, remainingTokens: result.remainingTokens,
+    })
+  }
+
+  /** Resolve the gate policy: explicit config, then `QUOTA_GATE_MODE`, then `enforce`. */
+  private resolveQuotaGateMode(): QuotaGateMode {
+    if (this.quotaGateMode === 'enforce' || this.quotaGateMode === 'observe') return this.quotaGateMode
+    return process.env.QUOTA_GATE_MODE === 'observe' ? 'observe' : 'enforce'
   }
 
   private async resolveAgent(sessionId: SessionId): Promise<Agent> {

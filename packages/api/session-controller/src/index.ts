@@ -18,6 +18,7 @@ import {
 } from './agent.ts'
 import { requireAuthIdentity } from './auth-identity.ts'
 import { SessionCommandController } from './commands.ts'
+import type { QuotaGateMode, TenantQuotaCheck } from './commands.ts'
 import { sessionTenantMap } from './commands.ts'
 import { incrementSessionTokens, markSessionStatus, upsertSessionIndex } from './session-db-sync.ts'
 import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
@@ -78,6 +79,11 @@ declare module '@deepseek-ai/cordis' {
 export interface Config {
   /** Override platform desktop-opener detection. */
   readonly nativeOpen?: boolean
+  /**
+   * Token-quota gate policy for `session.create` and `session.prompt`.
+   * Defaults to the `QUOTA_GATE_MODE` environment value, then `enforce`.
+   */
+  readonly quotaGateMode?: QuotaGateMode
 }
 
 /** Host integrations replaceable by direct unit tests. */
@@ -88,6 +94,8 @@ export interface SessionControllerInternals {
   readonly revealPath?: (path: string, signal: AbortSignal) => Promise<void>
   /** Native handoff availability probe. */
   readonly canOpenPath?: () => boolean
+  /** Tenant quota check; defaults to the `check_tenant_quota` service-role RPC. */
+  readonly checkTenantQuota?: TenantQuotaCheck
 }
 
 /** Host service backing the generated `ctx.remote.session` namespace. */
@@ -107,6 +115,7 @@ export class SessionController extends TypertRemoteService {
 
   static Config: z<Config> = z.object({
     nativeOpen: z.boolean(),
+    quotaGateMode: z.union([z.const('enforce'), z.const('observe')]),
   })
 
   private readonly agents: ApiSessionAgentController
@@ -128,7 +137,7 @@ export class SessionController extends TypertRemoteService {
     super(ctx, 'sessionController', { namespace: 'session' })
     installModelSelectionProjection(ctx)
     this.agents = new ApiSessionAgentController(ctx)
-    this.commands = new SessionCommandController(ctx, this.agents)
+    this.commands = new SessionCommandController(ctx, this.agents, config.quotaGateMode, internals.checkTenantQuota)
     ctx.effect(() => ctx.fileUploads.registerAgentResolver(async (sessionId) => {
       const result = await this.agents.resolveAgent(sessionId)
       if ('error' in result) throw result.error

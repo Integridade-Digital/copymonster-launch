@@ -52,6 +52,7 @@ Branch de trabalho recomendada: `release/prod-llm-billing-trial`.
 - **Cenário Atual:** As chaves de API salvas no Admin (`llm_providers`) ficam criptografadas no Supabase via `pgcrypto` (`014`, `028`). No entanto, o `LocalCredentialProvider` nativo do DSH busca credenciais apenas em variáveis de ambiente (`DEEPSEEK_API_KEY`) ou no arquivo local `~/.dsh/.credentials.yaml`.
 - **Solução Arquitetural (Opção A1):** Criar o plugin de host `@deepseek-ai/dsh-host-llm-credentials-supabase` (dentro de `packages/host/`) ou conectá-lo via bundle. No boot do servidor (e sob demanda via evento de atualização), ele consulta a RPC `get_runtime_llm_catalog()` (exclusiva para `service_role`) e alimenta o seam `ctx.credentials` em memória.
 - **Vantagem:** Preserva `packages/llm/` 100% íntegro para futuros merges com o upstream, sem gravar chaves descriptografadas em disco.
+- **Atualização (2026-10-08):** as chaves já residem no cofre local (Settings → Models, `.credentials.yaml`) e funcionam. O Admin deixa de ser cofre e passa a ser controle de acesso; ver [`arquitetura-settings-cofre.md`](./arquitetura-settings-cofre.md) e o reescopo da Etapa 7.
 
 ### 1.4 Hard Gates de Quota Bidirecionais
 - **Cenário Atual:** Os Blocos 8.2 e 8.3 implementaram com sucesso a telemetria de tokens ao término de cada turno (`turn/end`). Contudo, o sistema **não bloqueia preventivamente** se a cota do usuário estiver estourada.
@@ -70,7 +71,7 @@ Branch de trabalho recomendada: `release/prod-llm-billing-trial`.
 
 | Decisão | Descrição | Opção Escolhida | Justificativa |
 |---|---|---|---|
-| **D1** | Injeção de Chave Global | **Rota A1 (Plugin Host em Seam)** | Alimenta `ctx.credentials` em memória via Supabase RPC sem tocar no core upstream `packages/llm/`. |
+| **D1** | Injeção de Chave Global | **Rota A1 (Plugin Host em Seam)** | Alimenta `ctx.credentials` em memória via Supabase RPC sem tocar no core upstream `packages/llm/`. **Revisada 2026-10-08:** o cofre é o Settings (`.credentials.yaml`); o Admin é controle de acesso (ver [`arquitetura-settings-cofre.md`](./arquitetura-settings-cofre.md)). |
 | **D2** | Modelo de Tenant & Trial | **Personal Tenant por Usuário** | Garante faturamento individual no Stripe, isolamento absoluto de tokens e privacidade total de dados. |
 | **D3** | Modelo de Cota de Tokens | **Agregação Input + Output com Hard Gate** | Limite global consolidado por plano no gate inicial, simplificando validação fail-closed em runtime. |
 | **D4** | Markup de Revenda | **3.0x a 5.0x nos Planos** | Margem de contribuição mínima de 70% para cobrir sandbox, storage e volatilidade cambial. |
@@ -141,12 +142,16 @@ Criação do arquivo `supabase/migrations/032_production_gates_and_tenants.sql`:
 2. Se a rota nativa DeepSeek retornar timeout persistente ou erro 503/429 da API externa, redirecionar automaticamente para a rota alternativa via OpenRouter sem derrubar a sessão do cliente.
 3. Não cobrar tokens de turnos abortados por falha técnica de upstream.
 
-### Etapa 7 — Cadastro e Parametrização dos Provedores Oficiais [SQL] [APROVAÇÃO]
-1. Cadastrar na tabela `llm_providers` os registros oficiais com suas rotas correspondentes:
-   - DeepSeek Oficial (`base_url: https://api.deepseek.com/v1`, `provider_route: deepseek-official`, `api_key_env: DEEPSEEK_API_KEY`).
-   - OpenRouter Fallback (`base_url: https://openrouter.ai/api/v1`, `provider_route: openrouter-official`, `api_key_env: OPENROUTER_API_KEY`).
-2. Cadastrar modelos oficiais em `llm_models` com métricas precisas de `cost_input_1k`, `cost_output_1k` e `context_window`.
-3. Inserção de chaves reais efetuada estritamente pela UI Administrativa (cifrada via `admin_save_llm_provider`), mantendo sigilo absoluto no versionamento.
+### Etapa 7 — Cadastro dos Provedores como Controle de Acesso [SQL] [APROVAÇÃO]
+
+> **REESCOPO 2026-10-08** — decisão de arquitetura: Settings é o cofre, Admin é controle de acesso. Ver [`arquitetura-settings-cofre.md`](./arquitetura-settings-cofre.md).
+
+1. Ler os provedores disponíveis do `.credentials.yaml` (`refs`) e do `settings.yaml` (`llm-pi-ai.providers`), **sem logar valores de chave**.
+2. Cadastrar em `public.llm_providers` **apenas metadados** (sem `api_key`): `name`, `provider_type`, `base_url`, `provider_route`, `is_active = true`, `allowed_plans = ['starter','pro','legend']`.
+3. `provider_route` alinhado à rota de runtime: `deepseek-official` (primário) e `openrouter` (fallback), conforme `packages/bundle/copymonster/cordis.patch.yml`.
+4. `api_key_env`: **não persistir** enquanto o composite falhar-fechado para referência gerenciada sem chave (Opção A). Persistir somente após corrigir o composite para delegar ao cofre local (Opção B). Ver o achado crítico na nota de arquitetura.
+5. O `admin_save_llm_provider` da migration 035 permanece: `p_api_key` continua aceito mas pode ser vazio — o Admin não é cofre.
+6. Nenhuma chave é inserida ou versionada; a inserção de chaves ocorre exclusivamente no Settings → Models.
 
 ### Etapa 8 — Restrição de Seletor de Modelos na UI por Papel (Role Gating) [APROVAÇÃO]
 1. Arquivo: `packages/client/ui-model-selection/src/client/ModelSelect.tsx`.
@@ -192,8 +197,8 @@ Criação do arquivo `supabase/migrations/032_production_gates_and_tenants.sql`:
 ## 5. Checklist de Definição de Pronto (Definition of Done)
 
 - [ ] Tenant Onboarding configurado para gerar tenants individuais por usuário.
-- [ ] Admin → LLM Providers exibindo provedores configurados e ativos sem erros.
-- [ ] Runtime LLM resolvendo credenciais em memória a partir do banco de dados sem persistência de segredos em disco.
+- [ ] Admin → LLM Providers exibindo os provedores disponíveis (do Settings) com controle ativo/inativo por plano, sem recadastro de chave.
+- [ ] Runtime LLM resolvendo credenciais pelo cofre local (Settings → Models) sem persistência de segredos no banco nem em disco.
 - [ ] `check_tenant_quota` bloqueando ativamente em `session.create` e `session.prompt` ao estourar limites.
 - [ ] Webhook do Stripe processando pagamentos em modo fail-closed e atualizando `current_period_end` e limites.
 - [ ] Seletor de modelos visível apenas para `admin` e `owner`.

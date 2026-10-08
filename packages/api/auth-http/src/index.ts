@@ -3,6 +3,7 @@
  *
  * - `GET /api/auth/me`: reports the caller identity behind a bearer token.
  * - `GET /enter`: redirects to the DSH authenticated URL.
+ * - `GET /api/healthz`: public liveness/readiness probe (Supabase + in-memory LLM catalog).
  * - `POST /api/billing/checkout`: creates a Stripe Checkout session.
  * - `POST /api/billing/portal`: creates a Stripe Customer Portal session.
  * - `POST /api/billing/webhook`: receives and handles Stripe webhooks with raw stream signature verification.
@@ -21,9 +22,11 @@ import type {} from '@deepseek-ai/dsh-api-auth-context'
 import { BEARER_PREFIX } from '@deepseek-ai/dsh-constants'
 import type { AuthIdentityResponse, AuthErrorResponse } from './types.ts'
 import { handleCheckout, handlePortal, handleWebhook } from './billing.ts'
+import { HEALTHZ_PATH, handleHealthz } from './health.ts'
 
 export type { AuthErrorResponse, AuthIdentityResponse } from './types.ts'
 export { handleCheckout, handlePortal, handleWebhook, readRawBody, verifyStripeSignature } from './billing.ts'
+export { handleHealthz, HEALTHZ_PATH } from './health.ts'
 
 /** Stable Cordis plugin name. */
 export const name = 'auth-http'
@@ -137,6 +140,12 @@ export function apply(ctx: Context): void {
     path: ENTER_PATH,
     handler: (req: IncomingMessage, res: ServerResponse) => { handleEnter(ctx, req, res) },
   }), `auth-http: ${ENTER_PATH}`)
+
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: HEALTHZ_PATH,
+    handler: (req: IncomingMessage, res: ServerResponse) => handleHealthz(ctx, req, res),
+  }), `auth-http: ${HEALTHZ_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',

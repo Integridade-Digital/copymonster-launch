@@ -796,3 +796,11 @@ O gating por role do seletor de modelos (Etapa 8) foi implementado e coberto por
 Arquivos afetados, a atualizar quando o lane voltar a rodar: `apps/web/tests/plan-control-row.e2e.ts`, `apps/web/tests/file-upload-round.e2e.ts` e o golden `snapshots/web/plan-narrow-viewport/layout.expected.md`.
 
 Ação futura: instalar o browser no CI e adotar uma abordagem que sobreviva ao boot — sessão Supabase válida plantada, ou um patch de boot de teste que publique a role depois do `onAuthStateChange`. Não é bloqueio para produção; é reversível em um commit separado.
+
+### Etapa 9 — anti-abuso (itens adiados 2026-10-09)
+
+Implementado na Etapa 9: blocklist de e-mails descartáveis via trigger `BEFORE INSERT` em `auth.users` (`supabase/migrations/038_block_disposable_emails.sql`) e documentação dos rate limits nativos do Supabase Auth. Visão operacional em [`etapa9-anti-abuso.md`](./etapa9-anti-abuso.md). Os itens abaixo ficam **adiados**:
+
+- **P3 — higienização de workspaces/sessões órfãs.** Não bloqueia o lançamento. Ação futura: inventário read-only seguido de cleanup com backup documentado e aprovação explícita.
+- **P4 — rate limit por IP em `session.create` no host.** Custo/benefício não justifica a 48h; só usuários autenticados e dentro da cota criam sessão (o gate `check_tenant_quota` já limita o dano por conta).
+- **Mensagem de erro do bloqueio.** O trigger retorna "Database error saving new user" (genérico). Aceito: bloqueia e não vaza a regra. Melhoria futura: mapear para copy amigável no cliente, sem tocar em `packages/llm/`.

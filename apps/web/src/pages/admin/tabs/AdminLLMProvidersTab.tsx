@@ -1,11 +1,24 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase/client'
 
+/** PostgREST envelope of a custom CopyMonster RPC the generated Database type omits. */
+interface AdminRpcResult {
+  data: unknown
+  error: { message: string } | null
+}
+
+/** Invoke one custom CopyMonster RPC by name; the single typed narrowing of `supabase.rpc`. */
+function adminRpc(name: string, args?: Record<string, unknown>): Promise<AdminRpcResult> {
+  return (supabase.rpc as unknown as (n: string, a?: Record<string, unknown>) => Promise<AdminRpcResult>)(name, args)
+}
+
 export interface LLMProvider {
   id: string
   name: string
   provider_type: 'openai' | 'anthropic' | 'deepseek' | 'google' | 'groq' | 'openrouter' | 'custom' | string
   base_url: string | null
+  provider_route: string | null
+  api_key_env: string | null
   is_active: boolean
   allowed_plans: string[]
   has_api_key: boolean
@@ -80,13 +93,16 @@ export function AdminLLMProvidersTab() {
   const [modalFeedback, setModalFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null)
   const [globalBanner, setGlobalBanner] = useState<{ type: 'error' | 'success'; message: string } | null>(null)
 
+  const [testingId, setTestingId] = useState<string | null>(null)
+  const [testResults, setTestResults] = useState<Record<string, { ok: boolean; latency?: number; error?: string }>>({})
+
   const loadProviders = useCallback(async (isSilent = false) => {
     if (!isSilent) setIsLoading(true)
     setError(null)
     try {
-      const { data, error: rpcError } = await (supabase.rpc as any)('get_admin_llm_providers')
+      const { data, error: rpcError } = await adminRpc('get_admin_llm_providers')
       if (rpcError) throw rpcError
-      setProviders(data || [])
+      setProviders((data as LLMProvider[] | null) ?? [])
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Falha ao carregar provedores de IA.'
       setError(msg)
@@ -160,7 +176,7 @@ export function AdminLLMProvidersTab() {
     setGlobalBanner(null)
     const nextStatus = !p.is_active
     try {
-      const { error: rpcError } = await (supabase.rpc as any)('admin_toggle_llm_provider', {
+      const { error: rpcError } = await adminRpc('admin_toggle_llm_provider', {
         p_id: p.id,
         p_is_active: nextStatus,
       })
@@ -181,6 +197,45 @@ export function AdminLLMProvidersTab() {
     }
   }
 
+  const handleTestConnection = async (p: LLMProvider, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setTestingId(p.id)
+    setTestResults((prev) => {
+      const { [p.id]: _removed, ...rest } = prev
+      return rest
+    })
+    try {
+      const { data } = await supabase.auth.getSession()
+      const accessToken = data.session?.access_token
+      if (!accessToken) {
+        setTestResults(prev => ({ ...prev, [p.id]: { ok: false, error: 'session-expired' } }))
+        return
+      }
+      const response = await fetch('/api/admin/llm/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', authorization: `Bearer ${accessToken}` },
+        body: JSON.stringify({ providerRoute: p.provider_route }),
+      })
+      const payload = await response.json().catch(() => null) as { ok?: boolean; latency_ms?: number; error?: string } | null
+      if (!response.ok) {
+        setTestResults(prev => ({ ...prev, [p.id]: { ok: false, error: payload?.error ?? `http-${response.status}` } }))
+        return
+      }
+      setTestResults(prev => ({
+        ...prev,
+        [p.id]: {
+          ok: payload?.ok === true,
+          ...payload?.latency_ms === undefined ? {} : { latency: payload.latency_ms },
+          ...payload?.error === undefined ? {} : { error: payload.error },
+        },
+      }))
+    } catch (err) {
+      setTestResults(prev => ({ ...prev, [p.id]: { ok: false, error: err instanceof Error ? err.message : 'network' } }))
+    } finally {
+      setTestingId(null)
+    }
+  }
+
   const handleSaveProvider = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!formName.trim()) {
@@ -196,7 +251,7 @@ export function AdminLLMProvidersTab() {
     setModalFeedback(null)
 
     try {
-      const payload: Record<string, any> = {
+      const payload: Record<string, unknown> = {
         p_id: selectedProvider?.id || null,
         p_name: formName.trim(),
         p_provider_type: formType,
@@ -206,7 +261,7 @@ export function AdminLLMProvidersTab() {
         p_allowed_plans: formAllowedPlans,
       }
 
-      const { error: rpcError } = await (supabase.rpc as any)('admin_save_llm_provider', payload)
+      const { error: rpcError } = await adminRpc('admin_save_llm_provider', payload)
       if (rpcError) throw rpcError
 
       setModalFeedback({
@@ -232,7 +287,7 @@ export function AdminLLMProvidersTab() {
     setModalFeedback(null)
 
     try {
-      const { error: rpcError } = await (supabase.rpc as any)('admin_delete_llm_provider', {
+      const { error: rpcError } = await adminRpc('admin_delete_llm_provider', {
         p_id: selectedProvider.id,
       })
       if (rpcError) throw rpcError
@@ -364,6 +419,7 @@ export function AdminLLMProvidersTab() {
           {providers.map((p) => {
             const badge = getProviderBadge(p.provider_type)
             const isToggling = togglingId === p.id
+            const testResult = testResults[p.id]
 
             return (
               <div
@@ -456,16 +512,16 @@ export function AdminLLMProvidersTab() {
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '8px', borderTop: '1px solid color-mix(in srgb, var(--cm-border) 60%, transparent)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', fontSize: '11px' }}>
-                    <span style={{ color: 'var(--cm-muted-foreground)' }}>API Key:</span>
+                    <span style={{ color: 'var(--cm-muted-foreground)' }}>Cofre:</span>
                     {p.has_api_key ? (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontFamily: 'monospace', color: 'var(--cm-success)' }}>
-                        <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: 'var(--cm-success)' }} />
-                        {p.api_key_masked || 'Configurada'}
+                      <span title="Chaves gerenciadas no Admin" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontFamily: 'monospace', color: 'var(--cm-primary)' }}>
+                        <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: 'var(--cm-primary)' }} />
+                        Admin
                       </span>
                     ) : (
-                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 500, color: 'var(--cm-primary)' }}>
-                        <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: 'var(--cm-primary)' }} />
-                        Not configured
+                      <span title="Chaves gerenciadas em Settings → Models" style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontWeight: 500, color: 'var(--cm-success)' }}>
+                        <span style={{ display: 'inline-block', width: '6px', height: '6px', borderRadius: '50%', background: 'var(--cm-success)' }} />
+                        Settings → Models
                       </span>
                     )}
                   </div>
@@ -489,49 +545,58 @@ export function AdminLLMProvidersTab() {
                   </div>
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', paddingTop: '8px', borderTop: '1px solid var(--cm-border)' }}>
-                  <button
-                    type="button"
-                    disabled
-                    title="Available in a future release"
-                    style={{
-                      flex: 1,
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: '4px',
-                      padding: '5px 8px',
-                      borderRadius: '6px',
-                      border: '1px solid var(--cm-border)',
-                      background: 'var(--cm-background)',
-                      color: 'var(--cm-muted-foreground)',
-                      fontSize: '11px',
-                      fontWeight: 500,
-                      opacity: 0.5,
-                      cursor: 'not-allowed',
-                      overflow: 'hidden',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    <span>⚡</span>
-                    <span>Test Connection</span>
-                  </button>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', paddingTop: '8px', borderTop: '1px solid var(--cm-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button
+                      type="button"
+                      onClick={e => handleTestConnection(p, e)}
+                      disabled={isToggling || testingId === p.id}
+                      title="Testar a conexão com este provedor"
+                      style={{
+                        flex: 1,
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                        padding: '5px 8px',
+                        borderRadius: '6px',
+                        border: '1px solid var(--cm-border)',
+                        background: 'var(--cm-background)',
+                        color: 'var(--cm-foreground)',
+                        fontSize: '11px',
+                        fontWeight: 500,
+                        opacity: testingId === p.id ? 0.6 : 1,
+                        cursor: testingId === p.id ? 'wait' : 'pointer',
+                        overflow: 'hidden',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      <span>⚡</span>
+                      <span>{testingId === p.id ? 'Testing…' : 'Test Connection'}</span>
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => openEditModal(p)}
-                    style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', color: 'var(--cm-foreground)', cursor: 'pointer', fontSize: '11px', fontWeight: 500 }}
-                  >
-                    Edit
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => openEditModal(p)}
+                      style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', color: 'var(--cm-foreground)', cursor: 'pointer', fontSize: '11px', fontWeight: 500 }}
+                    >
+                      Edit
+                    </button>
 
-                  <button
-                    type="button"
-                    onClick={() => openDeleteModal(p)}
-                    style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid color-mix(in srgb, var(--cm-destructive) 25%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', color: 'var(--cm-destructive)', cursor: 'pointer', fontSize: '11px', fontWeight: 500 }}
-                  >
-                    Delete
-                  </button>
+                    <button
+                      type="button"
+                      onClick={() => openDeleteModal(p)}
+                      style={{ padding: '5px 10px', borderRadius: '6px', border: '1px solid color-mix(in srgb, var(--cm-destructive) 25%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', color: 'var(--cm-destructive)', cursor: 'pointer', fontSize: '11px', fontWeight: 500 }}
+                    >
+                      Delete
+                    </button>
+                  </div>
+
+                  {testResult && (
+                    <div style={{ fontSize: '10px', color: testResult.ok ? 'var(--cm-success)' : 'var(--cm-destructive)' }}>
+                      {testResult.ok ? `OK (${testResult.latency ?? 0}ms)` : `Falhou: ${testResult.error ?? 'erro'}`}
+                    </div>
+                  )}
                 </div>
               </div>
             )

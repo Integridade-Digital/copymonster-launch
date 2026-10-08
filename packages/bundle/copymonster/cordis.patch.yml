@@ -1,8 +1,8 @@
 # The CopyMonster SaaS bundle patch: the Cordis-native auth layer over the
 # shipped web profile. Applied after `dsh-base` and `dsh-web-app`, it mounts the
 # CopyMonster credentials composite, inserts the auth service (Typert Host
-# Context adapter) and its HTTP routes, and keeps the rest of the shipped DSH
-# composition intact.
+# Context adapter), its HTTP routes, and the cross-provider LLM fallback, and
+# keeps the rest of the shipped DSH composition intact.
 #
 # Use it as a stacked bundle in a profile, or as an overlay on the shipped
 # profile:
@@ -40,3 +40,15 @@
     # cache headers, so a replaced logo shows without changing its URL.
     - id: brand-assets
       name: '@deepseek-ai/dsh-host-brand-assets'
+
+    # Cross-provider failover: once the primary route's retry budget is spent
+    # (or the failure is not retryable in place), redirect the step to the
+    # fallback route for the rest of the turn. The `openrouter` route comes from
+    # an `llm-pi-ai` provider profile in the settings document.
+    - id: llm-fallback
+      name: '@deepseek-ai/dsh-host-llm-fallback'
+      config:
+        rules:
+          - primary: deepseek-official
+            fallbackProvider: openrouter
+            fallbackModel: openrouter/free

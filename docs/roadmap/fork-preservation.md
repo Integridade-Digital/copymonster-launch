@@ -780,3 +780,19 @@ R snapshots/web/present-svg/workspace.expected/von-neumann.svg -> snapshots/web/
 3. Criar tag `pre-upstream-merge-YYYYMMDD` e push.
 4. Só depois planejar o rebranding (fora do escopo deste documento).
 5. Executar o runbook da seção 4 quando o merge for autorizado.
+
+---
+
+## 8. Itens adiados
+
+### Etapa 8 — e2e/snapshot do gating do seletor de modelo (adiado 2026-10-09)
+
+O gating por role do seletor de modelos (Etapa 8) foi implementado e coberto por teste unitário (`packages/client/ui-model-selection/tests/browser-plugin.client.spec.ts`): `owner`/`admin` veem o `/model` e o seat do composer; `member` e sessão ausente escondem ambos (fail-closed). A atualização dos e2e/snapshot web correspondentes ficou **adiada**, por três motivos:
+
+1. O lane web e2e não roda no CI do fork (`test:web` ausente em `.github/workflows` e `.gitlab-ci.yml`).
+2. Neste host o baseline já falha antes das asserções: o Playwright pede `chromium_headless_shell-1228` e só há a build `1234` instalada (`pnpm exec playwright install` necessário).
+3. `page.addInitScript(__DSH_AUTH__)` conflita com `publishClientAuthSession()` (`apps/web/src/main.tsx:435`, 49-65): sem sessão Supabase, o `onAuthStateChange` regrava `{ accessToken: undefined, role: undefined }` e o gate fail-closed esconde o seletor mesmo publicando `owner`.
+
+Arquivos afetados, a atualizar quando o lane voltar a rodar: `apps/web/tests/plan-control-row.e2e.ts`, `apps/web/tests/file-upload-round.e2e.ts` e o golden `snapshots/web/plan-narrow-viewport/layout.expected.md`.
+
+Ação futura: instalar o browser no CI e adotar uma abordagem que sobreviva ao boot — sessão Supabase válida plantada, ou um patch de boot de teste que publique a role depois do `onAuthStateChange`. Não é bloqueio para produção; é reversível em um commit separado.

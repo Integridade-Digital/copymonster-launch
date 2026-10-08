@@ -9,7 +9,7 @@
  * Scope disposal drops the directory (HMR safety).
  */
 import { Context } from '@deepseek-ai/cordis'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createScope } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
@@ -22,6 +22,15 @@ import { apply, inject } from '../src/client/index.ts'
 import { zh } from '../src/client/locales.ts'
 
 const sid = (k: string): SessionId => k as SessionId
+
+/** Page global the model entries read for their owner/admin gate. */
+interface AuthGlobal {
+  __DSH_AUTH__?: { accessToken?: string; role?: string }
+}
+
+afterEach(() => {
+  delete (globalThis as AuthGlobal).__DSH_AUTH__
+})
 
 const GROUPS = [{
   id: 'deepseek-official',
@@ -67,6 +76,9 @@ const GROUPS = [{
 /** Boot the plugin over fake faces + a stateful fake host (current moves on selectModel). */
 async function bench(locale: 'zh' | 'en' = 'zh') {
   const ctx = new Context()
+  // Default to an owner session so the model entries are admitted; the role-gate
+  // tests override or clear it to exercise member and signed-out callers.
+  ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'test-access-token', role: 'owner' }
   let defaultSelection: ModelSelection = { provider: 'deepseek-official', model: 'deepseek-v4-flash' }
   let selected = defaultSelection
   const calls = { models: 0, select: 0 }
@@ -441,5 +453,25 @@ describe('ui-model-selection dual entry', () => {
     b.ctx.emit('connection/reset')
     await Promise.resolve()
     expect(b.calls).toEqual({ models: 2, select: 0 })
+  })
+
+  it('hides both model entries from a member session', async () => {
+    const b = await bench()
+    ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'member-token', role: 'member' }
+
+    expect(b.contribution().available(projection('s1'))).toBe(false)
+
+    b.mint('s1')
+    expect(b.seat().inject!(sid('s1')).available).toBe(false)
+  })
+
+  it('hides both model entries when no session is published', async () => {
+    const b = await bench()
+    delete (globalThis as AuthGlobal).__DSH_AUTH__
+
+    expect(b.contribution().available(projection('s1'))).toBe(false)
+
+    b.mint('s1')
+    expect(b.seat().inject!(sid('s1')).available).toBe(false)
   })
 })

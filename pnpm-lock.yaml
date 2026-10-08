@@ -258,6 +258,12 @@ importers:
       '@deepseek-ai/dsh-host-brand-assets':
         specifier: workspace:^
         version: link:../../packages/host/brand-assets
+      '@deepseek-ai/dsh-host-llm-credentials-supabase':
+        specifier: workspace:^
+        version: link:../../packages/host/llm-credentials-supabase
+      '@deepseek-ai/dsh-host-llm-fallback':
+        specifier: workspace:^
+        version: link:../../packages/host/llm-fallback
       '@deepseek-ai/dsh-http-proxy':
         specifier: workspace:^
         version: link:../../packages/util/http-proxy

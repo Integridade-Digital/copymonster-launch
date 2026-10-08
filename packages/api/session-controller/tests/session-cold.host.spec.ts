@@ -30,6 +30,18 @@ import {
   testSessionPersistence,
 } from './test-remote.ts'
 
+// The fork's create path reads the subscription from Supabase; these cases
+// exercise cold reads and prompt mapping, so the admin client is stubbed to
+// answer fast instead of resolving DNS.
+vi.mock('@deepseek-ai/dsh-supabase-client', () => ({
+  supabaseAdminClient: {
+    from: () => ({
+      select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: null }) }) }),
+    }),
+    rpc: () => Promise.resolve({ data: null, error: null }),
+  },
+}))
+
 const sid = (id: string): SessionId => id as SessionId
 
 function request<P>(payload: P): P {

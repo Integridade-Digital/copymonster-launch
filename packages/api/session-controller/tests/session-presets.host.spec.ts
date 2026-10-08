@@ -10,8 +10,20 @@ import { agentPresetProjectionDefinition } from '@deepseek-ai/dsh-agent-presets'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import type { Session } from '@deepseek-ai/dsh-session'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createSessionTestRemote } from './test-remote.ts'
+
+// The fork's create path reads the subscription from Supabase; these cases
+// exercise preset identity, so the admin client is stubbed to answer fast
+// instead of resolving DNS.
+vi.mock('@deepseek-ai/dsh-supabase-client', () => ({
+  supabaseAdminClient: {
+    from: () => ({
+      select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: null }) }) }),
+    }),
+    rpc: () => Promise.resolve({ data: null, error: null }),
+  },
+}))
 
 /** Booted contexts and their temp roots, torn down after each test. */
 const contexts: Context[] = []

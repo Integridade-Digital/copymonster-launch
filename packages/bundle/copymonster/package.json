@@ -33,7 +33,8 @@
   "dependencies": {
     "@deepseek-ai/dsh-api-auth-context": "workspace:*",
     "@deepseek-ai/dsh-api-auth-http": "workspace:*",
-    "@deepseek-ai/dsh-host-brand-assets": "workspace:*"
+    "@deepseek-ai/dsh-host-brand-assets": "workspace:*",
+    "@deepseek-ai/dsh-host-llm-credentials-supabase": "workspace:*"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "*"

@@ -291,3 +291,97 @@
   left: 0;
   color: var(--cm-primary);
 }
+
+.cm-billing-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 20px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--cm-border);
+  font-size: 13px;
+  line-height: 1.5;
+}
+.cm-billing-banner--trial {
+  background: color-mix(in srgb, var(--cm-primary) 8%, transparent);
+  border-color: color-mix(in srgb, var(--cm-primary) 35%, transparent);
+}
+.cm-billing-banner--expired,
+.cm-billing-banner--danger {
+  background: color-mix(in srgb, var(--cm-destructive) 8%, transparent);
+  border-color: color-mix(in srgb, var(--cm-destructive) 30%, transparent);
+}
+.cm-billing-banner--active {
+  background: color-mix(in srgb, var(--cm-success) 8%, transparent);
+  border-color: color-mix(in srgb, var(--cm-success) 30%, transparent);
+}
+.cm-billing-banner-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.cm-billing-banner-title {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--cm-foreground);
+}
+.cm-billing-banner-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid currentColor;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.cm-billing-banner-badge--blue {
+  color: var(--cm-primary);
+}
+.cm-billing-banner-badge--amber {
+  color: #d8ae5f;
+}
+.cm-billing-banner-badge--green {
+  color: var(--cm-success);
+}
+.cm-billing-banner-desc {
+  margin: 0;
+  line-height: 1.5;
+  color: var(--cm-muted-foreground);
+}
+.cm-billing-progress-box {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cm-billing-progress-label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--cm-foreground);
+}
+.cm-billing-progress-label-title {
+  font-weight: 600;
+}
+.cm-billing-progress-label-value {
+  color: var(--cm-muted-foreground);
+}
+.cm-billing-progress-track {
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cm-foreground) 12%, transparent);
+  overflow: hidden;
+}
+.cm-billing-progress-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--cm-primary);
+  transition: width 0.3s ease;
+}

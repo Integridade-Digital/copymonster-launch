@@ -361,11 +361,10 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
         <div className="cm-billing-banner cm-billing-banner--trial">
           <div className="cm-billing-banner-header">
             <span className="cm-billing-banner-title">
-              <span>🚀 7-Day Free Trial Active</span>
-              <span className="cm-billing-banner-badge cm-billing-banner-badge--blue">Pro Access</span>
-            </span>
-            <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--cm-ring)' }}>
-              {trialDaysLeft > 0 ? `${trialDaysLeft} days remaining` : 'Expires today'}
+              🚀 7-Day Free Trial Active — Pro Access ·{' '}
+              {trialDaysLeft > 0
+                ? `${trialDaysLeft} ${trialDaysLeft === 1 ? 'day' : 'days'} remaining`
+                : 'Expires today'}
             </span>
           </div>
           <p className="cm-billing-banner-desc">
@@ -374,8 +373,10 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
           </p>
           <div className="cm-billing-progress-box">
             <div className="cm-billing-progress-label">
-              <span>Trial Token Consumption</span>
-              <span>{trialTokensUsed.toLocaleString()} / {trialTokenLimit.toLocaleString()} tokens ({trialTokenPercent}%)</span>
+              <span className="cm-billing-progress-label-title">Trial Token Consumption:</span>
+              <span className="cm-billing-progress-label-value">
+                {trialTokensUsed.toLocaleString('en-US')} / {trialTokenLimit.toLocaleString('en-US')} tokens ({trialTokenPercent}%)
+              </span>
             </div>
             <div className="cm-billing-progress-track">
               <div className="cm-billing-progress-fill" style={{ width: `${trialTokenPercent}%` }} />

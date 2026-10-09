@@ -34,6 +34,7 @@
     "@deepseek-ai/dsh-api-auth-context": "workspace:*",
     "@deepseek-ai/dsh-api-auth-http": "workspace:*",
     "@deepseek-ai/dsh-host-brand-assets": "workspace:*",
+    "@deepseek-ai/dsh-host-copymonster-identity": "workspace:*",
     "@deepseek-ai/dsh-host-llm-credentials-supabase": "workspace:*",
     "@deepseek-ai/dsh-host-llm-fallback": "workspace:*"
   },

@@ -28,6 +28,10 @@
     - id: llm-credentials-supabase
       name: '@deepseek-ai/dsh-host-llm-credentials-supabase'
 
+    # Immutable CopyMonster identity prepended to every agent system prompt.
+    - id: copymonster-identity
+      name: '@deepseek-ai/dsh-host-copymonster-identity'
+
     # CopyMonster identity service (ctx.auth) + the `auth` Typert Context kind.
     - id: auth-context
       name: '@deepseek-ai/dsh-api-auth-context'

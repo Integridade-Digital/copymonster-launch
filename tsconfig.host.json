@@ -394,6 +394,7 @@
     { "path": "./packages/host/directory-picker-native" },
     { "path": "./packages/host/frontend-static" },
     { "path": "./packages/host/brand-assets" },
+    { "path": "./packages/host/copymonster-identity" },
     { "path": "./packages/host/llm-credentials-supabase" },
     { "path": "./packages/host/llm-fallback" },
     { "path": "./packages/host/open-in-app" },

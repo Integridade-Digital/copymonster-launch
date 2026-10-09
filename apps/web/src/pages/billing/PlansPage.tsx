@@ -110,6 +110,17 @@ export const PRICING_PLANS: PlanPricingItem[] = [
   },
 ]
 
+/** Standardized specification rows shown in every plan card's specs modal. */
+function specRows(plan: PlanPricingItem): readonly { label: string; value: string }[] {
+  return [
+    { label: 'Token Quota', value: plan.totalTokensMonthly },
+    { label: 'Workspaces', value: plan.maxWorkspaces },
+    { label: 'Concurrency', value: plan.maxSessions },
+    { label: 'Storage', value: plan.storage },
+    { label: 'AI Architecture', value: plan.aiTier },
+  ]
+}
+
 interface DbTenantRow {
   id: string
   name: string
@@ -185,6 +196,14 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
   const [isLoading, setIsLoading] = useState(true)
   const [processingPriceId, setProcessingPriceId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
+  const [specsPlan, setSpecsPlan] = useState<PlanPricingItem | null>(null)
+
+  useEffect(() => {
+    if (specsPlan === null) return
+    const onKeyDown = (event: KeyboardEvent) => { if (event.key === 'Escape') setSpecsPlan(null) }
+    document.addEventListener('keydown', onKeyDown)
+    return () => { document.removeEventListener('keydown', onKeyDown) }
+  }, [specsPlan])
 
   useEffect(() => {
     void loadTenantAndPlans()
@@ -508,50 +527,13 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
                     : `Subscribe to ${plan.name}`}
               </button>
 
-              <div className="cm-plan-features">
-                <h3 className="cm-plan-features-title">Plan Specifications & Limits</h3>
-                <ul className="cm-plan-features-list">
-                  <li className="cm-plan-feature-item">
-                    <svg width="14" height="14" className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span><strong>Token Quota:</strong> {plan.totalTokensMonthly}</span>
-                  </li>
-                  <li className="cm-plan-feature-item">
-                    <svg width="14" height="14" className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span><strong>Workspaces:</strong> {plan.maxWorkspaces}</span>
-                  </li>
-                  <li className="cm-plan-feature-item">
-                    <svg width="14" height="14" className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span><strong>Concurrency:</strong> {plan.maxSessions}</span>
-                  </li>
-                  <li className="cm-plan-feature-item">
-                    <svg width="14" height="14" className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span><strong>Storage:</strong> {plan.storage}</span>
-                  </li>
-                  <li className="cm-plan-feature-item">
-                    <svg width="14" height="14" className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                    </svg>
-                    <span><strong>AI Architecture:</strong> {plan.aiTier}</span>
-                  </li>
-
-                  {plan.features.map((feature, idx) => (
-                    <li key={idx} className="cm-plan-feature-item">
-                      <svg width="14" height="14" className="cm-plan-feature-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 13l4 4L19 7" />
-                      </svg>
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
+              <button
+                type="button"
+                className="cm-plan-specs-btn"
+                onClick={() => { setSpecsPlan(plan) }}
+              >
+                See full specifications
+              </button>
             </div>
           )
         })}
@@ -615,6 +597,48 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
           </div>
         </details>
       </div>
+
+      {specsPlan !== null && (
+        <div className="cm-specs-overlay" role="presentation" onClick={() => { setSpecsPlan(null) }}>
+          <div
+            className="cm-specs-panel"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`${specsPlan.name} specifications`}
+            onClick={(event) => { event.stopPropagation() }}
+          >
+            <div className="cm-specs-header">
+              <h3 className="cm-specs-title">{specsPlan.name} — Specifications & Limits</h3>
+              <button
+                type="button"
+                className="cm-specs-close"
+                aria-label="Close"
+                onClick={() => { setSpecsPlan(null) }}
+              >
+                ✕
+              </button>
+            </div>
+
+            <ul className="cm-specs-list">
+              {specRows(specsPlan).map(row => (
+                <li key={row.label} className="cm-specs-row">
+                  <span className="cm-specs-label">{row.label}</span>
+                  <span className="cm-specs-value">{row.value}</span>
+                </li>
+              ))}
+            </ul>
+
+            <div className="cm-specs-included">
+              <h4 className="cm-specs-included-title">Included</h4>
+              <ul className="cm-specs-features">
+                {specsPlan.features.map((feature, index) => (
+                  <li key={index} className="cm-specs-feature">{feature}</li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

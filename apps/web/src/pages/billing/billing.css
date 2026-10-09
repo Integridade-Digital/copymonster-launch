@@ -159,13 +159,11 @@
   background: color-mix(in srgb, var(--cm-primary) 85%, white);
 }
 .cm-plan-action-btn--secondary {
-  background: var(--cm-secondary);
-  color: var(--cm-foreground);
-  border: 1px solid var(--cm-border);
+  background: var(--cm-primary);
+  color: var(--cm-primary-foreground);
 }
 .cm-plan-action-btn--secondary:hover:not(:disabled) {
-  background: var(--cm-secondary);
-  color: var(--cm-foreground);
+  background: color-mix(in srgb, var(--cm-primary) 85%, white);
 }
 .cm-plan-action-btn--current {
   background: color-mix(in srgb, var(--cm-ring) 15%, transparent);

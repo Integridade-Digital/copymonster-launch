@@ -175,6 +175,8 @@ export interface SessionSummary {
   readonly origin?: 'subagent'
   readonly cwd?: string
   readonly projections?: SessionProjectionHints
+  /** Brand DNA mapping this session carries; present only for live sessions with one chosen. */
+  readonly positioningMappingId?: string
 }
 
 /** One session-content search result. */
@@ -223,6 +225,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'session/steer-unavailable': { readonly itemId: MessageId }
     'session/title-invalid': { readonly sessionId: SessionId }
     'session/fork-unavailable': { readonly sessionId: SessionId }
+    'session/positioning-not-found': { readonly positioningMappingId: string }
+    'session/positioning-not-completed': { readonly positioningMappingId: string }
     'subagent/not-found': {
       readonly parentSessionId: SessionId
       readonly childSessionId: SessionId
@@ -304,6 +308,18 @@ export interface SessionSelectModelRequest extends ModelSelection {
 /** Accepted model selection after Host resolution. */
 export interface SessionSelectModelValue {
   readonly selected: ModelSelection
+}
+
+/** Session DNA selection request; an absent `positioningMappingId` clears the choice. */
+export interface SessionSelectPositioningRequest {
+  readonly sessionId: SessionId
+  readonly positioningMappingId?: string
+}
+
+/** Session DNA selection response value. */
+export interface SessionSelectPositioningValue {
+  readonly sessionId: SessionId
+  readonly positioningMappingId?: string
 }
 
 /** Session rename request. */

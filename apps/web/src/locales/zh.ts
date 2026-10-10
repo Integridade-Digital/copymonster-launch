@@ -128,4 +128,9 @@ export const zh = {
   'onboarding.dna.exportCopy': '复制',
   'onboarding.dna.exportDownload': '下载 .txt',
   'onboarding.dna.firstName': '我的第一个 DNA',
+  'onboarding.dna.chip.title': '品牌 DNA',
+  'onboarding.dna.chip.free': '无 DNA（自由执行）',
+  'onboarding.dna.chip.active': '品牌 DNA 已启用',
+  'onboarding.dna.chip.switching': '切换中…',
+  'onboarding.dna.chip.error': '无法切换 DNA，请重试。',
 }

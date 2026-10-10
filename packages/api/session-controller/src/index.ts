@@ -57,6 +57,8 @@ import type {
   SessionSearchValue,
   SessionSelectModelRequest,
   SessionSelectModelValue,
+  SessionSelectPositioningRequest,
+  SessionSelectPositioningValue,
   SessionUpdateQueueRequest,
   SessionUpdateQueueValue,
 } from './types.ts'
@@ -315,6 +317,16 @@ export class SessionController extends TypertRemoteService {
   @RemoteScope('auth', 'create')
   create(request: SessionCreateRequest): Promise<SessionCreateValue> {
     return this.commands.create(request, requireAuthIdentity(this.ctx))
+  }
+
+  /**
+   * Select or clear the Brand DNA mapping one Session carries.
+   * @param request - Session identity and the mapping to carry; absent clears.
+   * @returns the applied choice.
+   */
+  @RemoteScope('auth', 'selectPositioning')
+  selectPositioning(request: SessionSelectPositioningRequest): Promise<SessionSelectPositioningValue> {
+    return this.commands.selectPositioning(request, requireAuthIdentity(this.ctx))
   }
 
   /**

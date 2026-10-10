@@ -117,3 +117,33 @@
   color: #111827;
   font-size: 13px;
 }
+
+.cm-dna-chip { position: relative; display: flex; align-items: center; gap: 6px; }
+.cm-dna-chip-button {
+  display: inline-flex; align-items: center; gap: 6px;
+  border: 1px solid #d1d5db; background: #ffffff; color: #374151;
+  border-radius: 999px; padding: 3px 10px; font-size: 12px; cursor: pointer;
+}
+.cm-dna-chip-button:hover { border-color: #7c3aed; }
+.cm-dna-chip-button:disabled { opacity: 0.6; cursor: default; }
+.cm-dna-chip-label { font-weight: 600; color: #7c3aed; }
+.cm-dna-chip-value {
+  color: #6b7280; max-width: 160px; overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap;
+}
+.cm-dna-chip-value--active { color: #111827; }
+.cm-dna-chip-error { color: #dc2626; font-size: 11px; }
+.cm-dna-chip-backdrop { position: fixed; inset: 0; z-index: 999; }
+.cm-dna-chip-menu {
+  position: absolute; bottom: calc(100% + 6px); right: 0; z-index: 1000;
+  background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+  display: flex; flex-direction: column; min-width: 220px; max-height: 280px;
+  overflow: auto; padding: 4px;
+}
+.cm-dna-chip-option {
+  border: none; background: transparent; color: #111827; text-align: left;
+  border-radius: 6px; padding: 8px 10px; font-size: 13px; cursor: pointer;
+}
+.cm-dna-chip-option:hover { background: #f3f4f6; }
+.cm-dna-chip-option--active { background: #f5f3ff; color: #7c3aed; font-weight: 600; }

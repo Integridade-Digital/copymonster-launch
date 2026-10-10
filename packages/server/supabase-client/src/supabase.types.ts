@@ -120,6 +120,27 @@ export interface Database {
         }
         Relationships: []
       }
+      positioning_mappings: {
+        Row: {
+          id: string
+          user_id: string
+          is_default: boolean
+          status: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          is_default?: boolean
+          status?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          is_default?: boolean
+          status?: string
+        }
+        Relationships: []
+      }
       user_tenant_roles: {
         Row: {
           id: string

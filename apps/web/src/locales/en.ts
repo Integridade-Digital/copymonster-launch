@@ -128,4 +128,9 @@ export const en = {
   'onboarding.dna.exportCopy': 'Copy',
   'onboarding.dna.exportDownload': 'Download .txt',
   'onboarding.dna.firstName': 'My first DNA',
+  'onboarding.dna.chip.title': 'Brand DNA',
+  'onboarding.dna.chip.free': 'No DNA (free run)',
+  'onboarding.dna.chip.active': 'Brand DNA active',
+  'onboarding.dna.chip.switching': 'Switching…',
+  'onboarding.dna.chip.error': 'Could not switch the DNA. Try again.',
 }

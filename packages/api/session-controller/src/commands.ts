@@ -51,6 +51,8 @@ import type {
   SessionRenameValue,
   SessionSelectModelRequest,
   SessionSelectModelValue,
+  SessionSelectPositioningRequest,
+  SessionSelectPositioningValue,
   SessionUpdateQueueRequest,
   SessionUpdateQueueValue,
   SessionRequestId,
@@ -198,13 +200,18 @@ export class SessionCommandController {
     } catch (error) {
       this.rejectCreation(sessionId, error)
     }
+    // Brand DNA precedence (plano Etapa 7): an explicit choice wins; an absent
+    // one inherits the caller's default completed mapping so a fresh session
+    // lands on the just-mapped DNA; the composer chip clears it in place.
+    let positioningMappingId = request.positioningMappingId
+    if (positioningMappingId === undefined && identity?.tenantId !== undefined) {
+      positioningMappingId = await this.defaultPositioningMappingId(identity.userId)
+    }
     if (identity?.tenantId && typeof adopted.session === 'object' && adopted.session !== null) {
       sessionTenantMap.set(adopted.session, {
         tenantId: identity.tenantId,
         userId: identity.userId,
-        ...(request.positioningMappingId === undefined
-          ? {}
-          : { positioningMappingId: request.positioningMappingId }),
+        ...(positioningMappingId === undefined ? {} : { positioningMappingId }),
       })
       upsertSessionIndex({
         sessionId: String(sessionId),
@@ -269,6 +276,82 @@ export class SessionCommandController {
         )
       }
     })
+  }
+
+  /**
+   * Select or clear the Brand DNA mapping one Session carries. The mapping
+   * must exist, be completed, and belong to the caller; the injection reads
+   * the choice at the next prompt assembly.
+   * @param request - Session identity and the mapping to carry; absent clears.
+   * @param identity - authenticated caller the mapping must belong to.
+   * @returns the applied choice.
+   */
+  async selectPositioning(
+    request: SessionSelectPositioningRequest,
+    identity: UserIdentity,
+  ): Promise<SessionSelectPositioningValue> {
+    const agent = await this.resolveAgent(request.sessionId)
+    this.assertSessionInSandbox(
+      agent.session,
+      resolveUserSandboxRoot(identity.tenantId, identity.userId),
+    )
+    let positioningMappingId: string | undefined
+    if (request.positioningMappingId !== undefined) {
+      const { data, error } = await supabaseAdminClient.rpc('get_positioning_mapping', {
+        p_mapping_id: request.positioningMappingId,
+        p_user_id: identity.userId,
+      })
+      const row = (data ?? [])[0]
+      if (error !== null || row === undefined) {
+        throw new RemoteError(
+          'session/positioning-not-found',
+          `positioning mapping "${request.positioningMappingId}" is not visible to this caller`,
+          { positioningMappingId: request.positioningMappingId },
+        )
+      }
+      if (row.status !== 'completed') {
+        throw new RemoteError(
+          'session/positioning-not-completed',
+          `positioning mapping "${request.positioningMappingId}" is not completed`,
+          { positioningMappingId: request.positioningMappingId },
+        )
+      }
+      positioningMappingId = request.positioningMappingId
+    }
+    const previous = sessionTenantMap.get(agent.session)
+    sessionTenantMap.set(agent.session, {
+      tenantId: previous?.tenantId ?? identity.tenantId,
+      userId: previous?.userId ?? identity.userId,
+      ...(positioningMappingId === undefined ? {} : { positioningMappingId }),
+    })
+    return {
+      sessionId: request.sessionId,
+      ...(positioningMappingId === undefined ? {} : { positioningMappingId }),
+    }
+  }
+
+  /**
+   * The caller's default completed positioning mapping, when one is marked.
+   * An unreadable roster must not block session creation: DNA-free it is.
+   * @param userId - the caller the default must belong to.
+   * @returns the default mapping id, or undefined when none is marked.
+   */
+  private async defaultPositioningMappingId(userId: string): Promise<string | undefined> {
+    try {
+      const { data, error } = await supabaseAdminClient
+        .from('positioning_mappings')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('is_default', true)
+        .eq('status', 'completed')
+        .limit(1)
+      const first = data?.[0]
+      if (error !== null || first === undefined) return undefined
+      return String(first.id)
+    } catch {
+      // Same fail-open rule as the guard clause: creation proceeds DNA-free.
+      return undefined
+    }
   }
 
   /**

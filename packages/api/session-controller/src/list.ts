@@ -8,6 +8,7 @@ import type { Session, SessionEvent, SessionHeader, SessionId } from '@deepseek-
 import type {} from '@deepseek-ai/dsh-session-projection'
 import type {} from '@deepseek-ai/dsh-session-projection-cache'
 import { SessionQueryError, type SessionSearchCursor } from '@deepseek-ai/dsh-session-query'
+import { sessionTenantMap } from './commands.ts'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import { assertPathInSandbox } from '@deepseek-ai/dsh-workspace'
 import { z } from 'zod'
@@ -109,6 +110,7 @@ export class ApiSessionList {
   summaryFor(session: Session): SessionSummary {
     const projections = this.projectionsFor(session.header, session)
     const metadata = projections?.values.sessionListMetadata
+    const tenant = sessionTenantMap.get(session)
     return {
       sessionId: session.id,
       updatedAt: updatedAt(session.header, metadata),
@@ -116,6 +118,9 @@ export class ApiSessionList {
       blank: metadata?.blank ?? session.seq === 0,
       ...listFields(session.header),
       ...(projections === undefined ? {} : { projections }),
+      ...(tenant?.positioningMappingId === undefined
+        ? {}
+        : { positioningMappingId: tenant.positioningMappingId }),
     }
   }
 

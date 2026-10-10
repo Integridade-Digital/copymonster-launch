@@ -1,6 +1,7 @@
 import { t } from './locales'
 import { FooterActionsRoot } from './components/layout/FooterActionsRoot'
 import { installDnaOnboarding } from './components/dna/installDnaOnboarding'
+import { installDnaSelection } from './components/dna/installDnaSelection'
 /** Browser entry for the Web client. */
 import React from 'react'
 import { createRoot } from 'react-dom/client'
@@ -194,6 +195,7 @@ const LazyWebApp = React.lazy(async () => {
               )
             })
             installDnaOnboarding(ctx)
+            installDnaSelection(ctx)
           },
         })
 

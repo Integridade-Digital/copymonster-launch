@@ -9,6 +9,7 @@ import type { applyIndexInjections } from '@deepseek-ai/dsh-client-web'
 import { AppWrapper, supabaseClient, useAuth } from './lib/auth'
 import { ensureDshBrowserSession, resolveHostBoot } from './lib/auth/host-boot'
 import { ProtectedRoute, PublicRoute } from './lib/auth/protected-route'
+import { RequireDnaRoute } from './lib/auth/dna-guard'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -414,7 +415,9 @@ function AppRoutes() {
         path="/*"
         element={
           <ProtectedRoute>
-            <AuthenticatedWorkspace />
+            <RequireDnaRoute>
+              <AuthenticatedWorkspace />
+            </RequireDnaRoute>
           </ProtectedRoute>
         }
       />

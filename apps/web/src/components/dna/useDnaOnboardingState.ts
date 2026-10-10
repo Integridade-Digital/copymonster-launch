@@ -33,6 +33,12 @@ export function dnaBlock(block: number): DnaBlockMeta | undefined {
 /** Blocks the interview may skip; block 12 must be saved to complete the mapping. */
 export const DNA_ADAPTIVE_BLOCKS = [2, 5, 6, 7, 8] as const
 
+export async function listMyPositioningMappings(): Promise<PositioningMappingRow[]> {
+  const { data, error } = await supabaseClient.rpc('list_my_positioning_mappings')
+  if (error !== null) throw new Error(error.message)
+  return data ?? []
+}
+
 export async function createPositioningMapping(
   name: string,
   productName: string,
@@ -82,10 +88,9 @@ export function useDnaOnboardingState(active: boolean, firstName: string): DnaOn
     let cancelled = false
     const load = async (): Promise<void> => {
       try {
-        const { data, error } = await supabaseClient.rpc('list_my_positioning_mappings')
+        const rows = await listMyPositioningMappings()
         if (cancelled) return
-        if (error !== null) throw new Error(error.message)
-        const open = (data ?? []).find(row => row.status === 'in_progress')
+        const open = rows.find(row => row.status === 'in_progress')
         if (open !== undefined) {
           setMapping(open)
           setMappingError(false)

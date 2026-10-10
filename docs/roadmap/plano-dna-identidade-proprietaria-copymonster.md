@@ -367,6 +367,22 @@ HOW TO USE:
    * Criação de sessão "sem DNA" confirmando que o modelo roda limpo.
    * Criação de segundo DNA em Settings → My DNA até o limite da cota do plano.
 
+### Protocolo de Boot (obrigatório no pre-push do Go/No-Go)
+
+Typecheck, builds e testes não pegam YAML de composição inválido nem falha de boot. Incidente 2026-10-10: o patch do bundle com indentação quebrada passou por todas as verificações verdes e o primeiro `systemctl restart` após o deploy entrou em crash loop; hotfix `a219b8b615`. Este protocolo é obrigatório antes de qualquer deploy e qualquer falha é NO-GO.
+
+1. **YAML parse-check de todos os arquivos de composição:**
+   * `packages/bundle/copymonster/cordis.patch.yml`
+   * `packages/preset/agent-presets/presets/*/agent.cordis.yml` (todos)
+   * `packages/preset/agent-presets/presets/*/preset.yml` (todos)
+   * `settings.yaml` (se aplicável)
+2. **Boot smoke test:**
+   * `systemctl restart copymonster.service`
+   * `sleep 5`
+   * `systemctl status copymonster.service` → `active (running)`
+   * `curl http://127.0.0.1:3080/api/healthz` → HTTP 200
+3. **Qualquer falha nos passos 1 ou 2 → NO-GO para o deploy** (investigar, corrigir e repetir o protocolo completo).
+
 ---
 
 ## 6. Resumo das Responsabilidades e Próximos Passos

@@ -22,7 +22,14 @@
     personaPrefix: 'You are CopyMonster AI, an autonomous copywriting and funnel agent.'
     personaSuffix: Your working directory is {{cwd}}.
 
-- insert:
+  - insert:
+    # Brand DNA positioning context: prepends the creator's mapped positioning
+    # to sessions created with a positioningMappingId (opt-in per session).
+    # Inserted before copymonster-identity so the identity watermark stays
+    # above the DNA block in the final assembly.
+    - id: positioning-injection
+      name: '@deepseek-ai/dsh-host-positioning-injection'
+
     # Composite credentials provider: Supabase runtime LLM keys in memory, with
     # the local provider as its delegate for every other reference.
     - id: llm-credentials-supabase

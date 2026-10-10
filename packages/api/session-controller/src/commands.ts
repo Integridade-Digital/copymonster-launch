@@ -112,7 +112,7 @@ function hasPromptContent(content: readonly PromptContentCandidate[]): boolean {
 }
 
 /** Implements Session business commands delegated by the Session Controller Remote service. */
-export const sessionTenantMap = new WeakMap<Session, { tenantId: string; userId: string }>()
+export const sessionTenantMap = new WeakMap<Session, { tenantId: string; userId: string; positioningMappingId?: string }>()
 
 export class SessionCommandController {
   /**
@@ -202,6 +202,9 @@ export class SessionCommandController {
       sessionTenantMap.set(adopted.session, {
         tenantId: identity.tenantId,
         userId: identity.userId,
+        ...(request.positioningMappingId === undefined
+          ? {}
+          : { positioningMappingId: request.positioningMappingId }),
       })
       upsertSessionIndex({
         sessionId: String(sessionId),
@@ -433,9 +436,15 @@ export class SessionCommandController {
     const agent = await this.resolveAgent(request.sessionId)
     this.assertSessionInSandbox(agent.session, sandboxRoot)
     if (identity?.tenantId && typeof agent.session === 'object' && agent.session !== null) {
+      // The prompt path rewrites tenant/user on every turn; the positioning
+      // mapping id is session-scoped and must survive the rewrite.
+      const previous = sessionTenantMap.get(agent.session)
       sessionTenantMap.set(agent.session, {
         tenantId: identity.tenantId,
         userId: identity.userId,
+        ...(previous?.positioningMappingId === undefined
+          ? {}
+          : { positioningMappingId: previous.positioningMappingId }),
       })
     }
     if (hasPromptRequest(agent, request.requestId)) return { accepted: true }

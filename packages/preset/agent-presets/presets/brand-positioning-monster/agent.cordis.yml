@@ -32,13 +32,9 @@
 - id: tool-ask-user
   name: '@deepseek-ai/dsh-tool-ask-user'
 
-# ── CopyMonster DNA runtime (Etapa 5) ───────────────────────────────────────
+# ── CopyMonster DNA runtime ─────────────────────────────────────────────────
 
-# Skeleton row for the positioning-injection host plugin: prompt-waterfall
-# listener and DNA persistence for sessions that carry a positioningMappingId.
-# TODO(Etapa 5): remove `disabled: true` when
-# @deepseek-ai/dsh-host-positioning-injection ships.
-# If forgotten, the DNA injection never runs at runtime.
+# Host plugin activated in Etapa 5: prompt-waterfall listener and DNA
+# persistence for sessions that carry a positioningMappingId.
 - id: positioning-injection
   name: '@deepseek-ai/dsh-host-positioning-injection'
-  disabled: true

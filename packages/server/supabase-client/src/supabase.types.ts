@@ -331,10 +331,44 @@ export interface Database {
         }
         Returns: void
       }
+      get_positioning_mapping: {
+        Args: {
+          p_mapping_id: string
+          p_user_id: string
+        }
+        Returns: PositioningMappingRow[]
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }
+}
+
+/** Row of `public.positioning_mappings` returned by `get_positioning_mapping`, per `supabase/migrations/039`. */
+export interface PositioningMappingRow {
+  id: string
+  tenant_id: string
+  user_id: string
+  name: string
+  product_name: string
+  block_1_public: string | null
+  block_2_pains: string | null
+  block_3_solution: string | null
+  block_4_differentiators: string | null
+  block_5_awareness_stage: string | null
+  block_6_urgency: string | null
+  block_7_social_proof: string | null
+  block_8_objections: string | null
+  block_9_emotional: string | null
+  block_10_transformation: string | null
+  block_11_voice: string | null
+  block_12_promises: string | null
+  status: 'in_progress' | 'completed' | 'archived'
+  current_block: number
+  is_default: boolean
+  created_at: string
+  updated_at: string
+  completed_at: string | null
 }
 
 /** Convenience alias for the resolved caller identity used across the backend. */

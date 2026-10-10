@@ -286,6 +286,8 @@ export interface SessionCreateRequest {
   readonly cwd?: string
   readonly sessionId?: SessionId
   readonly agentPreset?: string
+  /** Positioning mapping whose Brand DNA context the session carries; absent runs DNA-free. */
+  readonly positioningMappingId?: string
 }
 
 /** Session creation response value. */

@@ -397,6 +397,7 @@
     { "path": "./packages/host/copymonster-identity" },
     { "path": "./packages/host/llm-credentials-supabase" },
     { "path": "./packages/host/llm-fallback" },
+    { "path": "./packages/host/positioning-injection" },
     { "path": "./packages/host/open-in-app" },
     { "path": "./packages/host/plugin-inventory" },
     { "path": "./packages/boot/plugin-manager" },

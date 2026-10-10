@@ -804,3 +804,11 @@ Implementado na Etapa 9: blocklist de e-mails descartáveis via trigger `BEFORE 
 - **P3 — higienização de workspaces/sessões órfãs.** Não bloqueia o lançamento. Ação futura: inventário read-only seguido de cleanup com backup documentado e aprovação explícita.
 - **P4 — rate limit por IP em `session.create` no host.** Custo/benefício não justifica a 48h; só usuários autenticados e dentro da cota criam sessão (o gate `check_tenant_quota` já limita o dano por conta).
 - **Mensagem de erro do bloqueio.** O trigger retorna "Database error saving new user" (genérico). Aceito: bloqueia e não vaza a regra. Melhoria futura: mapear para copy amigável no cliente, sem tocar em `packages/llm/`.
+
+### Item adiado — test:web precisa fornecer Client Context "auth" (adiado 2026-10-10)
+
+- **Causa:** o commit `bcfe43fedb` escopou `session.list` (e `page`, `follow`, `prompt`, `rename`, `fork`) com `@RemoteScope('auth')`. Os specs em `apps/web/tests/*.e2e.ts` chamam esses verbs via bridge sem fornecer o Client Context adapter para `auth`.
+- **Erro:** `client api: 'session/list' has no Client Context adapter for 'auth'` (unhandled rejection no `assembled-boot.ts`).
+- **Impacto:** `test:web` vermelho (117 arquivos na corrida de 2026-10-10). Não bloqueia deploy: o lane está fora do CI do fork.
+- **Não corrigir revertendo:** reverter `@RemoteScope('auth')` reabriria o furo de segurança corrigido por `bcfe43fedb` (qualquer usuário autenticado lendo/forkando sessões de outro).
+- **Correção futura:** cada spec de `apps/web/tests` deve fornecer o adapter de Client Context `auth` ao montar o bridge, ou o bridge de teste ganha um fallback controlado. Isolamento confirmado na Etapa 3 do DNA: o mesmo spec (`home-path-tilde.expected.e2e.ts`) falha identicamente com e sem o código do onboarding.

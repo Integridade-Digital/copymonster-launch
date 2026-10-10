@@ -3,6 +3,7 @@ import { supabaseClient } from '../../lib/auth/supabase.client'
 import { PlansModal } from './PlansModal'
 import { ProfileModal } from './ProfileModal'
 import { AdminModal } from './AdminModal'
+import { DnaModal } from './DnaModal'
 import { t, getActiveLocale } from '../../locales'
 import type { PlansUser } from '../../pages/billing/PlansPage'
 import type { ProfileUser } from '../../pages/ProfilePage'
@@ -17,13 +18,14 @@ export interface FooterUser extends PlansUser, ProfileUser {
 }
 
 export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
-  const [activeModal, setActiveModal] = useState<'plans' | 'profile' | 'admin' | null>(null)
+  const [activeModal, setActiveModal] = useState<'plans' | 'profile' | 'admin' | 'dna' | null>(null)
   const [currentUser, setCurrentUser] = useState<FooterUser | null>(null)
   const lang = getActiveLocale()
 
   const plansBtnRef = useRef<HTMLButtonElement>(null)
   const profileBtnRef = useRef<HTMLButtonElement>(null)
   const adminBtnRef = useRef<HTMLButtonElement>(null)
+  const dnaBtnRef = useRef<HTMLButtonElement>(null)
 
   const closeModal = () => setActiveModal(null)
 
@@ -62,7 +64,7 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
     const handleCustomModal = (e: Event) => {
       const customEvent = e as CustomEvent<string>
       const target = customEvent.detail
-      if (target === 'plans' || target === 'profile' || target === 'admin') {
+      if (target === 'plans' || target === 'profile' || target === 'admin' || target === 'dna') {
         setActiveModal(target)
       } else if (target === 'admin_audit') {
         setActiveModal('admin')
@@ -80,6 +82,7 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
   const plansLabel = lang === 'zh' ? '计划 (Plans)' : 'Plans'
   const profileLabel = lang === 'zh' ? '个人资料 (Profile)' : 'Profile'
   const adminLabel = lang === 'zh' ? '管理员 (Admin)' : 'Admin'
+  const dnaLabel = lang === 'zh' ? '我的 DNA (My DNA)' : 'My DNA'
 
   return (
     <>
@@ -121,7 +124,29 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
           {wide && <span className={css.label}>{profileLabel}</span>}
         </button>
 
-        {/* Row 3: Admin */}
+        {/* Row 3: My DNA */}
+        <button
+          ref={dnaBtnRef}
+          type="button"
+          className={css.actionButton}
+          onClick={() => setActiveModal('dna')}
+          title={wide ? undefined : t('settings.dna.title')}
+          aria-label={t('settings.dna.title')}
+          aria-haspopup="dialog"
+        >
+          <span className={css.icon} aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 3c0 6 10 6 10 12" />
+              <path d="M17 3c0 6-10 6-10 12" />
+              <path d="M7 21c0-1 10-1 10 0" />
+              <line x1="8.5" y1="8" x2="15.5" y2="8" />
+              <line x1="8.5" y1="16" x2="15.5" y2="16" />
+            </svg>
+          </span>
+          {wide && <span className={css.label}>{dnaLabel}</span>}
+        </button>
+
+        {/* Row 4: Admin */}
         {isAdmin && (
           <button
             ref={adminBtnRef}
@@ -144,7 +169,7 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
           </button>
         )}
 
-        {/* Row 4: Sign Out */}
+        {/* Row 5: Sign Out */}
         <button
           type="button"
           className={css.actionButton}
@@ -183,6 +208,11 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
         onClose={closeModal}
         triggerRef={adminBtnRef}
         role={currentUser?.role}
+      />
+      <DnaModal
+        isOpen={activeModal === 'dna'}
+        onClose={closeModal}
+        triggerRef={dnaBtnRef}
       />
     </>
   )

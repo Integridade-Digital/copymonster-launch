@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { t } from '../../locales'
 import {
-  DNA_ADAPTIVE_BLOCKS, dnaBlock, updatePositioningBlock, useDnaOnboardingState,
+  DNA_ADAPTIVE_BLOCKS, DNA_REFINE_KEY, dnaBlock, updatePositioningBlock, useDnaOnboardingState,
 } from './useDnaOnboardingState'
 import { useDnaSessionTracker, type DnaUseEventWindow, type DnaUseSession } from './useDnaSessionTracker'
 import { clearDnaClaim, dnaClaim } from './installDnaOnboarding'
@@ -19,6 +19,13 @@ const KICKOFF_TEXTS: Record<'pt' | 'en' | 'es', string> = {
   pt: 'Olá! Estou pronto para mapear o DNA da minha marca.',
   en: 'Hi! I am ready to map my brand DNA.',
   es: '¡Hola! Estoy listo para mapear el ADN de mi marca.',
+}
+
+/** Refine visits open on an existing mapping and re-ask the blocks. */
+const REFINE_KICKOFF_TEXTS: Record<'pt' | 'en' | 'es', string> = {
+  pt: 'Quero revisar e refinar o DNA da minha marca, bloco por bloco.',
+  en: 'I want to review and refine my brand DNA mapping, block by block.',
+  es: 'Quiero revisar y refinar el ADN de mi marca, bloque por bloque.',
 }
 
 const SKIP_TEXTS: Record<'pt' | 'en' | 'es', string> = {
@@ -53,10 +60,22 @@ export function OnboardingChrome(props: OnboardingChromeProps) {
   const navigate = useNavigate()
   const active = location.pathname.startsWith('/onboarding/dna') && useSession !== undefined
 
-  const kickoffText = browserVoiceText(KICKOFF_TEXTS)
+  // A refine visit stages its target once; the chrome consumes and clears it.
+  const [refineId] = useState(() => {
+    try {
+      const staged = sessionStorage.getItem(DNA_REFINE_KEY)
+      sessionStorage.removeItem(DNA_REFINE_KEY)
+      return staged ?? undefined
+    } catch {
+      return undefined
+    }
+  })
+
+  const kickoffText = browserVoiceText(refineId === undefined ? KICKOFF_TEXTS : REFINE_KICKOFF_TEXTS)
   const skipText = browserVoiceText(SKIP_TEXTS)
   const { running, openState, eventWindow, replay } = useDnaSessionTracker(useSession, useDnaEventWindow, kickoffText, skipText)
-  const { mapping, mappingError, setMapping } = useDnaOnboardingState(active, t('onboarding.dna.firstName'))
+  const { mapping, mappingError, setMapping } = useDnaOnboardingState(
+    active, t('onboarding.dna.firstName'), refineId)
   const claimed = dnaClaim()
   const isClaimedSession = sessionId !== undefined && sessionId === claimed
 
@@ -76,6 +95,7 @@ export function OnboardingChrome(props: OnboardingChromeProps) {
 
   const lastSavedOrdinal = useRef(0)
   const lastAttemptedOrdinal = useRef(0)
+  const savedHere = useRef(false)
   useEffect(() => {
     if (!active || !isClaimedSession || mapping === null) return
     if (openState !== 'open' || running || saving) return
@@ -94,6 +114,7 @@ export function OnboardingChrome(props: OnboardingChromeProps) {
     updatePositioningBlock(mapping.id, answeredBlock, lastAssistantText ?? '')
       .then((row) => {
         lastSavedOrdinal.current = answeredOrdinal
+        savedHere.current = true
         setMapping(row)
       })
       .catch(() => { setSaveError(true) })
@@ -136,13 +157,13 @@ export function OnboardingChrome(props: OnboardingChromeProps) {
           {t('onboarding.dna.skip')}
         </button>
       )}
-      {completed && !exportOpen && (
+      {completed && (refineId === undefined || savedHere.current) && !exportOpen && (
         <CompletionPanel
           onView={() => { setExportOpen(true) }}
           onStart={() => { clearDnaClaim(); navigate('/') }}
         />
       )}
-      {completed && exportOpen && (
+      {completed && (refineId === undefined || savedHere.current) && exportOpen && (
         <ExportDocumentModal mapping={mapping} onClose={() => { setExportOpen(false) }} />
       )}
     </div>

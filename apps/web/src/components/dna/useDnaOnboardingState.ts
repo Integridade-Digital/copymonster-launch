@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react'
-import { supabaseClient, type PositioningMappingRow } from '../../lib/auth/supabase.client'
+import { supabaseClient, type PositioningMappingRow, type PositioningQuota } from '../../lib/auth/supabase.client'
 import type { TranslationKey } from '../../locales'
 
 export type PositioningMapping = PositioningMappingRow
+export type { PositioningQuota }
+
+/** sessionStorage key naming the mapping a refine visit targets. */
+export const DNA_REFINE_KEY = 'cm-dna-refine-id'
 
 /** One block's persistence column and display-name key. */
 export interface DnaBlockMeta {
@@ -67,6 +71,42 @@ export async function updatePositioningBlock(
   return data
 }
 
+export async function countMyPositioningMappings(): Promise<PositioningQuota> {
+  const { data, error } = await supabaseClient.rpc('count_my_positioning_mappings')
+  if (error !== null) throw new Error(error.message)
+  if (data === null) throw new Error('count_my_positioning_mappings returned no value')
+  return data
+}
+
+export async function setDefaultPositioningMapping(mappingId: string): Promise<boolean> {
+  const { data, error } = await supabaseClient.rpc('set_default_positioning_mapping', {
+    p_mapping_id: mappingId,
+  })
+  if (error !== null) throw new Error(error.message)
+  return data === true
+}
+
+export async function deletePositioningMapping(mappingId: string): Promise<boolean> {
+  const { data, error } = await supabaseClient.rpc('delete_positioning_mapping', {
+    p_mapping_id: mappingId,
+  })
+  if (error !== null) throw new Error(error.message)
+  return data === true
+}
+
+export async function duplicatePositioningMapping(
+  mappingId: string,
+  newName: string,
+): Promise<PositioningMappingRow> {
+  const { data, error } = await supabaseClient.rpc('duplicate_positioning_mapping', {
+    p_mapping_id: mappingId,
+    p_new_name: newName,
+  })
+  if (error !== null) throw new Error(error.message)
+  if (data === null) throw new Error('duplicate_positioning_mapping returned no row')
+  return data
+}
+
 /** Mapping bootstrap state the chrome renders from. */
 export interface DnaOnboardingState {
   readonly mapping: PositioningMappingRow | null
@@ -75,12 +115,18 @@ export interface DnaOnboardingState {
 }
 
 /**
- * Load the creator's in-progress DNA mapping, creating the first one when none exists.
+ * Load the creator's DNA mapping: a refine visit's preferred mapping first,
+ * then the in-progress one, creating the first mapping when none exists.
  * @param active - whether the onboarding route is showing.
  * @param firstName - name for a newly created first mapping.
+ * @param preferredId - mapping a refine visit targets, when one was staged.
  * @returns the mapping (or its load failure) and its setter.
  */
-export function useDnaOnboardingState(active: boolean, firstName: string): DnaOnboardingState {
+export function useDnaOnboardingState(
+  active: boolean,
+  firstName: string,
+  preferredId?: string,
+): DnaOnboardingState {
   const [mapping, setMapping] = useState<PositioningMappingRow | null>(null)
   const [mappingError, setMappingError] = useState(false)
   useEffect(() => {
@@ -90,6 +136,14 @@ export function useDnaOnboardingState(active: boolean, firstName: string): DnaOn
       try {
         const rows = await listMyPositioningMappings()
         if (cancelled) return
+        const preferred = preferredId === undefined
+          ? undefined
+          : rows.find(row => row.id === preferredId)
+        if (preferred !== undefined) {
+          setMapping(preferred)
+          setMappingError(false)
+          return
+        }
         const open = rows.find(row => row.status === 'in_progress')
         if (open !== undefined) {
           setMapping(open)
@@ -106,6 +160,6 @@ export function useDnaOnboardingState(active: boolean, firstName: string): DnaOn
     }
     void load()
     return () => { cancelled = true }
-  }, [active, firstName])
+  }, [active, firstName, preferredId])
   return { mapping, mappingError, setMapping }
 }

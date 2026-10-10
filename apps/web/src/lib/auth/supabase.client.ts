@@ -255,10 +255,35 @@ export interface Database {
         Args: { p_mapping_id: string; p_block_number: number; p_content: string };
         Returns: PositioningMappingRow;
       };
+      count_my_positioning_mappings: {
+        Args: Record<string, never>;
+        Returns: PositioningQuota;
+      };
+      set_default_positioning_mapping: {
+        Args: { p_mapping_id: string };
+        Returns: boolean;
+      };
+      delete_positioning_mapping: {
+        Args: { p_mapping_id: string };
+        Returns: boolean;
+      };
+      duplicate_positioning_mapping: {
+        Args: { p_mapping_id: string; p_new_name: string };
+        Returns: PositioningMappingRow;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
+}
+
+/** JSONB returned by count_my_positioning_mappings(), per `supabase/migrations/039`. */
+export interface PositioningQuota {
+  count: number;
+  max: number;
+  can_create: boolean;
+  plan_slug: string;
+  is_unlimited: boolean;
 }
 
 /** Row of `public.positioning_mappings` returned by the DNA RPCs, per `supabase/migrations/039`. */

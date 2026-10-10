@@ -147,3 +147,52 @@
 }
 .cm-dna-chip-option:hover { background: #f3f4f6; }
 .cm-dna-chip-option--active { background: #f5f3ff; color: #7c3aed; font-weight: 600; }
+
+.cm-dna-settings { display: flex; flex-direction: column; gap: 16px; }
+.cm-dna-settings-header {
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start;
+  justify-content: space-between;
+}
+.cm-dna-settings-title { margin: 0; font-size: 18px; color: #111827; }
+.cm-dna-settings-subtitle { margin: 4px 0 0; font-size: 13px; color: #6b7280; }
+.cm-dna-settings-actions { display: flex; align-items: center; gap: 10px; }
+.cm-dna-settings-hint { color: #9ca3af; font-size: 13px; margin: 0; }
+.cm-dna-settings-hint--error { color: #dc2626; }
+.cm-dna-quota {
+  background: #f5f3ff; color: #7c3aed; border-radius: 999px;
+  padding: 4px 12px; font-size: 12px; font-weight: 600; white-space: nowrap;
+}
+.cm-dna-quota--warn { background: #fef2f2; color: #dc2626; }
+.cm-dna-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); gap: 14px;
+}
+.cm-dna-card-settings {
+  display: flex; flex-direction: column; gap: 8px;
+  border: 1px solid #e5e7eb; border-radius: 12px; padding: 14px; background: #ffffff;
+}
+.cm-dna-card-settings-head { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.cm-dna-card-name { margin: 0; font-size: 15px; color: #111827; }
+.cm-dna-card-badges { display: flex; gap: 6px; flex-shrink: 0; }
+.cm-dna-badge {
+  border-radius: 999px; padding: 2px 8px; font-size: 11px; font-weight: 600; white-space: nowrap;
+}
+.cm-dna-badge--default { background: #f5f3ff; color: #7c3aed; }
+.cm-dna-badge--completed { background: #ecfdf5; color: #059669; }
+.cm-dna-badge--progress { background: #fffbeb; color: #d97706; }
+.cm-dna-card-product { margin: 0; font-size: 13px; color: #374151; }
+.cm-dna-card-updated { margin: 0; font-size: 12px; color: #9ca3af; }
+.cm-dna-card-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+.cm-dna-card-button {
+  border: 1px solid #d1d5db; background: #ffffff; color: #374151;
+  border-radius: 6px; padding: 4px 10px; font-size: 12px; cursor: pointer;
+}
+.cm-dna-card-button:hover { border-color: #7c3aed; color: #7c3aed; }
+.cm-dna-card-button:disabled { opacity: 0.6; cursor: default; }
+.cm-dna-card-button--danger { border-color: #fecaca; color: #dc2626; }
+.cm-dna-card-button--danger:hover { border-color: #dc2626; color: #dc2626; }
+.cm-dna-inline-form { display: flex; flex-direction: column; gap: 8px; }
+.cm-dna-inline-hint { margin: 0; font-size: 12px; color: #6b7280; }
+.cm-dna-inline-input {
+  border: 1px solid #d1d5db; border-radius: 6px; padding: 6px 10px;
+  font-size: 13px; color: #111827;
+}

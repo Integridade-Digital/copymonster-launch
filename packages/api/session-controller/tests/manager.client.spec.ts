@@ -734,6 +734,15 @@ describe('remaining branches', () => {
     expect(await manager.create()).toMatchObject({ ok: false })
   })
 
+  it('create carries positioningMappingId and omits it when none was chosen', async ({ mock, remote }) => {
+    remote.session.create.mockResolvedValue(ok({ sessionId: S1 }))
+    const manager = makeManager(mock, remote)
+    await manager.create({ positioningMappingId: 'map-1' })
+    expect(remote.session.create).toHaveBeenCalledExactlyOnceWith({ positioningMappingId: 'map-1' })
+    await manager.create()
+    expect(remote.session.create).toHaveBeenLastCalledWith({})
+  })
+
   it('publishes a real Ungrouped summary from workspace-attach-failed', async ({ mock, remote }) => {
     remote.session.create.mockResolvedValue(err(new RemoteError('session/workspace-attach-failed', 'published but unattached', {
       sessionId: S1, workspaceId: 'w1',

@@ -165,6 +165,7 @@ A metodologia dos 12 blocos extrai o raio-X completo do posicionamento comercial
   * Fluxo guiado em 12 passos com pergunta única por bloco e transformação da resposta em parágrafos de alta persuasão comercial.
 * **Conexões do Bundle:**
   * Inclusão do preset no bundle CopyMonster (`packages/bundle/copymonster/cordis.patch.yml`).
+* **Dependência Crítica de Runtime:** o `agent.cordis.yml` embarca a row `positioning-injection` com `disabled: true` (o pacote `@deepseek-ai/dsh-host-positioning-injection` só existe na Etapa 5). A Etapa 5 deve remover o `disabled: true` ao publicar o plugin — sem isso, a injeção de DNA nunca roda em runtime mesmo com todos os arquivos no lugar.
 
 ---
 

@@ -75,11 +75,12 @@ A metodologia dos 12 blocos extrai o raio-X completo do posicionamento comercial
 9. **Conexão Emocional:** Histórias, arquétipos e analogias de empatia.
 10. **Transformação Antes/Depois:** A jornada palpável de onde o cliente sai para onde chega.
 11. **Voz do Público:** Vocabulário, gírias e expressões reais usadas pela audiência.
-12. **Promessas Claras:** Compromissos mensuráveis e sustentáveis da oferta *(Adaptativo)*.
+12. **Promessas Claras:** Compromissos mensuráveis e sustentáveis da oferta.
 
 * **Classificação Estrutural vs Adaptativa:**
-  * *Estruturais (imutáveis da marca):* Blocos 1, 3, 4, 9, 10, 11.
-  * *Adaptativos (podem ser pulados ou ajustados por oferta):* Blocos 2, 5, 6, 7, 8, 12.
+  * *Estruturais (imutáveis da marca):* Blocos 1, 3, 4, 9, 10, 11, 12.
+  * *Adaptativos (podem ser pulados ou ajustados por oferta):* Blocos 2, 5, 6, 7, 8.
+  * *V2:* considerar RPC `complete_positioning_mapping` para permitir pular o bloco 12 com confirmação explícita (a migration 039 conclui o mapeamento apenas no save do bloco 12).
 
 ---
 
@@ -177,11 +178,17 @@ A metodologia dos 12 blocos extrai o raio-X completo do posicionamento comercial
   1. Criação automática do primeiro `positioning_mapping` caso o usuário não possua nenhum em andamento.
   2. Chat em tela cheia conectado à sessão do agente `brand-positioning-monster`.
   3. Header de progresso com contador dinâmico: *"Bloco X de 12"*, destacando o nome do bloco atual.
-  4. Botão "Pular / Bloco Adaptativo" para os blocos opcionais (2, 5, 6, 7, 8, 12).
+   4. Botão "Pular / Bloco Adaptativo" para os blocos opcionais (2, 5, 6, 7, 8). O bloco 12 é obrigatório na v1: a migration 039 marca `completed` apenas no save do bloco 12.
   5. Painel de conclusão (`CompletionPanel.tsx`):
      * Exibido assim que o 12º bloco é salvo.
      * Botão **"Ver Mapeamento Completo"**: abre modal com texto limpo ("MAPEAMENTO ESTRATÉGICO COMPLETO") e opção de exportação/cópia.
      * Botão **"Iniciar Projeto com este DNA"**: redireciona para o workspace principal com o DNA ativado.
+* **Follow-ups v1 (registrados, não bloqueiam):**
+  * Ocultar a sidebar do workspace no modo onboarding (requer inspeção do DOM DSH em execução).
+  * O conteúdo salvo por bloco é a resposta completa do agente (restate + pergunta seguinte); a tool da Etapa 5 salvará apenas o restate exato.
+  * O reload reabre a sessão claimed; se ela não existir mais, a entrevista recomeça (saves deduplicam via `current_block` e checagem de conteúdo).
+  * Strings de UI existem apenas em en/zh; usuários PT/ES veem EN nas strings de interface (o agente detecta o idioma na conversa).
+  * Dívida pré-existente (não é do DNA): o lane keyless `test:web` falha desde `bcfe43fedb` — todos os verbs de sessão exigem `@RemoteScope('auth')` e o harness `apps/web/tests/assembled-boot.ts` não registra Client Context adapter para `auth`, rejeitando todo `session/list`. Isolamento: o mesmo spec falha identicamente com e sem o código do DNA.
 
 ---
 

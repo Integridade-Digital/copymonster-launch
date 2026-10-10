@@ -243,10 +243,45 @@ export interface Database {
         Args: Record<string, never>;
         Returns: MyProfileResult;
       };
+      list_my_positioning_mappings: {
+        Args: Record<string, never>;
+        Returns: PositioningMappingRow[];
+      };
+      create_positioning_mapping: {
+        Args: { p_name: string; p_product_name: string };
+        Returns: PositioningMappingRow;
+      };
+      update_positioning_block: {
+        Args: { p_mapping_id: string; p_block_number: number; p_content: string };
+        Returns: PositioningMappingRow;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;
   };
+}
+
+/** Row of `public.positioning_mappings` returned by the DNA RPCs, per `supabase/migrations/039`. */
+export interface PositioningMappingRow {
+  id: string;
+  name: string;
+  product_name: string;
+  block_1_public: string | null;
+  block_2_pains: string | null;
+  block_3_solution: string | null;
+  block_4_differentiators: string | null;
+  block_5_awareness_stage: string | null;
+  block_6_urgency: string | null;
+  block_7_social_proof: string | null;
+  block_8_objections: string | null;
+  block_9_emotional: string | null;
+  block_10_transformation: string | null;
+  block_11_voice: string | null;
+  block_12_promises: string | null;
+  status: 'in_progress' | 'completed' | 'archived';
+  current_block: number;
+  is_default: boolean;
+  updated_at: string;
 }
 
 /** Authenticated user as the browser consumes it. */

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { useEffect, useState } from 'react'
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react'
 import { makeTranslate } from '@deepseek-ai/dsh-client-test-runtime'
@@ -15,18 +15,9 @@ import type { DesktopUpdateView } from '../src/client/desktop-update-bridge.ts'
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined, reload: () => {} })) as GlobalStandardProps['useResource']
 const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({ activePanelId: null })
 
-const authGlobal = globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean } }
-
-// The page publishes this session before the panel renders; the fail-closed
-// cases below overwrite or clear it to drop the caller's privilege.
-beforeEach(() => {
-  authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: true }
-})
-
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
-  delete authGlobal.__DSH_AUTH__
 })
 
 type Row = { id: string; order: number; label: string }
@@ -339,33 +330,11 @@ describe('SettingsPanel navigation', () => {
     expect(screen.getByTestId('section-general')).toBeTruthy()
   })
 
-  it('admits the Models row for a platform operator', () => {
-    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: true }
+  it('shows the creator BYOK Models row for every caller', () => {
     mount()
     openPanel()
     expect(screen.getByRole('button', { name: 'Models' })).toBeTruthy()
-  })
-
-  it('hides the Models row from a non-operator caller', () => {
-    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: false }
-    mount()
-    openPanel()
-    expect(screen.queryByRole('button', { name: 'Models' })).toBeNull()
     expect(screen.getByRole('button', { name: 'General' })).toBeTruthy()
-  })
-
-  it('hides the Models row when the session carries no access token', () => {
-    authGlobal.__DSH_AUTH__ = { isPlatformAdmin: true }
-    mount()
-    openPanel()
-    expect(screen.queryByRole('button', { name: 'Models' })).toBeNull()
-  })
-
-  it('hides the Models row when no session is published', () => {
-    delete authGlobal.__DSH_AUTH__
-    mount()
-    openPanel()
-    expect(screen.queryByRole('button', { name: 'Models' })).toBeNull()
   })
 
   it('gives every section a nav glyph, distinct for the ids the shell knows', () => {

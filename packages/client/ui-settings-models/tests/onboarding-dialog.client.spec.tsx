@@ -2,7 +2,7 @@
 /** First-run DeepSeek prompt behavior over the shared Models join. */
 import type { GlobalStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import Schema from '@deepseek-ai/schemastery'
 import type { SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
@@ -19,18 +19,9 @@ import { settingsSchema } from './settings-schema.client.ts'
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined, reload: () => {} })) as GlobalStandardProps['useResource']
 const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({ activePanelId: null })
 
-const authGlobal = globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean } }
-
-// The page publishes this session before the prompt renders; the fail-closed
-// cases below overwrite or clear it to drop the caller's privilege.
-beforeEach(() => {
-  authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: true }
-})
-
 afterEach(() => {
   cleanup()
   document.getElementById('root')?.remove()
-  delete authGlobal.__DSH_AUTH__
 })
 
 /** Credentials answers over the Remote carrier, which has no envelope. */
@@ -172,22 +163,6 @@ function harness(options: {
 }
 
 describe('DeepSeekOnboardingDialog', () => {
-  it('completes without prompting a non-admin caller', () => {
-    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: false }
-    const h = harness()
-    render(<DeepSeekOnboardingDialog {...h.props} />)
-    expect(h.complete).toHaveBeenCalled()
-    expect(screen.queryByRole('dialog')).toBeNull()
-  })
-
-  it('completes without prompting when no session is published', () => {
-    delete authGlobal.__DSH_AUTH__
-    const h = harness()
-    render(<DeepSeekOnboardingDialog {...h.props} />)
-    expect(h.complete).toHaveBeenCalled()
-    expect(screen.queryByRole('dialog')).toBeNull()
-  })
-
   it('renders when the shell root is absent', async () => {
     const h = harness()
     document.getElementById('root')!.remove()

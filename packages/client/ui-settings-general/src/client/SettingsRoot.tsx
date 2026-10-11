@@ -51,22 +51,9 @@ type PanelProps = {
  * open, so the listener lifetime is the panel's).
  */
 
-/**
- * Whether the published browser session belongs to a platform operator, which
- * is what admits the Models nav row. Every creator owns a personal tenant, so
- * the app shell resolves platform membership (the platform tenant) and publishes
- * it as `isPlatformAdmin`. Fail-closed: a missing session, a missing access
- * token, or a missing operator flag leaves the row hidden.
- */
-function isPlatformAdminSession(): boolean {
-  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean } }).__DSH_AUTH__
-  if (session?.accessToken === undefined) return false
-  return session.isPlatformAdmin === true
-}
-
 function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelProps) {
-  const isPrivileged = isPlatformAdminSession()
-  const visibleRows = isPrivileged ? rows : rows.filter(r => r.id !== 'models')
+  // The Models section is creator BYOK, so every creator sees the row.
+  const visibleRows = rows
   const active = visibleRows.find(r => r.id === activeId)?.id ?? visibleRows[0]?.id
   // Entries can unmount underneath the requested id, so the render-time
   // projection falls back to the first row when the id is gone.
@@ -162,8 +149,8 @@ export function SettingsRoot(props: SettingsRootComponentProps) {
   const connectionState = useConnectionState(state => state)
   const previousConnectionState = useRef(connectionState)
   const onboardingSteps = useOnboardingSteps(s => s)
-  const isPrivileged = isPlatformAdminSession()
-  const filteredSteps = isPrivileged ? onboardingSteps : onboardingSteps.filter(s => s.id !== 'deepseek-official')
+  // The DeepSeek onboarding step belongs to creator BYOK, so it is not filtered.
+  const filteredSteps = onboardingSteps
   const onboardingActive = useSessions((state) => {
     const main = Object.values(state.byId)
       .find(session => (session.retainedBy.mainView ?? 0) > 0)

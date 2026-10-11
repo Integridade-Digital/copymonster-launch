@@ -51,24 +51,8 @@ function assertNever(_value: never): never {
  * @returns the onboarding modal or null when onboarding needs no intervention.
  */
 
-/**
- * Whether the published browser session belongs to a platform operator, which
- * is what admits this setup prompt. Every creator owns a personal tenant, so
- * the app shell resolves platform membership (the platform tenant) and publishes
- * it as `isPlatformAdmin`. Fail-closed: a missing session, a missing access
- * token, or a missing operator flag completes onboarding instead of prompting.
- */
-function isPlatformAdminSession(): boolean {
-  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean } }).__DSH_AUTH__
-  if (session?.accessToken === undefined) return false
-  return session.isPlatformAdmin === true
-}
-
 export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): ReactNode {
-  if (!isPlatformAdminSession()) {
-    props.complete()
-    return null
-  }
+  // Creator BYOK: the setup prompt is for whoever owns the key.
   const { complete, controller, useModels, operations, schema, t } = props
   const state = useModels(snapshot => snapshot)
   const readiness = onboardingReadiness(state)

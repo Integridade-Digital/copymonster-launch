@@ -1,0 +1,186 @@
+/* Onboarding entry modal. All color comes from --cm-* tokens (cm-theme.css). */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+
+.mask {
+  position: absolute;
+  inset: 0;
+  background: var(--cm-overlay);
+  backdrop-filter: blur(4px);
+}
+
+.dialog {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  width: 640px;
+  max-width: 100%;
+  max-height: calc(100vh - 48px);
+  overflow: hidden;
+  border: 1px solid var(--cm-border);
+  border-radius: 12px;
+  background: var(--cm-card);
+  box-shadow: var(--cm-shadow);
+  color: var(--cm-foreground);
+  font-family: inherit;
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 28px 28px 0;
+}
+
+.identity {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  min-width: 0;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex: none;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--cm-primary) 14%, transparent);
+  color: var(--cm-primary);
+}
+
+.icon svg {
+  width: 18px;
+  height: 18px;
+}
+
+.titles {
+  min-width: 0;
+}
+
+.title {
+  margin: 0;
+  font-size: 20px;
+  line-height: 1.3;
+  font-weight: 600;
+  color: var(--cm-foreground);
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--cm-muted-foreground);
+}
+
+.close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  flex: none;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cm-muted-foreground);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.close:hover {
+  background: color-mix(in srgb, var(--cm-foreground) 8%, transparent);
+  color: var(--cm-foreground);
+}
+
+.close svg {
+  width: 14px;
+  height: 14px;
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px 28px 0;
+}
+
+.text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--cm-muted-foreground);
+}
+
+.badge {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--cm-primary) 28%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cm-primary) 12%, transparent);
+  color: var(--cm-primary);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 24px;
+  padding: 24px 28px;
+  border-top: 1px solid var(--cm-border);
+}
+
+.primary {
+  padding: 10px 20px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--cm-primary);
+  color: var(--cm-primary-foreground);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.primary:hover {
+  opacity: 0.9;
+}
+
+.secondary {
+  padding: 10px 20px;
+  border: 1px solid var(--cm-border);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--cm-foreground);
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.secondary:hover {
+  background: color-mix(in srgb, var(--cm-foreground) 5%, transparent);
+  border-color: var(--cm-muted-foreground);
+}

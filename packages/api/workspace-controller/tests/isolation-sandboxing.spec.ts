@@ -1,5 +1,5 @@
 import { resolve } from 'node:path'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import type { DirectoryPickerCapability } from '@deepseek-ai/dsh-host-directory-picker'
 import { DirectoryPickerController } from '../src/directory-picker.ts'
@@ -186,6 +186,61 @@ describe('DirectoryPicker and Workspace Tenant Isolation (authenticated)', () =>
     expect(result.created).toBe(true)
     expect(result.workspace.path).toContain(userSandbox)
     expect(result.workspace.path).toContain('default')
+  })
+
+  it('titles the auto-provisioned workspace with the product name', async () => {
+    const ctx = new Context()
+    roots.push(ctx)
+
+    const tenantId = 'tenant-title'
+    const userId = 'user-title'
+
+    await ctx.plugin(makeAuthPlugin(tenantId, userId))
+
+    const create = vi.fn(async (p: string, title?: string) => ({
+      id: 'ws-title', title: title ?? 'untitled', path: p, sessionIds: [],
+    }))
+    ctx.provide('workspaceRegistry', {
+      resolveByPath: async (_p: string) => undefined,
+      create,
+    })
+
+    const commands = new WorkspaceCommands(ctx)
+    const identity = { tenantId, userId, role: 'member', email: 'user@example.com' } as UserIdentity
+    const result = await commands.ensureInitialWorkspace(identity)
+
+    expect(create).toHaveBeenCalledWith(expect.stringContaining('default'), 'Meu Workspace')
+    expect(result.created).toBe(true)
+  })
+
+  it('adopts the product title for a legacy default-titled initial workspace', async () => {
+    const ctx = new Context()
+    roots.push(ctx)
+
+    const tenantId = 'tenant-adopt'
+    const userId = 'user-adopt'
+
+    await ctx.plugin(makeAuthPlugin(tenantId, userId))
+
+    const existing = {
+      id: 'ws-prev',
+      title: 'default',
+      path: '/legacy/default',
+      sessionIds: [],
+      setTitle: vi.fn(async (title: string) => { existing.title = title }),
+    }
+    ctx.provide('workspaceRegistry', {
+      resolveByPath: async (_p: string) => existing,
+      create: async () => { throw new Error('legacy adoption must not create a new workspace') },
+    })
+
+    const commands = new WorkspaceCommands(ctx)
+    const identity = { tenantId, userId, role: 'member', email: 'user@example.com' } as UserIdentity
+    const result = await commands.ensureInitialWorkspace(identity)
+
+    expect(existing.setTitle).toHaveBeenCalledWith('Meu Workspace')
+    expect(result.created).toBe(false)
+    expect(result.workspace.title).toBe('Meu Workspace')
   })
   it('strictly rejects path traversal on workspace.create for both relative and absolute paths', async () => {
     const ctx = new Context()

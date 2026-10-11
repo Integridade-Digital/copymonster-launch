@@ -33,6 +33,15 @@ import type {
   WorkspaceValue,
 } from './types.ts'
 
+/** Directory (and id source) of the auto-provisioned initial Workspace. */
+const INITIAL_WORKSPACE_DIR = 'default'
+
+/** Product title of the auto-provisioned initial Workspace. */
+const INITIAL_WORKSPACE_TITLE = 'Meu Workspace'
+
+/** Title an older build derived from the initial Workspace's directory name. */
+const INITIAL_WORKSPACE_LEGACY_TITLE = 'default'
+
 /** Implements Workspace mutations against the authoritative registry. */
 export class WorkspaceCommands {
   private operationTail = Promise.resolve()
@@ -47,28 +56,50 @@ export class WorkspaceCommands {
    * @returns the Workspace and whether this call created it.
    */
   create(request: WorkspaceCreateRequest, identity: UserIdentity): Promise<WorkspaceCreateValue> {
-    return this.enqueue(async () => {
-      try {
-        const sandboxRoot = await ensureUserSandboxDirectory(identity.tenantId, identity.userId)
-        const targetPath = isAbsolute(request.path)
-          ? assertPathInSandbox(request.path, sandboxRoot)
-          : assertPathInSandbox(resolve(sandboxRoot, request.path), sandboxRoot)
-        const existing = await this.ctx.workspaceRegistry.resolveByPath(targetPath)
-        if (existing !== undefined) {
-          return { workspace: workspaceView(existing), created: false }
+    return this.enqueue(() => this.provision(request.path, identity))
+  }
+
+  /**
+   * Adopt or create the Workspace over one directory inside the caller's
+   * sandbox. Creation applies `options.title`; when `options.adoptLegacyTitle`
+   * is set and the existing record still carries that title, the record is
+   * renamed to `options.title`, so a product rename reaches accounts that
+   * already had the auto-provisioned Workspace.
+   * @param path - absolute or sandbox-relative directory to own.
+   * @param identity - authenticated caller identity owning the confined root.
+   * @param options - optional creation title and legacy-title adoption.
+   * @returns the Workspace and whether this call created it.
+   */
+  private async provision(
+    path: string,
+    identity: UserIdentity,
+    options: { title?: string; adoptLegacyTitle?: string } = {},
+  ): Promise<WorkspaceCreateValue> {
+    try {
+      const sandboxRoot = await ensureUserSandboxDirectory(identity.tenantId, identity.userId)
+      const targetPath = isAbsolute(path)
+        ? assertPathInSandbox(path, sandboxRoot)
+        : assertPathInSandbox(resolve(sandboxRoot, path), sandboxRoot)
+      const existing = await this.ctx.workspaceRegistry.resolveByPath(targetPath)
+      if (existing !== undefined) {
+        if (options.adoptLegacyTitle !== undefined
+          && options.title !== undefined
+          && existing.title === options.adoptLegacyTitle) {
+          await existing.setTitle(options.title)
         }
-        const workspace = await this.ctx.workspaceRegistry.create(targetPath)
-        return { workspace: workspaceView(workspace), created: true }
-      } catch (error) {
-        if (remoteErrorOf(error) !== undefined) throw error
-        throw new RemoteError(
-          'workspace/invalid-path',
-          `cannot create a Workspace at "${request.path}": ${errorMessage(error)}`,
-          { path: request.path },
-          { cause: error },
-        )
+        return { workspace: workspaceView(existing), created: false }
       }
-    })
+      const workspace = await this.ctx.workspaceRegistry.create(targetPath, options.title)
+      return { workspace: workspaceView(workspace), created: true }
+    } catch (error) {
+      if (remoteErrorOf(error) !== undefined) throw error
+      throw new RemoteError(
+        'workspace/invalid-path',
+        `cannot create a Workspace at "${path}": ${errorMessage(error)}`,
+        { path },
+        { cause: error },
+      )
+    }
   }
 
   /**
@@ -191,13 +222,18 @@ export class WorkspaceCommands {
 
 
   /**
-   * Auto-provisions or retrieves the initial workspace for the authenticated user.
+   * Auto-provision or retrieve the initial Workspace for the authenticated
+   * user, titled with the product name. A Workspace created by an older build
+   * still carrying the legacy directory-derived title is renamed once.
    * @param identity - authenticated caller identity owning the confined root.
    * @returns the initial Workspace and whether this call created it.
    */
   async ensureInitialWorkspace(identity: UserIdentity): Promise<WorkspaceCreateValue> {
     await ensureInitialUserWorkspace(identity.tenantId, identity.userId)
-    return this.create({ path: 'default' }, identity)
+    return this.enqueue(() => this.provision(INITIAL_WORKSPACE_DIR, identity, {
+      title: INITIAL_WORKSPACE_TITLE,
+      adoptLegacyTitle: INITIAL_WORKSPACE_LEGACY_TITLE,
+    }))
   }
 
   /**

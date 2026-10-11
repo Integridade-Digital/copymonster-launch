@@ -104,6 +104,8 @@ export const zh = {
   'onboarding.dna.modal.intro': 'Brand Positioning Monster 每个模块只问一个问题，并把你的回答转化为持久的身份。访谈在此面板后方的对话中进行——关闭面板即可作答。',
   'onboarding.dna.modal.start': '开始映射',
   'onboarding.dna.modal.continue': '继续映射',
+  'onboarding.dna.modal.badge': '12 个模块 · 每次一个问题',
+  'onboarding.dna.modal.later': '稍后',
   'onboarding.dna.progress': '模块 {block} / 12',
   'onboarding.dna.block.1': '目标受众',
   'onboarding.dna.block.2': '痛点与挑战',

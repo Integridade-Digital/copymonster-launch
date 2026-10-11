@@ -38,7 +38,18 @@ export function OnboardingDnaModal({ isOpen, onClose, triggerRef }: OnboardingDn
       >
         <div className={css.singlePanelContent}>
           <div className={css.header}>
-            <h3 id={titleId} className={css.headerTitle}>{t('onboarding.dna.title')}</h3>
+            <div className={css.headerTitleGroup}>
+              <span className={css.headerIcon} aria-hidden="true">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M7 3c0 6 10 6 10 12" />
+                  <path d="M17 3c0 6-10 6-10 12" />
+                  <path d="M7 21c0-1 10-1 10 0" />
+                  <line x1="8.5" y1="8" x2="15.5" y2="8" />
+                  <line x1="8.5" y1="16" x2="15.5" y2="16" />
+                </svg>
+              </span>
+              <h3 id={titleId} className={css.headerTitle}>{t('onboarding.dna.title')}</h3>
+            </div>
             <button
               type="button"
               className={css.closeButton}
@@ -54,9 +65,17 @@ export function OnboardingDnaModal({ isOpen, onClose, triggerRef }: OnboardingDn
           <div className={css.bodyScroll}>
             <p className={css.subtitle}>{t('onboarding.dna.subtitle')}</p>
             <p>{t('onboarding.dna.modal.intro')}</p>
-            <button type="button" className="primary" onClick={onClose}>
-              {resuming ? t('onboarding.dna.modal.continue') : t('onboarding.dna.modal.start')}
-            </button>
+            <div className={css.badgeRow}>
+              <span className={css.badge}>{t('onboarding.dna.modal.badge')}</span>
+            </div>
+            <div className={css.modalActions}>
+              <button type="button" className={css.secondary} onClick={onClose}>
+                {t('onboarding.dna.modal.later')}
+              </button>
+              <button type="button" className={css.primary} onClick={onClose}>
+                {resuming ? t('onboarding.dna.modal.continue') : t('onboarding.dna.modal.start')}
+              </button>
+            </div>
           </div>
         </div>
       </div>

@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { t } from '../../locales'
 import {
   DNA_ADAPTIVE_BLOCKS, DNA_REFINE_KEY, dnaBlock, updatePositioningBlock, useDnaOnboardingState,
@@ -49,14 +48,13 @@ export interface OnboardingChromeProps {
 }
 
 /**
- * Onboarding chrome for /onboarding/dna: progress header, skip control,
- * per-block auto-save, and the completion panel — all bound to the session
- * the bridge claimed for the brand-positioning-monster interview.
- * @param props - the session-scoped slot kit plus the injected send callback; renders nothing off the onboarding route.
+ * Onboarding chrome: progress header, skip control, per-block auto-save, and
+ * the completion panel — all bound to the session the bridge claimed for the
+ * brand-positioning-monster interview.
+ * @param props - the session-scoped slot kit plus the injected send callback; renders nothing for an unclaimed session.
  */
 export function OnboardingChrome(props: OnboardingChromeProps) {
   const { sessionId, useSession, useDnaEventWindow, send } = props
-  const navigate = useNavigate()
   // The interview is active exactly when this seat belongs to the claimed
   // onboarding session; the entry modal opens the chat rather than a route.
   const claimed = dnaClaim()
@@ -161,7 +159,7 @@ export function OnboardingChrome(props: OnboardingChromeProps) {
       {completed && (refineId === undefined || savedHere.current) && !exportOpen && (
         <CompletionPanel
           onView={() => { setExportOpen(true) }}
-          onStart={() => { clearDnaClaim(); navigate('/') }}
+          onStart={() => { clearDnaClaim() }}
         />
       )}
       {completed && (refineId === undefined || savedHere.current) && exportOpen && (

@@ -458,6 +458,16 @@ export class JsonlBackendTracker {
   }
 
   /**
+   * Whether this process holds a write claim or handle for the id, which makes
+   * the session's artifact live and unremovable.
+   * @param id - the session to test.
+   * @returns true while a write claim, handle, or pending create exists.
+   */
+  hasWriter(id: SessionId): boolean {
+    return this.writers.has(id) || this.pending.has(id)
+  }
+
+  /**
    * Iterate the pending sessions for listing.
    * @returns the pending entries, keyed by session id.
    */

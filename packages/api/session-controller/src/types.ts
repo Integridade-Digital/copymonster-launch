@@ -334,6 +334,16 @@ export interface SessionRenameValue {
   readonly seq: number
 }
 
+/** Session hard-delete request. */
+export interface SessionDeleteRequest {
+  readonly sessionId: SessionId
+}
+
+/** Session hard-delete response; idempotent for an already-absent session. */
+export interface SessionDeleteValue {
+  readonly deleted: boolean
+}
+
 /** Session fork request. */
 export interface SessionForkRequest {
   readonly sessionId: SessionId

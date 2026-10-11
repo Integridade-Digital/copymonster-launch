@@ -134,6 +134,11 @@ class TestPersistence extends SessionPersistence {
     return Promise.resolve(new TestHandle(header.id, structuredClone(header), 'write'))
   }
 
+  delete(id: SessionIdType): Promise<void> {
+    TestPersistence.entries.delete(id)
+    return Promise.resolve()
+  }
+
   // Appends are durable on resolution here; nothing buffers, so the service-wide flush is a no-op.
   async flush(): Promise<void> {}
 

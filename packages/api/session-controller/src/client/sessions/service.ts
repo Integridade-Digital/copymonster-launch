@@ -500,6 +500,22 @@ export class ClientSessions implements ISessions {
   }
 
   /**
+   * Permanently delete one Session through its retained binding, then refresh
+   * the list so the removed row leaves the baseline.
+   * @param sessionId - Session to remove.
+   * @returns completion; a business failure rejects with its message.
+   */
+  async delete(sessionId: SessionId): Promise<void> {
+    const result = await this.using(
+      sessionId,
+      { source: 'controllerOperation' },
+      reference => reference.binding.session.delete(),
+    )
+    if (!result.ok) throw new Error(result.error.message)
+    await this.refresh()
+  }
+
+  /**
    * Borrow an already-retained Agent-scoped Context.
    * @param id - session id (the agent identity — 1:1 same axis).
    * @returns the scoped Context, or undefined without a retained generation.

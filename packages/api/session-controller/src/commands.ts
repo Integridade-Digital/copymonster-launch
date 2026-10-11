@@ -20,6 +20,7 @@ import type { MessageSource } from '@deepseek-ai/dsh-llm'
 import { SessionLogOffset, SessionSeq } from '@deepseek-ai/dsh-session'
 import type { Session, SessionEvent, SessionHeader, SessionId, UserMessage } from '@deepseek-ai/dsh-session'
 import { SessionQueryError, type SessionObservation } from '@deepseek-ai/dsh-session-query'
+import { SessionAlreadyOwnedError } from '@deepseek-ai/dsh-session-persistence'
 import { SessionTitleInvalidError } from '@deepseek-ai/dsh-session-title'
 import { canonicalClientTimeZone } from '@deepseek-ai/dsh-util-time'
 import { assertNever } from '@deepseek-ai/dsh-util-values'
@@ -43,6 +44,8 @@ import type {
   SessionCancelValue,
   SessionCreateRequest,
   SessionCreateValue,
+  SessionDeleteRequest,
+  SessionDeleteValue,
   SessionForkRequest,
   SessionForkValue,
   SessionPromptRequest,
@@ -389,6 +392,34 @@ export class SessionCommandController {
         {},
       )
     }
+  }
+
+  /**
+   * Permanently remove one stored Session and its durable log. Idempotent for
+   * an absent Session. A live Session (an open writer) refuses: the caller
+   * must end it first.
+   * @param request - Session identity to remove.
+   * @param sandboxRoot - confined root; when supplied, the Session's cwd must be inside it.
+   * @returns deletion confirmation.
+   */
+  async delete(request: SessionDeleteRequest, sandboxRoot?: string): Promise<SessionDeleteValue> {
+    const snapshot = await this.ctx.sessionPersistence.stat(request.sessionId)
+    if (snapshot === undefined) return { deleted: true }
+    const cwd = snapshot.header.cwd
+    if (cwd !== undefined && sandboxRoot !== undefined) this.assertCwdInSandbox(cwd, sandboxRoot)
+    try {
+      await this.ctx.sessionPersistence.delete(request.sessionId)
+    } catch (error) {
+      if (error instanceof SessionAlreadyOwnedError) {
+        throw new RemoteError(
+          'session/writer-held',
+          `session "${request.sessionId}" is in use and cannot be deleted`,
+          { sessionId: request.sessionId },
+        )
+      }
+      throw error
+    }
+    return { deleted: true }
   }
 
   /**

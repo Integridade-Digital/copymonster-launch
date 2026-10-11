@@ -39,6 +39,8 @@ import type {
   SessionControlFrame,
   SessionCreateRequest,
   SessionCreateValue,
+  SessionDeleteRequest,
+  SessionDeleteValue,
   SessionFollowFrame,
   SessionFollowRequest,
   SessionForkRequest,
@@ -410,6 +412,18 @@ export class SessionController extends TypertRemoteService {
     const identity = requireAuthIdentity(this.ctx)
     const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
     return this.commands.rename(request, sandboxRoot)
+  }
+
+  /**
+   * Permanently remove one of the caller's stored Sessions and its durable log.
+   * @param request - Session identity to remove.
+   * @returns deletion confirmation; idempotent for an already-absent Session.
+   */
+  @RemoteScope('auth', 'delete')
+  delete(request: SessionDeleteRequest): Promise<SessionDeleteValue> {
+    const identity = requireAuthIdentity(this.ctx)
+    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    return this.commands.delete(request, sandboxRoot)
   }
 
   /**

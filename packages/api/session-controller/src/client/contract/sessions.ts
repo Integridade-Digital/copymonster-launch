@@ -137,6 +137,13 @@ export interface ISessions {
    */
   fork(opts: { sessionId: SessionId; atSeq?: number; increaseTitle?: boolean }): Promise<SessionId>
   /**
+   * Permanently delete a Session and its durable log on the Host, then refresh
+   * the list so the removed row leaves the baseline.
+   * @param sessionId - Session to remove.
+   * @returns completion; a business failure rejects with its message.
+   */
+  delete(sessionId: SessionId): Promise<void>
+  /**
    * Borrow an already-retained Agent-scoped Context without extending its lifetime.
    * @param id - session id.
    * @returns the live scoped Context, or undefined without a retained generation.

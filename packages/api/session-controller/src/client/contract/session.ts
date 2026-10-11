@@ -118,6 +118,12 @@ export interface ISession {
    */
   rename(title: string): Promise<RemoteResult<{ title: string; seq: SessionSeq }>>
   /**
+   * Permanently delete this session and its durable log on the Host. The
+   * binding becomes invalid; the list refresh drops the row.
+   * @returns the deletion confirmation, or the business error.
+   */
+  delete(): Promise<RemoteResult<{ deleted: boolean }>>
+  /**
    * Extend the history window backwards (older messages pagination).
    * @returns completion; failures land in snapshot.openState/loadingOlder.
    */

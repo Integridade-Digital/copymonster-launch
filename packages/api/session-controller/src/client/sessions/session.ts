@@ -363,6 +363,15 @@ export class Session implements SessionFace {
   }
 
   /**
+   * Delete: contract session.delete 1:1. The host removes the durable log; the
+   * caller refreshes the list so the row disappears.
+   * @returns the deletion result.
+   */
+  async delete(): Promise<RemoteResult<{ deleted: boolean }>> {
+    return this.remote.session.delete({ sessionId: this.sessionId })
+  }
+
+  /**
    * Execute one slash-command line against this session's agent — pure
    * admission semantics (the host executor durably logs the lifecycle;
    * outcomes render as flow nodes, never as a response echo).

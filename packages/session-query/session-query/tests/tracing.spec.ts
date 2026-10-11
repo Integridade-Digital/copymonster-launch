@@ -97,6 +97,11 @@ class TracePersistence extends SessionPersistence {
     return Promise.resolve(new TraceHandle(header.id, structuredClone(header), 'write'))
   }
 
+  delete(id: SessionIdType): Promise<void> {
+    TracePersistence.entries.delete(id)
+    return Promise.resolve()
+  }
+
   // Appends are durable on resolution here; nothing buffers, so the service-wide flush is a no-op.
   async flush(): Promise<void> {}
 

@@ -177,6 +177,14 @@ export class FixtureSession implements SessionFace {
   rename(): never {
     throw new Error(`test session "${this.sessionId}": rename is not stubbed — supply it on the fixture's session face`)
   }
+
+  /**
+   * Fail-loud stub; supply `delete` on the fixture's session face to exercise it.
+   * @returns never — always throws.
+   */
+  delete(): never {
+    throw new Error(`test session "${this.sessionId}": delete is not stubbed — supply it on the fixture's session face`)
+  }
 }
 
 /** Catalog fixture data remains available across live Client generations. */
@@ -311,7 +319,7 @@ export class TestSessions implements ISessions {
 
   /** Calls observed on the service-level face, newest last. */
   readonly calls: {
-    method: 'create' | 'setSubagentCatalogOpen' | 'refreshSubagents' | 'refresh' | 'search' | 'fork'
+    method: 'create' | 'delete' | 'setSubagentCatalogOpen' | 'refreshSubagents' | 'refresh' | 'search' | 'fork'
     args: unknown[]
   }[] = []
 
@@ -623,6 +631,15 @@ export class TestSessions implements ISessions {
     const id = await this.createStub(opts)
     this.require(id)
     return id
+  }
+
+  /**
+   * Recorded delete stub: drops the catalog row and its retained generation.
+   * @param sessionId - Session to remove.
+   */
+  async delete(sessionId: SessionId): Promise<void> {
+    this.calls.push({ method: 'delete', args: [sessionId] })
+    if (this.records.has(sessionId)) await this.remove(sessionId)
   }
 
   /** Resolve a retained or catalog-derived address independently of a view. */

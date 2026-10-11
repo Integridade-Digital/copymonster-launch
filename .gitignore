@@ -82,6 +82,11 @@ lib/
 *.bak
 .dsh-build/
 
+# Source, not build output: apps/web keeps its own code under src/lib/, which
+# the global build-output rule above otherwise swallows.
+!apps/web/src/lib/
+!apps/web/src/lib/**
+
 # Leaked-secret guards
 STRIPE_WEBHOOK_SECRET=*
 .env*

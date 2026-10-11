@@ -116,20 +116,6 @@ function selectionOf(state: ModelDirectoryState, id: string): ModelSelection | u
 /** Dictionary namespace owned by this plugin. */
 const NS = 'model'
 
-/**
- * Whether the published browser session belongs to a platform operator, which
- * is what admits the model selector (/model popup and composer seat). Every
- * creator owns a personal tenant, so the app shell resolves platform membership
- * (the platform tenant) and publishes it as `isPlatformAdmin`. Fail-closed: a
- * missing session, access token, or operator flag hides both entries.
- * @returns true only for a published platform-operator session.
- */
-function isPlatformAdminSession(): boolean {
-  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean } }).__DSH_AUTH__
-  if (session?.accessToken === undefined) return false
-  return session.isPlatformAdmin === true
-}
-
 /** Required services: the contribution registry, the seat's slot registry, locale, and the service's own faces. */
 export const inject = ['commandUi', 'locale', 'sessions', 'slots', 'remote', 'remote.session']
 
@@ -160,7 +146,7 @@ export function apply(ctx: ClientContext): void {
       label: () => t('command.label'),
       description: () => t('command.description'),
       icon: IconDataOutline16,
-      available: session => isPlatformAdminSession() && sessions.subagentAddress(session.sessionId) === undefined,
+      available: session => sessions.subagentAddress(session.sessionId) === undefined,
       ui: {
         kind: 'popupSelect',
         options: async (session) => {
@@ -197,7 +183,7 @@ export function apply(ctx: ClientContext): void {
       locale: NS,
       inject: (sessionId): ModelSelectInjected => {
         const directory = models.directoryFor(sessionId)
-        const available = isPlatformAdminSession() && sessions.subagentAddress(sessionId) === undefined
+        const available = sessions.subagentAddress(sessionId) === undefined
         return {
           available,
           directory: directory.store,

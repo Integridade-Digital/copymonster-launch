@@ -65,6 +65,47 @@ describe('session-db-sync helpers', () => {
     })
   })
 
+  it('sends a fallback title on an identity-scoped insert with no title', async () => {
+    const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null })
+    vi.mocked(supabaseAdminClient.rpc).mockImplementation(rpcMock as unknown as typeof supabaseAdminClient.rpc)
+
+    upsertSessionIndex({
+      sessionId: 'sess-004',
+      tenantId: 'd3b07384-d113-4ec6-a111-222233334444',
+      userId: 'e4c18495-e224-4fd7-b222-333344445555',
+      status: 'active',
+    })
+
+    await new Promise(r => setTimeout(r, 20))
+
+    expect(rpcMock).toHaveBeenCalledWith('runtime_upsert_session_index', {
+      p_session_id: 'sess-004',
+      p_tenant_id: 'd3b07384-d113-4ec6-a111-222233334444',
+      p_user_id: 'e4c18495-e224-4fd7-b222-333344445555',
+      p_title: 'Nova sessão',
+      p_model: null,
+      p_status: 'active',
+    })
+  })
+
+  it('leaves p_title null on an update without identity so the RPC keeps the title', async () => {
+    const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null })
+    vi.mocked(supabaseAdminClient.rpc).mockImplementation(rpcMock as unknown as typeof supabaseAdminClient.rpc)
+
+    upsertSessionIndex({ sessionId: 'sess-005', model: 'deepseek-chat' })
+
+    await new Promise(r => setTimeout(r, 20))
+
+    expect(rpcMock).toHaveBeenCalledWith('runtime_upsert_session_index', {
+      p_session_id: 'sess-005',
+      p_tenant_id: null,
+      p_user_id: null,
+      p_title: null,
+      p_model: 'deepseek-chat',
+      p_status: 'active',
+    })
+  })
+
   it('incrementSessionTokens invokes runtime_increment_session_tokens with positive rounded tokens', async () => {
     const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null })
     vi.mocked(supabaseAdminClient.rpc).mockImplementation(rpcMock as unknown as typeof supabaseAdminClient.rpc)

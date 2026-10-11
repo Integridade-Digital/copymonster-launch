@@ -9,7 +9,7 @@
  * Scope disposal drops the directory (HMR safety).
  */
 import { Context } from '@deepseek-ai/cordis'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createScope } from '@deepseek-ai/dsh-api-session-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import { LocaleRuntime } from '@deepseek-ai/dsh-client-locale/client'
@@ -22,6 +22,15 @@ import { apply, inject } from '../src/client/index.ts'
 import { zh } from '../src/client/locales.ts'
 
 const sid = (k: string): SessionId => k as SessionId
+
+/** Page global the model entries read for their platform-operator gate. */
+interface AuthGlobal {
+  __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean }
+}
+
+afterEach(() => {
+  delete (globalThis as AuthGlobal).__DSH_AUTH__
+})
 
 const GROUPS = [{
   id: 'deepseek-official',
@@ -67,6 +76,9 @@ const GROUPS = [{
 /** Boot the plugin over fake faces + a stateful fake host (current moves on selectModel). */
 async function bench(locale: 'zh' | 'en' = 'zh') {
   const ctx = new Context()
+  // Default to a platform-operator session so the model entries are admitted;
+  // the gate cases override or clear it to exercise non-operator and signed-out callers.
+  ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: true }
   let defaultSelection: ModelSelection = { provider: 'deepseek-official', model: 'deepseek-v4-flash' }
   let selected = defaultSelection
   const calls = { models: 0, select: 0 }
@@ -443,12 +455,32 @@ describe('ui-model-selection dual entry', () => {
     expect(b.calls).toEqual({ models: 2, select: 0 })
   })
 
-  it('offers both model entries without any published auth session', async () => {
+  it('admits both model entries for a platform operator', async () => {
     const b = await bench()
 
     expect(b.contribution().available(projection('s1'))).toBe(true)
 
     b.mint('s1')
     expect(b.seat().inject!(sid('s1')).available).toBe(true)
+  })
+
+  it('hides both model entries from a non-operator creator', async () => {
+    const b = await bench()
+    ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'creator-token', isPlatformAdmin: false }
+
+    expect(b.contribution().available(projection('s1'))).toBe(false)
+
+    b.mint('s1')
+    expect(b.seat().inject!(sid('s1')).available).toBe(false)
+  })
+
+  it('hides both model entries when no session is published', async () => {
+    const b = await bench()
+    delete (globalThis as AuthGlobal).__DSH_AUTH__
+
+    expect(b.contribution().available(projection('s1'))).toBe(false)
+
+    b.mint('s1')
+    expect(b.seat().inject!(sid('s1')).available).toBe(false)
   })
 })

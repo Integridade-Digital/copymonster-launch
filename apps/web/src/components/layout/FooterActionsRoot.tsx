@@ -5,6 +5,7 @@ import { ProfileModal } from './ProfileModal'
 import { AdminModal } from './AdminModal'
 import { DnaModal } from './DnaModal'
 import { t, getActiveLocale } from '../../locales'
+import { isPlatformAdmin } from '../../lib/auth/platform-admin'
 import type { PlansUser } from '../../pages/billing/PlansPage'
 import type { ProfileUser } from '../../pages/ProfilePage'
 import css from './FooterActionsRoot.module.css'
@@ -77,7 +78,7 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
     }
   }, [])
 
-  const isAdmin = currentUser?.role === 'owner' || currentUser?.role === 'admin'
+  const isAdmin = isPlatformAdmin(currentUser?.role, currentUser?.tenantId)
 
   const plansLabel = lang === 'zh' ? '计划 (Plans)' : 'Plans'
   const profileLabel = lang === 'zh' ? '个人资料 (Profile)' : 'Profile'
@@ -207,7 +208,7 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
         isOpen={activeModal === 'admin'}
         onClose={closeModal}
         triggerRef={adminBtnRef}
-        role={currentUser?.role}
+        isPlatformAdmin={isAdmin}
       />
       <DnaModal
         isOpen={activeModal === 'dna'}

@@ -52,20 +52,20 @@ function assertNever(_value: never): never {
  */
 
 /**
- * Whether the published browser session holds an owner or admin role, which is
- * what admits this setup prompt. Fail-closed: a missing session, a missing
- * access token, or a missing role claim completes onboarding instead of
- * prompting, because the page publishes the role with the token it publishes
- * for wire auth.
+ * Whether the published browser session belongs to a platform operator, which
+ * is what admits this setup prompt. Every creator owns a personal tenant, so
+ * the app shell resolves platform membership (the platform tenant) and publishes
+ * it as `isPlatformAdmin`. Fail-closed: a missing session, a missing access
+ * token, or a missing operator flag completes onboarding instead of prompting.
  */
-function isClientAdminOrOwner(): boolean {
-  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; role?: string } }).__DSH_AUTH__
+function isPlatformAdminSession(): boolean {
+  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean } }).__DSH_AUTH__
   if (session?.accessToken === undefined) return false
-  return session.role === 'owner' || session.role === 'admin'
+  return session.isPlatformAdmin === true
 }
 
 export function DeepSeekOnboardingDialog(props: DeepSeekOnboardingDialogProps): ReactNode {
-  if (!isClientAdminOrOwner()) {
+  if (!isPlatformAdminSession()) {
     props.complete()
     return null
   }

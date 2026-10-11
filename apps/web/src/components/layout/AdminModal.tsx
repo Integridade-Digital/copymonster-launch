@@ -16,7 +16,7 @@ interface AdminModalProps {
   isOpen: boolean
   onClose: () => void
   triggerRef?: React.RefObject<HTMLElement | null> | undefined
-  role?: string | null | undefined
+  isPlatformAdmin?: boolean | undefined
 }
 
 export type AdminTabKey =
@@ -49,7 +49,7 @@ const ADMIN_TABS: TabConfig[] = [
   { key: 'billing', labelEn: 'Billing', labelZh: '账单', icon: '💳' },
 ]
 
-export function AdminModal({ isOpen, onClose, triggerRef, role }: AdminModalProps) {
+export function AdminModal({ isOpen, onClose, triggerRef, isPlatformAdmin }: AdminModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<AdminTabKey>('overview')
   const lang = getActiveLocale()
@@ -59,7 +59,7 @@ export function AdminModal({ isOpen, onClose, triggerRef, role }: AdminModalProp
 
   if (!isOpen) return null
 
-  const isAuthorized = role === 'owner' || role === 'admin'
+  const isAuthorized = isPlatformAdmin === true
   const activeTabConfig = ADMIN_TABS.find(t => t.key === activeTab) || ADMIN_TABS[0]
   const activeTabTitle = activeTabConfig ? (lang === 'zh' ? activeTabConfig.labelZh : activeTabConfig.labelEn) : 'Overview'
 

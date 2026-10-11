@@ -117,16 +117,17 @@ function selectionOf(state: ModelDirectoryState, id: string): ModelSelection | u
 const NS = 'model'
 
 /**
- * Whether the published browser session holds an owner or admin role, which is
- * what admits the model selector (/model popup and composer seat). Fail-closed:
- * a missing session, access token, or role claim hides both entries, because
- * the page publishes the role with the token it publishes for wire auth.
- * @returns true only for a published `owner` or `admin` session.
+ * Whether the published browser session belongs to a platform operator, which
+ * is what admits the model selector (/model popup and composer seat). Every
+ * creator owns a personal tenant, so the app shell resolves platform membership
+ * (the platform tenant) and publishes it as `isPlatformAdmin`. Fail-closed: a
+ * missing session, access token, or operator flag hides both entries.
+ * @returns true only for a published platform-operator session.
  */
-function isClientAdminOrOwner(): boolean {
-  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; role?: string } }).__DSH_AUTH__
+function isPlatformAdminSession(): boolean {
+  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean } }).__DSH_AUTH__
   if (session?.accessToken === undefined) return false
-  return session.role === 'owner' || session.role === 'admin'
+  return session.isPlatformAdmin === true
 }
 
 /** Required services: the contribution registry, the seat's slot registry, locale, and the service's own faces. */
@@ -159,7 +160,7 @@ export function apply(ctx: ClientContext): void {
       label: () => t('command.label'),
       description: () => t('command.description'),
       icon: IconDataOutline16,
-      available: session => isClientAdminOrOwner() && sessions.subagentAddress(session.sessionId) === undefined,
+      available: session => isPlatformAdminSession() && sessions.subagentAddress(session.sessionId) === undefined,
       ui: {
         kind: 'popupSelect',
         options: async (session) => {
@@ -196,7 +197,7 @@ export function apply(ctx: ClientContext): void {
       locale: NS,
       inject: (sessionId): ModelSelectInjected => {
         const directory = models.directoryFor(sessionId)
-        const available = isClientAdminOrOwner() && sessions.subagentAddress(sessionId) === undefined
+        const available = isPlatformAdminSession() && sessions.subagentAddress(sessionId) === undefined
         return {
           available,
           directory: directory.store,

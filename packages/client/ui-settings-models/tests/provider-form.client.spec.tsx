@@ -19,12 +19,12 @@ import { settingsSchema } from './settings-schema.client.ts'
 
 afterEach(cleanup)
 
-const authGlobal = globalThis as { __DSH_AUTH__?: { accessToken?: string; role?: string } }
+const authGlobal = globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean } }
 
 // The page publishes this session before the section renders, which is what
 // admits the provider forms these cases drive.
 beforeEach(() => {
-  authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', role: 'admin' }
+  authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: true }
 })
 
 afterEach(() => {

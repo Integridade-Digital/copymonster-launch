@@ -52,19 +52,20 @@ type PanelProps = {
  */
 
 /**
- * Whether the published browser session holds an owner or admin role, which is
- * what admits the Models nav row. Fail-closed: a missing session, a missing
- * access token, or a missing role claim leaves the row hidden, because the
- * page publishes the role with the token it publishes for wire auth.
+ * Whether the published browser session belongs to a platform operator, which
+ * is what admits the Models nav row. Every creator owns a personal tenant, so
+ * the app shell resolves platform membership (the platform tenant) and publishes
+ * it as `isPlatformAdmin`. Fail-closed: a missing session, a missing access
+ * token, or a missing operator flag leaves the row hidden.
  */
-function isClientAdminOrOwner(): boolean {
-  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; role?: string } }).__DSH_AUTH__
+function isPlatformAdminSession(): boolean {
+  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean } }).__DSH_AUTH__
   if (session?.accessToken === undefined) return false
-  return session.role === 'owner' || session.role === 'admin'
+  return session.isPlatformAdmin === true
 }
 
 function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelProps) {
-  const isPrivileged = isClientAdminOrOwner()
+  const isPrivileged = isPlatformAdminSession()
   const visibleRows = isPrivileged ? rows : rows.filter(r => r.id !== 'models')
   const active = visibleRows.find(r => r.id === activeId)?.id ?? visibleRows[0]?.id
   // Entries can unmount underneath the requested id, so the render-time
@@ -161,7 +162,7 @@ export function SettingsRoot(props: SettingsRootComponentProps) {
   const connectionState = useConnectionState(state => state)
   const previousConnectionState = useRef(connectionState)
   const onboardingSteps = useOnboardingSteps(s => s)
-  const isPrivileged = isClientAdminOrOwner()
+  const isPrivileged = isPlatformAdminSession()
   const filteredSteps = isPrivileged ? onboardingSteps : onboardingSteps.filter(s => s.id !== 'deepseek-official')
   const onboardingActive = useSessions((state) => {
     const main = Object.values(state.byId)

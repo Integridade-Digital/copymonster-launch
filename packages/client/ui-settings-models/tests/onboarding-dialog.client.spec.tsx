@@ -19,12 +19,12 @@ import { settingsSchema } from './settings-schema.client.ts'
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined, reload: () => {} })) as GlobalStandardProps['useResource']
 const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({ activePanelId: null })
 
-const authGlobal = globalThis as { __DSH_AUTH__?: { accessToken?: string; role?: string } }
+const authGlobal = globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean } }
 
 // The page publishes this session before the prompt renders; the fail-closed
 // cases below overwrite or clear it to drop the caller's privilege.
 beforeEach(() => {
-  authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', role: 'admin' }
+  authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: true }
 })
 
 afterEach(() => {
@@ -173,7 +173,7 @@ function harness(options: {
 
 describe('DeepSeekOnboardingDialog', () => {
   it('completes without prompting a non-admin caller', () => {
-    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', role: 'user' }
+    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: false }
     const h = harness()
     render(<DeepSeekOnboardingDialog {...h.props} />)
     expect(h.complete).toHaveBeenCalled()

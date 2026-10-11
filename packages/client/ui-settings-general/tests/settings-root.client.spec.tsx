@@ -15,12 +15,12 @@ import type { DesktopUpdateView } from '../src/client/desktop-update-bridge.ts'
 const useResource = (() => ({ status: 'none' as const, value: undefined, failure: undefined, reload: () => {} })) as GlobalStandardProps['useResource']
 const usePanelInfo: GlobalStandardProps['usePanelInfo'] = selector => selector({ activePanelId: null })
 
-const authGlobal = globalThis as { __DSH_AUTH__?: { accessToken?: string; role?: string } }
+const authGlobal = globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean } }
 
 // The page publishes this session before the panel renders; the fail-closed
 // cases below overwrite or clear it to drop the caller's privilege.
 beforeEach(() => {
-  authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', role: 'admin' }
+  authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: true }
 })
 
 afterEach(() => {
@@ -339,15 +339,15 @@ describe('SettingsPanel navigation', () => {
     expect(screen.getByTestId('section-general')).toBeTruthy()
   })
 
-  it('admits the Models row for an owner', () => {
-    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', role: 'owner' }
+  it('admits the Models row for a platform operator', () => {
+    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: true }
     mount()
     openPanel()
     expect(screen.getByRole('button', { name: 'Models' })).toBeTruthy()
   })
 
-  it('hides the Models row from a non-admin caller', () => {
-    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', role: 'user' }
+  it('hides the Models row from a non-operator caller', () => {
+    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: false }
     mount()
     openPanel()
     expect(screen.queryByRole('button', { name: 'Models' })).toBeNull()
@@ -355,7 +355,7 @@ describe('SettingsPanel navigation', () => {
   })
 
   it('hides the Models row when the session carries no access token', () => {
-    authGlobal.__DSH_AUTH__ = { role: 'admin' }
+    authGlobal.__DSH_AUTH__ = { isPlatformAdmin: true }
     mount()
     openPanel()
     expect(screen.queryByRole('button', { name: 'Models' })).toBeNull()

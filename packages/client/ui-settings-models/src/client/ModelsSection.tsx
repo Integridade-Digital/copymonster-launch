@@ -194,19 +194,20 @@ export function providerCopy(template: string, target: ProviderIdentity): string
  */
 
 /**
- * Whether the published browser session holds an owner or admin role, which is
- * what admits provider configuration. Fail-closed: a missing session, a missing
- * access token, or a missing role claim is unprivileged, because the page
- * publishes the role with the token it publishes for wire auth.
+ * Whether the published browser session belongs to a platform operator, which
+ * is what admits provider configuration. Every creator owns a personal tenant,
+ * so the app shell resolves platform membership (the platform tenant) and
+ * publishes it as `isPlatformAdmin`. Fail-closed: a missing session, a missing
+ * access token, or a missing operator flag is unprivileged.
  */
-function isClientAdminOrOwner(): boolean {
-  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; role?: string } }).__DSH_AUTH__
+function isPlatformAdminSession(): boolean {
+  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean } }).__DSH_AUTH__
   if (session?.accessToken === undefined) return false
-  return session.role === 'owner' || session.role === 'admin'
+  return session.isPlatformAdmin === true
 }
 
 export function ModelsSection(props: ModelsSectionProps): ReactNode {
-  if (!isClientAdminOrOwner()) {
+  if (!isPlatformAdminSession()) {
     return (
       <div className={styles.section} style={{ padding: '2.5rem 1.5rem', textAlign: 'center' }}>
         <div style={{ maxWidth: '440px', margin: '0 auto', padding: '1.75rem', borderRadius: '8px', border: '1px solid var(--dsh-color-border-subtle, rgba(255, 255, 255, 0.1))', backgroundColor: 'var(--dsh-color-bg-secondary, rgba(255, 255, 255, 0.04))' }}>

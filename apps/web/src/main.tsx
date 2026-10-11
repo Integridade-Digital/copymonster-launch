@@ -11,6 +11,7 @@ import { AppWrapper, supabaseClient, useAuth } from './lib/auth'
 import { ensureDshBrowserSession, resolveHostBoot } from './lib/auth/host-boot'
 import { ProtectedRoute, PublicRoute } from './lib/auth/protected-route'
 import { RequireDnaRoute } from './lib/auth/dna-guard'
+import { isPlatformAdmin } from './lib/auth/platform-admin'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
@@ -31,6 +32,8 @@ interface DesktopBootGlobal {
 interface ClientAuthSession {
   accessToken?: string
   role?: string
+  tenantId?: string
+  isPlatformAdmin?: boolean
 }
 
 /** Page global carrying {@link ClientAuthSession}. */
@@ -52,18 +55,22 @@ const clientAuth = globalThis as ClientAuthGlobal
 function publishClientAuthSession(): void {
   supabaseClient.auth.onAuthStateChange((_event, current) => {
     let role: string | undefined
+    let tenantId: string | undefined
     if (current?.access_token) {
       try {
         const parts = current.access_token.split('.')
         if (parts[1]) {
           const payload = JSON.parse(atob(parts[1]))
           role = payload.user_role || payload.role
+          tenantId = payload.tenant_id
         }
       } catch {}
     }
     clientAuth.__DSH_AUTH__ = {
       accessToken: current?.access_token,
       role,
+      tenantId,
+      isPlatformAdmin: isPlatformAdmin(role, tenantId),
     }
   })
 }

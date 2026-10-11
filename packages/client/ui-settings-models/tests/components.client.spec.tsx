@@ -27,12 +27,12 @@ import { settingsSchema } from './settings-schema.client.ts'
 
 afterEach(cleanup)
 
-const authGlobal = globalThis as { __DSH_AUTH__?: { accessToken?: string; role?: string } }
+const authGlobal = globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean } }
 
 // The page publishes this session before the section renders; the fail-closed
 // cases below overwrite or clear it to drop the caller's privilege.
 beforeEach(() => {
-  authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', role: 'admin' }
+  authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: true }
 })
 
 afterEach(() => {
@@ -320,7 +320,7 @@ async function mountDeepSeekCard(overrides: Parameters<typeof scriptedFace>[0] =
 
 describe('ModelsSection', () => {
   it('refuses provider configuration from a non-admin caller', () => {
-    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', role: 'user' }
+    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: false }
     render(<ModelsSection {...({} as ModelsSectionProps)} />)
     expect(screen.getByText('Acesso Restrito')).toBeTruthy()
   })
@@ -332,7 +332,7 @@ describe('ModelsSection', () => {
   })
 
   it('admits provider configuration for an owner', () => {
-    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', role: 'owner' }
+    authGlobal.__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: true }
     render(<ModelsSection {...({} as ModelsSectionProps)} />)
     expect(screen.queryByText('Acesso Restrito')).toBeNull()
   })

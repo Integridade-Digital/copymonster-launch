@@ -41,6 +41,13 @@ O DNA deixa de ser um agente isolado ou engessado e evolui para uma **camada de 
    * O DNA é uma camada pura de posicionamento e identidade. Ferramentas de anúncios (Meta Ads), mensageria (WhatsApp), email marketing ou integrações externas **NÃO fazem parte do escopo do DNA**. O DNA é opt-in e injetado onde e quando o criador decidir.
 9. **Cotas Restritas à Criação/Gestão de DNA:**
    * A cota por plano (`max_positioning_mappings`) limita única e exclusivamente o número de DNAs que o criador pode criar e armazenar. **A cota nunca bloqueia a inferência, o chat ou o uso geral da plataforma.**
+10. **Sem Gating de Modelo por Role ou Plano:**
+   * O seletor de modelo (`/model` e o assento no composer) fica disponível para todo criador. **Nenhum gate por `role`, `owner/admin` ou plano.** A única fonte de verdade do que aparece é o catálogo de providers/modelos ativos do deploy (`get_runtime_llm_catalog` + `ctx.llm.listProviders()`), e a única restrição de sessão é a guarda de subagente endereçado.
+   * A separação de superfícies é por natureza da função, não por privilégio de tenant: **Settings → Models é o BYOK do criador** (chave própria), livre para todos; **Admin → LLM Providers e todas as abas de Admin** são operação da plataforma, restritas ao operador do tenant master.
+11. **Multi-Tenant Puro com Tenant Master Dedicado:**
+   * Cada criador é `owner` do próprio tenant pessoal (`handle_new_user`, migration 032), então `role = owner` nunca identifica operador da plataforma. A plataforma usa um tenant master dedicado (`00000000-0000-0000-0000-000000000001`) e o app resolve operador por `tenant_id` (flag `isPlatformAdmin` publicado pelo shell), não por role isolado.
+   * Catálogo de LLM é global do deploy: `get_runtime_llm_catalog()` retorna `llm_providers WHERE is_active = true` sem filtro de tenant. Um catálogo por tenant exige mudança de SQL + host e não faz parte desta entrega.
+   * A instrução de identidade do agente proíbe revelar o modelo, provider ou vendor subjacente.
 
 ---
 
@@ -95,10 +102,10 @@ A metodologia dos 12 blocos extrai o raio-X completo do posicionamento comercial
        1. Novo Criador cadastra e confirma e-mail no Supabase
                                     │
                                     ▼
-       2. Guard Global em apps/web detecta ausência de DNA completed
+       2. Boot bridge em apps/web detecta ausência de DNA completed
                                     │
                                     ▼
-       3. Redirecionamento forçado para /onboarding/dna
+       3. OnboardingDnaModal abre como overlay; a URL permanece /
                                     │
                                     ▼
        4. Agente Brand Positioning Monster guia os 12 blocos passo a passo
@@ -170,19 +177,20 @@ A metodologia dos 12 blocos extrai o raio-X completo do posicionamento comercial
 
 ---
 
-### ETAPA 3 — Rota de Onboarding Guiado: `/onboarding/dna`
+### ETAPA 3 — Onboarding Guiado como Modal (overlay sobre o workspace)
 
-* **Objetivo:** Interface imersiva, elegante e focada para que o novo criador complete o mapeamento sem distrações.
-* **Localização:** `apps/web/src/pages/onboarding/DnaPage.tsx`.
+* **Objetivo:** Guiar o novo criador pelos 12 blocos sem tirá-lo do workspace: a conversa e a sidebar permanecem, e um modal de entrada cobre a tela por cima.
+* **Localização:** `apps/web/src/components/layout/OnboardingDnaModal.tsx` (modal), `apps/web/src/components/dna/installDnaOnboarding.ts` (bridge), `apps/web/src/components/dna/OnboardingChrome.tsx` (header de progresso na conversa).
 * **Funcionalidades da Interface:**
-  1. Criação automática do primeiro `positioning_mapping` caso o usuário não possua nenhum em andamento.
-  2. Chat em tela cheia conectado à sessão do agente `brand-positioning-monster`.
-  3. Header de progresso com contador dinâmico: *"Bloco X de 12"*, destacando o nome do bloco atual.
-   4. Botão "Pular / Bloco Adaptativo" para os blocos opcionais (2, 5, 6, 7, 8). O bloco 12 é obrigatório na v1: a migration 039 marca `completed` apenas no save do bloco 12.
-  5. Painel de conclusão (`CompletionPanel.tsx`):
+  1. O modal segue o padrão dos modais do footer (Settings/Plans/Profile/My DNA): header com título e ícone, subtítulo, badge do método e action row primário/secundário.
+  2. Botão primário "Iniciar/Continuar mapeamento" fecha o modal e revela a entrevista que roda na conversa por trás. A URL nunca sai de `/`.
+  3. O bridge reivindica uma sessão blank, seleciona o preset `brand-positioning-monster` e abre a sessão na conversa principal.
+  4. Header de progresso na conversa com contador dinâmico: *"Bloco X de 12"*, destacando o nome do bloco atual.
+  5. Botão "Pular / Bloco Adaptativo" para os blocos opcionais (2, 5, 6, 7, 8). O bloco 12 é obrigatório na v1: a migration 039 marca `completed` apenas no save do bloco 12.
+  6. Painel de conclusão (`CompletionPanel.tsx`), no header da conversa:
      * Exibido assim que o 12º bloco é salvo.
      * Botão **"Ver Mapeamento Completo"**: abre modal com texto limpo ("MAPEAMENTO ESTRATÉGICO COMPLETO") e opção de exportação/cópia.
-     * Botão **"Iniciar Projeto com este DNA"**: redireciona para o workspace principal com o DNA ativado.
+     * Botão **"Iniciar Projeto com este DNA"**: limpa o claim e mantém o workspace; a URL permanece `/`.
 * **Follow-ups v1 (registrados, não bloqueiam):**
   * Ocultar a sidebar do workspace no modo onboarding (requer inspeção do DOM DSH em execução).
   * O conteúdo salvo por bloco é a resposta completa do agente (restate + pergunta seguinte); a tool da Etapa 5 salvará apenas o restate exato.
@@ -192,19 +200,16 @@ A metodologia dos 12 blocos extrai o raio-X completo do posicionamento comercial
 
 ---
 
-### ETAPA 4 — Guard Global de Onboarding em `apps/web`
+### ETAPA 4 — Abertura Automática do Onboarding em `apps/web`
 
-* **Objetivo:** Assegurar que nenhum novo criador acesse o sistema sem ter pelo menos um DNA concluído.
-* **Localização:** `apps/web/src/lib/auth/dna-guard.tsx` ou hook integrado a `ProtectedRoute` / `AuthenticatedWorkspace`.
-* **Comportamento Fail-Closed:**
-  1. Ao autenticar, consulta rápida via RPC `list_my_positioning_mappings`.
-  2. Se o usuário possuir zero registros com `status = 'completed'`:
-     * Redireciona imediatamente para `/onboarding/dna`.
-  3. **Rotas Isentas do Guard (Whitelist):**
-     * `/onboarding/*`
-     * `/login`, `/register`, `/forgot-password`, `/reset-password`
-     * `/billing/*`
-     * Rotas de perfil e configurações de emergência.
+* **Objetivo:** Garantir que o novo criador receba o onboarding sem bloquear o workspace e sem mudar a URL.
+* **Localização:** `apps/web/src/components/dna/installDnaOnboarding.ts` (bridge de boot).
+* **Comportamento:**
+  1. No boot, o bridge consulta `list_my_positioning_mappings()`.
+  2. Sem nenhum registro `status = 'completed'`: chama `requestOnboardingModal()` e reivindica uma sessão blank para a entrevista.
+  3. Com um mapping `completed`: limpa qualquer claim obsoleto e não interfere no workspace.
+  4. Leitura que falha (fail-open) não prende o criador no onboarding.
+* **Sem rota dedicada:** `/onboarding/dna` deixa de existir; não há `RequireDnaRoute` nem whitelist de rotas. O onboarding é overlay sobre `/`.
 
 ---
 

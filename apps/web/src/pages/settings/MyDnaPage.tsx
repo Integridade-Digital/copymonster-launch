@@ -7,7 +7,7 @@ import {
   duplicatePositioningMapping, listMyPositioningMappings, setDefaultPositioningMapping,
   type PositioningMapping, type PositioningQuota,
 } from '../../components/dna/useDnaOnboardingState'
-import '../../components/dna/dna.css'
+import css from './MyDnaPage.module.css'
 
 export interface MyDnaPageProps {
   onClose(): void
@@ -84,76 +84,91 @@ export function MyDnaPage({ onClose }: MyDnaPageProps) {
   }
 
   return (
-    <div className="cm-dna-settings">
-      <div className="cm-dna-settings-header">
-        <div>
-          <h3 className="cm-dna-settings-title">{t('settings.dna.title')}</h3>
-          <p className="cm-dna-settings-subtitle">{t('settings.dna.subtitle')}</p>
-        </div>
-        <div className="cm-dna-settings-actions">
-          {quota !== null && (
-            <span className={quota.can_create ? 'cm-dna-quota' : 'cm-dna-quota cm-dna-quota--warn'}>
-              {quota.is_unlimited
-                ? t('settings.dna.quotaUnlimited')
-                : t('settings.dna.quota', { count: quota.count, max: quota.max })}
-            </span>
+    <div className={css.page}>
+      <div className={css.actionsBar}>
+        {quota !== null && (
+          <span className={quota.can_create ? css.quota : `${css.quota} ${css.quotaWarn}`}>
+            {quota.is_unlimited
+              ? t('settings.dna.quotaUnlimited')
+              : t('settings.dna.quota', { count: quota.count, max: quota.max })}
+          </span>
+        )}
+        {quota !== null && !quota.can_create
+          ? (
+            <button type="button" className={css.primaryButton} onClick={() => {
+              window.dispatchEvent(new CustomEvent('copymonster:modal', { detail: 'plans' }))
+            }}>
+              {t('settings.dna.upgrade.cta')}
+            </button>
+          )
+          : (
+            <button
+              type="button"
+              className={css.primaryButton}
+              onClick={createNew}
+              disabled={loading}
+            >
+              {t('settings.dna.action.createNew')}
+            </button>
           )}
-          {quota !== null && !quota.can_create
-            ? (
-              <button type="button" className="cm-dna-button cm-dna-button--primary" onClick={() => {
-                window.dispatchEvent(new CustomEvent('copymonster:modal', { detail: 'plans' }))
-              }}>
-                {t('settings.dna.upgrade.cta')}
-              </button>
-            )
-            : (
-              <button
-                type="button"
-                className="cm-dna-button cm-dna-button--primary"
-                onClick={createNew}
-                disabled={loading}
-              >
-                {t('settings.dna.action.createNew')}
-              </button>
-            )}
-        </div>
       </div>
 
-      {loading && <p className="cm-dna-settings-hint">{t('settings.dna.loading')}</p>}
-      {loadError && <p className="cm-dna-settings-hint cm-dna-settings-hint--error">{t('settings.dna.error')}</p>}
-      {actionError && <p className="cm-dna-settings-hint cm-dna-settings-hint--error">{t('settings.dna.error')}</p>}
+      {loading && (
+        <div className={css.loading} role="status" aria-live="polite">
+          <span className={css.spinner} aria-hidden="true" />
+          <span>{t('settings.dna.loading')}</span>
+        </div>
+      )}
+      {loadError && <p className={css.error}>{t('settings.dna.error')}</p>}
+      {actionError && <p className={css.error}>{t('settings.dna.error')}</p>}
 
-      <div className="cm-dna-grid">
+      {!loading && !loadError && rows.length === 0 && (
+        <div className={css.empty}>
+          <span className={css.emptyIcon} aria-hidden="true">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M7 3c0 6 10 6 10 12" />
+              <path d="M17 3c0 6-10 6-10 12" />
+              <path d="M7 21c0-1 10-1 10 0" />
+              <line x1="8.5" y1="8" x2="15.5" y2="8" />
+              <line x1="8.5" y1="16" x2="15.5" y2="16" />
+            </svg>
+          </span>
+          <p className={css.emptyText}>{t('settings.dna.empty')}</p>
+          <button type="button" className={css.primaryButton} onClick={createNew}>
+            {t('settings.dna.action.createNew')}
+          </button>
+        </div>
+      )}
+
+      <div className={css.grid}>
         {rows.map(row => (
-          <div key={row.id} className="cm-dna-card-settings">
-            <div className="cm-dna-card-settings-head">
-              <h4 className="cm-dna-card-name">{row.name}</h4>
-              <div className="cm-dna-card-badges">
-                {row.is_default && <span className="cm-dna-badge cm-dna-badge--default">{t('settings.dna.card.default')}</span>}
-                <span className={row.status === 'completed'
-                  ? 'cm-dna-badge cm-dna-badge--completed'
-                  : 'cm-dna-badge cm-dna-badge--progress'}>
+          <div key={row.id} className={css.card}>
+            <div className={css.cardHead}>
+              <h4 className={css.cardName}>{row.name}</h4>
+              <div className={css.badges}>
+                {row.is_default && <span className={`${css.badge} ${css.badgeDefault}`}>{t('settings.dna.card.default')}</span>}
+                <span className={`${css.badge} ${row.status === 'completed' ? css.badgeCompleted : css.badgeProgress}`}>
                   {row.status === 'completed'
                     ? t('settings.dna.card.status.completed')
                     : t('settings.dna.card.status.in_progress')}
                 </span>
               </div>
             </div>
-            {row.product_name !== '' && <p className="cm-dna-card-product">{row.product_name}</p>}
-            <p className="cm-dna-card-updated">{t('settings.dna.card.updated', { date: formatDate(row.updated_at) })}</p>
+            {row.product_name !== '' && <p className={css.cardProduct}>{row.product_name}</p>}
+            <p className={css.cardUpdated}>{t('settings.dna.card.updated', { date: formatDate(row.updated_at) })}</p>
 
             {confirmDeleteId === row.id
               ? (
-                <div className="cm-dna-inline-form">
-                  <p className="cm-dna-inline-hint">
+                <div className={css.inlineForm}>
+                  <p className={css.inlineHint}>
                     {t('settings.dna.confirmDelete.title')}
                     {' '}
                     {t('settings.dna.confirmDelete.message', { name: row.name })}
                   </p>
-                  <div className="cm-dna-card-actions">
+                  <div className={css.cardActions}>
                     <button
                       type="button"
-                      className="cm-dna-card-button cm-dna-card-button--danger"
+                      className={`${css.cardButton} ${css.delete}`}
                       disabled={busyId !== null}
                       onClick={() => {
                         void run(row.id, () => deletePositioningMapping(row.id))
@@ -164,7 +179,7 @@ export function MyDnaPage({ onClose }: MyDnaPageProps) {
                     </button>
                     <button
                       type="button"
-                      className="cm-dna-card-button"
+                      className={css.cardButton}
                       onClick={() => { setConfirmDeleteId(null) }}
                     >
                       {t('settings.dna.confirmDelete.cancel')}
@@ -174,20 +189,20 @@ export function MyDnaPage({ onClose }: MyDnaPageProps) {
               )
               : duplicateFor === row.id
                 ? (
-                  <div className="cm-dna-inline-form">
-                    <label className="cm-dna-inline-hint" htmlFor={`cm-dna-duplicate-${row.id}`}>
+                  <div className={css.inlineForm}>
+                    <label className={css.inlineHint} htmlFor={`cm-dna-duplicate-${row.id}`}>
                       {t('settings.dna.duplicate.nameLabel')}
                     </label>
                     <input
                       id={`cm-dna-duplicate-${row.id}`}
-                      className="cm-dna-inline-input"
+                      className={css.inlineInput}
                       value={duplicateName}
                       onChange={(event) => { setDuplicateName(event.target.value) }}
                     />
-                    <div className="cm-dna-card-actions">
+                    <div className={css.cardActions}>
                       <button
                         type="button"
-                        className="cm-dna-card-button"
+                        className={css.cardButton}
                         disabled={busyId !== null || duplicateName.trim() === ''}
                         onClick={() => {
                           void run(row.id, () => duplicatePositioningMapping(row.id, duplicateName.trim()))
@@ -201,7 +216,7 @@ export function MyDnaPage({ onClose }: MyDnaPageProps) {
                       </button>
                       <button
                         type="button"
-                        className="cm-dna-card-button"
+                        className={css.cardButton}
                         onClick={() => { setDuplicateFor(null) }}
                       >
                         {t('settings.dna.confirmDelete.cancel')}
@@ -210,11 +225,11 @@ export function MyDnaPage({ onClose }: MyDnaPageProps) {
                   </div>
                 )
                 : (
-                  <div className="cm-dna-card-actions">
+                  <div className={css.cardActions}>
                     {!row.is_default && (
                       <button
                         type="button"
-                        className="cm-dna-card-button"
+                        className={css.cardButton}
                         disabled={busyId !== null}
                         onClick={() => { void run(row.id, () => setDefaultPositioningMapping(row.id)) }}
                       >
@@ -223,7 +238,7 @@ export function MyDnaPage({ onClose }: MyDnaPageProps) {
                     )}
                     <button
                       type="button"
-                      className="cm-dna-card-button"
+                      className={`${css.cardButton} ${css.refine}`}
                       disabled={busyId !== null}
                       onClick={() => { refine(row.id) }}
                     >
@@ -231,7 +246,7 @@ export function MyDnaPage({ onClose }: MyDnaPageProps) {
                     </button>
                     <button
                       type="button"
-                      className="cm-dna-card-button"
+                      className={css.cardButton}
                       disabled={busyId !== null}
                       onClick={() => {
                         setDuplicateFor(row.id)
@@ -242,7 +257,7 @@ export function MyDnaPage({ onClose }: MyDnaPageProps) {
                     </button>
                     <button
                       type="button"
-                      className="cm-dna-card-button cm-dna-card-button--danger"
+                      className={`${css.cardButton} ${css.delete}`}
                       disabled={busyId !== null}
                       onClick={() => { setConfirmDeleteId(row.id) }}
                     >
@@ -253,10 +268,6 @@ export function MyDnaPage({ onClose }: MyDnaPageProps) {
           </div>
         ))}
       </div>
-
-      {!loading && !loadError && rows.length === 0 && (
-        <p className="cm-dna-settings-hint">{t('settings.dna.empty')}</p>
-      )}
     </div>
   )
 }

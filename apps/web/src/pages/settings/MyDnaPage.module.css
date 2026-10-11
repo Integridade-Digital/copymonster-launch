@@ -1,0 +1,261 @@
+/* My DNA settings body. All color comes from --cm-* tokens (cm-theme.css). */
+
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.actionsBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.quota {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 12px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--cm-primary) 12%, transparent);
+  color: var(--cm-primary);
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.quotaWarn {
+  background: color-mix(in srgb, var(--cm-destructive) 12%, transparent);
+  color: var(--cm-destructive);
+}
+
+.primaryButton {
+  padding: 8px 16px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--cm-primary);
+  color: var(--cm-primary-foreground);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.primaryButton:hover {
+  opacity: 0.9;
+}
+
+.primaryButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.error {
+  margin: 0;
+  font-size: 13px;
+  color: var(--cm-destructive);
+}
+
+.loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding: 56px 0;
+  color: var(--cm-muted-foreground);
+  font-size: 14px;
+}
+
+.spinner {
+  width: 24px;
+  height: 24px;
+  border: 2px solid var(--cm-border);
+  border-top-color: var(--cm-primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 56px 24px;
+  text-align: center;
+}
+
+.emptyIcon {
+  color: var(--cm-muted-foreground);
+  opacity: 0.6;
+}
+
+.emptyIcon svg {
+  width: 64px;
+  height: 64px;
+}
+
+.emptyText {
+  margin: 0;
+  max-width: 360px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--cm-muted-foreground);
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 20px;
+  border: 1px solid var(--cm-border);
+  border-radius: 8px;
+  background: var(--cm-card);
+  transition: box-shadow 0.15s ease;
+}
+
+.card:hover {
+  box-shadow: var(--cm-shadow);
+}
+
+.cardHead {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.cardName {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--cm-foreground);
+}
+
+.badges {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.badge {
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.badgeDefault {
+  background: color-mix(in srgb, var(--cm-primary) 12%, transparent);
+  color: var(--cm-primary);
+}
+
+.badgeCompleted {
+  background: color-mix(in srgb, var(--cm-success) 14%, transparent);
+  color: var(--cm-success);
+}
+
+.badgeProgress {
+  background: color-mix(in srgb, var(--cm-foreground) 6%, transparent);
+  color: var(--cm-muted-foreground);
+}
+
+.cardProduct {
+  margin: 0;
+  font-size: 13px;
+  color: var(--cm-foreground);
+}
+
+.cardUpdated {
+  margin: 0;
+  font-size: 12px;
+  color: var(--cm-muted-foreground);
+}
+
+.cardActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cardButton {
+  padding: 6px 12px;
+  border: 1px solid var(--cm-border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--cm-foreground);
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: border-color 0.15s ease, color 0.15s ease;
+}
+
+.cardButton:hover {
+  border-color: var(--cm-primary);
+  color: var(--cm-primary);
+}
+
+.cardButton:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.refine {
+  border-color: var(--cm-primary);
+  color: var(--cm-primary);
+}
+
+.delete {
+  border-color: color-mix(in srgb, var(--cm-destructive) 40%, transparent);
+  color: var(--cm-destructive);
+}
+
+.delete:hover {
+  border-color: var(--cm-destructive);
+  color: var(--cm-destructive);
+}
+
+.inlineForm {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inlineHint {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--cm-muted-foreground);
+}
+
+.inlineInput {
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--cm-border);
+  border-radius: 6px;
+  background: var(--cm-background);
+  color: var(--cm-foreground);
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.inlineInput:focus {
+  outline: none;
+  border-color: var(--cm-primary);
+}

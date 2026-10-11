@@ -144,6 +144,14 @@
   padding-left: 8px;
 }
 
+/* Anchors the first-run guidance bubble over the chip. */
+.workspaceChipWrap {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+  max-width: 100%;
+}
+
 /* Folder + label + chevron — transparent at rest; fill only on hover / open.
    Overflow-driven degradation, no breakpoint: the label shrinks with an
    ellipsis down to nothing, so folder and chevron always sit snug against
@@ -174,6 +182,49 @@
    pointer affordance; label keeps full contrast. */
 .workspace:disabled {
   cursor: default;
+}
+
+/* First-run nudge: the unpicked chip pulses a business-blue ring until the
+   creator picks a workspace; the guidance bubble names the action. Motion is
+   dropped under reduced-motion, leaving the bubble as the cue. */
+.workspaceGuide {
+  animation: workspace-guide-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes workspace-guide-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--dsw-alias-state-business-primary) 45%, transparent);
+  }
+
+  50% {
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--dsw-alias-state-business-primary) 0%, transparent);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspaceGuide {
+    animation: none;
+  }
+}
+
+.workspaceGuideBubble {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  z-index: 20;
+  transform: translateX(-50%);
+  padding: 6px 10px;
+  border: 0.5px solid var(--dsw-alias-border-l3);
+  border-radius: 8px;
+  background: var(--dsw-alias-bg-base);
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--dsw-alias-label-primary) 12%, transparent);
+  color: var(--dsw-alias-label-primary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+  pointer-events: none;
 }
 
 .folder {

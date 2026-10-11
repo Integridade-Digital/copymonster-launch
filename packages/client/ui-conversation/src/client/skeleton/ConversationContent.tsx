@@ -108,6 +108,9 @@ export function ConversationContent(props: ConversationContentProps) {
         label={chipTitle}
         menuOpen={pickerOpen}
         onClick={() => { setPickerOpen(open => !open) }}
+        // The row only renders in the hero; a still-undefined title means the
+        // creator has not picked a workspace yet — the moment the nudge targets.
+        guide={chipTitle === undefined}
         t={t}
       />
       {renderSlot('conversation.hero.workspace', {

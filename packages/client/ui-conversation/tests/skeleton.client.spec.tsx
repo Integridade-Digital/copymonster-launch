@@ -24,7 +24,7 @@ import { ConversationContent } from '../src/client/skeleton/ConversationContent.
 import { ConversationMainPanel } from '../src/client/skeleton/ConversationMainPanel.tsx'
 import { ConversationSession, ConversationSessionHeader } from '../src/client/skeleton/ConversationSession.tsx'
 import { conversationPhase } from '../src/client/contract/snapshot.ts'
-import { HeroShell } from '../src/client/skeleton/EmptyHero.tsx'
+import { HeroShell, WorkspaceChip } from '../src/client/skeleton/EmptyHero.tsx'
 import type { HeroShellProps } from '../src/client/skeleton/EmptyHero.tsx'
 import { InputBar } from '../src/client/skeleton/InputBar.tsx'
 import type { InputBarProps } from '../src/client/skeleton/InputBar.tsx'
@@ -384,6 +384,28 @@ describe('Hero chrome', () => {
     expect(brandMarkOwner.size).toBe(34)
     expect(brandMarkOwner.className).toBeTypeOf('string')
     expect(renderSlot.mock.calls[0]?.[2]?.fallback).toBeTruthy()
+  })
+})
+
+describe('WorkspaceChip first-run guidance', () => {
+  it('pulses the unpicked chip and names the action while guidance is on', () => {
+    const view = render(<WorkspaceChip t={makeTranslate(zh, commonZh)} guide />)
+    const chip = view.getByRole('button', { name: '选择工作区' })
+    expect(chip.className).toContain('workspaceGuide')
+    expect(view.getByRole('status').textContent).toBe('选择一个工作区开始')
+  })
+
+  it('drops the guidance once a label resolves the chip', () => {
+    const view = render(<WorkspaceChip t={makeTranslate(zh, commonZh)} guide label="Meu Workspace" />)
+    const chip = view.getByRole('button', { name: '选择工作区' })
+    expect(chip.className).not.toContain('workspaceGuide')
+    expect(view.queryByRole('status')).toBeNull()
+    expect(view.getByText('Meu Workspace')).toBeTruthy()
+  })
+
+  it('leaves an ordinary unpicked chip plain', () => {
+    const view = render(<WorkspaceChip t={makeTranslate(zh, commonZh)} />)
+    expect(view.queryByRole('status')).toBeNull()
   })
 })
 

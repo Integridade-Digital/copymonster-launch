@@ -3,6 +3,7 @@
 
 import { useState } from 'react'
 import type { ReactNode, RefObject } from 'react'
+import clsx from 'clsx'
 import {
   IconChevronDownOutline14, IconFolderClose16, IconFolderOpen16,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -33,31 +34,41 @@ export function workspaceLabel(cwd: string): string {
  * @param props.label - chip label (see {@link workspaceLabel}); omitted → placeholder.
  * @param props.menuOpen - menu expansion echo.
  * @param props.onClick - menu toggle.
- * @returns the chip button element.
+ * @param props.guide - first-run nudge: while the chip is still in its
+ * placeholder state, pulse it and show a bubble pointing at the pick. Ignored
+ * once a label resolves, so the guidance clears with the first pick.
+ * @returns the chip element.
  */
-export function WorkspaceChip({ buttonRef, label, menuOpen = false, onClick, t }: {
+export function WorkspaceChip({ buttonRef, label, menuOpen = false, onClick, guide = false, t }: {
   buttonRef?: RefObject<HTMLButtonElement>
   label?: string | undefined
   menuOpen?: boolean
   onClick?: () => void
+  guide?: boolean
   t: HeroTranslate
 }) {
+  const guiding = guide && label === undefined
   return (
-    <button
-      ref={buttonRef}
-      type="button"
-      className={css.workspace}
-      aria-label={t('hero.chooseWorkspace')}
-      aria-haspopup="menu"
-      aria-expanded={menuOpen}
-      onClick={onClick}
-    >
-      {label === undefined
-        ? <IconFolderClose16 className={css.folder} size={16} />
-        : <IconFolderOpen16 className={css.folder} size={16} />}
-      <span className={css.workspaceLabel}>{label ?? t('hero.chooseWorkspace')}</span>
-      <IconChevronDownOutline14 className={css.chevron} size={12} />
-    </button>
+    <span className={css.workspaceChipWrap}>
+      <button
+        ref={buttonRef}
+        type="button"
+        className={clsx(css.workspace, guiding && css.workspaceGuide)}
+        aria-label={t('hero.chooseWorkspace')}
+        aria-haspopup="menu"
+        aria-expanded={menuOpen}
+        onClick={onClick}
+      >
+        {label === undefined
+          ? <IconFolderClose16 className={css.folder} size={16} />
+          : <IconFolderOpen16 className={css.folder} size={16} />}
+        <span className={css.workspaceLabel}>{label ?? t('hero.chooseWorkspace')}</span>
+        <IconChevronDownOutline14 className={css.chevron} size={12} />
+      </button>
+      {guiding && (
+        <span className={css.workspaceGuideBubble} role="status">{t('placeholder.workspace')}</span>
+      )}
+    </span>
   )
 }
 

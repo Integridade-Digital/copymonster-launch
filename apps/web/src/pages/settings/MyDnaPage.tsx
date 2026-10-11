@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { t } from '../../locales'
+import { startDnaOnboarding } from '../../components/dna/installDnaOnboarding'
 import { formatDate } from '../../lib/format'
 import {
   DNA_REFINE_KEY, countMyPositioningMappings, deletePositioningMapping,
@@ -17,10 +17,9 @@ export interface MyDnaPageProps {
  * Settings panel for the creator's DNA mappings: quota header, card grid,
  * and per-card actions (default, refine, duplicate, archive) plus new-DNA
  * creation gated by the plan quota.
- * @param props - closes the owning modal so navigation can leave it.
+ * @param props - closes the owning modal before an onboarding restart.
  */
 export function MyDnaPage({ onClose }: MyDnaPageProps) {
-  const navigate = useNavigate()
   const [rows, setRows] = useState<readonly PositioningMapping[]>([])
   const [quota, setQuota] = useState<PositioningQuota | null>(null)
   const [loading, setLoading] = useState(true)
@@ -69,7 +68,7 @@ export function MyDnaPage({ onClose }: MyDnaPageProps) {
       // Private-mode browsers lose the refine target; onboarding falls back.
     }
     onClose()
-    navigate('/onboarding/dna')
+    startDnaOnboarding()
   }
 
   const createNew = (): void => {
@@ -81,7 +80,7 @@ export function MyDnaPage({ onClose }: MyDnaPageProps) {
       // Same private-mode allowance as the refine stage.
     }
     onClose()
-    navigate('/onboarding/dna')
+    startDnaOnboarding()
   }
 
   return (

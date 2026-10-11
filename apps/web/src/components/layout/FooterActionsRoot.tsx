@@ -4,6 +4,8 @@ import { PlansModal } from './PlansModal'
 import { ProfileModal } from './ProfileModal'
 import { AdminModal } from './AdminModal'
 import { DnaModal } from './DnaModal'
+import { OnboardingDnaModal } from './OnboardingDnaModal'
+import { consumeOnboardingModalRequest, subscribeOnboardingModalRequest } from '../dna/onboardingModal'
 import { t, getActiveLocale } from '../../locales'
 import { isPlatformAdmin } from '../../lib/auth/platform-admin'
 import type { PlansUser } from '../../pages/billing/PlansPage'
@@ -19,7 +21,7 @@ export interface FooterUser extends PlansUser, ProfileUser {
 }
 
 export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
-  const [activeModal, setActiveModal] = useState<'plans' | 'profile' | 'admin' | 'dna' | null>(null)
+  const [activeModal, setActiveModal] = useState<'plans' | 'profile' | 'admin' | 'dna' | 'dna-onboarding' | null>(null)
   const [currentUser, setCurrentUser] = useState<FooterUser | null>(null)
   const lang = getActiveLocale()
 
@@ -73,8 +75,15 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
     }
 
     window.addEventListener('copymonster:modal', handleCustomModal)
+
+    if (consumeOnboardingModalRequest()) setActiveModal('dna-onboarding')
+    const unsubscribeOnboarding = subscribeOnboardingModalRequest(() => {
+      setActiveModal('dna-onboarding')
+    })
+
     return () => {
       window.removeEventListener('copymonster:modal', handleCustomModal)
+      unsubscribeOnboarding()
     }
   }, [])
 
@@ -214,6 +223,10 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
         isOpen={activeModal === 'dna'}
         onClose={closeModal}
         triggerRef={dnaBtnRef}
+      />
+      <OnboardingDnaModal
+        isOpen={activeModal === 'dna-onboarding'}
+        onClose={closeModal}
       />
     </>
   )

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { t } from '../../locales'
 import {
   DNA_ADAPTIVE_BLOCKS, DNA_REFINE_KEY, dnaBlock, updatePositioningBlock, useDnaOnboardingState,
@@ -56,9 +56,12 @@ export interface OnboardingChromeProps {
  */
 export function OnboardingChrome(props: OnboardingChromeProps) {
   const { sessionId, useSession, useDnaEventWindow, send } = props
-  const location = useLocation()
   const navigate = useNavigate()
-  const active = location.pathname.startsWith('/onboarding/dna') && useSession !== undefined
+  // The interview is active exactly when this seat belongs to the claimed
+  // onboarding session; the entry modal opens the chat rather than a route.
+  const claimed = dnaClaim()
+  const isClaimedSession = sessionId !== undefined && sessionId === claimed
+  const active = useSession !== undefined && isClaimedSession
 
   // A refine visit stages its target once; the chrome consumes and clears it.
   const [refineId] = useState(() => {
@@ -76,8 +79,6 @@ export function OnboardingChrome(props: OnboardingChromeProps) {
   const { running, openState, eventWindow, replay } = useDnaSessionTracker(useSession, useDnaEventWindow, kickoffText, skipText)
   const { mapping, mappingError, setMapping } = useDnaOnboardingState(
     active, t('onboarding.dna.firstName'), refineId)
-  const claimed = dnaClaim()
-  const isClaimedSession = sessionId !== undefined && sessionId === claimed
 
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState(false)

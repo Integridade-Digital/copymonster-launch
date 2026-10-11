@@ -101,6 +101,9 @@ export const zh = {
   // DNA Onboarding (Etapa 3)
   'onboarding.dna.title': 'Brand Positioning Monster',
   'onboarding.dna.subtitle': '在开始创作之前，通过 12 个引导模块完成品牌 DNA 映射。',
+  'onboarding.dna.modal.intro': 'Brand Positioning Monster 每个模块只问一个问题，并把你的回答转化为持久的身份。访谈在此面板后方的对话中进行——关闭面板即可作答。',
+  'onboarding.dna.modal.start': '开始映射',
+  'onboarding.dna.modal.continue': '继续映射',
   'onboarding.dna.progress': '模块 {block} / 12',
   'onboarding.dna.block.1': '目标受众',
   'onboarding.dna.block.2': '痛点与挑战',

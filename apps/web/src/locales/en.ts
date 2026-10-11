@@ -101,6 +101,9 @@ export const en = {
   // DNA Onboarding (Etapa 3)
   'onboarding.dna.title': 'Brand Positioning Monster',
   'onboarding.dna.subtitle': 'Map your brand DNA in 12 guided blocks before you start creating.',
+  'onboarding.dna.modal.intro': 'The Brand Positioning Monster asks one question per block and turns your answers into a persistent identity. The interview runs in the chat behind this panel — close it to answer.',
+  'onboarding.dna.modal.start': 'Start mapping',
+  'onboarding.dna.modal.continue': 'Continue mapping',
   'onboarding.dna.progress': 'Block {block} of 12',
   'onboarding.dna.block.1': 'Target Audience',
   'onboarding.dna.block.2': 'Pains and Challenges',

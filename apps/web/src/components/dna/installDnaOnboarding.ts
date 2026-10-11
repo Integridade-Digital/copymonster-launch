@@ -88,6 +88,9 @@ interface DnaBridgeScope {
     openSession(target: string): void
     startSession?(workspaceId?: string): void
   }
+  readonly workspaces: {
+    ensureInitial(): Promise<unknown>
+  }
   readonly remote: {
     readonly agentPresets: { select(sessionId: string, preset: string): Promise<{ ok: boolean }> }
   }
@@ -109,7 +112,7 @@ export interface OnboardingChromeInjected {
  * @param ctx - the client Context from the LazyWebApp onBoot seam.
  */
 export function installDnaOnboarding(ctx: DnaClientContext): void {
-  ctx.inject(['sessions', 'uiWorkspace', 'remote', 'remote.agentPresets'], (untyped) => {
+  ctx.inject(['sessions', 'uiWorkspace', 'workspaces', 'remote', 'remote.agentPresets'], (untyped) => {
     const scope = untyped as unknown as DnaBridgeScope
 
     const chromeInjected = (sessionId: string | undefined): OnboardingChromeInjected => {
@@ -141,6 +144,15 @@ export function installDnaOnboarding(ctx: DnaClientContext): void {
     let applied = false
     let nudgedForSession = false
 
+    // The interview needs a Workspace before any Session exists; request the
+    // auto-provisioned default here too, so the onboarding never strands a
+    // fresh creator on a workspace-less chat.
+    const ensureWorkspace = (): void => {
+      void scope.workspaces.ensureInitial().catch((error: unknown) => {
+        console.error('dna onboarding: workspace provisioning failed', error)
+      })
+    }
+
     const claimSession = (): void => {
       if (!onboarding || applied) return
       const byId = scope.sessions.list.getSnapshot().byId
@@ -157,6 +169,7 @@ export function installDnaOnboarding(ctx: DnaClientContext): void {
         // workspace for one and claim it when it lands in the list.
         if (!nudgedForSession) {
           nudgedForSession = true
+          ensureWorkspace()
           scope.uiWorkspace.startSession?.()
         }
         return
@@ -176,6 +189,7 @@ export function installDnaOnboarding(ctx: DnaClientContext): void {
       onboarding = true
       applied = false
       nudgedForSession = false
+      ensureWorkspace()
       requestOnboardingModal()
       claimSession()
     }

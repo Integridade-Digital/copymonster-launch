@@ -260,17 +260,17 @@ describe('ui-workspace apply', () => {
   })
 
   it('reports a failed initial provisioning request without breaking apply', async () => {
-    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined)
-    try {
-      const b = await bench()
-      b.ensureInitial.mockRejectedValueOnce(new Error('wire down'))
-      await b.ctx.plugin({ inject: [...inject], apply }).await()
-      await vi.waitFor(() => {
-        expect(warn).toHaveBeenCalledWith('initial workspace provisioning failed:', expect.any(Error))
-      })
-    } finally {
-      warn.mockRestore()
-    }
+    const error = vi.spyOn(console, 'error').mockImplementation(() => undefined)
+    const b = await bench()
+    b.ensureInitial.mockRejectedValueOnce(new Error('wire down'))
+    const fiber = b.ctx.plugin({ inject: [...inject], apply })
+    await fiber.await()
+    await vi.waitFor(() => {
+      expect(error).toHaveBeenCalledWith('initial workspace provisioning failed:', expect.any(Error))
+    })
+    // Disposing the plugin clears the scheduled retry timer.
+    await fiber.dispose()
+    error.mockRestore()
   })
 
   it('unregisters every entry on teardown', async () => {

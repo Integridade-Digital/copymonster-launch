@@ -85,21 +85,34 @@ export function apply(ctx: Context): void {
   ctx.effect(() => ctx.locale.register(NS, { zh, en }), 'ui-workspace: dictionaries')
 
   // A registry that settles with no Workspace requests the auto-provisioned
-  // default once, so the first Session opens without a manual pick; a failed
-  // request leaves the manual picker path as the recovery.
+  // default, so the first Session opens without a manual pick. The request
+  // retries with backoff: at boot the auth token may not be published when the
+  // Workspace baseline lands, and a single silent failure would otherwise
+  // strand a new creator with no Workspace at all.
   ctx.effect(() => {
-    let requested = false
+    let started = false
+    let attempts = 0
+    let timer: ReturnType<typeof setTimeout> | undefined
+    const attempt = (): void => {
+      attempts += 1
+      void workspaces.ensureInitial().catch((reason: unknown) => {
+        console.error('initial workspace provisioning failed:', reason)
+        if (attempts < 5) timer = setTimeout(attempt, 1000 * attempts)
+        else started = false
+      })
+    }
     const check = (): void => {
       const snapshot = workspaces.list.getSnapshot()
-      if (requested || snapshot.phase !== 'ready' || snapshot.items.length > 0) return
-      requested = true
-      void workspaces.ensureInitial().catch((reason: unknown) => {
-        console.warn('initial workspace provisioning failed:', reason)
-      })
+      if (started || snapshot.phase !== 'ready' || snapshot.items.length > 0) return
+      started = true
+      attempt()
     }
     const unsubscribe = workspaces.list.subscribe(check)
     check()
-    return unsubscribe
+    return () => {
+      if (timer !== undefined) clearTimeout(timer)
+      unsubscribe()
+    }
   }, 'ui-workspace: ensure-initial')
 
   const searchSessions: WorkspaceBrowserInjected['searchSessions'] = async (query, signal) => {

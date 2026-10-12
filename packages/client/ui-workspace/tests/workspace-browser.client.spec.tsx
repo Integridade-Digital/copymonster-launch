@@ -1608,6 +1608,49 @@ describe('WorkspaceBrowser', () => {
     await waitFor(() => { expect(screen.getByRole('alert').textContent).toBe('denied') })
   })
 
+  it('arms the session delete confirmation on first click and deletes on second', async () => {
+    let resolveDelete!: () => void
+    const deleteSession = vi.fn(() => new Promise<void>((resolve) => { resolveDelete = resolve }))
+    mount({
+      useSessions: hook(sessionState([summary('s1', 1, { displayTitle: 'Alpha' })])),
+      useWorkspaces: hook(workspaceState([workspace('alpha', ['s1'], 'Alpha')])),
+      deleteSession,
+    })
+    fireEvent.click(screen.getByText('Alpha'))
+    fireEvent.click(screen.getByRole('button', { name: '会话“Alpha”的操作' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '删除会话' }))
+    const dialog = screen.getByRole('dialog', { name: '删除会话' })
+    expect(dialog.textContent).toContain('将永久删除')
+
+    const confirm = screen.getByRole<HTMLButtonElement>('button', { name: '删除会话' })
+    fireEvent.click(confirm)
+    expect(deleteSession).not.toHaveBeenCalled()
+    expect(screen.getByRole<HTMLButtonElement>('button', { name: '永久删除' }).disabled).toBe(false)
+
+    fireEvent.click(screen.getByRole('button', { name: '永久删除' }))
+    expect(deleteSession).toHaveBeenCalledOnce()
+    expect(deleteSession).toHaveBeenCalledWith(sid('s1'))
+
+    await act(async () => { resolveDelete() })
+    expect(screen.queryByRole('dialog', { name: '删除会话' })).toBeNull()
+  })
+
+  it('cancel closes the session delete dialog without deleting', () => {
+    const deleteSession = vi.fn(async () => {})
+    mount({
+      useSessions: hook(sessionState([summary('s1', 1, { displayTitle: 'Alpha' })])),
+      useWorkspaces: hook(workspaceState([workspace('alpha', ['s1'], 'Alpha')])),
+      deleteSession,
+    })
+    fireEvent.click(screen.getByText('Alpha'))
+    fireEvent.click(screen.getByRole('button', { name: '会话“Alpha”的操作' }))
+    fireEvent.click(screen.getByRole('menuitem', { name: '删除会话' }))
+    expect(screen.getByRole('dialog', { name: '删除会话' })).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: '取消' }))
+    expect(screen.queryByRole('dialog', { name: '删除会话' })).toBeNull()
+    expect(deleteSession).not.toHaveBeenCalled()
+  })
+
   it('confirms Workspace deletion, explains retention, and blocks duplicate submission', async () => {
     let resolveDelete!: () => void
     const deleteWorkspace = vi.fn(() => new Promise<void>((resolve) => { resolveDelete = resolve }))

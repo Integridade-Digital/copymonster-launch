@@ -1,14 +1,15 @@
-# Plano de correções: Settings → Models (CRÍTICO), save de DNA, limites por plano e onboarding recorrente
+# Plano de correções: admin gate de Settings, consolidação do menu lateral, save de DNA, limites por plano e onboarding recorrente
 
 Estado: investigação concluída; nenhum código aplicado; nenhum SQL executado por mim.
 
-Fluxo: este documento é o plano único dos 4 problemas; commit + push deste plano, aguardando aprovação, e só então código (1 commit por problema, na ordem Problema 4 → 1 → 3 → 2).
+Fluxo: este documento é o plano único dos 5 problemas; commit + push deste plano, aguardando aprovação, e só então código (1 commit por problema, na ordem Problema 4 → 5 → 1 → 3 → 2 — o 5 vem logo após o 4 porque tocam no mesmo componente).
 
 ## Resumo executivo
 
 | # | Problema | Severidade | Causa raiz resumida |
 |---|---|---|---|
 | 4 | Settings → Models visível para usuário comum; app sem flag de admin | CRÍTICO | sem flag de admin no app + RLS `is_admin_or_owner()` verdadeiro para todo usuário + guardas do harness desligadas (`@Remote` sem identidade) + UI sem gate |
+| 5 | Menu lateral poluído; Plans/Profile/My DNA soltos fora do Settings | MÉDIO (cosmético) | itens de página vivem como botões de footer com modais próprios (`FooterActionsRoot`), fora da navegação de seções do shell Settings |
 | 1 | DNA salvo sem nome ("My first DNA") e CompletionPanel nunca aparece | ALTO | replay do onboarding congela em `answeredBlock = 1`; só o bloco 1 é salvo; a flag `status='completed'` (migration 039) só nasce no save do bloco 12 |
 | 3 | Onboarding de DNA reabre a cada login | ALTO | deriva do Problema 1: como `status` nunca vira `completed`, o gate de boot nunca satisfaz |
 | 2 | Limites de DNA por plano errados; sem seletor de DNA ao iniciar campanha | MÉDIO | cota entrega 100 (pro) para `trial_expired`/`canceled`/`past_due`; auto-create do onboarding não checa cota; seletor não existe |
@@ -99,8 +100,8 @@ export interface CredentialInfo { configured: boolean; source?: string; writable
 ### Parte B — Gate no código (eu implemento após aprovação)
 
 - **B1 (bootstrap lê `metadata.is_admin`):** estender `AuthUser` com `isAdmin: boolean` e preencher em `getUserFullProfile` (`apps/web/src/lib/auth/supabase.client.ts:369-397`, `data.is_admin === true`, fail-closed no fallback de perfil da linha 47-52 de `auth.provider.tsx`); publicar `__DSH_AUTH__.isAdmin` em `apps/web/src/main.tsx:40, 68-73`.
-- **B2 (esconder o item Settings do menu):** antes de `ctx.slots.inject('sidebar.settings', ...)` em `packages/client/ui-settings-general/src/client/index.ts:158`, checar predicado fail-closed `isOperatorSession()` — sessão com `accessToken` E (`isPlatformAdmin === true` OU `isAdmin === true`), no padrão de `isPlatformAdminSession()` (`packages/client/ui-model-selection/src/client/index.ts:123-131`); sem sessão, não registrar o gear.
-- **B3 (não renderizar Settings → Models):** mesmo predicado antes dos três `ctx.slots.inject` em `packages/client/ui-settings-models/src/client/index.ts:131, 143, 151` — some a seção Models e os diálogos de onboarding (BYOK/DeepSeek) para não-admin.
+- **B2 (gear Settings continua visível para todos):** o gear de menu lateral **não** é escondido — `Profile` e `Plans` passam a viver dentro do Settings e são necessários a todo usuário (regra de visibilidade unificada com o Problema 5); nenhuma mudança no registro `sidebar.settings` (`packages/client/ui-settings-general/src/client/index.ts:158`).
+- **B3 (aba Models só renderiza com `metadata.is_admin === true`):** a seção Models deixa de ser registrada incondicionalmente em `packages/client/ui-settings-models/src/client/index.ts:131, 143, 151` — registro e dispose dirigidos por `__DSH_AUTH__.isAdmin === true` (predicado estrito e fail-closed, vindo de B1), reavaliados quando o app publica a resolução do perfil (evento `copymonster:auth` em `apps/web/src`, porque a flag chega depois do boot); não-admin: a aba e os diálogos de onboarding (BYOK/DeepSeek) simplesmente não existem — sem estado "bloqueado com mensagem". O divisor acima da aba no rail de navegação é do Problema 5.
 - **B4 (esconder Edit/Delete dos providers):** a seção fica inacessível para não-admin via B3; como defesa extra, injetar `canManage` (predicado) nas props de `ModelsSection` e ocultar os botões de Edit (`ModelsSection.tsx:391-406`) e Delete (`407-424`) quando falso.
 - **B5 (proteger o backend de listagem/escrita de providers — camada harness):** sem isto o gate de UI é cosmético, porque qualquer criador continua conseguindo chamada direta remota. Marcar `describe`, `update`, `replace`, `mutate`, `openSettingsDocument`, `openAgentPresetDirectory`, `canOpenAgentPresetDirectory` (`packages/api/settings-controller/src/index.ts:170, 203, 223, 245, 263, 295, 190`) e `credentials.describe/set/unset` (`.../credentials.ts:97, 122, 139`) com `@RemoteScope('auth', '<verb>')`; endurecer as guardas para fail-closed: identidade ausente → `settings/unauthorized`; identidade fora de (`owner`/`admin` **com** `tenantId === DEFAULT_TENANT_ID`) → `settings/forbidden` (o predicado server-side espelha `isPlatformAdmin`; `UserIdentity` já carrega `tenantId` e `role` vindos dos claims, `packages/api/auth-context/src/index.ts:170-196`). A camada de dados (B/A3) cobre `llm_providers`; a camada harness cobre os namespaces `llm-*` e as credenciais.
 - **Nota (fora do escopo, registrado):** `listAdapters`/`listDeclared`/`discoverModels` em `packages/llm/llm/src/index.ts` não podem ser alterados (proibição de tocar `packages/llm/`); o inventário residual de nomes de providers continua legível por autenticado — aceito como dívida, sem endpoints nem chaves.
@@ -108,13 +109,13 @@ export interface CredentialInfo { configured: boolean; source?: string; writable
 ## Plano de aplicação (commits)
 
 1. **SQL (usuário):** A1, depois A2, depois A3 no editor SQL do Supabase (arquivos `supabase/migrations/040_admin_flag_and_rls.sql` são criados por mim como registro, mas a aplicação é do usuário).
-2. **Commit `fix(auth): gate Settings and Models UI behind platform admin`** — B1 (apps/web), B2 (ui-settings-general), B3+B4 (ui-settings-models), predicado compartilhado, chaves de i18n novas (se houver) em `apps/web/src/locales/en.ts` e `zh.ts`, specs de cliente (padrão `packages/client/ui-settings-models/tests/apply.client.spec.ts`).
+2. **Commit `fix(auth): gate Settings and Models UI behind platform admin`** — B1 (apps/web, inclui o evento `copymonster:auth` que o Problema 5 também vai consumir), B3+B4 (ui-settings-models, registro condicional da aba Models), specs de cliente (padrão `packages/client/ui-settings-models/tests/apply.client.spec.ts`).
 3. **Commit `fix(api): require auth context and platform admin on settings and credentials verbs`** — B5, specs em `packages/api/settings-controller/tests/` (casos fail-closed: identidade ausente → recusa; criador (owner de tenant pessoal) → recusa; admin de plataforma → permite; o caso "sem autenticação → acesso pleno" de `rbac-isolation.spec.ts:91` é substituído por recusa, com nota de que o host desktop-local é decisão aberta do usuário), regeneração dos remotes/cátalogos afetados pelo `pnpm run build`.
-4. **Verificação (usuário, em produção):** com sessão de criador, Settings some da sidebar; `settings.update` em namespace `llm-*` e `credentials.set` passam a recusar; `get_admin_llm_providers` não retorna linhas; com sessão do admin, tudo segue funcionando (inclusive AdminModal).
+4. **Verificação (usuário, em produção):** com sessão de criador, o gear Settings continua visível mas a aba Models não existe (nem o divisor); `settings.update` em namespace `llm-*` e `credentials.set` passam a recusar; `get_admin_llm_providers` não retorna linhas; com sessão do admin (após A1), aba Models aparece e tudo segue funcionando (inclusive AdminModal).
 
 ## Riscos
 
-- **Esconder o gear Settings tira dos criadores** idioma/tema (seção General), presets e plugins além de Models — alternativa se preferirem: manter o gear e aplicar apenas B3/B4 (gate da seção Models). Decisão do usuário; DNA não é afetado (o botão "My DNA" é próprio em `FooterActionsRoot.tsx:143`, não passa pelo gear).
+- **Gate estrito em `metadata.is_admin`:** se A1 não rodar antes do deploy da UI, a aba Models desaparece inclusive para o admin (predicado fail-closed é proposital) — ordem obrigatória: A1 antes do primeiro deploy de B3.
 - **A3 pode travar o admin atual** se ele não tiver membership no tenant plataforma e a A1 não rodar antes — por isso a ordem A1 → A3 e a verificação de que o AdminModal continua visível (hoje visível, o que já indica membership plataforma existente).
 - **B5 muda a fio (wire)** dos verbos settings/credentials (novo parâmetro de contexto `authId`) — host e client precisam ser publicados juntos no mesmo deploy (o build do `apps/web` embute o remote client do mesmo commit).
 - **Desktop local:** com identidade obrigatória, o host desktop sem login deixaria de configurar — decisão aberta: tratar por configuração do perfil de bundle (não hardcoded) ou manter a recusa e exigir login também no desktop. Nenhuma decisão tomada aqui.
@@ -125,11 +126,134 @@ export interface CredentialInfo { configured: boolean; source?: string; writable
 - [ ] A1 aplicado pelo usuário: `metadata.is_admin = true` para `integridade.digital@gmail.com`.
 - [ ] A2 aplicado: `get_my_profile()` devolve `is_admin`.
 - [ ] A3 aplicado: usuário comum não passa mais em `is_admin_or_owner()`; admin continua passando.
-- [ ] Criador logado: item Settings invisível na sidebar; `settings.section` sem a entrada `models`.
+- [ ] Criador logado: gear Settings continua visível na sidebar; `settings.section` sem a entrada `models` (aba e divisor ausentes).
 - [ ] Criador logado (chamada direta): `settings.update('llm-...', ...)` → `settings/forbidden`; `credentials.set` → recusa; `get_admin_llm_providers` → vazio.
-- [ ] Admin logado: gear Settings, seção Models, Edit/Delete e painel admin seguem funcionando.
+- [ ] Admin logado (após A1): aba Models, Edit/Delete e painel admin seguem funcionando.
 - [ ] Sessão sem token: nenhum dos verbos protegidos responde conteúdo (fail-closed).
 - [ ] Nenhuma chave presente em diff, teste ou doc (verificação de padrão `apiKey|secret` no diff).
+
+---
+
+# Problema 5 — Consolidação do menu lateral: Plans/Profile/My DNA viram abas do Settings
+
+## Diagnóstico
+
+O menu lateral do app entrega itens soltos no rodapé do sidebar: `FooterActionsRoot` renderiza cinco linhas (Plans, Profile, My DNA, Admin gated, Sign Out) com labels bilíngues hardcoded e monta três modais próprios (`PlansModal`, `ProfileModal`, `DnaModal`) — conteúdo de página poluindo a navegação e duplicando o shell do Settings. O Settings por outro lado já é um shell de abas: o rail de navegação do painel ordena entradas de `settings.section` por `order` (hoje General 0, Models 10, Built-in plugins 15, Agent presets 20, Archived sessions 25) e já expõe `openSection(id)` no contrato (`packages/client/ui-settings/src/client/contract/slots.ts:135`). Deep links e CTAs já conversam por evento (`copymonster:modal`), então a consolidação reaproveita o canal existente em vez de criar roteamento novo.
+
+## Evidências — os 5 greps solicitados
+
+1. **Menu lateral atual (linhas soltas + modais próprios):**
+
+```ts
+// apps/web/src/components/layout/FooterActionsRoot.tsx
+const plansLabel = lang === 'zh' ? '计划 (Plans)' : 'Plans'        // :92 — label hardcoded
+{/* Row 1: Plans */}  <button onClick={() => setActiveModal('plans')} ...>   // :100-116
+{/* Row 2: Profile */} <button onClick={() => setActiveModal('profile')} /> // :118-135
+{/* Row 3: My DNA */}  <button onClick={() => setActiveModal('dna')} />     // :137-157
+{/* Row 5: Sign Out */} ...                                                // :182-199
+<PlansModal ... /> <ProfileModal ... /> <DnaModal ... />                    // :203-227
+```
+
+2. **Componente Settings + abas (rail de seções do painel):**
+
+```ts
+// packages/client/ui-settings-general/src/client/SettingsRoot.tsx
+const [activeId, setActiveId] = useState<string | undefined>(undefined)   // :123
+// The Models section is creator BYOK, so every creator sees the row.     // :55 — comentário obsoleto
+{visibleRows.map(row => ( <button ...> {navIcon(row.id)} <span>{row.label}</span> ... ))} // :86-97
+// registro das seções: ui-settings-general:187 (general, 0), ui-settings-models:131 (models, 10),
+// ui-settings-plugins:187 (plugins, 15), ui-agent-preset:220 (agent-presets, 20), ui-settings-unarchive-sessions:41 (archived-sessions, 25)
+```
+
+3. **Componentes existentes de Plans/Profile/My DNA:**
+
+```ts
+// apps/web/src/components/layout/FooterActionsRoot.tsx:3-7 — donos atuais dos modais
+import { PlansModal } from './PlansModal'
+import { ProfileModal } from './ProfileModal'
+import { DnaModal } from './DnaModal'
+// páginas reutilizáveis: pages/billing/PlansPage.tsx:169, pages/ProfilePage.tsx:51, pages/settings/MyDnaPage.tsx:22
+```
+
+4. **Estado das abas em Settings (como é roteado):**
+
+```ts
+// packages/client/ui-settings-general/src/client/SettingsRoot.tsx
+const [open, setOpen] = useState(false)                  // :122 — estado local do painel
+const openSection = useCallback((id: string) => { ... }, ...) // :139 — já existe canal "abrir em uma aba"
+// senders hoje: bus window 'copymonster:modal' — FooterActionsRoot.tsx:77 (listener),
+// main.tsx:281-293 (rotas /plans e /profile), MyDnaPage.tsx:76, 99 (CTA de upgrade)
+```
+
+5. **Gate admin (`metadata.is_admin`):**
+
+```ts
+// packages/client/ui-model-selection/src/client/index.ts:123-131 — único gate de admin hoje no cliente
+function isPlatformAdminSession(): boolean {
+  const session = (globalThis as { __DSH_AUTH__?: ... }).__DSH_AUTH__
+  if (session?.accessToken === undefined) return false
+  return session.isPlatformAdmin === true
+}
+// grep "is_admin" em packages/client: nenhuma ocorrência — o cliente ainda não conhece a flag; B1 (Problema 4) a publica
+```
+
+## Solução proposta
+
+### Estrutura final
+
+Menu lateral (fora de Settings): **Plugins** e **Workspaces (com sub-itens)** já existem como painéis do sidebar (`ui-plugin-manager` em `sidebar.panellist`, `ui-workspace` em `sidebar.workspaces`, `index.ts:176`) — nenhuma mudança neles; ficam **Sign Out** e **Settings** (gear, visível para todos). As linhas Plans, Profile e My DNA saem do footer; a linha Admin permanece como está (gated por `isPlatformAdmin`).
+
+Abas do Settings, nesta ordem exata (valor do `order` de registro):
+
+| # | Aba | id | order |
+|---|---|---|---|
+| 1 | General | `general` | 0 (inalterado) |
+| 2 | Profile | `profile` | 10 (novo, registrado por `apps/web`) |
+| 3 | Plans | `plans` | 11 (novo) |
+| 4 | My DNA | `my-dna` | 12 (novo) |
+| 5 | Built-in plugins | `plugins` | 15 (inalterado) |
+| 6 | Agent presets | `agent-presets` | 20 (inalterado) |
+| 7 | Archived sessions | `archived-sessions` | 25 (inalterado) |
+| ─ | divisor visual | — | renderizado antes da linha `models` |
+| 8 | Models | `models` | 30 (hoje 10; mudar em `packages/client/ui-settings-models/src/client/index.ts:134`; admin-only — Problema 4) |
+
+### Regras de visibilidade
+
+- Settings (gear): visível para todo usuário — Profile e Plans passam a ser necessários a todos dentro dele.
+- Abas 1-7: visíveis para todo usuário.
+- Aba 8 (Models): só renderiza se `__DSH_AUTH__.isAdmin === true` (o flag `metadata.is_admin` publicado por B1, predicado estrito e fail-closed); se não-admin, a aba **e** o divisor acima dela não renderizam — não é "bloqueado com mensagem", simplesmente não existem; o mesmo vale para os diálogos de onboarding BYOK/DeepSeek (B3).
+
+### Componentes e navegação
+
+- Reutilizar as páginas existentes dentro de três seções finas registradas por `apps/web` (no ponto em que ele já injeta `sidebar.footer.action`, `apps/web/src/main.tsx:197-199`): `ProfilePage`, `PlansPage` e `MyDnaPage` (que recebe o `close` do contexto da seção — ele já aceita `onClose`).
+- Remover de `FooterActionsRoot`: linhas 1-3, os modais `PlansModal`/`ProfileModal`/`DnaModal` e o handler `'dna'`; `OnboardingDnaModal` permanece (é o fluxo de onboarding, não navegação); linha Admin e Sign Out permanecem.
+- Navegação preservada: manter o bus `copymonster:modal`; `FooterActionsRoot` traduz `'plans'|'profile'|'dna'` → novo evento `copymonster:settings` com `{ section: 'plans'|'profile'|'my-dna' }`, consumido por um listener em `SettingsRoot` que chama `openSection` (já existente, `SettingsRoot.tsx:139`); senders atualizados no mesmo commit: rotas `/plans` e `/profile` (`main.tsx:281-293`), CTA de upgrade do `MyDnaPage` (`:76, :99`); `'admin'` continua abrindo o AdminModal.
+- Divisor: elemento estático antes da linha `models` no `visibleRows.map` do `SettingsPanel`, renderizado somente quando essa linha existe; o comentário obsoleto "creator BYOK" (`SettingsRoot.tsx:55`) passa a documentar o gate admin-only.
+- Faixa de `order` reservada: 0 = geral; 10-12 = seções de conta do usuário; 15-25 = seções de sistema; 30 = admin (Models).
+
+### Interação com o Problema 4
+
+Problemas 4 e 5 tocam no mesmo componente (rail de navegação do `SettingsRoot` + registro de `ui-settings-models`): a regra "aba 8 admin-only" do Problema 5 **é** o gate B3 do Problema 4, e o divisor é condicional à existência dessa linha. Aplicar o 4 primeiro (vazamento de providers) e o 5 em seguida (ordem/consolidação); as camadas de servidor do 4 (B5 + A3) seguem valendo por si, independentes desta UI.
+
+## Plano de aplicação (commit)
+
+1. **Commit `refactor(web): move Plans, Profile, My DNA into Settings sections`** (logo após os commits do Problema 4) — registro das 3 seções (orders 10/11/12), models 10 → 30, divisor + comentário do rail, remoção das 3 linhas e 3 modais do `FooterActionsRoot`, rewire do bus (`copymonster:settings` + listener em `SettingsRoot`), atualização dos senders, chaves i18n em `apps/web/src/locales/en.ts` e `zh.ts`, specs de cliente.
+2. **Verificação manual** conforme o checklist (ordem exata das abas, divisor, deep links, footer enxuto).
+
+## Riscos
+
+- `PlansPage`/`ProfilePage`/`MyDnaPage` nasceram para modal — a adaptação a seção é fina mas remove cabeçalhos/fechamentos próprios em favor do chrome do shell (validar que não sobra header duplicado).
+- O upgrade a partir de My DNA hoje abre modal por cima de outro modal; dentro do Settings vira navegação entre abas — validar foco e scroll ao trocar de aba via `openSection`.
+- Acoplar `SettingsRoot` ao nome de evento do app é o menor custo compatível com o estado local das abas; alternativa se preferirem: expor `openSection` por um comando/slot público do contrato em vez de listener de evento.
+- Ordem numérica por `order`: seções futuras com order entre 0 e 30 se inserem no meio — a faixa reservada (acima) documenta onde cada tipo de aba entra.
+
+## Checklist de aceitação (Problema 5)
+
+- [ ] Menu lateral enxuto: Plugins, Workspaces (com sub-itens), Sign Out, Settings (mais a row Admin, que continua gated).
+- [ ] Settings com abas na ordem exata: General, Profile, Plans, My DNA, Built-in plugins, Agent presets, Archived sessions, ───, Models.
+- [ ] Aba Models + divisor só visíveis para admin (`metadata.is_admin === true`); para não-admin não existem (sem estado bloqueado).
+- [ ] Navegação preservada: rota `/plans` (e qualquer clique/CTA antigo) → Settings abre na aba Plans; idem `/profile` e My DNA.
+- [ ] i18n atualizado (en + zh) para as chaves de menu/abas novas; labels hardcoded do footer removidos.
 
 ---
 
@@ -237,12 +361,15 @@ As cotas estão declaradas na migration 039 (`supabase/migrations/039_positionin
 
 | Ordem | Conteúdo | Commit |
 |---|---|---|
-| 0 | Este plano | `docs(roadmap): plan for Settings admin gate, DNA save, plan limits, onboarding recurrence fixes` |
-| 1 (após aprovação) | Problema 4 — UI + flag | `fix(auth): gate Settings and Models UI behind platform admin` |
-| 2 | Problema 4 — backend harness | `fix(api): require auth context and platform admin on settings and credentials verbs` |
-| 3 | Problema 1 | `fix(dna): finalize positioning name and surface completion panel` |
-| 4 | Problema 3 | `fix(dna): persist onboarding completion across logins` |
-| 5 | Problema 2 | `feat(dna): plan quota statuses, quota gate on create, and campaign DNA chooser` |
+| 0 | Este plano (Problemas 4 e 5 juntos — tocam no mesmo componente) | `docs(roadmap): plan for admin gate + Settings consolidation (Problems 4-5)` |
+| 1 (após aprovação) | Problema 4 — flag + UI (B1-B4) | `fix(auth): gate Settings and Models UI behind platform admin` |
+| 2 | Problema 4 — backend harness (B5) | `fix(api): require auth context and platform admin on settings and credentials verbs` |
+| 3 | Problema 5 — consolidação do menu | `refactor(web): move Plans, Profile, My DNA into Settings sections` |
+| 4 | Problema 1 | `fix(dna): finalize positioning name and surface completion panel` |
+| 5 | Problema 3 | `fix(dna): persist onboarding completion across logins` |
+| 6 | Problema 2 | `feat(dna): plan quota statuses, quota gate on create, and campaign DNA chooser` |
+
+Prioridade: Problema 4 (vazamento) antes do Problema 5 (cosmético); 5 vem logo depois do 4 porque compartilham `SettingsRoot`/`ui-settings-models`.
 
 ## Ações que só o usuário executa
 

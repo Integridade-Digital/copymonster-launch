@@ -35,7 +35,7 @@ E o bundle CopyMonster (`packages/bundle/copymonster/cordis.patch.yml`) adiciona
 
 O problema de "settings are unavailable in this browser" **NÃO é registro ausente**. A causa real está em `packages/client/ui-settings/src/client/index.ts:58`:
 
-```ts
+```text
 const persistence = ctx.remote.$host.isLoopback ? 'host' : 'memory'
 ```
 

@@ -295,7 +295,7 @@ HOW TO USE:
 * **Ajustes:**
   1. Extensão da interface `SessionCreateRequest` em `types.ts:284` para aceitar `positioningMappingId?: string` (opcional, mantendo total retrocompatibilidade).
   2. Expansão da tipagem e uso do mapa em memória existente em `commands.ts:115`:
-     ```ts
+     ```text
      export const sessionTenantMap = new WeakMap<Session, {
        tenantId: string
        userId: string

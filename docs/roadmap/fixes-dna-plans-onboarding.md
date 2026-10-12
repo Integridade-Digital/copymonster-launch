@@ -35,7 +35,7 @@ O problema tem 4 camadas, todas confirmadas por investigação nesta sessão.
 
 1. **Onde o user é carregado no frontend (para ler metadata):**
 
-```ts
+```text
 // apps/web/src/lib/auth/auth.provider.tsx:38 — bootstrap do perfil
 const fullProfile = await getUserFullProfile(userId);
 // apps/web/src/lib/auth/supabase.client.ts:369-390 — RPC get_my_profile NÃO retorna metadata
@@ -48,7 +48,7 @@ clientAuth.__DSH_AUTH__ = { accessToken: current?.access_token, role, tenantId,
 
 2. **Onde Settings aparece no menu:**
 
-```ts
+```text
 // packages/client/ui-settings-general/src/client/index.ts:158 — ocupante do gear
 ctx.slots.inject('sidebar.settings', () => ctx.slots.register({
   name: 'sidebar.settings', ... }, SettingsRoot))
@@ -58,7 +58,7 @@ ctx.slots.inject('sidebar.settings', () => ctx.slots.register({
 
 3. **Onde Settings → Models é renderizado:**
 
-```ts
+```text
 // packages/client/ui-settings-models/src/client/index.ts:131 — registro incondicional
 ctx.slots.inject('settings.section', () => ctx.slots.register({
   name: 'settings.section', id: 'models', order: 10, ... }, ModelsSection))
@@ -68,7 +68,7 @@ ctx.slots.inject('settings.section', () => ctx.slots.register({
 
 4. **Endpoint que lista providers (llm_providers):**
 
-```ts
+```text
 // apps/web/src/pages/admin/tabs/AdminLLMProvidersTab.tsx:103
 const { data, error } = await adminRpc('get_admin_llm_providers')
 // supabase/migrations/008_admin_expanded_backend.sql:53-54 — RLS da tabela
@@ -81,7 +81,7 @@ RETURN EXISTS (SELECT 1 FROM public.user_tenant_roles
 
 5. **Se a chave é exposta no Edit:**
 
-```ts
+```text
 // packages/client/ui-settings-models/src/client/ProviderEditor.tsx:367 e CustomProviderCard.tsx:263
 <input ... type="password" />          // rascunho sempre vazio; valor nunca sai do servidor
 // packages/credentials/credentials/src/types.ts:67-76
@@ -150,7 +150,7 @@ O menu lateral do app entrega itens soltos no rodapé do sidebar: `FooterActions
 
 1. **Menu lateral atual (linhas soltas + modais próprios):**
 
-```ts
+```text
 // apps/web/src/components/layout/FooterActionsRoot.tsx
 const plansLabel = lang === 'zh' ? '计划 (Plans)' : 'Plans'        // :92 — label hardcoded
 {/* Row 1: Plans */}  <button onClick={() => setActiveModal('plans')} ...>   // :100-116
@@ -162,7 +162,7 @@ const plansLabel = lang === 'zh' ? '计划 (Plans)' : 'Plans'        // :92 — 
 
 2. **Componente Settings + abas (rail de seções do painel):**
 
-```ts
+```text
 // packages/client/ui-settings-general/src/client/SettingsRoot.tsx
 const [activeId, setActiveId] = useState<string | undefined>(undefined)   // :123
 // The Models section is creator BYOK, so every creator sees the row.     // :55 — comentário obsoleto
@@ -173,7 +173,7 @@ const [activeId, setActiveId] = useState<string | undefined>(undefined)   // :12
 
 3. **Componentes existentes de Plans/Profile/My DNA:**
 
-```ts
+```text
 // apps/web/src/components/layout/FooterActionsRoot.tsx:3-7 — donos atuais dos modais
 import { PlansModal } from './PlansModal'
 import { ProfileModal } from './ProfileModal'
@@ -183,7 +183,7 @@ import { DnaModal } from './DnaModal'
 
 4. **Estado das abas em Settings (como é roteado):**
 
-```ts
+```text
 // packages/client/ui-settings-general/src/client/SettingsRoot.tsx
 const [open, setOpen] = useState(false)                  // :122 — estado local do painel
 const openSection = useCallback((id: string) => { ... }, ...) // :139 — já existe canal "abrir em uma aba"
@@ -193,7 +193,7 @@ const openSection = useCallback((id: string) => { ... }, ...) // :139 — já ex
 
 5. **Gate admin (`metadata.is_admin`):**
 
-```ts
+```text
 // packages/client/ui-model-selection/src/client/index.ts:123-131 — único gate de admin hoje no cliente
 function isPlatformAdminSession(): boolean {
   const session = (globalThis as { __DSH_AUTH__?: ... }).__DSH_AUTH__

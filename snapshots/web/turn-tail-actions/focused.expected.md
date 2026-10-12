@@ -20,10 +20,10 @@
 - button "1 tool call · 1 message" [expanded]:
   - text: 1 tool call · 1 message
   - img
-- button "Context injection @deepseek-ai/dsh-system-prompt":
+- button "System context":
   - img
   - img
-  - text: Context injection @deepseek-ai/dsh-system-prompt
+  - text: System context
 - button "Think The user wants me to begin with \"Reading the workspace now.\" and call bash with \"echo alpha\" in the same message. Then after the tool result, reply with the single word DONE and stop.":
   - img
   - img

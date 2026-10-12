@@ -20,10 +20,10 @@
 - button "1 tool call · 1 message" [expanded]:
   - text: 1 tool call · 1 message
   - img
-- button "Context injection @deepseek-ai/dsh-system-prompt":
+- button "System context":
   - img
   - img
-  - text: Context injection @deepseek-ai/dsh-system-prompt
+  - text: System context
 - 'button "Think The user wants me to plan a small change to add a `--greeting` flag to a CLI. They explicitly told me not to read or write any files, and to call exit_plan_mode with a short plan. Let me do that directly."':
   - img
   - img

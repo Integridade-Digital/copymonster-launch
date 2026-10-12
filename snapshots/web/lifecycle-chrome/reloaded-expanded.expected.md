@@ -20,10 +20,10 @@
 - button "Thought for a while" [expanded]:
   - text: Thought for a while
   - img
-- button "Context injection @deepseek-ai/dsh-system-prompt":
+- button "System context":
   - img
   - img
-  - text: Context injection @deepseek-ai/dsh-system-prompt
+  - text: System context
 - button "Think The user wants me to reply with a single word. Let me comply.":
   - img
   - img

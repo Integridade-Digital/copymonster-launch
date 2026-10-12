@@ -132,6 +132,7 @@ export interface CredentialInfo { configured: boolean; source?: string; writable
 - [ ] A1 aplicado pelo usuário: `metadata.is_admin = true` para `integridade.digital@gmail.com`.
 - [ ] A2 aplicado: `get_my_profile()` devolve `is_admin`.
 - [ ] A3 aplicado: usuário comum não passa mais em `is_admin_or_owner()`; admin continua passando.
+- [ ] **Teste válido de A2/A3 (não via SQL Editor):** o SQL Editor e qualquer sessão `psql` direto rodam como `service_role`, onde `auth.uid()` é `null` — `get_my_profile()` devolve `null` e `is_admin_or_owner()` devolve `false` ali, e isso **não** é bug das funções. `auth.uid()` lê `request.jwt.claim.sub` / `request.jwt.claims->>'sub'` (`auth.uid()` no banco), que o PostgREST preenche por request a partir do Bearer token; sem token de usuário, não há `sub`. Testar com JWT de usuário real via `POST /rest/v1/rpc/get_my_profile` com `Authorization: Bearer <access_token>`, ou simulando o GUC `request.jwt.claims` com o `sub` do usuário.
 - [ ] Criador logado: gear Settings continua visível na sidebar; `settings.section` sem a entrada `models` (aba e divisor ausentes).
 - [ ] Criador logado (chamada direta): `settings.update('llm-...', ...)` → `settings/forbidden`; `credentials.set` → recusa; `get_admin_llm_providers` → vazio.
 - [ ] Admin logado (após A1): aba Models, Edit/Delete e painel admin seguem funcionando.

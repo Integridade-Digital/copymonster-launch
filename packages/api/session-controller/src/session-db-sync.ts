@@ -14,10 +14,10 @@ const FALLBACK_SESSION_TITLE = 'Nova sessão'
 
 export function upsertSessionIndex(params: UpsertSessionIndexParams): void {
   if (!params.sessionId) return
-  // The RPC inserts only when both tenant and user are present, and that insert
-  // writes p_title into a NOT NULL column. Sending the fallback only on that
-  // insert-capable call keeps updates (model/tokens, no identity) passing null,
-  // so the RPC's COALESCE preserves a title already set by rename.
+  // The Supabase column is NOT NULL, so the insert-capable path (tenant and
+  // user present) must never send a null or empty title. Updates without
+  // identity pass null so the RPC's COALESCE preserves a title already set
+  // by rename.
   const insertable = params.tenantId !== undefined && params.userId !== undefined
   void (async () => {
     try {
@@ -27,7 +27,7 @@ export function upsertSessionIndex(params: UpsertSessionIndexParams): void {
         p_session_id: params.sessionId,
         p_tenant_id: params.tenantId ?? null,
         p_user_id: params.userId ?? null,
-        p_title: params.title ?? (insertable ? FALLBACK_SESSION_TITLE : null),
+        p_title: params.title || (insertable ? FALLBACK_SESSION_TITLE : null),
         p_model: params.model ?? null,
         p_status: params.status ?? 'active',
       })

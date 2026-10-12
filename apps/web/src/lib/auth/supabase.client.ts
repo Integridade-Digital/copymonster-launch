@@ -1,6 +1,6 @@
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
-/** JSON document the `get_my_profile()` RPC returns, per `supabase/migrations/003`. */
+/** JSON document the `get_my_profile()` RPC returns, per `supabase/migrations/025` and `040`. */
 export interface MyProfileResult {
   user: {
     id: string;
@@ -16,6 +16,7 @@ export interface MyProfileResult {
     status: string;
   } | null;
   role: 'owner' | 'admin' | 'member' | 'anonymous' | null;
+  is_admin: boolean;
 }
 
 /**

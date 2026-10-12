@@ -812,3 +812,10 @@ Implementado na Etapa 9: blocklist de e-mails descartáveis via trigger `BEFORE 
 - **Impacto:** `test:web` vermelho (117 arquivos na corrida de 2026-10-10). Não bloqueia deploy: o lane está fora do CI do fork.
 - **Não corrigir revertendo:** reverter `@RemoteScope('auth')` reabriria o furo de segurança corrigido por `bcfe43fedb` (qualquer usuário autenticado lendo/forkando sessões de outro).
 - **Correção futura:** cada spec de `apps/web/tests` deve fornecer o adapter de Client Context `auth` ao montar o bridge, ou o bridge de teste ganha um fallback controlado. Isolamento confirmado na Etapa 3 do DNA: o mesmo spec (`home-path-tilde.expected.e2e.ts`) falha identicamente com e sem o código do onboarding.
+
+### Item adiado — test:web runner sem connection (adiado 2026-10-12)
+
+- `apps/web/tests/smoke-real.e2e.ts` e `shipped-composition.e2e.ts` falham com `dynamicCordisRunner/syncInspectManifest has no active Connection`.
+- Causa: o runner de teste do Cordis não estabelece connection com o host em ambiente de teste.
+- Impacto: `test:web` falha em 6 specs (fora do CI do fork). Não bloqueia deploy; dívida técnica do fork.
+- Correção futura: alinhar auth/connection do runner com o fluxo real do CopyMonster.

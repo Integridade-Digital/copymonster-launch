@@ -46,6 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           id: userId,
           email: email ?? '',
           role: 'member',
+          isAdmin: false,
         };
       } finally {
         if (inFlightProfileRef.current?.userId === userId) {

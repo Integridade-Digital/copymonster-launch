@@ -23,6 +23,7 @@ export interface FooterUser extends PlansUser, ProfileUser {
 export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
   const [activeModal, setActiveModal] = useState<'plans' | 'profile' | 'admin' | 'dna' | 'dna-onboarding' | null>(null)
   const [currentUser, setCurrentUser] = useState<FooterUser | null>(null)
+  const [isAdminFlag, setIsAdminFlag] = useState(false)
   const lang = getActiveLocale()
 
   const plansBtnRef = useRef<HTMLButtonElement>(null)
@@ -76,6 +77,15 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
 
     window.addEventListener('copymonster:modal', handleCustomModal)
 
+    // The admin flag lives in public.users.metadata, not the JWT or
+    // user_metadata, so it is only known after the app bootstrap resolves the
+    // profile and republishes __DSH_AUTH__. Re-read it on each notification.
+    const readIsAdminFlag = (): boolean =>
+      (globalThis as { __DSH_AUTH__?: { isAdmin?: boolean } }).__DSH_AUTH__?.isAdmin === true
+    setIsAdminFlag(readIsAdminFlag())
+    const handleAuthResolved = (): void => { setIsAdminFlag(readIsAdminFlag()) }
+    window.addEventListener('copymonster:auth', handleAuthResolved)
+
     if (consumeOnboardingModalRequest()) setActiveModal('dna-onboarding')
     const unsubscribeOnboarding = subscribeOnboardingModalRequest(() => {
       setActiveModal('dna-onboarding')
@@ -83,11 +93,12 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
 
     return () => {
       window.removeEventListener('copymonster:modal', handleCustomModal)
+      window.removeEventListener('copymonster:auth', handleAuthResolved)
       unsubscribeOnboarding()
     }
   }, [])
 
-  const isAdmin = isPlatformAdmin(currentUser?.role, currentUser?.tenantId)
+  const isAdmin = isPlatformAdmin(currentUser?.role, currentUser?.tenantId) || isAdminFlag
 
   const plansLabel = lang === 'zh' ? '计划 (Plans)' : 'Plans'
   const profileLabel = lang === 'zh' ? '个人资料 (Profile)' : 'Profile'

@@ -46,6 +46,16 @@ const PRODUCT_ONBOARDING: readonly { id: string; order: number }[] = [
   { id: 'welcome-notice', order: -100 },
   { id: 'deepseek-official', order: 0 },
 ]
+/**
+ * Stage the platform-operator flag the app bootstrap publishes. The Models
+ * section and both onboarding dialogs register only for that session, so a
+ * spec asserting the operator's product ledger sets it before `start()`.
+ */
+function stageOperatorSession() {
+  const carrier = globalThis as { __DSH_AUTH__?: { isAdmin?: boolean } }
+  carrier.__DSH_AUTH__ = { isAdmin: true }
+  onTestFinished(() => { delete carrier.__DSH_AUTH__ })
+}
 
 describe('ui-settings-general shell', () => {
   it('shares one carrier subscription between both update locations and releases it on unload', async ({ start }) => {
@@ -86,6 +96,7 @@ describe('ui-settings-general shell', () => {
   }, COLD_BOOT_TIMEOUT_MS)
 
   it('projects the section ledger: product sections in order, defaults for bare rows, stable snapshots', async ({ start }) => {
+    stageOperatorSession()
     const c = await start()
     const { sections } = injectedOf(c).hooks
     const product = sections.getSnapshot()
@@ -109,6 +120,13 @@ describe('ui-settings-general shell', () => {
     off()
   })
 
+  it('omits the Models section and both onboarding dialogs for a creator session', async ({ start }) => {
+    const c = await start()
+    const { sections, onboardingSteps } = injectedOf(c).hooks
+    expect(sections.getSnapshot().map(row => row.id)).toEqual(['general', 'plugins', 'agent-presets', 'archived-sessions'])
+    expect(onboardingSteps.getSnapshot()).toEqual([])
+  })
+
   it('projects the roster Connection control without copying its state; reconnect opens a new $events generation', async ({ start }) => {
     const c = await start()
     const injected = injectedOf(c)
@@ -120,6 +138,7 @@ describe('ui-settings-general shell', () => {
   })
 
   it('projects onboarding entries into stable coordinator order', async ({ start }) => {
+    stageOperatorSession()
     const c = await start()
     const { onboardingSteps } = injectedOf(c).hooks
     expect(onboardingSteps.getSnapshot()).toEqual(PRODUCT_ONBOARDING)

@@ -23,6 +23,12 @@ import { apply as hostApply } from '../src/index.ts'
 
 async function bench(isLoopback = true, mock = RemoteMock.create().load(remoteDefaultResponses), services: object = {}) {
   onTestFinished(() => { mock.assertNoUnmatched() })
+  // The Models section and its onboarding dialogs register only for a platform
+  // operator. This lane has no window, so the spec stages the flag the app
+  // bootstrap would publish and clears it after the test.
+  const carrier = globalThis as { __DSH_AUTH__?: { isAdmin?: boolean } }
+  carrier.__DSH_AUTH__ = { isAdmin: true }
+  onTestFinished(() => { delete carrier.__DSH_AUTH__ })
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   const locale = new LocaleRuntime(ctx)
@@ -71,6 +77,17 @@ describe('ui-settings-models apply', () => {
       'slots', 'locale', 'remote', 'remote.credentials', 'remote.llm', 'remote.settings',
       'settingsScope', 'settingsSchema',
     ])
+  })
+
+  it('registers no admin surface for a non-admin session', async () => {
+    const carrier = globalThis as { __DSH_AUTH__?: { isAdmin?: boolean } }
+    const b = await bench()
+    // bench stages the operator flag; clearing it models a regular creator.
+    delete carrier.__DSH_AUTH__
+    declare(b.slots)
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    expect(b.slots.entries('settings.section')).toHaveLength(0)
+    expect(b.slots.entries('settings.onboarding')).toHaveLength(0)
   })
 
   it('registers the models nav entry for declarations before or after apply', async () => {

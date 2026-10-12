@@ -319,6 +319,11 @@ export interface AuthUser {
   avatarUrl?: string;
   tenantId?: string;
   role?: 'owner' | 'admin' | 'member' | 'anonymous';
+  /**
+   * Platform-operator flag from `users.metadata.is_admin` (`get_my_profile`).
+   * Required and fail-closed: a profile that does not carry it is not an admin.
+   */
+  isAdmin: boolean;
 }
 
 /** Auth context surface shared by `AuthProvider` and every consumer. */
@@ -385,6 +390,7 @@ export async function getUserFullProfile(userId: string): Promise<AuthUser | nul
       ...avatar_url === null || avatar_url === '' ? {} : { avatarUrl: avatar_url },
       ...data.tenant === null ? {} : { tenantId: data.tenant.id },
       role: resolvedRole,
+      isAdmin: data.is_admin === true,
     };
   } catch (error: unknown) {
     console.error('Error fetching user profile:', error);

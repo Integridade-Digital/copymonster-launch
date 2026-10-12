@@ -7,7 +7,7 @@ import React from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import type { applyIndexInjections } from '@deepseek-ai/dsh-client-web'
-import { AppWrapper, supabaseClient, useAuth } from './lib/auth'
+import { AppWrapper, supabaseClient, useAuth, getUserFullProfile } from './lib/auth'
 import { ensureDshBrowserSession, resolveHostBoot } from './lib/auth/host-boot'
 import { ProtectedRoute, PublicRoute } from './lib/auth/protected-route'
 import { isPlatformAdmin } from './lib/auth/platform-admin'
@@ -33,6 +33,11 @@ interface ClientAuthSession {
   role?: string
   tenantId?: string
   isPlatformAdmin?: boolean
+  /**
+   * Platform-operator flag from `users.metadata.is_admin`, published only
+   * after the profile RPC resolves. Fail-closed: absent means not an admin.
+   */
+  isAdmin?: boolean
 }
 
 /** Page global carrying {@link ClientAuthSession}. */
@@ -50,9 +55,14 @@ const clientAuth = globalThis as ClientAuthGlobal
 /**
  * Publish the signed-in Supabase access token and role where Typert client
  * adapters and UI role gates read it.
+ *
+ * `isAdmin` is not on the JWT — it lives in `users.metadata` and is only
+ * reachable through the `get_my_profile` RPC — so it is resolved after the
+ * auth event and republished, then announced via the `copymonster:auth`
+ * window event so late-attached gates re-evaluate.
  */
 function publishClientAuthSession(): void {
-  supabaseClient.auth.onAuthStateChange((_event, current) => {
+  supabaseClient.auth.onAuthStateChange(async (_event, current) => {
     let role: string | undefined
     let tenantId: string | undefined
     if (current?.access_token) {
@@ -70,7 +80,18 @@ function publishClientAuthSession(): void {
       role,
       tenantId,
       isPlatformAdmin: isPlatformAdmin(role, tenantId),
+      isAdmin: false,
     }
+
+    if (current?.user?.id) {
+      const profile = await getUserFullProfile(current.user.id)
+      clientAuth.__DSH_AUTH__ = {
+        ...clientAuth.__DSH_AUTH__,
+        isAdmin: profile?.isAdmin === true,
+      }
+    }
+
+    window.dispatchEvent(new CustomEvent('copymonster:auth'))
   })
 }
 

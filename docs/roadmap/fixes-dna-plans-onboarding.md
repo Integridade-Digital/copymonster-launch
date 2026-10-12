@@ -92,10 +92,14 @@ export interface CredentialInfo { configured: boolean; source?: string; writable
 
 ### Parte A — SQL (só o usuário executa; eu nunca aplico)
 
+- **A0 (antes de A1 — membership no tenant plataforma):** rodar no editor SQL do Supabase `SELECT utr.user_id, utr.tenant_id, utr.role, utr.created_at FROM public.user_tenant_roles utr WHERE utr.user_id = 'a371977b-b414-4bd4-b51e-f2c16efc4425' AND utr.tenant_id = '00000000-0000-0000-0000-000000000001';` e ler o `role` retornado; não se pode assumir o resultado, porque a migration 024 gravou o membership do operador com o UUID `5302ad3a-f6a9-4fc3-890e-3e8af8b767c7` (`supabase/migrations/024_fix_existing_user_roles.sql:29-35`), não com `a371977b-b414-4bd4-b51e-f2c16efc4425`.
+- **A0 — resultado esperado e o que fazer em cada caso:** linha com `role` `owner`/`admin` (SIM) → A3 preserva o admin pela via plataforma, ramo (a) de A3; `role = 'member'` ou nenhuma linha (NÃO) → A1 (flag `is_admin`) é a única via de A3, ramo (b), e a ordem A1 → A2 → A3 é obrigatória, sem exceção. Em ambos os casos A1 segue obrigatório para o cliente, porque B1/B3 leem `metadata.is_admin` publicado por `get_my_profile` e não enxergam membership de tenant.
 - **A1** (exatamente como pedido): `UPDATE public.users SET metadata = metadata || '{"is_admin": true}'::jsonb WHERE email = 'integridade.digital@gmail.com';`
+- **Inventário de callers de `get_my_profile` (antes de A2):** rodar `grep -rn "get_my_profile" apps/ packages/ supabase/` e registrar o resultado desta investigação — único caller em runtime é `getUserFullProfile` (`apps/web/src/lib/auth/supabase.client.ts:369-397`, chamada da RPC na linha 371), com consumidores indiretos em `apps/web/src/lib/auth/auth.provider.tsx:38, 207, 252` e reexport em `apps/web/src/lib/auth/index.ts:3`; fora isso só existem a declaração do tipo da RPC (`Functions.get_my_profile` com `Returns: MyProfileResult`, `supabase.client.ts:242`) e as definições SQL (`supabase/migrations/003_security_and_profile_fixes.sql:81-84` e `supabase/migrations/025_security_and_role_hardening.sql:224-268`, com REVOKE/GRANT em 329/335/341); nenhum caller em `packages/` nem em `python/`.
+- **Compatibilidade do campo `is_admin` com os callers (confirmado na mesma verificação):** o destructuring de `getUserFullProfile` (`supabase.client.ts:376`, `const { id, email, full_name, whatsapp, avatar_url } = data.user`) só lê campos conhecidos, então acrescentar `is_admin` ao payload da RPC é aditivo e não quebra nenhum caller existente; a mudança obrigatória no mesmo commit de A2/B1 é estender `MyProfileResult` (`supabase.client.ts:4-21`) com `is_admin: boolean` e ler `data.is_admin === true`, senão o typecheck falha. Se um caller novo aparecer com destructuring estrito ou leitura indexada do payload, ajustar no mesmo commit de A2.
 - **A2** (necessário para o item B.1): `CREATE OR REPLACE FUNCTION public.get_my_profile()` com a assinatura atual (`supabase/migrations/025:224-268`) acrescentando no `jsonb_build_object` o campo `'is_admin', COALESCE(u.metadata ->> 'is_admin', 'false')::boolean` — a RPC de hoje não devolve `metadata`, então o bootstrap não tem como ler a flag.
 - **A3** (fecha o item 4 do pedido no backend de dados): `CREATE OR REPLACE FUNCTION public.is_admin_or_owner()` mantendo a assinatura sem DROP (19 policies dependentes) e passando a retornar verdadeiro apenas quando (a) o usuário tem `owner`/`admin` no tenant da plataforma `'00000000-0000-0000-0000-000000000001'` (mesma semântica de `isPlatformAdmin`) **ou** (b) `public.users.metadata ->> 'is_admin' = 'true'` para `auth.uid()`; falso em qualquer outro caso. Isso retira de todo usuário comum o acesso a `llm_providers`/`llm_models`/`system_config`/`metrics_daily` e às RPCs de admin, e fecha o escape cross-tenant das policies `005`/`006`.
-- **Ordem obrigatória: A1 → A2 → A3** (a flag tem que existir antes do reforço; A3 preserva o admin atual pela via plataforma ou pela flag).
+- **Ordem obrigatória: A0 → A1 → A2 → A3** (o A0 decide qual via preserva o admin em A3; a flag tem que existir antes do reforço, e A3 preserva o admin atual pela via plataforma ou pela flag).
 
 ### Parte B — Gate no código (eu implemento após aprovação)
 
@@ -108,7 +112,7 @@ export interface CredentialInfo { configured: boolean; source?: string; writable
 
 ## Plano de aplicação (commits)
 
-1. **SQL (usuário):** A1, depois A2, depois A3 no editor SQL do Supabase (arquivos `supabase/migrations/040_admin_flag_and_rls.sql` são criados por mim como registro, mas a aplicação é do usuário).
+1. **SQL (usuário):** A0 (verificação, sem escrita), depois A1, depois A2, depois A3 no editor SQL do Supabase (arquivos `supabase/migrations/040_admin_flag_and_rls.sql` são criados por mim como registro, mas a aplicação é do usuário).
 2. **Commit `fix(auth): gate Settings and Models UI behind platform admin`** — B1 (apps/web, inclui o evento `copymonster:auth` que o Problema 5 também vai consumir), B3+B4 (ui-settings-models, registro condicional da aba Models), specs de cliente (padrão `packages/client/ui-settings-models/tests/apply.client.spec.ts`).
 3. **Commit `fix(api): require auth context and platform admin on settings and credentials verbs`** — B5, specs em `packages/api/settings-controller/tests/` (casos fail-closed: identidade ausente → recusa; criador (owner de tenant pessoal) → recusa; admin de plataforma → permite; o caso "sem autenticação → acesso pleno" de `rbac-isolation.spec.ts:91` é substituído por recusa, com nota de que o host desktop-local é decisão aberta do usuário), regeneração dos remotes/cátalogos afetados pelo `pnpm run build`.
 4. **Verificação (usuário, em produção):** com sessão de criador, o gear Settings continua visível mas a aba Models não existe (nem o divisor); `settings.update` em namespace `llm-*` e `credentials.set` passam a recusar; `get_admin_llm_providers` não retorna linhas; com sessão do admin (após A1), aba Models aparece e tudo segue funcionando (inclusive AdminModal).
@@ -116,13 +120,15 @@ export interface CredentialInfo { configured: boolean; source?: string; writable
 ## Riscos
 
 - **Gate estrito em `metadata.is_admin`:** se A1 não rodar antes do deploy da UI, a aba Models desaparece inclusive para o admin (predicado fail-closed é proposital) — ordem obrigatória: A1 antes do primeiro deploy de B3.
-- **A3 pode travar o admin atual** se ele não tiver membership no tenant plataforma e a A1 não rodar antes — por isso a ordem A1 → A3 e a verificação de que o AdminModal continua visível (hoje visível, o que já indica membership plataforma existente).
-- **B5 muda a fio (wire)** dos verbos settings/credentials (novo parâmetro de contexto `authId`) — host e client precisam ser publicados juntos no mesmo deploy (o build do `apps/web` embute o remote client do mesmo commit).
+- **A3 pode travar o admin atual** se o A0 resultar NÃO (sem membership `owner`/`admin` no tenant plataforma) e a A1 não rodar antes — por isso a ordem A0 → A1 → A3 e a verificação de que o AdminModal continua visível depois de A3.
+- **Risco operacional — janela de deploy coordenado (B5):** B5 muda o wire dos verbos settings/credentials (novo parâmetro de contexto `authId`, `AUTH_CONTEXT_WIRE` em `packages/api/auth-context/src/index.ts:32`), então host e client DEVEM ser publicados juntos no mesmo deploy — o build do `apps/web` embute o remote client do mesmo commit e um par mismatchado deixa os verbos incompatíveis. Operação: janela de baixo tráfego, rollback preparado (commit anterior de host + client já publicado) e, se o deploy estiver atrás de proxy/CDN com cache (Cloudflare), purgar o cache após publicar. Este é um risco operacional de publicação, não apenas técnico: falha dele não aparece em teste unitário, aparece em produção como verbos de settings/credentials quebrados.
 - **Desktop local:** com identidade obrigatória, o host desktop sem login deixaria de configurar — decisão aberta: tratar por configuração do perfil de bundle (não hardcoded) ou manter a recusa e exigir login também no desktop. Nenhuma decisão tomada aqui.
 - **Nota histórica:** `plano-auditoria-completa-copymonster.md` já previa a auto-elevação por `user_metadata` no `is_admin_or_owner()` antigo; a reescrita `025` trocou por tenant ativo e manteve o problema (todo usuário é owner). A3 resolve a direção.
 
 ## Checklist de aceitação (Problema 4)
 
+- [ ] A0 executado no editor SQL: membership de `a371977b-b414-4bd4-b51e-f2c16efc4425` no tenant plataforma lido e a ramificação (SIM/NÃO) registrada.
+- [ ] Callers de `get_my_profile` revisados; `MyProfileResult` estendido com `is_admin` no mesmo commit de A2/B1.
 - [ ] A1 aplicado pelo usuário: `metadata.is_admin = true` para `integridade.digital@gmail.com`.
 - [ ] A2 aplicado: `get_my_profile()` devolve `is_admin`.
 - [ ] A3 aplicado: usuário comum não passa mais em `is_admin_or_owner()`; admin continua passando.
@@ -373,7 +379,7 @@ Prioridade: Problema 4 (vazamento) antes do Problema 5 (cosmético); 5 vem logo 
 
 ## Ações que só o usuário executa
 
-1. Aplicar A1, A2, A3 (Parte A) no editor SQL do Supabase, nessa ordem.
+1. Executar A0 no editor SQL do Supabase (verificação de membership; nenhum dado é alterado) e registrar a ramificação escolhida; depois aplicar A1, A2, A3 (Parte A) nessa ordem.
 2. Aplicar as migrações novas dos Problemas 1 e 2 (arquivos criados por mim em `supabase/migrations/`, nunca executados por mim).
 3. Verificar em produção, após cada commit de código: os itens dos checklists de cada problema.
 

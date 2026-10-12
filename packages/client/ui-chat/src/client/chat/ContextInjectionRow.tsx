@@ -18,11 +18,19 @@ export interface ContextInjectionRowProps {
 }
 
 /**
+ * A producer label that is a scoped package id: the name of an internal
+ * subsystem, never copy a reader should see.
+ */
+const SCOPED_PACKAGE_ID = /^@[^\s/]+\/\S+$/
+
+/**
  * Render logged context with the Tool calls disclosure chrome from Figma.
  *
  * The header names the role the context plays and, beside it, the producer the
  * durable source identifies, so a reader can tell an injected skill catalog
  * from a workspace instruction file or a recalled session without expanding.
+ * A producer identified only by a scoped package id is an internal subsystem,
+ * so the header carries the generic system-context title and no package name.
  * The expanded body follows the producer-declared form; an absent or unknown
  * form renders the opaque body.
  * @param props - Durable content, its projected producer role/name and form, and the locale seat.
@@ -33,6 +41,10 @@ export function ContextInjectionRow({ content, source, producer, form, t }: Cont
   // Resolved rather than declared: a form whose fields are unreadable renders
   // the opaque body, and the marker must say what the row actually shows.
   const { rendered, summary, body } = contextBody(form, { content, source, t })
+  const packageProducer = producer.label !== null && SCOPED_PACKAGE_ID.test(producer.label)
+  const title = packageProducer
+    ? t('message.systemContext')
+    : t(producer.role === 'recall' ? 'message.contextRecall' : 'message.contextInjection')
 
   return (
     <DisclosureRow
@@ -41,8 +53,8 @@ export function ContextInjectionRow({ content, source, producer, form, t }: Cont
         ? <span data-context-recall-icon><ReferenceIcon kind="session" /></span>
         : <IconContextInjectionOutline16 size={14} />}
       chevronClassName={css.chevron}
-      title={t(producer.role === 'recall' ? 'message.contextRecall' : 'message.contextInjection')}
-      collapsedContent={producer.label === null ? undefined : (
+      title={title}
+      collapsedContent={producer.label === null || packageProducer ? undefined : (
         /* ToolRow's separator shape: an aria-hidden dot, so the accessible name
            stays the two readable parts and the two disclosure rows expose one
            name shape. A source that names no producer drops the dot with it. */

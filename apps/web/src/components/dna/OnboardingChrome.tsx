@@ -92,6 +92,16 @@ export function OnboardingChrome(props: OnboardingChromeProps) {
     send(kickoffText)
   }, [active, isClaimedSession, send, mapping, mappingError, openState, running, eventWindow, kickoffText])
 
+  // The interview runs inside the main chat, so the claimed seat marks the
+  // document while it is on screen; dna.css withholds the agent's internal
+  // blocks for as long as that mark is present.
+  useEffect(() => {
+    if (!active) return
+    const root = document.documentElement
+    root.dataset.cmOnboardingChat = 'true'
+    return () => { delete root.dataset.cmOnboardingChat }
+  }, [active])
+
   const lastSavedOrdinal = useRef(0)
   const lastAttemptedOrdinal = useRef(0)
   const savedHere = useRef(false)

@@ -149,3 +149,14 @@
 .cm-dna-chip-option--active { background: #f5f3ff; color: #7c3aed; font-weight: 600; }
 
 .cm-dna-card-actions { display: flex; flex-wrap: wrap; gap: 6px; }
+
+/* Onboarding quiet chat: the interview runs in the main chat, so the agent's
+   internal blocks stay out of view while OnboardingChrome marks the document.
+   The flow item itself keeps its place — only its children go away — so the
+   column geometry the pager and the Turn rail measure stays exact. The
+   Trajectory tab shares neither marker and keeps rendering its own surfaces. */
+html[data-cm-onboarding-chat] [data-chat-flow] [data-chat-flow-kind='system-prompt'] > *,
+html[data-cm-onboarding-chat] [data-chat-flow] [data-chat-flow-kind='context'] > *,
+html[data-cm-onboarding-chat] [data-chat-flow] [data-variant='think'] {
+  display: none;
+}

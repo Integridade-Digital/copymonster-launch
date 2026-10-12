@@ -357,6 +357,28 @@ describe('MessageItem arms', () => {
     expect(disclosure.getAttribute('aria-expanded')).toBe('false')
   })
 
+  it('presents a scoped package producer as the generic system context', () => {
+    // A scoped package id names an internal subsystem, so the row carries the
+    // generic title and prints no package name beside it.
+    const ctxView = render(
+      <MessageItem t={t} node={{
+        kind: 'context',
+        seq: 3,
+        content: [{ type: 'text', text: 'prompt prose' }],
+        source: { kind: 'plugin', plugin: '@deepseek-ai/dsh-system-prompt', form: 'snapshot' },
+        producer: { role: 'inject', label: '@deepseek-ai/dsh-system-prompt' },
+        form: null,
+      } as never}
+      />,
+    )
+    const disclosure = ctxView.getByRole('button', { name: '系统上下文' })
+    expect(ctxView.container.querySelector('[data-context-source]')).toBeNull()
+
+    fireEvent.click(disclosure)
+    expect(disclosure.getAttribute('aria-expanded')).toBe('true')
+    expect(ctxView.container.querySelector('[data-context-text]')?.textContent).toBe('prompt prose')
+  })
+
   it('the instructions form names the files it reconciled above their text', () => {
     const view = render(
       <MessageItem t={t} node={{
@@ -678,7 +700,7 @@ describe('MessageItem arms', () => {
       } as never}
       />,
     )
-    fireEvent.click(view.getByRole('button', { name: /^上下文注入\s*@deepseek-ai\/dsh-system-prompt$/ }))
+    fireEvent.click(view.getByRole('button', { name: '系统上下文' }))
     const rows = [...view.container.querySelectorAll('[data-context-sections] div')].map(node => node.textContent)
     expect(rows).toEqual(['sandbox:policyworkspace-write', 'workspace/repo'])
   })

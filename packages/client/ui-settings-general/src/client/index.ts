@@ -29,6 +29,9 @@ import type { DesktopUpdateBridge } from './desktop-update-bridge.ts'
 import { DesktopUpdateSource } from './desktop-update-source.ts'
 import { CloseLabel, HeaderContent, TriggerContent } from './chrome.tsx'
 import { GeneralSection } from './GeneralSection.tsx'
+import { ProfileSection } from './ProfileSection.tsx'
+import { PlansSection } from './PlansSection.tsx'
+import { MyDnaSection } from './MyDnaSection.tsx'
 import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.tsx'
 import { SettingsDocumentStore } from './settings-document-store.ts'
@@ -49,6 +52,11 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
   interface LocaleNamespaceMap {
     /** Shell chrome + shell-owned General section copy. */
     settings: SettingsKey
+  }
+  interface SlotMap {
+    'settings.profile.item': { kind: 'list'; scope: 'root' }
+    'settings.plans.item': { kind: 'list'; scope: 'root' }
+    'settings.my-dna.item': { kind: 'list'; scope: 'root' }
   }
 }
 
@@ -192,4 +200,28 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     children: { 'settings.general.item': { kind: 'list', scope: 'root' } },
   }, GeneralSection))
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'profile',
+    order: 10,
+    label: () => t('profile.nav'),
+    locale: NS,
+    children: { 'settings.profile.item': { kind: 'list', scope: 'root' } },
+  }, ProfileSection))
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'plans',
+    order: 11,
+    label: () => t('plans.nav'),
+    locale: NS,
+    children: { 'settings.plans.item': { kind: 'list', scope: 'root' } },
+  }, PlansSection))
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'my-dna',
+    order: 12,
+    label: () => t('my-dna.nav'),
+    locale: NS,
+    children: { 'settings.my-dna.item': { kind: 'list', scope: 'root' } },
+  }, MyDnaSection))
 }

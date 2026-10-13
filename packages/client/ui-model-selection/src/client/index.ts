@@ -126,9 +126,9 @@ const NS = 'model'
  * @returns true only for a published platform-operator session.
  */
 function isPlatformAdminSession(): boolean {
-  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean } }).__DSH_AUTH__
+  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean; isAdmin?: boolean } }).__DSH_AUTH__
   if (session?.accessToken === undefined) return false
-  return session.isPlatformAdmin === true
+  return session.isAdmin === true || session.isPlatformAdmin === true
 }
 
 /** Required services: the contribution registry, the seat's slot registry, locale, and the service's own faces. */

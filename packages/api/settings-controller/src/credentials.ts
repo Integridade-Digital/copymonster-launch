@@ -9,9 +9,9 @@ import { Context } from '@deepseek-ai/cordis'
 import { credentialRef } from '@deepseek-ai/dsh-credentials'
 import type { CredentialProvider } from '@deepseek-ai/dsh-credentials'
 import type { CredentialInfo } from '@deepseek-ai/dsh-credentials/types'
-import { RemoteError, RemoteScope, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { z } from 'zod'
-import { isPlatformOperator, type UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
+import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
 
 /**
  * Fan-out bound on one remote `describe` batch. A settings page asks about the
@@ -94,14 +94,11 @@ export class CredentialsController extends TypertRemoteService {
    * @returns one view per requested name, keyed by that name.
    * @throws RemoteError when the request is invalid or no credential provider is mounted.
    */
-  @RemoteScope('auth', 'describe')
+  @Remote
   async describe(refs: string[]): Promise<Record<string, CredentialInfo>> {
     const request = parseRequest('credentials.describe', describeRequestSchema, { refs })
     const identity = getAuthIdentity(this.ctx)
-    if (identity === undefined) {
-      throw new RemoteError('settings/unauthorized', 'Autenticação necessária para consultar credenciais.', {})
-    }
-    const isNonAdmin = !isPlatformOperator(identity)
+    const isNonAdmin = identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin'
     const branded = request.refs.map(ref => [ref, credentialRef(ref)] as const)
     const credentials = this.provider()
     const entries = await Promise.all(branded.map(async ([ref, key]) => {
@@ -121,13 +118,10 @@ export class CredentialsController extends TypertRemoteService {
    * @param value - the non-empty secret value.
    * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
    */
-  @RemoteScope('auth', 'set')
+  @Remote
   async set(ref: string, value: string): Promise<void> {
     const identity = getAuthIdentity(this.ctx)
-    if (identity === undefined) {
-      throw new RemoteError('settings/unauthorized', 'Autenticação necessária para configurar credenciais.', {})
-    }
-    if (!isPlatformOperator(identity)) {
+    if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin') {
       throw new RemoteError('credential/forbidden', 'Apenas administradores podem configurar credenciais e chaves de API.', { ref })
     }
     const request = parseRequest('credentials.set', setRequestSchema, { ref, value })
@@ -141,13 +135,10 @@ export class CredentialsController extends TypertRemoteService {
    * @param ref - reference name to remove.
    * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
    */
-  @RemoteScope('auth', 'unset')
+  @Remote
   async unset(ref: string): Promise<void> {
     const identity = getAuthIdentity(this.ctx)
-    if (identity === undefined) {
-      throw new RemoteError('settings/unauthorized', 'Autenticação necessária para remover credenciais.', {})
-    }
-    if (!isPlatformOperator(identity)) {
+    if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin') {
       throw new RemoteError('credential/forbidden', 'Apenas administradores podem remover credenciais e chaves de API.', { ref })
     }
     const request = parseRequest('credentials.unset', unsetRequestSchema, { ref })

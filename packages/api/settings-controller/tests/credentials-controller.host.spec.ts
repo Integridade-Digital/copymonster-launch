@@ -33,11 +33,6 @@ async function boot(
   provider: typeof MemoryCredentials = MemoryCredentials,
 ): Promise<CredentialsController> {
   const ctx = new Context()
-  ctx.provide('authIdentity', {
-    userId: 'usr_operator',
-    tenantId: '00000000-0000-0000-0000-000000000001',
-    role: 'owner',
-  })
   await ctx.plugin(provider, seed)
   await ctx.plugin(CredentialsController)
   return ctx.credentialsController
@@ -50,19 +45,14 @@ describe('the credentials Remote namespace a configuration surface calls', () =>
     expect(binding.serviceKey).toBe('credentialsController')
     expect(binding.namespace).toBe('credentials')
     expect(remoteMethods(controller)).toEqual([
-      { method: 'describe', invocation: { kind: 'context', context: 'auth' } },
-      { method: 'set', invocation: { kind: 'context', context: 'auth' } },
-      { method: 'unset', invocation: { kind: 'context', context: 'auth' } },
+      { method: 'describe', invocation: { kind: 'direct' } },
+      { method: 'set', invocation: { kind: 'direct' } },
+      { method: 'unset', invocation: { kind: 'direct' } },
     ])
   })
 
   it('reports the actionable configuration error while no credential provider is mounted', async () => {
     const ctx = new Context()
-    ctx.provide('authIdentity', {
-      userId: 'usr_operator',
-      tenantId: '00000000-0000-0000-0000-000000000001',
-      role: 'owner',
-    })
     await ctx.plugin(CredentialsController)
     for (const call of [
       () => ctx.credentialsController.describe(['DEEPSEEK_API_KEY']),

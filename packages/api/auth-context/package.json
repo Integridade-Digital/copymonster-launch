@@ -45,12 +45,10 @@
   ],
   "peerDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/dsh-constants": "workspace:*",
     "@deepseek-ai/dsh-supabase-client": "workspace:^"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
-    "@deepseek-ai/dsh-constants": "workspace:*",
     "@deepseek-ai/dsh-supabase-client": "workspace:^",
     "@deepseek-ai/dsh-typert-protocol": "workspace:^",
     "@deepseek-ai/dsh-typert-registry": "workspace:^",

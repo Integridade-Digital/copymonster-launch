@@ -14,7 +14,6 @@ import Schema from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-agent-presets'
 // Type-only: resolves the `authIdentity` Context augmentation this controller reads.
 import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
-import { isPlatformOperator } from '@deepseek-ai/dsh-api-auth-context'
 import {
   canOpenNativePath,
   openNativePath,
@@ -24,7 +23,7 @@ import type { SettingsDescriptor, SettingsPathOp, SettingsProvider } from '@deep
 import type {
   SettingsDescribeValue, SettingsNamespaceView, SettingsPathOpView,
 } from '@deepseek-ai/dsh-settings/types'
-import { RemoteScope, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
+import { Remote, RemoteScope, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
 import { supabaseAdminClient, type Json } from '@deepseek-ai/dsh-supabase-client'
 import { z } from 'zod'
@@ -104,40 +103,21 @@ function getAuthIdentity(ctx: Context): UserIdentity | undefined {
   return undefined
 }
 
-/** Protected namespaces that require platform-operator privileges. */
+/** Protected namespaces that require administrative privileges (owner or admin). */
 function isProtectedNamespace(ns: string): boolean {
   return ns.startsWith('llm-') || ns === 'llm' || ns.includes('model')
 }
 
 /**
- * Asserts that the caller is authenticated. Fail-closed: no identity means
- * refusal, regardless of the operation.
- * @param ctx - Host context carrying the caller's identity.
- * @param action - Portuguese clause completing the refusal message.
- * @returns the resolved identity.
- * @throws RemoteError `settings/unauthorized` when the caller has no identity.
- */
-function assertAuthenticated(ctx: Context, action: string): UserIdentity {
-  const identity = getAuthIdentity(ctx)
-  if (identity === undefined) {
-    throw new RemoteError('settings/unauthorized', `Autenticação necessária para ${action}.`, {})
-  }
-  return identity
-}
-
-/**
- * Asserts that the authenticated caller is a platform operator (the predicate
- * mirrors migration 040's `is_admin_or_owner()`: owner/admin of the platform
- * tenant or `users.metadata.is_admin`).
+ * Asserts that the authenticated caller has administrative privileges.
  * @param ctx - Host context carrying the caller's identity.
  * @param action - Portuguese clause completing the refusal message.
  * @param ns - namespace the caller may not configure.
- * @throws RemoteError `settings/unauthorized` when unauthenticated, or
- *   `settings/forbidden` for a non-operator caller.
+ * @throws RemoteError `settings/forbidden` for a non-administrative caller.
  */
-function assertPlatformAdmin(ctx: Context, action: string, ns: string): void {
-  const identity = assertAuthenticated(ctx, action)
-  if (!isPlatformOperator(identity)) {
+function assertAdminRole(ctx: Context, action: string, ns: string): void {
+  const identity = getAuthIdentity(ctx)
+  if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin') {
     throw new RemoteError('settings/forbidden', `Apenas administradores podem ${action}.`, { ns })
   }
 }
@@ -187,11 +167,11 @@ export class SettingsController extends TypertRemoteService {
    * @returns provider writability, local-document presence, and one view per namespace.
    * @throws RemoteError when no settings provider is mounted.
    */
-  @RemoteScope('auth', 'describe')
+  @Remote
   describe(): SettingsDescribeValue {
     const settings = this.provider()
-    const identity = assertAuthenticated(this.ctx, 'consultar configurações')
-    const isNonAdmin = !isPlatformOperator(identity)
+    const identity = getAuthIdentity(this.ctx)
+    const isNonAdmin = identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin'
     let descriptors = settings.describe({ redactSecrets: true })
     if (isNonAdmin) {
       descriptors = descriptors.filter(d => !isProtectedNamespace(String(d.ns)))
@@ -207,9 +187,8 @@ export class SettingsController extends TypertRemoteService {
    * Report whether this deployment can open an authored Agent preset directory natively.
    * @returns true when the matching open operation is available.
    */
-  @RemoteScope('auth', 'canOpenAgentPresetDirectory')
+  @Remote
   canOpenAgentPresetDirectory(): boolean {
-    assertAuthenticated(this.ctx, 'consultar suporte a abertura nativa')
     return this.canOpenPath()
   }
 
@@ -221,15 +200,14 @@ export class SettingsController extends TypertRemoteService {
    * @returns the namespace's redacted view after the write.
    * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
    */
-  @RemoteScope('auth', 'update')
+  @Remote
   async update(
     ns: string,
     patch: Record<string, JsonValue>,
     expectedRevision: number | undefined,
   ): Promise<SettingsNamespaceView> {
-    assertAuthenticated(this.ctx, 'alterar configurações')
     if (isProtectedNamespace(ns)) {
-      assertPlatformAdmin(this.ctx, 'configurar provedores de IA', ns)
+      assertAdminRole(this.ctx, 'configurar provedores de IA', ns)
     }
     return this.write(ns, 'update', patch, expectedRevision)
   }
@@ -242,15 +220,14 @@ export class SettingsController extends TypertRemoteService {
    * @returns the namespace's redacted view after the write.
    * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
    */
-  @RemoteScope('auth', 'replace')
+  @Remote
   async replace(
     ns: string,
     section: Record<string, JsonValue>,
     expectedRevision: number | undefined,
   ): Promise<SettingsNamespaceView> {
-    assertAuthenticated(this.ctx, 'alterar configurações')
     if (isProtectedNamespace(ns)) {
-      assertPlatformAdmin(this.ctx, 'configurar provedores de IA', ns)
+      assertAdminRole(this.ctx, 'configurar provedores de IA', ns)
     }
     return this.write(ns, 'replace', section, expectedRevision)
   }
@@ -265,15 +242,14 @@ export class SettingsController extends TypertRemoteService {
    * @returns the namespace's redacted view after the write.
    * @throws RemoteError when the request is invalid, no provider is mounted, or the provider refuses the write.
    */
-  @RemoteScope('auth', 'mutate')
+  @Remote
   async mutate(
     ns: string,
     ops: SettingsPathOpView[],
     expectedRevision: number | undefined,
   ): Promise<SettingsNamespaceView> {
-    assertAuthenticated(this.ctx, 'alterar configurações')
     if (isProtectedNamespace(ns)) {
-      assertPlatformAdmin(this.ctx, 'configurar provedores de IA', ns)
+      assertAdminRole(this.ctx, 'configurar provedores de IA', ns)
     }
     return this.write(ns, 'mutate', ops, expectedRevision)
   }
@@ -284,9 +260,9 @@ export class SettingsController extends TypertRemoteService {
    * @returns confirmation after the native opener accepts the document.
    * @throws RemoteError when no document exists, preparation fails, or opening fails.
    */
-  @RemoteScope('auth', 'openSettingsDocument')
+  @Remote
   async openSettingsDocument(signal: AbortSignal): Promise<SettingsDocumentOpenValue> {
-    assertPlatformAdmin(this.ctx, 'abrir o documento de configurações do servidor', 'document')
+    assertAdminRole(this.ctx, 'abrir o documento de configurações do servidor', 'document')
     const settings = this.provider()
     if (isAborted(signal)) throw new RemoteError('gateway/cancelled', 'settings document open was aborted', {})
     let path: string | undefined
@@ -316,12 +292,11 @@ export class SettingsController extends TypertRemoteService {
    * @returns an opened confirmation or the resolved directory for text display.
    * @throws RemoteError when the preset is missing, read-only, invalid, or cannot be opened.
    */
-  @RemoteScope('auth', 'openAgentPresetDirectory')
+  @Remote
   async openAgentPresetDirectory(
     agentPreset: string,
     signal: AbortSignal,
   ): Promise<AgentPresetDirectoryOpenValue> {
-    assertAuthenticated(this.ctx, 'abrir diretório de agente')
     if (agentPreset.length === 0) {
       throw new RemoteError('gateway/bad-request', 'agent preset id must not be empty', {})
     }

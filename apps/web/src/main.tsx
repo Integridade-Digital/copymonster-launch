@@ -2,6 +2,9 @@ import { t } from './locales'
 import { FooterActionsRoot } from './components/layout/FooterActionsRoot'
 import { installDnaOnboarding } from './components/dna/installDnaOnboarding'
 import { installDnaSelection } from './components/dna/installDnaSelection'
+import { ProfilePage } from './pages/ProfilePage'
+import { PlansPage } from './pages/billing/PlansPage'
+import { MyDnaPage } from './pages/settings/MyDnaPage'
 /** Browser entry for the Web client. */
 import React from 'react'
 import { createRoot } from 'react-dom/client'
@@ -204,6 +207,19 @@ class WebAppErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
  * Carrega o shell pesado do DSH Web dinamicamente apenas quando a rota autenticada for renderizada.
  * Isso garante que páginas públicas de autenticação (/login, /register) não baixem o bundle completo do workspace.
  */
+
+function ProfileSettingsItem() {
+  return <ProfilePage />
+}
+
+function PlansSettingsItem() {
+  return <PlansPage />
+}
+
+function MyDnaSettingsItem() {
+  return <MyDnaPage onClose={() => {}} />
+}
+
 const LazyWebApp = React.lazy(async () => {
   const { AppWebEntry, applyIndexInjections: applyInjections } = await import('@deepseek-ai/dsh-client-web')
 
@@ -219,6 +235,24 @@ const LazyWebApp = React.lazy(async () => {
               yield ctx.slots.register(
                 { name: 'sidebar.footer.action', id: 'copymonster-footer-actions' },
                 FooterActionsRoot,
+              )
+            })
+            ctx.slots.inject('settings.profile.item', function* () {
+              yield ctx.slots.register(
+                { name: 'settings.profile.item', id: 'copymonster-settings-profile', order: 0 },
+                ProfileSettingsItem,
+              )
+            })
+            ctx.slots.inject('settings.plans.item', function* () {
+              yield ctx.slots.register(
+                { name: 'settings.plans.item', id: 'copymonster-settings-plans', order: 0 },
+                PlansSettingsItem,
+              )
+            })
+            ctx.slots.inject('settings.my-dna.item', function* () {
+              yield ctx.slots.register(
+                { name: 'settings.my-dna.item', id: 'copymonster-settings-my-dna', order: 0 },
+                MyDnaSettingsItem,
               )
             })
             installDnaOnboarding(ctx)

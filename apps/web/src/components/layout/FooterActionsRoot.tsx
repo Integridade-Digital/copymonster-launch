@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { supabaseClient } from '../../lib/auth/supabase.client'
-import { PlansModal } from './PlansModal'
-import { ProfileModal } from './ProfileModal'
 import { AdminModal } from './AdminModal'
-import { DnaModal } from './DnaModal'
 import { OnboardingDnaModal } from './OnboardingDnaModal'
 import { consumeOnboardingModalRequest, subscribeOnboardingModalRequest } from '../dna/onboardingModal'
 import { t, getActiveLocale } from '../../locales'
@@ -21,15 +18,12 @@ export interface FooterUser extends PlansUser, ProfileUser {
 }
 
 export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
-  const [activeModal, setActiveModal] = useState<'plans' | 'profile' | 'admin' | 'dna' | 'dna-onboarding' | null>(null)
+  const [activeModal, setActiveModal] = useState<'admin' | 'dna-onboarding' | null>(null)
   const [currentUser, setCurrentUser] = useState<FooterUser | null>(null)
   const [isAdminFlag, setIsAdminFlag] = useState(false)
   const lang = getActiveLocale()
 
-  const plansBtnRef = useRef<HTMLButtonElement>(null)
-  const profileBtnRef = useRef<HTMLButtonElement>(null)
   const adminBtnRef = useRef<HTMLButtonElement>(null)
-  const dnaBtnRef = useRef<HTMLButtonElement>(null)
 
   const closeModal = () => setActiveModal(null)
 
@@ -68,9 +62,7 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
     const handleCustomModal = (e: Event) => {
       const customEvent = e as CustomEvent<string>
       const target = customEvent.detail
-      if (target === 'plans' || target === 'profile' || target === 'admin' || target === 'dna') {
-        setActiveModal(target)
-      } else if (target === 'admin_audit') {
+      if (target === 'admin' || target === 'admin_audit') {
         setActiveModal('admin')
       }
     }
@@ -100,74 +92,12 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
 
   const isAdmin = isPlatformAdmin(currentUser?.role, currentUser?.tenantId) || isAdminFlag
 
-  const plansLabel = lang === 'zh' ? '计划 (Plans)' : 'Plans'
-  const profileLabel = lang === 'zh' ? '个人资料 (Profile)' : 'Profile'
   const adminLabel = lang === 'zh' ? '管理员 (Admin)' : 'Admin'
-  const dnaLabel = lang === 'zh' ? '我的 DNA (My DNA)' : 'My DNA'
 
   return (
     <>
       <div className={css.container}>
-        {/* Row 1: Plans */}
-        <button
-          ref={plansBtnRef}
-          type="button"
-          className={css.actionButton}
-          onClick={() => setActiveModal('plans')}
-          title={wide ? undefined : t('common.plans')}
-          aria-label={t('common.plans')}
-          aria-haspopup="dialog"
-        >
-          <span className={css.icon} aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
-            </svg>
-          </span>
-          {wide && <span className={css.label}>{plansLabel}</span>}
-        </button>
-
-        {/* Row 2: Profile */}
-        <button
-          ref={profileBtnRef}
-          type="button"
-          className={css.actionButton}
-          onClick={() => setActiveModal('profile')}
-          title={wide ? undefined : t('common.profile')}
-          aria-label={t('common.profile')}
-          aria-haspopup="dialog"
-        >
-          <span className={css.icon} aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-              <circle cx="12" cy="7" r="4" />
-            </svg>
-          </span>
-          {wide && <span className={css.label}>{profileLabel}</span>}
-        </button>
-
-        {/* Row 3: My DNA */}
-        <button
-          ref={dnaBtnRef}
-          type="button"
-          className={css.actionButton}
-          onClick={() => setActiveModal('dna')}
-          title={wide ? undefined : t('settings.dna.title')}
-          aria-label={t('settings.dna.title')}
-          aria-haspopup="dialog"
-        >
-          <span className={css.icon} aria-hidden="true">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M7 3c0 6 10 6 10 12" />
-              <path d="M17 3c0 6-10 6-10 12" />
-              <path d="M7 21c0-1 10-1 10 0" />
-              <line x1="8.5" y1="8" x2="15.5" y2="8" />
-              <line x1="8.5" y1="16" x2="15.5" y2="16" />
-            </svg>
-          </span>
-          {wide && <span className={css.label}>{dnaLabel}</span>}
-        </button>
-
-        {/* Row 4: Admin */}
+        {/* Row: Admin */}
         {isAdmin && (
           <button
             ref={adminBtnRef}
@@ -190,7 +120,7 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
           </button>
         )}
 
-        {/* Row 5: Sign Out */}
+        {/* Row: Sign Out */}
         <button
           type="button"
           className={css.actionButton}
@@ -211,29 +141,11 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
         </button>
       </div>
 
-      <PlansModal
-        isOpen={activeModal === 'plans'}
-        onClose={closeModal}
-        triggerRef={plansBtnRef}
-        currentUser={currentUser}
-      />
-      <ProfileModal
-        isOpen={activeModal === 'profile'}
-        onClose={closeModal}
-        triggerRef={profileBtnRef}
-        currentUser={currentUser}
-        onProfileUpdated={fetchCurrentUser}
-      />
       <AdminModal
         isOpen={activeModal === 'admin'}
         onClose={closeModal}
         triggerRef={adminBtnRef}
         isPlatformAdmin={isAdmin}
-      />
-      <DnaModal
-        isOpen={activeModal === 'dna'}
-        onClose={closeModal}
-        triggerRef={dnaBtnRef}
       />
       <OnboardingDnaModal
         isOpen={activeModal === 'dna-onboarding'}

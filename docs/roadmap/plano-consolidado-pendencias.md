@@ -47,6 +47,38 @@
 
 **Ordem de execução definida:** 4 → 5 → 1 → 3 → 2
 
+---
+
+## 2.2.1 Problema 5 — Restrição Explícita (NÃO NEGOCIÁVEL)
+
+**O layout do Settings NÃO sofre NENHUMA alteração.**
+- Rail de navegação: mantido como está
+- Slots, header, footer: mantidos
+- Tipografia, cores, espaçamento, ícones, sombras: mantidos
+- Comportamento de navegação: mantido
+
+**A mudança se limita a:**
+1. ADICIONAR 3 entradas no rail de seções do Settings:
+   - Profile
+   - Plans
+   - My DNA
+2. Modelar as 3 novas entradas **EXATAMENTE** como as abas nativas existentes:
+   - General
+   - Built-in plugins
+   - Agent presets
+   - Archived sessions
+   Mesmo layout, mesmas fontes, mesmas cores, mesmos ícones (se houver), mesmo espaçamento, mesmo comportamento de navegação. **Cópia fiel do padrão nativo.**
+3. REMOVER 3 linhas do FooterActionsRoot:
+   - Plans
+   - Profile
+   - My DNA
+4. Manter no footer (sem alteração):
+   - Sign Out
+   - Settings
+   - Admin (gated)
+
+**Nada além disso. Nenhum redesign. Nenhuma mudança de layout. Nenhuma "melhoria". Cópia fiel do padrão existente.**
+
 ### 2.3 Plano Redesign — CopyMonster (8 fases)
 
 | Fase | Título | Prioridade | Dependências |

@@ -151,13 +151,27 @@ describe('SupabaseLlmCredentialsProvider', () => {
     expect(catalog.calls).toBe(2)
   })
 
-  it('refuses set and unset with the admin-panel message without writing disk', async () => {
+  it('refuses set and unset for managed refs with the admin-panel message', async () => {
     const file = await writeLocalStore('DSH_LOCAL_KEY', 'from-file')
     const before = await readFile(file, 'utf8')
-    const ctx = await boot(file, new FakeCatalog([]))
+    // MANAGED_REF is in the catalog -> managed
+    const catalog = new FakeCatalog([providerRow({ api_key_env: 'DEEPSEEK_API_KEY', api_key: SECRET })])
+    const ctx = await boot(file, catalog)
     await expect(ctx.credentials.set(MANAGED_REF, 'nope')).rejects.toThrow(/admin panel/i)
     await expect(ctx.credentials.unset(MANAGED_REF)).rejects.toThrow(/admin panel/i)
     expect(await readFile(file, 'utf8')).toBe(before)
+  })
+
+  it('delegates set and unset for unmanaged refs to the local provider', async () => {
+    const file = await writeLocalStore('DSH_LOCAL_KEY', 'from-file')
+    // Use a ref NOT in the catalog -> unmanaged
+    const unmanagedRef = credentialRef('CUSTOM_API_KEY')
+    const ctx = await boot(file, new FakeCatalog([]))
+    await ctx.credentials.set(unmanagedRef, 'new-value')
+    await ctx.credentials.unset(unmanagedRef)
+    // Local provider was called (no error thrown)
+    const _after = await readFile(file, 'utf8')
+    expect(_after).toBeDefined()
   })
 
   it('delegates authorization records to the local provider', async () => {

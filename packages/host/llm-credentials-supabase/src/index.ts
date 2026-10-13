@@ -157,13 +157,21 @@ export class SupabaseLlmCredentialsProvider extends CredentialProvider {
   }
 
   /** @inheritdoc */
-  override set(_ref: CredentialRef, _value: string): Promise<void> {
-    return Promise.reject(new Error(ADMIN_MANAGED_MESSAGE))
+  override async set(ref: CredentialRef, value: string): Promise<void> {
+    await this.ensureFresh()
+    if (this.managed.has(ref)) {
+      return Promise.reject(new Error(ADMIN_MANAGED_MESSAGE))
+    }
+    return this.local().set(ref, value)
   }
 
   /** @inheritdoc */
-  override unset(_ref: CredentialRef): Promise<void> {
-    return Promise.reject(new Error(ADMIN_MANAGED_MESSAGE))
+  override async unset(ref: CredentialRef): Promise<void> {
+    await this.ensureFresh()
+    if (this.managed.has(ref)) {
+      return Promise.reject(new Error(ADMIN_MANAGED_MESSAGE))
+    }
+    return this.local().unset(ref)
   }
 
   /** @inheritdoc */

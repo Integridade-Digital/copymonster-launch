@@ -4,7 +4,7 @@ import { resolve } from 'node:path'
 import ts from 'typescript'
 import type { MaybeMockedDeep } from '@vitest/spy'
 import { describe, expect, expectTypeOf, it } from 'vitest'
-import type { TypertRemoteNamespace, TypertRemoteNamespaceMap } from '@deepseek-ai/dsh-typert-protocol'
+import type { TypertRemoteNamespaceMap } from '@deepseek-ai/dsh-typert-protocol'
 import type {} from '@deepseek-ai/dsh-api-settings-controller/remote'
 import type { RemoteMock } from '../src/index.ts'
 
@@ -142,7 +142,7 @@ void known
   // Ordinary built Client tsc checks these generated business types; Vitest itself remains build-free.
   it('derives real settings mocks from the generated namespace map and native deep mapping', () => {
     type Settings = RemoteMock['remote']['settings']
-    type Generated = TypertRemoteNamespace<'settings'>
+    type Generated = TypertRemoteNamespaceMap['settings']
     expectTypeOf<RemoteMock['remote']>().toEqualTypeOf<MaybeMockedDeep<TypertRemoteNamespaceMap>>()
     expectTypeOf<ReturnType<Settings['describe']>>().not.toBeAny()
     expectTypeOf<ReturnType<Settings['update']>>().not.toBeAny()

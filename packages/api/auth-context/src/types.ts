@@ -27,6 +27,12 @@ export interface UserIdentity {
   readonly tenantId: string
   /** Role held inside {@link tenantId}. */
   readonly role: UserRole
+  /**
+   * Platform-operator flag from `public.users.metadata.is_admin` (migration
+   * 040 A1). Optional and fail-closed: only ever set when the flag resolves
+   * to true, so an absent field reads as `false` under `=== true`.
+   */
+  readonly isAdmin?: boolean
   /** Account e-mail. */
   readonly email: string
   /** Display name, when the profile carries one. */

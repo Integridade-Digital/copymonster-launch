@@ -12,6 +12,7 @@
   "references": [
     { "path": "../../../vendor/cordis" },
     { "path": "../../typert/protocol" },
-    { "path": "../../server/supabase-client" }
+    { "path": "../../server/supabase-client" },
+    { "path": "../../util/constants" }
   ]
 }

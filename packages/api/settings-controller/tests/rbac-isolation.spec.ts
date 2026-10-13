@@ -15,7 +15,7 @@ const DeepSeekSchema = z.object({
 })
 
 describe('Settings & Credentials RBAC isolation', () => {
-  it('permite que administradores listem e alterem configurações de LLM e credenciais', async () => {
+  it('permite que administradores da plataforma listem e alterem configurações de LLM e credenciais', async () => {
     const ctx = new Context()
     await ctx.plugin(MemorySettings)
     await ctx.plugin(MemoryCredentials)
@@ -24,7 +24,7 @@ describe('Settings & Credentials RBAC isolation', () => {
 
     ctx.provide('authIdentity', {
       userId: 'usr_admin',
-      tenantId: 'ten_main',
+      tenantId: '00000000-0000-0000-0000-000000000001',
       role: 'admin',
     })
 
@@ -39,6 +39,25 @@ describe('Settings & Credentials RBAC isolation', () => {
 
     await expect(ctx.credentialsController.set('OPENAI_API_KEY', 'sk-xxx'))
       .resolves.toBeUndefined()
+  })
+
+  it('permite administrador via metadata.is_admin mesmo fora do tenant da plataforma', async () => {
+    const ctx = new Context()
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(MemoryCredentials)
+    ctx.settings.register('llm-deepseek', DeepSeekSchema, { base: { apiKey: 'sk-init' } })
+
+    ctx.provide('authIdentity', {
+      userId: 'usr_flagged',
+      tenantId: 'ten_other',
+      role: 'owner',
+      isAdmin: true,
+    })
+
+    await ctx.plugin(SettingsController)
+
+    await expect(ctx.settingsController.update('llm-deepseek', { apiKey: 'test' }, undefined))
+      .resolves.toBeDefined()
   })
 
   it('bloqueia membros comuns de alterar configurações de LLM e credenciais', async () => {
@@ -77,6 +96,10 @@ describe('Settings & Credentials RBAC isolation', () => {
     await expect(ctx.settingsController.mutate('llm-deepseek', [], undefined))
       .rejects.toMatchObject({ code: 'settings/forbidden' })
 
+    // Membro comum ainda altera namespaces não protegidos (preferências próprias)
+    await expect(ctx.settingsController.update('user-preferences', { theme: 'dark' }, undefined))
+      .resolves.toBeDefined()
+
     // Tentativa de alterar credenciais deve ser rejeitada com credential/forbidden
     await expect(ctx.credentialsController.set('OPENAI_API_KEY', 'sk-xxx'))
       .rejects.toMatchObject({ code: 'credential/forbidden' })
@@ -86,9 +109,31 @@ describe('Settings & Credentials RBAC isolation', () => {
     // Describe credentials deve marcar writable: false
     const credInfo = await ctx.credentialsController.describe(['OPENAI_API_KEY'])
     expect(credInfo.OPENAI_API_KEY?.writable).toBe(false)
+    // ...mas nunca expõe o valor armazenado
+    expect(JSON.stringify(credInfo)).not.toContain('sk-xxx')
   })
 
-  it('permite acesso pleno quando não há autenticação (modo desktop local padrão)', async () => {
+  it('recusa owner de tenant pessoal (não-plataforma) em namespaces protegidos', async () => {
+    const ctx = new Context()
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(MemoryCredentials)
+    ctx.settings.register('llm-deepseek', DeepSeekSchema, { base: { apiKey: 'sk-init' } })
+
+    ctx.provide('authIdentity', {
+      userId: 'usr_creator',
+      tenantId: 'ten_personal',
+      role: 'owner',
+    })
+
+    await ctx.plugin(SettingsController)
+
+    await expect(ctx.settingsController.update('llm-deepseek', { apiKey: 'hacked' }, undefined))
+      .rejects.toMatchObject({ code: 'settings/forbidden' })
+    await expect(ctx.credentialsController.set('OPENAI_API_KEY', 'sk-xxx'))
+      .rejects.toMatchObject({ code: 'credential/forbidden' })
+  })
+
+  it('recusa todas as configurações e credenciais quando não há autenticação (fail-closed)', async () => {
     const ctx = new Context()
     await ctx.plugin(MemorySettings)
     await ctx.plugin(MemoryCredentials)
@@ -97,11 +142,19 @@ describe('Settings & Credentials RBAC isolation', () => {
 
     await ctx.plugin(SettingsController)
 
-    const described = ctx.settingsController.describe()
-    expect(described.writable).toBe(true)
-    expect(described.namespaces.some(n => n.ns === 'llm-deepseek')).toBe(true)
-
-    await expect(ctx.settingsController.update('llm-deepseek', { apiKey: 'test' }, undefined))
-      .resolves.toBeDefined()
+    expect(() => ctx.settingsController.describe())
+      .toThrow(RemoteError)
+    await expect(ctx.settingsController.update('user-preferences', { theme: 'dark' }, undefined))
+      .rejects.toMatchObject({ code: 'settings/unauthorized' })
+    await expect(ctx.settingsController.mutate('user-preferences', [], undefined))
+      .rejects.toMatchObject({ code: 'settings/unauthorized' })
+    await expect(ctx.settingsController.replace('user-preferences', {}, undefined))
+      .rejects.toMatchObject({ code: 'settings/unauthorized' })
+    await expect(ctx.credentialsController.set('OPENAI_API_KEY', 'sk-xxx'))
+      .rejects.toMatchObject({ code: 'settings/unauthorized' })
+    await expect(ctx.credentialsController.unset('OPENAI_API_KEY'))
+      .rejects.toMatchObject({ code: 'settings/unauthorized' })
+    await expect(ctx.credentialsController.describe(['OPENAI_API_KEY']))
+      .rejects.toMatchObject({ code: 'settings/unauthorized' })
   })
 })

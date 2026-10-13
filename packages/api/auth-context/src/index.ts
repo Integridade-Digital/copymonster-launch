@@ -11,10 +11,26 @@
  */
 
 import { Context, Service } from '@deepseek-ai/cordis'
+import { DEFAULT_TENANT_ID } from '@deepseek-ai/dsh-constants'
 import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
 import type { AuthToken, UserIdentity, UserRole } from './types.ts'
 
 export type { AuthToken, UserIdentity, UserRole } from './types.ts'
+
+/**
+ * Server-side platform-operator predicate, mirroring migration 040's
+ * `is_admin_or_owner()`: either an owner/admin membership in the platform
+ * tenant or the `users.metadata.is_admin` flag. Fail-closed by construction —
+ * an undefined identity is not an operator.
+ * @param identity - resolved caller identity, or undefined when unauthenticated.
+ * @returns true only for platform operators.
+ */
+export function isPlatformOperator(identity: UserIdentity | undefined): boolean {
+  if (identity === undefined) return false
+  if (identity.isAdmin === true) return true
+  return (identity.role === 'owner' || identity.role === 'admin')
+    && identity.tenantId === DEFAULT_TENANT_ID
+}
 
 /** Stable Cordis plugin/service name. */
 export const name = 'auth'
@@ -185,16 +201,22 @@ export class AuthService extends Service {
 
     const { data: profile, error: profileError } = await supabaseAdminClient
       .from('users')
-      .select('id, email, full_name, whatsapp, avatar_url')
+      .select('id, email, full_name, whatsapp, avatar_url, metadata')
       .eq('id', user.id)
       .single()
     if (profileError !== null || profile === null) return undefined
+
+    const metadataFlag = typeof profile.metadata === 'object' && profile.metadata !== null
+      && !Array.isArray(profile.metadata)
+      ? (profile.metadata as Record<string, unknown>).is_admin
+      : undefined
 
     const identity: UserIdentity = {
       userId: user.id,
       tenantId: claimTenantId,
       role,
       email: profile.email ?? user.email ?? '',
+      ...metadataFlag === true ? { isAdmin: true } : {},
       ...profile.full_name === null || profile.full_name === '' ? {} : { fullName: profile.full_name },
       ...profile.whatsapp === null || profile.whatsapp === '' ? {} : { whatsapp: profile.whatsapp },
       ...profile.avatar_url === null || profile.avatar_url === '' ? {} : { avatarUrl: profile.avatar_url },

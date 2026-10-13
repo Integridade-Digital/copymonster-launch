@@ -1,25 +1,16 @@
 import { useEffect, useRef, useState } from 'react'
-import { supabaseClient } from '../../lib/auth/supabase.client'
 import { AdminModal } from './AdminModal'
 import { OnboardingDnaModal } from './OnboardingDnaModal'
 import { consumeOnboardingModalRequest, subscribeOnboardingModalRequest } from '../dna/onboardingModal'
 import { t, getActiveLocale } from '../../locales'
-import { isPlatformAdmin } from '../../lib/auth/platform-admin'
-import type { PlansUser } from '../../pages/billing/PlansPage'
-import type { ProfileUser } from '../../pages/ProfilePage'
 import css from './FooterActionsRoot.module.css'
 
 interface FooterActionsRootProps {
   wide?: boolean
 }
 
-export interface FooterUser extends PlansUser, ProfileUser {
-  role?: string | undefined
-}
-
 export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
   const [activeModal, setActiveModal] = useState<'admin' | 'dna-onboarding' | null>(null)
-  const [currentUser, setCurrentUser] = useState<FooterUser | null>(null)
   const [isAdminFlag, setIsAdminFlag] = useState(false)
   const lang = getActiveLocale()
 
@@ -27,38 +18,7 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
 
   const closeModal = () => setActiveModal(null)
 
-  const fetchCurrentUser = async () => {
-    try {
-      const { data: { user } } = await supabaseClient.auth.getUser()
-      if (!user) {
-        setCurrentUser(null)
-        return
-      }
-
-      const { data: roleData } = await supabaseClient
-        .from('user_tenant_roles')
-        .select('role, tenant_id')
-        .eq('user_id', user.id)
-        .limit(1)
-        .maybeSingle()
-
-      const meta = user.user_metadata || {}
-      setCurrentUser({
-        id: user.id,
-        email: user.email ?? undefined,
-        fullName: (meta.full_name || meta.name) ? String(meta.full_name || meta.name) : undefined,
-        whatsapp: meta.whatsapp ? String(meta.whatsapp) : undefined,
-        role: roleData?.role ? String(roleData.role) : undefined,
-        tenantId: roleData?.tenant_id ? String(roleData.tenant_id) : undefined,
-      })
-    } catch (err) {
-      console.error('FooterActionsRoot fetchCurrentUser error:', err)
-    }
-  }
-
   useEffect(() => {
-    void fetchCurrentUser()
-
     const handleCustomModal = (e: Event) => {
       const customEvent = e as CustomEvent<string>
       const target = customEvent.detail
@@ -90,7 +50,7 @@ export function FooterActionsRoot({ wide = true }: FooterActionsRootProps) {
     }
   }, [])
 
-  const isAdmin = isPlatformAdmin(currentUser?.role, currentUser?.tenantId) || isAdminFlag
+  const isAdmin = isAdminFlag
 
   const adminLabel = lang === 'zh' ? '管理员 (Admin)' : 'Admin'
 

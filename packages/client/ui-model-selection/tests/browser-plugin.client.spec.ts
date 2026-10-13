@@ -25,7 +25,7 @@ const sid = (k: string): SessionId => k as SessionId
 
 /** Page global the model entries read for their platform-operator gate. */
 interface AuthGlobal {
-  __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean }
+  __DSH_AUTH__?: { accessToken?: string; isAdmin?: boolean; isPlatformAdmin?: boolean }
 }
 
 afterEach(() => {
@@ -76,9 +76,9 @@ const GROUPS = [{
 /** Boot the plugin over fake faces + a stateful fake host (current moves on selectModel). */
 async function bench(locale: 'zh' | 'en' = 'zh') {
   const ctx = new Context()
-  // Default to a platform-operator session so the model entries are admitted;
-  // the gate cases override or clear it to exercise non-operator and signed-out callers.
-  ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'test-access-token', isPlatformAdmin: true }
+  // Default to an admin session so the model entries are admitted;
+  // the gate cases override or clear it to exercise non-admin and signed-out callers.
+  ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'test-access-token', isAdmin: true }
   let defaultSelection: ModelSelection = { provider: 'deepseek-official', model: 'deepseek-v4-flash' }
   let selected = defaultSelection
   const calls = { models: 0, select: 0 }
@@ -455,7 +455,7 @@ describe('ui-model-selection dual entry', () => {
     expect(b.calls).toEqual({ models: 2, select: 0 })
   })
 
-  it('admits both model entries for a platform operator', async () => {
+  it('admits both model entries for an admin', async () => {
     const b = await bench()
 
     expect(b.contribution().available(projection('s1'))).toBe(true)
@@ -466,7 +466,7 @@ describe('ui-model-selection dual entry', () => {
 
   it('hides both model entries from a non-operator creator', async () => {
     const b = await bench()
-    ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'creator-token', isPlatformAdmin: false }
+    ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'creator-token', isAdmin: false }
 
     expect(b.contribution().available(projection('s1'))).toBe(false)
 

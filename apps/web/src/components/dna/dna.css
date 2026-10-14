@@ -160,3 +160,39 @@ html[data-cm-onboarding-chat] [data-chat-flow] [data-chat-flow-kind='context'] >
 html[data-cm-onboarding-chat] [data-chat-flow] [data-variant='think'] {
   display: none;
 }
+
+.cm-dna-form {
+  margin-top: 8px;
+  text-align: left;
+}
+
+.cm-dna-card-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.cm-dna-input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: #111827;
+  margin-bottom: 14px;
+  outline: none;
+}
+
+.cm-dna-input:focus {
+  border-color: #7c3aed;
+  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+}
+
+.cm-dna-card-error {
+  color: #dc2626;
+  font-size: 12px;
+  margin-bottom: 12px;
+}

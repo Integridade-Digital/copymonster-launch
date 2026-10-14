@@ -38,6 +38,13 @@ function messageText(event: NonNullable<DnaWindowEntry['event']>): string {
     .trim()
 }
 
+/** Record of one block answered in the session. */
+export interface DnaAnsweredBlock {
+  readonly block: number
+  readonly ordinal: number
+  readonly assistantText: string | null
+}
+
 /**
  * Interview state derived by replaying the session event window.
  * `nextAnswerBlock` 0 means the next real answer names the product; 13 means the interview ended.
@@ -48,6 +55,8 @@ export interface DnaReplayState {
   readonly answeredBlock: number | null
   readonly answeredOrdinal: number | null
   readonly lastAssistantText: string | null
+  readonly detectedProductName?: string | null
+  readonly answeredBlocks: readonly DnaAnsweredBlock[]
 }
 
 export function replayOnboarding(
@@ -60,7 +69,10 @@ export function replayOnboarding(
   let answeredBlock: number | null = null
   let answeredOrdinal: number | null = null
   let lastAssistantText: string | null = null
+  let detectedProductName: string | null = null
+  const answeredBlocks: DnaAnsweredBlock[] = []
   let ordinal = 0
+
   for (const entry of entries) {
     if (entry.type !== 'event' || entry.event === undefined) continue
     const event = entry.event
@@ -70,19 +82,39 @@ export function replayOnboarding(
       if (text === kickoffText) { started = true; continue }
       if (!started) continue
       if (text === skipText) {
-        if (answeredBlock === null && nextAnswerBlock >= 1 && nextAnswerBlock <= 11) nextAnswerBlock += 1
+        if (nextAnswerBlock >= 1 && nextAnswerBlock <= 11) nextAnswerBlock += 1
         continue
       }
-      if (answeredBlock !== null) continue
-      if (nextAnswerBlock === 0) { nextAnswerBlock = 1; continue }
+      if (nextAnswerBlock === 0) {
+        detectedProductName = text
+        nextAnswerBlock = 1
+        continue
+      }
       answeredBlock = nextAnswerBlock
       answeredOrdinal = ordinal
+      answeredBlocks.push({
+        block: answeredBlock,
+        ordinal,
+        assistantText: null,
+      })
       nextAnswerBlock = Math.min(nextAnswerBlock + 1, 13)
     } else if (event.type === 'assistant/message') {
       lastAssistantText = messageText(event)
+      if (answeredBlocks.length > 0) {
+        const last = answeredBlocks[answeredBlocks.length - 1]
+        ;(last as { assistantText: string | null }).assistantText = lastAssistantText
+      }
     }
   }
-  return { started, nextAnswerBlock, answeredBlock, answeredOrdinal, lastAssistantText }
+  return {
+    started,
+    nextAnswerBlock,
+    answeredBlock,
+    answeredOrdinal,
+    lastAssistantText,
+    detectedProductName,
+    answeredBlocks,
+  }
 }
 
 /** Live session facts and interview state the chrome renders from. */

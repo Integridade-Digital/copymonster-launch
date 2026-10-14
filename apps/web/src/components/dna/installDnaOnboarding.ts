@@ -101,6 +101,7 @@ interface DnaBridgeScope {
 export interface OnboardingChromeInjected {
   readonly hooks: { readonly dnaEventWindow: DnaEventWindowSource }
   readonly send: (text: string) => void
+  readonly startSession?: () => void
 }
 
 /**
@@ -124,6 +125,9 @@ export function installDnaOnboarding(ctx: DnaClientContext): void {
           : { dnaEventWindow: binding.eventSource },
         send: (text: string) => {
           if (session !== undefined) void session.prompt([{ type: 'text', text }], 'queue')
+        },
+        startSession: () => {
+          scope.uiWorkspace.startSession?.()
         },
       }
     }

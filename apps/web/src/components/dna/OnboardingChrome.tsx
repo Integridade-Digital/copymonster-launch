@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { t } from '../../locales'
 import {
-  DNA_ADAPTIVE_BLOCKS, DNA_REFINE_KEY, dnaBlock, updatePositioningBlock, useDnaOnboardingState,
+  DNA_ADAPTIVE_BLOCKS, DNA_REFINE_KEY, dnaBlock, setDefaultPositioningMapping,
+  updatePositioningBlock, useDnaOnboardingState,
 } from './useDnaOnboardingState'
 import { useDnaSessionTracker, type DnaUseEventWindow, type DnaUseSession } from './useDnaSessionTracker'
 import { clearDnaClaim, dnaClaim } from './installDnaOnboarding'
@@ -45,6 +46,7 @@ export interface OnboardingChromeProps {
   readonly useSession?: DnaUseSession
   readonly useDnaEventWindow?: DnaUseEventWindow
   readonly send?: (text: string) => void
+  readonly startSession?: () => void
 }
 
 /**
@@ -54,7 +56,7 @@ export interface OnboardingChromeProps {
  * @param props - the session-scoped slot kit plus the injected send callback; renders nothing for an unclaimed session.
  */
 export function OnboardingChrome(props: OnboardingChromeProps) {
-  const { sessionId, useSession, useDnaEventWindow, send } = props
+  const { sessionId, useSession, useDnaEventWindow, send, startSession } = props
   // The interview is active exactly when this seat belongs to the claimed
   // onboarding session; the entry modal opens the chat rather than a route.
   const claimed = dnaClaim()
@@ -105,24 +107,51 @@ export function OnboardingChrome(props: OnboardingChromeProps) {
   const lastSavedOrdinal = useRef(0)
   const lastAttemptedOrdinal = useRef(0)
   const savedHere = useRef(false)
+
+  // Persist detected product name from block 0 when available and empty in mapping
+  const productNameSaved = useRef(false)
+  useEffect(() => {
+    if (!active || !isClaimedSession || mapping === null) return
+    if (!replay.detectedProductName || productNameSaved.current) return
+    if (mapping.product_name && mapping.product_name.trim().length > 0) return
+
+    productNameSaved.current = true
+    updatePositioningBlock(mapping.id, 0, replay.detectedProductName)
+      .then((row) => {
+        setMapping(row)
+      })
+      .catch(() => {
+        // Fallback: will be passed during finalization
+      })
+  }, [active, isClaimedSession, mapping, replay.detectedProductName, setMapping])
+
+  // Auto-save each block as answered without getting stuck
   useEffect(() => {
     if (!active || !isClaimedSession || mapping === null) return
     if (openState !== 'open' || running || saving) return
-    const { answeredBlock, answeredOrdinal, lastAssistantText } = replay
-    if (answeredBlock === null || answeredOrdinal === null) return
-    const block = dnaBlock(answeredBlock)
+
+    const pending = replay.answeredBlocks.find((item) => {
+      const meta = dnaBlock(item.block)
+      if (meta === undefined) return false
+      if (mapping[meta.column] !== null) return false
+      if (item.ordinal <= lastSavedOrdinal.current || item.ordinal <= lastAttemptedOrdinal.current) {
+        return false
+      }
+      return true
+    })
+
+    if (!pending) return
+    const block = dnaBlock(pending.block)
     if (block === undefined) return
-    if (answeredOrdinal <= lastSavedOrdinal.current || answeredOrdinal <= lastAttemptedOrdinal.current) return
-    if (mapping[block.column] !== null) {
-      lastSavedOrdinal.current = answeredOrdinal
-      return
-    }
-    lastAttemptedOrdinal.current = answeredOrdinal
+
+    const contentToSave = pending.assistantText ?? replay.lastAssistantText ?? ''
+    lastAttemptedOrdinal.current = pending.ordinal
     setSaving(true)
     setSaveError(false)
-    updatePositioningBlock(mapping.id, answeredBlock, lastAssistantText ?? '')
+
+    updatePositioningBlock(mapping.id, pending.block, contentToSave)
       .then((row) => {
-        lastSavedOrdinal.current = answeredOrdinal
+        lastSavedOrdinal.current = pending.ordinal
         savedHere.current = true
         setMapping(row)
       })
@@ -139,10 +168,10 @@ export function OnboardingChrome(props: OnboardingChromeProps) {
   }
   if (!isClaimedSession) return null
 
-  const completed = mapping.status === 'completed'
+  const isInterviewComplete = mapping.status === 'completed' || mapping.block_12_promises !== null
   const currentBlock = replay.answeredBlock ?? Math.min(replay.nextAnswerBlock, 12)
   const blockMeta = dnaBlock(currentBlock)
-  const canSkip = !completed && replay.answeredBlock === null
+  const canSkip = !isInterviewComplete && replay.answeredBlock === null
     && (DNA_ADAPTIVE_BLOCKS as readonly number[]).includes(replay.nextAnswerBlock)
 
   const skip = (): void => { send?.(skipText) }
@@ -150,7 +179,7 @@ export function OnboardingChrome(props: OnboardingChromeProps) {
   return (
     <div className="cm-dna-chrome">
       <span className="cm-dna-title">{t('onboarding.dna.title')}</span>
-      {completed
+      {isInterviewComplete
         ? <span className="cm-dna-progress">{t('onboarding.dna.completionTitle')}</span>
         : blockMeta !== undefined && (
           <span className="cm-dna-progress">
@@ -161,18 +190,32 @@ export function OnboardingChrome(props: OnboardingChromeProps) {
         )}
       {saving && <span className="cm-dna-hint">{t('onboarding.dna.saving')}</span>}
       {saveError && <span className="cm-dna-hint cm-dna-hint--error">{t('onboarding.dna.saveError')}</span>}
-      {!completed && canSkip && (
+      {!isInterviewComplete && canSkip && (
         <button type="button" className="cm-dna-skip" onClick={skip}>
           {t('onboarding.dna.skip')}
         </button>
       )}
-      {completed && (refineId === undefined || savedHere.current) && !exportOpen && (
+      {isInterviewComplete && (refineId === undefined || savedHere.current) && !exportOpen && (
         <CompletionPanel
+          mapping={mapping}
+          detectedProductName={replay.detectedProductName}
+          onFinalized={(updated) => {
+            savedHere.current = true
+            setMapping(updated)
+          }}
           onView={() => { setExportOpen(true) }}
-          onStart={() => { clearDnaClaim() }}
+          onStart={async () => {
+            try {
+              await setDefaultPositioningMapping(mapping.id)
+            } catch (err) {
+              console.error('Failed to set default positioning mapping', err)
+            }
+            clearDnaClaim()
+            startSession?.()
+          }}
         />
       )}
-      {completed && (refineId === undefined || savedHere.current) && exportOpen && (
+      {isInterviewComplete && (refineId === undefined || savedHere.current) && exportOpen && (
         <ExportDocumentModal mapping={mapping} onClose={() => { setExportOpen(false) }} />
       )}
     </div>

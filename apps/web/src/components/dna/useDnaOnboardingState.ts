@@ -71,6 +71,21 @@ export async function updatePositioningBlock(
   return data
 }
 
+export async function finalizePositioningMapping(
+  mappingId: string,
+  name: string,
+  productName?: string | null,
+): Promise<PositioningMappingRow> {
+  const { data, error } = await supabaseClient.rpc('finalize_positioning_mapping' as any, {
+    p_mapping_id: mappingId,
+    p_name: name,
+    p_product_name: productName ?? null,
+  })
+  if (error !== null) throw new Error(error.message)
+  if (data === null) throw new Error('finalize_positioning_mapping returned no row')
+  return data as PositioningMappingRow
+}
+
 export async function countMyPositioningMappings(): Promise<PositioningQuota> {
   const { data, error } = await supabaseClient.rpc('count_my_positioning_mappings')
   if (error !== null) throw new Error(error.message)

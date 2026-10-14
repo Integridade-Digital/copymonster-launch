@@ -72,24 +72,40 @@ export function replayOnboarding(
   let detectedProductName: string | null = null
   const answeredBlocks: DnaAnsweredBlock[] = []
   let ordinal = 0
+  let assistantSeenBeforeStart = false
 
   for (const entry of entries) {
     if (entry.type !== 'event' || entry.event === undefined) continue
     const event = entry.event
+
     if (event.type === 'user/message') {
       ordinal += 1
       const text = messageText(event)
-      if (text === kickoffText) { started = true; continue }
-      if (!started) continue
+
+      // Preserva o fluxo normal quando o kickoff conhecido está presente.
+      if (text === kickoffText) {
+        started = true
+        continue
+      }
+
+      // Em sessões sem esse marcador, ignora a mensagem inicial e aguarda
+      // uma resposta do agente antes de iniciar o tracking.
+      if (!started) {
+        if (!assistantSeenBeforeStart || text.length === 0 || text === skipText) continue
+        started = true
+      }
+
       if (text === skipText) {
         if (nextAnswerBlock >= 1 && nextAnswerBlock <= 11) nextAnswerBlock += 1
         continue
       }
+
       if (nextAnswerBlock === 0) {
         detectedProductName = text
         nextAnswerBlock = 1
         continue
       }
+
       answeredBlock = nextAnswerBlock
       answeredOrdinal = ordinal
       answeredBlocks.push({
@@ -100,12 +116,16 @@ export function replayOnboarding(
       nextAnswerBlock = Math.min(nextAnswerBlock + 1, 13)
     } else if (event.type === 'assistant/message') {
       lastAssistantText = messageText(event)
+
+      if (!started) assistantSeenBeforeStart = true
+
       if (answeredBlocks.length > 0) {
         const last = answeredBlocks[answeredBlocks.length - 1]
         ;(last as { assistantText: string | null }).assistantText = lastAssistantText
       }
     }
   }
+
   return {
     started,
     nextAnswerBlock,

@@ -338,4 +338,46 @@ describe('auth service', () => {
     await svc.resolveIdentity(token)
     expect(mocks.getUser).toHaveBeenCalledTimes(2)
   })
+
+  it('populates isAdmin: true when profile metadata has is_admin: true', async () => {
+    signedIn()
+    tables({
+      tenants: activeTenant,
+      users: {
+        data: {
+          id: USER_ID,
+          email: 'admin@integridade-digital.com',
+          full_name: 'Admin User',
+          whatsapp: null,
+          avatar_url: null,
+          metadata: { is_admin: true },
+        },
+        error: null,
+      },
+    })
+
+    const identity = await (await service()).resolveIdentity(jwt(validClaims))
+    expect(identity?.isAdmin).toBe(true)
+  })
+
+  it('omits isAdmin when profile metadata is_admin is false or absent (fail-closed)', async () => {
+    signedIn()
+    tables({
+      tenants: activeTenant,
+      users: {
+        data: {
+          id: USER_ID,
+          email: 'creator@integridade-digital.com',
+          full_name: 'Creator User',
+          whatsapp: null,
+          avatar_url: null,
+          metadata: { is_admin: false },
+        },
+        error: null,
+      },
+    })
+
+    const identity = await (await service()).resolveIdentity(jwt(validClaims))
+    expect(identity?.isAdmin).toBeUndefined()
+  })
 })

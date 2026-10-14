@@ -185,16 +185,22 @@ export class AuthService extends Service {
 
     const { data: profile, error: profileError } = await supabaseAdminClient
       .from('users')
-      .select('id, email, full_name, whatsapp, avatar_url')
+      .select('id, email, full_name, whatsapp, avatar_url, metadata')
       .eq('id', user.id)
       .single()
     if (profileError !== null || profile === null) return undefined
+
+    const metadataFlag = typeof profile.metadata === 'object' && profile.metadata !== null
+      && !Array.isArray(profile.metadata)
+      ? (profile.metadata as Record<string, unknown>).is_admin
+      : undefined
 
     const identity: UserIdentity = {
       userId: user.id,
       tenantId: claimTenantId,
       role,
       email: profile.email ?? user.email ?? '',
+      ...metadataFlag === true ? { isAdmin: true } : {},
       ...profile.full_name === null || profile.full_name === '' ? {} : { fullName: profile.full_name },
       ...profile.whatsapp === null || profile.whatsapp === '' ? {} : { whatsapp: profile.whatsapp },
       ...profile.avatar_url === null || profile.avatar_url === '' ? {} : { avatarUrl: profile.avatar_url },

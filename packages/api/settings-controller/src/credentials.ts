@@ -98,7 +98,7 @@ export class CredentialsController extends TypertRemoteService {
   async describe(refs: string[]): Promise<Record<string, CredentialInfo>> {
     const request = parseRequest('credentials.describe', describeRequestSchema, { refs })
     const identity = getAuthIdentity(this.ctx)
-    const isNonAdmin = identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin'
+    const isNonAdmin = identity !== undefined && identity.isAdmin !== true
     const branded = request.refs.map(ref => [ref, credentialRef(ref)] as const)
     const credentials = this.provider()
     const entries = await Promise.all(branded.map(async ([ref, key]) => {
@@ -121,7 +121,7 @@ export class CredentialsController extends TypertRemoteService {
   @Remote
   async set(ref: string, value: string): Promise<void> {
     const identity = getAuthIdentity(this.ctx)
-    if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin') {
+    if (identity !== undefined && identity.isAdmin !== true) {
       throw new RemoteError('credential/forbidden', 'Apenas administradores podem configurar credenciais e chaves de API.', { ref })
     }
     const request = parseRequest('credentials.set', setRequestSchema, { ref, value })
@@ -138,7 +138,7 @@ export class CredentialsController extends TypertRemoteService {
   @Remote
   async unset(ref: string): Promise<void> {
     const identity = getAuthIdentity(this.ctx)
-    if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin') {
+    if (identity !== undefined && identity.isAdmin !== true) {
       throw new RemoteError('credential/forbidden', 'Apenas administradores podem remover credenciais e chaves de API.', { ref })
     }
     const request = parseRequest('credentials.unset', unsetRequestSchema, { ref })

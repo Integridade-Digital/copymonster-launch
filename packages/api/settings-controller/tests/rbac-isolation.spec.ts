@@ -26,6 +26,7 @@ describe('Settings & Credentials RBAC isolation', () => {
       userId: 'usr_admin',
       tenantId: 'ten_main',
       role: 'admin',
+      isAdmin: true,
     })
 
     await ctx.plugin(SettingsController)
@@ -52,6 +53,7 @@ describe('Settings & Credentials RBAC isolation', () => {
       userId: 'usr_member',
       tenantId: 'ten_main',
       role: 'member',
+      isAdmin: false,
     })
 
     await ctx.plugin(SettingsController)
@@ -103,5 +105,31 @@ describe('Settings & Credentials RBAC isolation', () => {
 
     await expect(ctx.settingsController.update('llm-deepseek', { apiKey: 'test' }, undefined))
       .resolves.toBeDefined()
+  })
+
+  it('bloqueia owner de tenant que não é admin da plataforma de alterar credenciais', async () => {
+    const ctx = new Context()
+    await ctx.plugin(MemorySettings)
+    await ctx.plugin(MemoryCredentials)
+    ctx.settings.register('user-preferences', PreferencesSchema, { base: { theme: 'light' } })
+    ctx.settings.register('llm-deepseek', DeepSeekSchema, { base: { apiKey: 'sk-init' } })
+
+    ctx.provide('authIdentity', {
+      userId: 'usr_tenant_owner',
+      tenantId: 'ten_other',
+      role: 'owner',
+      isAdmin: false,
+    })
+
+    await ctx.plugin(SettingsController)
+
+    // Tentativa de alterar credenciais deve ser rejeitada com credential/forbidden
+    await expect(ctx.credentialsController.set('OPENAI_API_KEY', 'sk-xxx'))
+      .rejects.toMatchObject({ code: 'credential/forbidden' })
+    await expect(ctx.credentialsController.unset('OPENAI_API_KEY'))
+      .rejects.toMatchObject({ code: 'credential/forbidden' })
+
+    const credInfo = await ctx.credentialsController.describe(['OPENAI_API_KEY'])
+    expect(credInfo.OPENAI_API_KEY?.writable).toBe(false)
   })
 })

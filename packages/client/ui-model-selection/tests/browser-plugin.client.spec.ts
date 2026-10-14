@@ -474,6 +474,16 @@ describe('ui-model-selection dual entry', () => {
     expect(b.seat().inject!(sid('s1')).available).toBe(false)
   })
 
+  it('hides both model entries when only isPlatformAdmin is true without strict isAdmin', async () => {
+    const b = await bench()
+    ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'tenant-admin-token', isPlatformAdmin: true, isAdmin: false }
+
+    expect(b.contribution().available(projection('s1'))).toBe(false)
+
+    b.mint('s1')
+    expect(b.seat().inject!(sid('s1')).available).toBe(false)
+  })
+
   it('hides both model entries when no session is published', async () => {
     const b = await bench()
     delete (globalThis as AuthGlobal).__DSH_AUTH__

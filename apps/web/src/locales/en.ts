@@ -150,6 +150,7 @@ export const en = {
   'settings.dna.card.updated': 'Updated {date}',
   'settings.dna.action.setDefault': 'Set as default',
   'settings.dna.action.refine': 'Refine',
+  'settings.dna.action.resume': 'Resume',
   'settings.dna.action.duplicate': 'Duplicate',
   'settings.dna.action.delete': 'Delete',
   'settings.dna.action.createNew': 'Create New DNA',

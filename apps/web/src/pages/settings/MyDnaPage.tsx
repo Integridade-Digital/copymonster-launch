@@ -3,7 +3,7 @@ import { t } from '../../locales'
 import { startDnaOnboarding } from '../../components/dna/installDnaOnboarding'
 import { formatDate } from '../../lib/format'
 import {
-  DNA_REFINE_KEY, countMyPositioningMappings, deletePositioningMapping,
+  DNA_REFINE_KEY, DNA_FORCE_NEW_KEY, countMyPositioningMappings, deletePositioningMapping,
   duplicatePositioningMapping, listMyPositioningMappings, setDefaultPositioningMapping,
   type PositioningMapping, type PositioningQuota,
 } from '../../components/dna/useDnaOnboardingState'
@@ -76,7 +76,10 @@ export function MyDnaPage({ onClose }: MyDnaPageProps) {
       window.dispatchEvent(new CustomEvent('copymonster:modal', { detail: 'plans' }))
       return
     }
-    try { sessionStorage.removeItem(DNA_REFINE_KEY) } catch {
+    try {
+      sessionStorage.removeItem(DNA_REFINE_KEY)
+      sessionStorage.setItem(DNA_FORCE_NEW_KEY, 'true')
+    } catch {
       // Same private-mode allowance as the refine stage.
     }
     onClose()
@@ -242,7 +245,9 @@ export function MyDnaPage({ onClose }: MyDnaPageProps) {
                       disabled={busyId !== null}
                       onClick={() => { refine(row.id) }}
                     >
-                      {t('settings.dna.action.refine')}
+                      {row.status === 'in_progress'
+                        ? t('settings.dna.action.resume')
+                        : t('settings.dna.action.refine')}
                     </button>
                     <button
                       type="button"

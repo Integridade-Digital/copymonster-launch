@@ -8,6 +8,12 @@ export type { PositioningQuota }
 /** sessionStorage key naming the mapping a refine visit targets. */
 export const DNA_REFINE_KEY = 'cm-dna-refine-id'
 
+/** sessionStorage flag requesting a clean new mapping even if one is in progress. */
+export const DNA_FORCE_NEW_KEY = 'cm-dna-force-new'
+
+/** Abandoned in-progress mappings older than 7 days (168h) are auto-archived on load. */
+const IN_PROGRESS_MAX_AGE_MS = 7 * 24 * 60 * 60 * 1000
+
 /** One block's persistence column and display-name key. */
 export interface DnaBlockMeta {
   readonly column: Extract<keyof PositioningMappingRow, `block_${string}`>
@@ -76,7 +82,7 @@ export async function finalizePositioningMapping(
   name: string,
   productName?: string | null,
 ): Promise<PositioningMappingRow> {
-  const { data, error } = await supabaseClient.rpc('finalize_positioning_mapping' as any, {
+  const { data, error } = await supabaseClient.rpc('finalize_positioning_mapping' as never, {
     p_mapping_id: mappingId,
     p_name: name,
     p_product_name: productName ?? null,
@@ -154,16 +160,33 @@ export function useDnaOnboardingState(
         const preferred = preferredId === undefined
           ? undefined
           : rows.find(row => row.id === preferredId)
+
+        const forceNew = (() => {
+          try {
+            const val = sessionStorage.getItem(DNA_FORCE_NEW_KEY)
+            sessionStorage.removeItem(DNA_FORCE_NEW_KEY)
+            return val === 'true'
+          } catch { return false }
+        })()
+
         if (preferred !== undefined) {
           setMapping(preferred)
           setMappingError(false)
           return
         }
-        const open = rows.find(row => row.status === 'in_progress')
-        if (open !== undefined) {
-          setMapping(open)
-          setMappingError(false)
-          return
+
+        if (!forceNew) {
+          const open = rows.find(row => row.status === 'in_progress')
+          if (open !== undefined) {
+            const age = Date.now() - new Date(open.updated_at).getTime()
+            if (age < IN_PROGRESS_MAX_AGE_MS) {
+              setMapping(open)
+              setMappingError(false)
+              return
+            }
+            // Stale mapping older than 7 days: archive it and proceed to create new
+            await deletePositioningMapping(open.id).catch(() => {})
+          }
         }
         const created = await createPositioningMapping(firstName, '')
         if (cancelled) return

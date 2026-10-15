@@ -92,3 +92,5 @@ STRIPE_WEBHOOK_SECRET=*
 .env*
 *.secret
 .credentials*
+.artifacts/
+apps/desktop/.desktop-build/

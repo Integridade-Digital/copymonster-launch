@@ -20,6 +20,10 @@ describe('SessionController facade', () => {
     expect(SessionController.inject).not.toContain('tools')
   })
 
+  it('declares sessionPersistence in static inject', () => {
+    expect(SessionController.inject).toContain('sessionPersistence')
+  })
+
   it('owns Host service methods and publishes Agent lifecycle projections', async () => {
     const ctx = new Context()
     await ctx.plugin(SessionStore)

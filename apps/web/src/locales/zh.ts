@@ -150,6 +150,7 @@ export const zh = {
   'settings.dna.card.updated': '更新于 {date}',
   'settings.dna.action.setDefault': '设为默认',
   'settings.dna.action.refine': '优化',
+  'settings.dna.action.resume': '继续',
   'settings.dna.action.duplicate': '复制',
   'settings.dna.action.delete': '删除',
   'settings.dna.action.createNew': '创建新 DNA',

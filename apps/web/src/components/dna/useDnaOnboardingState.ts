@@ -86,7 +86,7 @@ export async function finalizePositioningMapping(
     p_mapping_id: mappingId,
     p_name: name,
     p_product_name: productName ?? null,
-  })
+  } as unknown as never)
   if (error !== null) throw new Error(error.message)
   if (data === null) throw new Error('finalize_positioning_mapping returned no row')
   return data as PositioningMappingRow

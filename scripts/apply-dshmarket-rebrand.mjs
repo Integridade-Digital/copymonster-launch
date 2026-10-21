@@ -80,14 +80,14 @@ async function pluginRoot() {
   return join(process.env.DSH_HOME ?? join(homedir(), '.dsh'), 'profiles/web/node_modules/dshmarket');
 }
 
-async function listFiles(root, directory, extension) {
+async function listFiles(root, directory, extensions) {
   if (!await isFile(directory)) return [];
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
   for (const entry of entries) {
     const path = join(directory, entry.name);
-    if (entry.isDirectory()) files.push(...await listFiles(root, path, extension));
-    else if (entry.name.endsWith(extension)) files.push(relativePath(root, path));
+    if (entry.isDirectory()) files.push(...await listFiles(root, path, extensions));
+    else if (extensions.some(extension => entry.name.endsWith(extension))) files.push(relativePath(root, path));
   }
   return files;
 }
@@ -144,9 +144,8 @@ const state = { changed: 0 };
 const files = [
   'package.json',
   'client/client.js',
-  'src/client/locales.ts',
-  'src/client/Market.module.css',
-  ...await listFiles(root, join(root, 'lib'), '.js'),
+  ...await listFiles(root, join(root, 'src'), ['.ts', '.tsx', '.css']),
+  ...await listFiles(root, join(root, 'lib'), ['.js', '.mjs', '.d.ts']),
 ];
 
 for (const relative of files) {

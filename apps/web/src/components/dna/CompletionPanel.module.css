@@ -1,0 +1,115 @@
+/* Completion panel scoped to the CopyMonster palette in cm-theme.css. */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--cm-overlay);
+}
+
+.card {
+  background: var(--cm-card);
+  color: var(--cm-card-foreground);
+  border: 1px solid var(--cm-border);
+  border-radius: 14px;
+  padding: 28px;
+  max-width: 420px;
+  box-shadow: var(--cm-shadow);
+  text-align: center;
+}
+
+.title {
+  margin: 0 0 8px;
+  font-size: 18px;
+  color: var(--cm-card-foreground);
+}
+
+.text {
+  margin: 0 0 20px;
+  color: var(--cm-muted-foreground);
+  font-size: 14px;
+}
+
+.form {
+  margin-top: 8px;
+  text-align: left;
+}
+
+.label {
+  display: block;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--cm-card-foreground);
+  margin-bottom: 6px;
+}
+
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--cm-input);
+  background: var(--cm-card);
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--cm-card-foreground);
+  margin-bottom: 14px;
+  outline: none;
+}
+
+.input::placeholder {
+  color: var(--cm-muted-foreground);
+}
+
+.input:focus {
+  border-color: var(--cm-ring);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cm-ring) 20%, transparent);
+}
+
+.error {
+  color: var(--cm-destructive);
+  font-size: 12px;
+  margin-bottom: 12px;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+}
+
+.button {
+  border: 1px solid var(--cm-border);
+  background: var(--cm-card);
+  color: var(--cm-card-foreground);
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-family: inherit;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.button:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--cm-ring);
+  outline-offset: 2px;
+}
+
+.saveButton {
+  background: var(--cm-primary);
+  border-color: var(--cm-primary);
+  color: var(--cm-primary-foreground);
+}

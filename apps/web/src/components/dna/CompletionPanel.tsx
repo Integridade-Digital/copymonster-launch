@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { t } from '../../locales'
 import { finalizePositioningMapping, type PositioningMapping } from './useDnaOnboardingState'
-import './dna.css'
+import css from './CompletionPanel.module.css'
 
 export interface CompletionPanelProps {
   readonly mapping: PositioningMapping
@@ -60,31 +60,31 @@ export function CompletionPanel({
   }
 
   return (
-    <div className="cm-dna-overlay" role="dialog" aria-modal="true">
-      <div className="cm-dna-card">
-        <h2 className="cm-dna-card-title">{t('onboarding.dna.completionTitle')}</h2>
-        <p className="cm-dna-card-text">{t('onboarding.dna.completionSubtitle')}</p>
+    <div className={css.overlay} role="dialog" aria-modal="true">
+      <div className={css.card}>
+        <h2 className={css.title}>{t('onboarding.dna.completionTitle')}</h2>
+        <p className={css.text}>{t('onboarding.dna.completionSubtitle')}</p>
 
         {phase === 'name' ? (
-          <form onSubmit={handleSaveName} className="cm-dna-form">
-            <label className="cm-dna-card-label" htmlFor="cm-dna-name-input">
+          <form onSubmit={handleSaveName} className={css.form}>
+            <label className={css.label} htmlFor="cm-dna-name-input">
               Nome do seu DNA
             </label>
             <input
               id="cm-dna-name-input"
               type="text"
-              className="cm-dna-input"
+              className={css.input}
               placeholder="Ex: Meu Produto Principal"
               value={name}
-              onChange={(e) => setName(e.target.value)}
+              onChange={e => setName(e.target.value)}
               disabled={saving}
               autoFocus
             />
-            {error && <div className="cm-dna-card-error">{error}</div>}
-            <div className="cm-dna-card-actions">
+            {error && <div className={css.error}>{error}</div>}
+            <div className={css.actions}>
               <button
                 type="submit"
-                className="cm-dna-button cm-dna-button--primary"
+                className={`${css.button} ${css.saveButton}`}
                 disabled={saving || !name.trim()}
               >
                 {saving ? t('onboarding.dna.saving') : 'Salvar DNA'}
@@ -92,11 +92,11 @@ export function CompletionPanel({
             </div>
           </form>
         ) : (
-          <div className="cm-dna-card-actions">
-            <button type="button" className="cm-dna-button cm-dna-button--primary" onClick={onView}>
+          <div className={css.actions}>
+            <button type="button" className={`${css.button} ${css.saveButton}`} onClick={onView}>
               {t('onboarding.dna.viewMapping')}
             </button>
-            <button type="button" className="cm-dna-button" onClick={onStart}>
+            <button type="button" className={css.button} onClick={onStart}>
               {t('onboarding.dna.startProject')}
             </button>
           </div>

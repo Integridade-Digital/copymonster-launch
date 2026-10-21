@@ -785,6 +785,16 @@ R snapshots/web/present-svg/workspace.expected/von-neumann.svg -> snapshots/web/
 
 ## 8. Itens adiados
 
+### Dívida — check-theme.sh baseline vermelho (registrado 2026-10-21)
+
+`bash scripts/check-theme.sh` falha no baseline atual com 55 literais de cor fora de `apps/web/src/cm-theme.css`:
+
+- `apps/web/src/components/dna/dna.css` — 39
+- `apps/web/src/pages/admin/tabs/*.tsx` — 13
+- `apps/web/src/pages/billing/billing.css` — 3
+
+Não bloqueia build/deploy: o guardião roda em lane de CI separado. A correção é migrar os literais para tokens `--cm-*` em commits separados. Prioridade baixa (cosmético). O `CompletionPanel` foi migrado para tokens no commit `fix(dna): use CopyMonster palette in CompletionPanel`; os 55 literais restantes são dívida pré-existente.
+
 ### Etapa 8 — e2e/snapshot do gating do seletor de modelo (adiado 2026-10-09)
 
 O gating por role do seletor de modelos (Etapa 8) foi implementado e coberto por teste unitário (`packages/client/ui-model-selection/tests/browser-plugin.client.spec.ts`): `owner`/`admin` veem o `/model` e o seat do composer; `member` e sessão ausente escondem ambos (fail-closed). A atualização dos e2e/snapshot web correspondentes ficou **adiada**, por três motivos:

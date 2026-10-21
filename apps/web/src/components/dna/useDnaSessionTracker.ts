@@ -1,11 +1,30 @@
 import { useMemo } from 'react'
 
+/** Text part or carrier accepted from user and assistant message payloads. */
+type DnaTextContent = string | readonly DnaTextPart[] | { readonly text?: string }
+
+/** One text part in a message content array. */
+interface DnaTextPart {
+  readonly type: string
+  readonly text?: string
+}
+
+/** Message payload fields the tracker reads across user and assistant events. */
+interface DnaMessageData {
+  readonly message?: {
+    readonly content?: DnaTextContent
+    readonly text?: string
+  }
+  readonly content?: DnaTextContent
+  readonly text?: string
+}
+
 /** Structural slice of one session-window entry the tracker reads. */
 export interface DnaWindowEntry {
   readonly type: string
   readonly event?: {
     readonly type: string
-    readonly data: { readonly message?: { readonly content?: readonly { readonly type: string; readonly text?: string }[] } }
+    readonly data: DnaMessageData
   }
 }
 
@@ -30,12 +49,27 @@ export interface DnaEventWindowSource {
   subscribe(listener: () => void): () => void
 }
 
+function contentText(content: unknown): string {
+  if (typeof content === 'string') return content.trim()
+  if (Array.isArray(content)) {
+    return content
+      .filter((part): part is DnaTextPart =>
+        typeof part === 'object' && part !== null && 'type' in part)
+      .filter(part => part.type === 'text')
+      .map(part => part.text ?? '')
+      .join('')
+      .trim()
+  }
+  if (typeof content === 'object' && content !== null && 'text' in content) {
+    const text = content.text
+    if (typeof text === 'string') return text.trim()
+  }
+  return ''
+}
+
 function messageText(event: NonNullable<DnaWindowEntry['event']>): string {
-  return (event.data.message?.content ?? [])
-    .filter(part => part.type === 'text')
-    .map(part => part.text ?? '')
-    .join('')
-    .trim()
+  const { message, content, text } = event.data
+  return contentText(message?.content ?? content ?? message?.text ?? text)
 }
 
 /** Record of one block answered in the session. */

@@ -10,6 +10,18 @@ function userEntry(text: string): DnaWindowEntry {
     event: {
       type: 'user/message',
       data: {
+        content: [{ type: 'text', text }],
+      },
+    },
+  }
+}
+
+function legacyUserEntry(text: string): DnaWindowEntry {
+  return {
+    type: 'event',
+    event: {
+      type: 'user/message',
+      data: {
         message: {
           content: [{ type: 'text', text }],
         },
@@ -73,6 +85,40 @@ describe('replayOnboarding', () => {
     expect(replay.answeredBlocks[0]?.block).toBe(1)
     expect(replay.answeredBlock).toBe(1)
     expect(replay.nextAnswerBlock).toBe(2)
+  })
+
+  it('aceita o payload anterior de user/message em data.message.content', () => {
+    const entries: DnaWindowEntry[] = [
+      legacyUserEntry(KICKOFF),
+      assistantEntry('Qual o nome do produto?'),
+      legacyUserEntry('Produto Legado'),
+      assistantEntry('Bloco 1: quem é seu público?'),
+      legacyUserEntry('Agências de marketing'),
+    ]
+
+    const replay = replayOnboarding(entries, KICKOFF, SKIP)
+
+    expect(replay.started).toBe(true)
+    expect(replay.detectedProductName).toBe('Produto Legado')
+    expect(replay.answeredBlocks).toHaveLength(1)
+    expect(replay.answeredBlocks[0]?.block).toBe(1)
+  })
+
+  it('aceita content como string, text direto e objeto com text', () => {
+    const entries: DnaWindowEntry[] = [
+      { type: 'event', event: { type: 'user/message', data: { content: KICKOFF } } },
+      assistantEntry('Qual o nome do produto?'),
+      { type: 'event', event: { type: 'user/message', data: { text: 'Produto Delta' } } },
+      assistantEntry('Bloco 1: quem é seu público?'),
+      { type: 'event', event: { type: 'user/message', data: { content: { text: 'Criadores de conteúdo' } } } },
+    ]
+
+    const replay = replayOnboarding(entries, KICKOFF, SKIP)
+
+    expect(replay.started).toBe(true)
+    expect(replay.detectedProductName).toBe('Produto Delta')
+    expect(replay.answeredBlocks).toHaveLength(1)
+    expect(replay.answeredBlocks[0]?.block).toBe(1)
   })
 
   it('skip text avança próximo bloco sem salvar item em answeredBlocks', () => {

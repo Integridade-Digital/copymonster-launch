@@ -152,12 +152,15 @@
 
 /* Onboarding quiet chat: the interview runs in the main chat, so the agent's
    internal blocks stay out of view while OnboardingChrome marks the document.
-   The flow item itself keeps its place — only its children go away — so the
-   column geometry the pager and the Turn rail measure stays exact. The
-   Trajectory tab shares neither marker and keeps rendering its own surfaces. */
-html[data-cm-onboarding-chat] [data-chat-flow] [data-chat-flow-kind='system-prompt'] > *,
-html[data-cm-onboarding-chat] [data-chat-flow] [data-chat-flow-kind='context'] > *,
-html[data-cm-onboarding-chat] [data-chat-flow] [data-variant='think'] {
+   Each selector is anchored to a top-level flow seat and its own technical
+   block, so user and assistant messages (and any nested transcript) keep
+   their content. The flow item itself keeps its place — only its children go
+   away — so the column geometry the pager and the Turn rail measure stays
+   exact. The Trajectory tab shares neither marker and keeps rendering its own
+   surfaces. */
+html[data-cm-onboarding-chat] [data-chat-flow] > [data-chat-flow-kind='system-prompt'] > *,
+html[data-cm-onboarding-chat] [data-chat-flow] > [data-chat-flow-kind='context'] > *,
+html[data-cm-onboarding-chat] [data-chat-flow] > [data-chat-flow-kind='assistant-step'] [data-variant='think'] {
   display: none;
 }
 

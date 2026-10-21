@@ -9,6 +9,10 @@
  * Usage:
  *   node scripts/apply-dsh-im-rebrand.mjs [--plugin-root <dir>] [--check]
  *   DSH_IM_PLUGIN_ROOT=<dir> node scripts/apply-dsh-im-rebrand.mjs
+ *
+ * Profile postinstall, from `<DSH_HOME>/profiles/web/package.json`:
+ *   "postinstall": "node ../../../copymonster-launch/scripts/apply-dsh-im-rebrand.mjs"
+ * The relative path assumes the profile and repository share the same parent.
  */
 
 import { access, readFile, writeFile } from 'node:fs/promises';

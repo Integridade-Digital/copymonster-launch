@@ -88,3 +88,9 @@ button, input[type="button"], input[type="submit"], .cm-btn, .adminButton {
 html:not([data-cm-is-admin="true"]) .dim-githubAction {
   display: none !important;
 }
+
+/* The plugin market's global sidebar row. Hiding the row leaves the market
+ * page itself reachable when a panel id is selected directly. */
+html:not([data-cm-is-admin="true"]) [data-sidebar-panel="dsh-market"] {
+  display: none !important;
+}

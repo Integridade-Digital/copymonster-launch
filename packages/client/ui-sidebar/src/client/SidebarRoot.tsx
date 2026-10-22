@@ -53,6 +53,7 @@ function PanelRow({ id, label, wide, usePanelInfo, selectPanel, renderSlot }: Pa
       <button
         type="button"
         className={clsx(css.panelRow, active && css.panelActive)}
+        data-sidebar-panel={id}
         aria-label={label}
         aria-current={active ? 'page' : undefined}
         onClick={() => { selectPanel(id) }}

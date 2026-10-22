@@ -156,6 +156,7 @@ describe('sidebar global panels', () => {
     expect(rows.map(row => row.getAttribute('aria-label'))).toEqual(['Beta panel', 'Alpha panel'])
     for (const [id, label] of [[BETA, 'Beta panel'], [ALPHA, 'Alpha panel']] as const) {
       const row = within(navigation).getByRole('button', { name: label })
+      expect(row.getAttribute('data-sidebar-panel')).toBe(id)
       expect(row.getAttribute('aria-current')).toBeNull()
       expect(row.textContent).toBe(collapsed ? '' : label)
       expect(row.querySelectorAll('svg')).toHaveLength(1)

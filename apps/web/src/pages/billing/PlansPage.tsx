@@ -21,6 +21,7 @@ export interface PlanPricingItem {
   maxSessions: string
   storage: string
   aiTier: string
+  dnaQuota: string
   featured?: boolean
   features: string[]
 }
@@ -33,20 +34,22 @@ export const PRICING_PLANS: PlanPricingItem[] = [
     name: 'Starter',
     slug: 'starter',
     tagline: 'Essential autonomous copywriting pipeline for solo creators and emerging marketers.',
-    monthlyPrice: 97,
-    annualPrice: 600,
-    annualPerMonthPrice: 50,
-    monthlyPriceId: 'price_1UMC67RiKNxooUH0MrL1dIoD',
-    annualPriceId: 'price_1UK6ToRiKNxooUH0cNSm1DLp',
-    tokenAllowanceInput: '2,000,000 tokens',
-    tokenAllowanceOutput: '1,000,000 tokens',
-    totalTokensMonthly: '3,000,000 tokens/month',
+    monthlyPrice: 39,
+    annualPrice: 348,
+    annualPerMonthPrice: 29,
+    monthlyPriceId: 'price_1UTC71RiKNxooUH00Xd4MPwZ',
+    annualPriceId: 'price_1UTCD7RiKNxooUH01oFkwQC6',
+    tokenAllowanceInput: '1,400,000 tokens',
+    tokenAllowanceOutput: '600,000 tokens',
+    totalTokensMonthly: '2,000,000 tokens/month',
     maxWorkspaces: '1 Isolated Workspace',
     maxSessions: '5 Concurrent Sessions',
     storage: '1 GB Secure Storage',
     aiTier: 'Standard AI Engine',
+    dnaQuota: 'Up to 3 Brand DNAs',
     features: [
-      '3,000,000 monthly tokens (2M input / 1M output)',
+      '2,000,000 monthly tokens (1.4M input / 600K output)',
+      'Up to 3 Brand DNAs',
       '1 isolated workspace with secure data isolation',
       'Up to 5 concurrent agent execution sessions',
       'Full campaign copy templates & funnel structures',
@@ -59,11 +62,11 @@ export const PRICING_PLANS: PlanPricingItem[] = [
     name: 'Pro',
     slug: 'pro',
     tagline: 'High-octane multi-agent workflows for growing brands, agencies, and performance teams.',
-    monthlyPrice: 297,
-    annualPrice: 1800,
-    annualPerMonthPrice: 150,
-    monthlyPriceId: 'price_1UMC4lRiKNxooUH0ltHJ1pOf',
-    annualPriceId: 'price_1UK6UuRiKNxooUH0IomDOBgN',
+    monthlyPrice: 99,
+    annualPrice: 948,
+    annualPerMonthPrice: 79,
+    monthlyPriceId: 'price_1UTCEuRiKNxooUH05uZv8GY7',
+    annualPriceId: 'price_1UTCGWRiKNxooUH0cJaaDUPy',
     tokenAllowanceInput: '7,000,000 tokens',
     tokenAllowanceOutput: '3,000,000 tokens',
     totalTokensMonthly: '10,000,000 tokens/month',
@@ -71,9 +74,11 @@ export const PRICING_PLANS: PlanPricingItem[] = [
     maxSessions: '20 Concurrent Sessions',
     storage: '10 GB Secure Storage',
     aiTier: 'Advanced Multi-Agent AI Engine',
+    dnaQuota: 'Up to 10 Brand DNAs',
     featured: true,
     features: [
       '10,000,000 monthly tokens (7M input / 3M output)',
+      'Up to 10 Brand DNAs',
       '5 isolated workspaces with granular RBAC permissions',
       'Up to 20 concurrent execution sessions',
       'Advanced multi-agent autonomous reasoning',
@@ -87,11 +92,11 @@ export const PRICING_PLANS: PlanPricingItem[] = [
     name: 'Legend',
     slug: 'legend',
     tagline: 'Maximum throughput, dedicated capacity, and custom agent infrastructure for high-scale operators.',
-    monthlyPrice: 997,
-    annualPrice: 5600,
-    annualPerMonthPrice: 466,
-    monthlyPriceId: 'price_1UK6P1RiKNxooUH0uikg0x4f',
-    annualPriceId: 'price_1UK6VtRiKNxooUH0GjMUV9Wb',
+    monthlyPrice: 249,
+    annualPrice: 2388,
+    annualPerMonthPrice: 199,
+    monthlyPriceId: 'price_1UTCIDRiKNxooUH0ZOQhFsPa',
+    annualPriceId: 'price_1UTCJmRiKNxooUH0EP1P1vpx',
     tokenAllowanceInput: '25,000,000 tokens',
     tokenAllowanceOutput: '10,000,000 tokens',
     totalTokensMonthly: '35,000,000 tokens/month',
@@ -99,8 +104,10 @@ export const PRICING_PLANS: PlanPricingItem[] = [
     maxSessions: 'Unlimited Sessions',
     storage: '100 GB Dedicated Storage',
     aiTier: 'Premium Dedicated AI Infrastructure',
+    dnaQuota: 'Up to 50 Brand DNAs',
     features: [
       '35,000,000 monthly tokens (25M input / 10M output)',
+      'Up to 50 Brand DNAs',
       'Unlimited workspaces with bespoke access controls',
       'Unlimited concurrent agent sessions',
       '100 GB dedicated enterprise storage',
@@ -114,6 +121,7 @@ export const PRICING_PLANS: PlanPricingItem[] = [
 function specRows(plan: PlanPricingItem): readonly { label: string; value: string }[] {
   return [
     { label: 'Token Quota', value: plan.totalTokensMonthly },
+    { label: 'Brand DNAs', value: plan.dnaQuota },
     { label: 'Workspaces', value: plan.maxWorkspaces },
     { label: 'Concurrency', value: plan.maxSessions },
     { label: 'Storage', value: plan.storage },
@@ -475,7 +483,7 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
           className={`cm-billing-toggle-btn ${billingCycle === 'annual' ? 'cm-billing-toggle-btn--active' : ''}`}
         >
           <span>Annual Billing</span>
-          <span className="cm-billing-discount-tag">Save up to 50%</span>
+          <span className="cm-billing-discount-tag">Save up to 25%</span>
         </button>
       </div>
 
@@ -508,6 +516,8 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
                   Billed annually at ${plan.annualPrice}/year (save ${(plan.monthlyPrice * 12) - plan.annualPrice}/yr)
                 </div>
               ) : null}
+
+              <div className="cm-plan-dna-quota">{plan.dnaQuota}</div>
 
               <button
                 type="button"

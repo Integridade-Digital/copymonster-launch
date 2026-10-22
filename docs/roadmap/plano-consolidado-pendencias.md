@@ -208,4 +208,20 @@
 
 ---
 
+## 9. Preços e Cotas Vigentes — Atualização Estratégica
+
+Atualização de 2026-10-22. Preços em USD; a coluna anual é o valor mensal cobrado no ciclo anual.
+
+| Plano | Preço Mensal (Anual) | Preço Mensal (Mensal) | Cota de Tokens | Cota de DNA |
+|---|---|---|---|---|
+| **Starter** | **$29** | $39 | **2.000.000** | **3** |
+| **Pro** | **$79** | $99 | **10.000.000** | **10** |
+| **Legend** | **$199** | $249 | **35.000.000** | **50** |
+
+- A cota de DNA do plano Admin/Owner da plataforma continua ilimitada.
+- Usuários com assinatura `trial_expired`, `canceled` ou `past_due` caem para a cota `free` (3).
+- Price IDs do Stripe sincronizados em `apps/web/src/pages/billing/PlansPage.tsx` e em `supabase/migrations/042_dna_quota_statuses.sql`.
+
+---
+
 *Fim do plano consolidado. Aguardando aprovação formal para iniciar investigação B4/B5 e execução sequencial.*

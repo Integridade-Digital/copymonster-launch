@@ -311,7 +311,7 @@ As cotas estão declaradas na migration 039 (`supabase/migrations/039_positionin
 - Migration `supabase/migrations/042_dna_quota_statuses.sql` (usuário aplica): `count_my_positioning_mappings` passa a tratar `trial_expired`, `canceled`, `past_due` como cota `free` (3), preservando `trial`, `active` e `admin/owner` ilimitados.
 - Gate de cota também no auto-create do onboarding (reaproveitar a checagem de `MyDnaPage` como função compartilhada); cota estourada → abrir upgrade em vez de criar mapping silenciosamente.
 - `DnaChooserModal` novo (padrão de `onboardingModal.ts` + sinal em `FooterActionsRoot`): ao iniciar campanha, se o usuário tem mais de um DNA (ou cota > 0), perguntar "Qual DNA deseja usar para uma comunicação precisa?" com opção "Campanha Genérica (inicia do zero)"; aplicar via `remote.session.selectPositioning` (`commands.ts:292-333`) antes/depois de criar a sessão, e o modo genérico não seleciona DNA (sessão sem DNA, `defaultPositioningMappingId` permanece `commands.ts:342-358`).
-- `PlansPage`: linhas de feature por plano com a cota de DNAs (3 / 30 / 100 / 500), alinhadas aos valores de 039.
+- `PlansPage`: linhas de feature por plano com a cota de DNAs (3 / 10 / 50), alinhadas aos valores da migration 042.
 
 ## Plano de aplicação (commit)
 

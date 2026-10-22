@@ -140,6 +140,12 @@
   font-size: 11px;
   color: var(--cm-muted-foreground);
 }
+.cm-plan-dna-quota {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cm-primary);
+  margin-bottom: 14px;
+}
 .cm-plan-action-btn {
   width: 100%;
   padding: 8px 12px;

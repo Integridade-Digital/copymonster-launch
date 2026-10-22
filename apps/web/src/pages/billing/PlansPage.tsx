@@ -28,6 +28,11 @@ export interface PlanPricingItem {
 
 const STRIPE_CUSTOMER_PORTAL_URL = 'https://billing.stripe.com/p/login/cNi14p0HG1Iv8HqbgN2Nq00'
 
+/** Read the platform-admin flag published by the app bootstrap. */
+function isPlatformAdminSession(): boolean {
+  return (globalThis as { __DSH_AUTH__?: { isAdmin?: boolean } }).__DSH_AUTH__?.isAdmin === true
+}
+
 export const PRICING_PLANS: PlanPricingItem[] = [
   {
     id: 'starter',
@@ -205,6 +210,14 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
   const [processingPriceId, setProcessingPriceId] = useState<string | null>(null)
   const [actionError, setActionError] = useState<string | null>(null)
   const [specsPlan, setSpecsPlan] = useState<PlanPricingItem | null>(null)
+  const [isPlatformAdmin, setIsPlatformAdmin] = useState<boolean>(isPlatformAdminSession)
+
+  useEffect(() => {
+    const syncPlatformAdmin = (): void => { setIsPlatformAdmin(isPlatformAdminSession()) }
+    syncPlatformAdmin()
+    window.addEventListener('copymonster:auth', syncPlatformAdmin)
+    return () => { window.removeEventListener('copymonster:auth', syncPlatformAdmin) }
+  }, [])
 
   useEffect(() => {
     if (specsPlan === null) return
@@ -365,7 +378,7 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
         </p>
       </div>
 
-      {isTrialing && (
+      {!isPlatformAdmin && isTrialing && (
         <div className="cm-billing-banner cm-billing-banner--trial">
           <div className="cm-billing-banner-header">
             <span className="cm-billing-banner-title">
@@ -393,7 +406,7 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
         </div>
       )}
 
-      {isTrialExpired && (
+      {!isPlatformAdmin && isTrialExpired && (
         <div className="cm-billing-banner cm-billing-banner--expired">
           <div className="cm-billing-banner-header">
             <span className="cm-billing-banner-title">

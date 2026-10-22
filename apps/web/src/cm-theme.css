@@ -94,3 +94,9 @@ html:not([data-cm-is-admin="true"]) .dim-githubAction {
 html:not([data-cm-is-admin="true"]) [data-sidebar-panel="dsh-market"] {
   display: none !important;
 }
+
+/* The market's settings nav row. The dshmarket plugin registers the section
+ * as `market`; hiding the row leaves the section itself untouched. */
+html:not([data-cm-is-admin="true"]) [data-settings-section="market"] {
+  display: none !important;
+}

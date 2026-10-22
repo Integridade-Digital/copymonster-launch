@@ -139,7 +139,7 @@ export class SessionCommandController {
    */
   async create(request: SessionCreateRequest, identity: UserIdentity): Promise<SessionCreateValue> {
     // Subscription gate: check tenant status before creating session
-    if (identity?.tenantId) {
+    if (identity?.tenantId && identity.isAdmin !== true) {
       try {
         const { data: tenant, error: tenantErr } = await supabaseAdminClient
           .from('tenants')
@@ -762,11 +762,13 @@ export class SessionCommandController {
   /**
    * Enforce the tenant token quota before a session-mutating command through
    * `check_tenant_quota`. Fail-closed: a refused or unreachable check blocks
-   * unless the gate runs in `observe` mode, which only logs.
+   * unless the gate runs in `observe` mode, which only logs. Platform admins
+   * from `users.metadata.is_admin` bypass the gate.
    * @param identity - authenticated caller; a missing tenant skips the gate.
    * @param operation - command name used in diagnostics.
    */
   private async assertTenantQuota(identity: UserIdentity | undefined, operation: string): Promise<void> {
+    if (identity?.isAdmin === true) return
     if (identity?.tenantId === undefined || identity.tenantId === '') return
     const mode = this.resolveQuotaGateMode()
     let result: TenantQuotaResult

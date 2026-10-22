@@ -14,6 +14,7 @@ vi.mock('@deepseek-ai/dsh-supabase-client', () => ({
 }))
 
 const identity = { tenantId: 'tenant-123', userId: 'user-1' } as never
+const adminIdentity = { tenantId: 'tenant-123', userId: 'user-1', isAdmin: true } as never
 
 function activeSubscription(): void {
   const single = vi.fn().mockResolvedValue({ data: { subscription_status: 'active' }, error: null })
@@ -70,6 +71,14 @@ describe('SessionCommandController quota gate', () => {
     const controller = new SessionCommandController(new Context(), agentsDouble() as never)
     const result = await controller.create({} as never, identity)
     expect(result.sessionId).toBeDefined()
+  })
+
+  it('lets platform admins create sessions without consulting the quota RPC', async () => {
+    quotaResponse([{ allowed: false, reason: 'quota_exceeded', remaining_tokens: 0 }])
+    const controller = new SessionCommandController(new Context(), agentsDouble() as never)
+    const result = await controller.create({} as never, adminIdentity)
+    expect(result.sessionId).toBeDefined()
+    expect(supabaseAdminClient.rpc).not.toHaveBeenCalled()
   })
 
   it('fails closed when the quota RPC is unavailable (enforce)', async () => {

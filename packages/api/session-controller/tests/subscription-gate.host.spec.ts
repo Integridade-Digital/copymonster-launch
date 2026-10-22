@@ -17,6 +17,7 @@ vi.mock('@deepseek-ai/dsh-supabase-client', () => ({
 }))
 
 const identity = { tenantId: 'tenant-123', userId: 'user-1' } as unknown as UserIdentity
+const adminIdentity = { ...identity, isAdmin: true } as unknown as UserIdentity
 
 /** Stub `tenants.subscription_status` lookup and permit the quota check. */
 function activeSubscription(status: string): void {
@@ -53,6 +54,23 @@ describe('SessionCommandController subscription gate', () => {
     activeSubscription('canceled')
     const controller = new SessionCommandController(new Context(), {} as unknown as ApiSessionAgentController)
     await expect(controller.create({} as SessionCreateRequest, identity)).rejects.toThrow(RemoteError)
+  })
+
+  it('lets platform admins create sessions despite an inactive subscription', async () => {
+    activeSubscription('trial_expired')
+    const ctx = new Context()
+    const mockAgents = {
+      ensureSession: vi.fn().mockResolvedValue({
+        agentPreset: 'preset-default',
+        session: 'sess-1',
+      }),
+      presetForSession: vi.fn().mockReturnValue('preset-default'),
+    } as unknown as ApiSessionAgentController
+    const controller = new SessionCommandController(ctx, mockAgents)
+
+    const root = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    const result = await controller.create({ cwd: root } as SessionCreateRequest, adminIdentity)
+    expect(result.sessionId).toBeDefined()
   })
 
   it('allows session creation when tenant status is active', async () => {

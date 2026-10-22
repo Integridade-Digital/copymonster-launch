@@ -81,3 +81,10 @@ body[data-ds-dark-theme] {
 button, input[type="button"], input[type="submit"], .cm-btn, .adminButton {
   min-height: 44px;
 }
+
+/* Admin-only plugin chrome. The web app mirrors users.metadata.is_admin onto
+ * <html data-cm-is-admin>; plugin bundles that do not read the auth session
+ * use that attribute to gate their own controls. */
+html:not([data-cm-is-admin="true"]) .dim-githubAction {
+  display: none !important;
+}

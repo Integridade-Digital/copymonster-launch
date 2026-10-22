@@ -56,6 +56,15 @@ interface HostBootGlobal {
 const clientAuth = globalThis as ClientAuthGlobal
 
 /**
+ * Mirror the resolved admin flag onto the document so plugin-owned CSS can
+ * gate admin-only chrome that the host does not render.
+ * @param isAdmin - the resolved `users.metadata.is_admin` value.
+ */
+function publishAdminFlag(isAdmin: boolean): void {
+  document.documentElement.dataset.cmIsAdmin = isAdmin ? 'true' : 'false'
+}
+
+/**
  * Publish the signed-in Supabase access token and role where Typert client
  * adapters and UI role gates read it.
  *
@@ -85,13 +94,16 @@ function publishClientAuthSession(): void {
       isPlatformAdmin: isPlatformAdmin(role, tenantId),
       isAdmin: false,
     }
+    publishAdminFlag(false)
 
     if (current?.user?.id) {
       const profile = await getUserFullProfile(current.user.id)
+      const isAdmin = profile?.isAdmin === true
       clientAuth.__DSH_AUTH__ = {
         ...clientAuth.__DSH_AUTH__,
-        isAdmin: profile?.isAdmin === true,
+        isAdmin,
       }
+      publishAdminFlag(isAdmin)
     }
 
     window.dispatchEvent(new CustomEvent('copymonster:auth'))

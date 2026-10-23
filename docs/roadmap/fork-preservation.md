@@ -807,6 +807,14 @@ Arquivos afetados, a atualizar quando o lane voltar a rodar: `apps/web/tests/pla
 
 Ação futura: instalar o browser no CI e adotar uma abordagem que sobreviva ao boot — sessão Supabase válida plantada, ou um patch de boot de teste que publique a role depois do `onAuthStateChange`. Não é bloqueio para produção; é reversível em um commit separado.
 
+### Dívida — Validação de modelo no Scheduled tasks (backend, registrado 2026-10-24)
+
+O plugin `dsh-automation` aceita um `modelKey` no formulário de criação/edição de tarefas agendadas. A UI agora oculta o seletor **Model** para não-admin (`data-field="model"` + `html:not([data-cm-is-admin="true"])` em `apps/web/src/cm-theme.css`), mas a ocultação é apenas visual.
+
+Pendente: o backend/host deve ignorar qualquer `modelKey` enviado por não-admin e forçar o modelo padrão do CopyMonster. Risco: um usuário mal-intencionado pode forçar um modelo caro (por exemplo, Claude Opus) via inspeção de rede ou requisição direta.
+
+Referência: `scripts/apply-dsh-plugins-rebrand.mjs` marca o label do Model com `data-field="model"`; o enforcement de autorização ainda não existe no host.
+
 ### Etapa 9 — anti-abuso (itens adiados 2026-10-09)
 
 Implementado na Etapa 9: blocklist de e-mails descartáveis via trigger `BEFORE INSERT` em `auth.users` (`supabase/migrations/038_block_disposable_emails.sql`) e documentação dos rate limits nativos do Supabase Auth. Visão operacional em [`etapa9-anti-abuso.md`](./etapa9-anti-abuso.md). Os itens abaixo ficam **adiados**:

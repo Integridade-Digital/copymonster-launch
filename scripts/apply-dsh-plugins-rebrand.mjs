@@ -488,6 +488,76 @@ const AUTOMATION_PACKAGE_REPLACEMENTS = [
     'CopyMonster Automation — Schedule and manage coding tasks in isolated CopyMonster sessions'],
 ];
 
+/** CopyMonster palette bridge for the MCP Connector iframe. Parent CSS cannot cross
+ * the iframe document boundary, so the iframe copies the live `--cm-*` values
+ * from the host body and maps them onto its own `--bg`/`--card`/`--accent` set. */
+const MCP_THEME_STYLE = `
+  [data-plugin="dsh-mcp-connector"] .icon-btn.primary,
+  [data-plugin="dsh-mcp-connector"] .btn-primary,
+  [data-plugin="dsh-mcp-connector"] .btn:not(.ghost):not(.danger):not(.status-warning):not(.status-bad) {
+    color: var(--accent-foreground, #fff);
+  }
+  [data-plugin="dsh-mcp-connector"] .icon-btn.primary:hover,
+  [data-plugin="dsh-mcp-connector"] .btn-primary:hover,
+  [data-plugin="dsh-mcp-connector"] .btn:not(.ghost):not(.danger):not(.status-warning):not(.status-bad):hover {
+    background: var(--accent-hover);
+  }
+  [data-plugin="dsh-mcp-connector"] .card:hover,
+  [data-plugin="dsh-mcp-connector"] .card.featured {
+    border-color: var(--accent);
+  }
+  [data-plugin="dsh-mcp-connector"] .switch .slider { background: var(--line); }
+  [data-plugin="dsh-mcp-connector"] .tool-item { border-top-color: var(--line); }
+  [data-plugin="dsh-mcp-connector"] .detail-header .close-btn { color: var(--text-2); }
+  [data-plugin="dsh-mcp-connector"] .detail-header .close-btn:hover {
+    color: var(--text); background: var(--bg); border-color: var(--line);
+  }
+  [data-plugin="dsh-mcp-connector"] main::-webkit-scrollbar-thumb,
+  [data-plugin="dsh-mcp-connector"] .detail-body::-webkit-scrollbar-thumb,
+  [data-plugin="dsh-mcp-connector"] .tools-list::-webkit-scrollbar-thumb { background: var(--line); }
+  [data-plugin="dsh-mcp-connector"] main::-webkit-scrollbar-thumb:hover,
+  [data-plugin="dsh-mcp-connector"] .detail-body::-webkit-scrollbar-thumb:hover,
+  [data-plugin="dsh-mcp-connector"] .tools-list::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+`;
+
+const MCP_THEME_SCRIPT = `<script data-cm-mcp-theme-script>
+(function () {
+  function apply() {
+    if (window.parent === window) return;
+    try {
+      var parentBody = window.parent.document.body;
+      var parentRoot = window.parent.document.documentElement;
+      var source = window.getComputedStyle(parentBody);
+      var root = document.documentElement;
+      var primary = source.getPropertyValue('--cm-primary').trim();
+      function set(name, value) { if (value) root.style.setProperty(name, value); }
+      set('--cm-primary', primary);
+      set('--bg', source.getPropertyValue('--cm-background').trim());
+      set('--card', source.getPropertyValue('--cm-card').trim());
+      set('--line', source.getPropertyValue('--cm-border').trim());
+      set('--text', source.getPropertyValue('--cm-card-foreground').trim());
+      set('--text-2', source.getPropertyValue('--cm-foreground').trim());
+      set('--muted', source.getPropertyValue('--cm-muted-foreground').trim());
+      set('--accent', primary);
+      set('--accent-hover', primary ? 'color-mix(in srgb, ' + primary + ' 82%, #000)' : '');
+      set('--accent-light', primary ? 'color-mix(in srgb, ' + primary + ' 16%, transparent)' : '');
+      set('--accent-foreground', source.getPropertyValue('--cm-primary-foreground').trim());
+      set('--shadow', source.getPropertyValue('--cm-shadow').trim());
+      root.setAttribute('data-cm-theme', parentRoot.getAttribute('data-ds-theme-source') || '');
+    } catch (error) { /* direct iframe open or a cross-origin parent: keep the plugin defaults */ }
+  }
+  apply();
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', apply);
+  window.addEventListener('load', apply);
+  setInterval(apply, 2000);
+  try {
+    var observer = new MutationObserver(apply);
+    observer.observe(window.parent.document.documentElement, { attributes: true, attributeFilter: ['data-ds-theme-source', 'data-cm-is-admin', 'style'] });
+    observer.observe(window.parent.document.body, { attributes: true, attributeFilter: ['data-ds-dark-theme', 'style'] });
+  } catch (error) { /* the observer only exists for the embedded same-origin panel */ }
+})();
+</script>`;
+
 /** Brand names shared by all three plugins. */
 const BRAND_REPLACEMENTS = [
   ['DeepSeek Harness', 'CopyMonster'],
@@ -533,6 +603,14 @@ function rebrand(text) {
   return next.replace(DSH, 'CopyMonster');
 }
 
+function markAutomationModelField(text) {
+  if (text.includes('"data-field":"model"')) return text;
+  return text.replace(
+    /(className:"dsh-st-picker-field")(,children:\[\(0,\w+\.jsxs?\)\("span",\{children:e\("form\.fieldModel"\)\}\))/,
+    '$1,"data-field":"model"$2',
+  );
+}
+
 function translateAutomationPackage(text) {
   let next = text;
   for (const [from, to] of AUTOMATION_PACKAGE_REPLACEMENTS) next = next.split(from).join(to);
@@ -543,6 +621,21 @@ function translateMcpClient(text) {
   let next = text;
   const ordered = [...MCP_CLIENT_REPLACEMENTS].sort((left, right) => right[0].length - left[0].length);
   for (const [from, to] of ordered) next = next.split(from).join(to);
+  return next;
+}
+
+function injectMcpTheme(text) {
+  let next = text;
+  if (!/<html[^>]*data-plugin="dsh-mcp-connector"/.test(next)) {
+    next = next.replace(/<html([^>]*)>/, '<html$1 data-plugin="dsh-mcp-connector">');
+  }
+  next = next.replace('<html lang="zh-CN"', '<html lang="en"');
+  if (!next.includes('data-cm-mcp-theme')) {
+    next = next.replace('</head>', `<style data-cm-mcp-theme>${MCP_THEME_STYLE}</style>\n</head>`);
+  }
+  if (!next.includes('data-cm-mcp-theme-script')) {
+    next = next.replace('</body>', `${MCP_THEME_SCRIPT}\n</body>`);
+  }
   return next;
 }
 
@@ -577,7 +670,7 @@ const plugins = [
   {
     name: 'dsh-mcp-connector',
     files: [
-      { relative: 'ui/index.html', transform: translateMcp },
+      { relative: 'ui/index.html', transform: text => injectMcpTheme(translateMcp(text)) },
       { relative: 'lib/client.js', transform: text => translateMcpClient(rebrand(text)) },
       { relative: 'package.json', transform: rebrand },
     ],
@@ -593,7 +686,7 @@ const plugins = [
   {
     name: '@michengai/dsh-automation',
     files: [
-      { relative: 'lib/client.js', transform: rebrand },
+      { relative: 'lib/client.js', transform: text => markAutomationModelField(rebrand(text)) },
       { relative: 'locale/en.json', transform: rebrand },
       { relative: 'locale/zh.json', transform: rebrand },
       { relative: 'package.json', transform: text => translateAutomationPackage(rebrand(text)) },

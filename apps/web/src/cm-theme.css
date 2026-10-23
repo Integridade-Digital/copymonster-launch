@@ -82,6 +82,11 @@ button, input[type="button"], input[type="submit"], .cm-btn, .adminButton {
   min-height: 44px;
 }
 
+/* The MCP Connector panel is a same-origin iframe; parent CSS cannot cross the
+ * iframe document boundary. Its CopyMonster palette is bridged by
+ * scripts/apply-dsh-plugins-rebrand.mjs, which copies these --cm-* values into
+ * the iframe's own --bg/--card/--accent variables at runtime. */
+
 /* Admin-only plugin chrome. The web app mirrors users.metadata.is_admin onto
  * <html data-cm-is-admin>; plugin bundles that do not read the auth session
  * use that attribute to gate their own controls. */
@@ -98,5 +103,31 @@ html:not([data-cm-is-admin="true"]) [data-sidebar-panel="dsh-market"] {
 /* The market's settings nav row. The dshmarket plugin registers the section
  * as `market`; hiding the row leaves the section itself untouched. */
 html:not([data-cm-is-admin="true"]) [data-settings-section="market"] {
+  display: none !important;
+}
+
+/* Automation's public-repository links and update check are admin-only. The
+ * settings section renders them in its heading row; the data attribute scopes
+ * the update control to the automation bundle. */
+html:not([data-cm-is-admin="true"]) .dsh-st-heading-links a[href*="github.com"],
+html:not([data-cm-is-admin="true"]) .dsh-st-heading-links [data-mpi-check="@michengai/dsh-automation"] {
+  display: none !important;
+}
+
+/* MCP Connector's host-rendered update button ships the plugin's indigo
+ * palette; keep it on the CopyMonster primary surface. */
+.mcpConnectorUpdateButton {
+  background-color: var(--cm-primary) !important;
+  color: var(--cm-primary-foreground) !important;
+  border: 1px solid var(--cm-border) !important;
+}
+
+.mcpConnectorUpdateButton:hover {
+  opacity: 0.9;
+}
+
+/* Model selection is admin-only. The automation task form tags its Model
+ * picker with data-field="model"; keep the row out of non-admin forms. */
+html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
   display: none !important;
 }

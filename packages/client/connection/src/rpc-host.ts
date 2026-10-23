@@ -20,6 +20,7 @@ import type {
   HostConnectionFetch,
   ConnectionRpcEndpointMatcher,
   ConnectionRpcFailure,
+  ConnectionRpcGuard,
   ConnectionRpcHandler,
   ConnectionRpcResult,
   ConnectionRequestRejection,
@@ -59,6 +60,7 @@ declare module '@deepseek-ai/cordis' {
 /** Host Connection service whose channel registrations belong to the caller fiber. */
 export class HostConnectionService extends Service implements HostConnectionHandle {
   private readonly interceptors = new Map<string, ConnectionRpcInterceptor>()
+  private readonly guards = new Map<string, ConnectionRpcGuard>()
   private readonly fetchRoutes = new Map<string, RegisteredFetchRoute>()
 
   /**
@@ -82,6 +84,7 @@ export class HostConnectionService extends Service implements HostConnectionHand
       handle: (channel, handler) => this.register(owner, channel, handler),
       intercept: (channel, matches, handler) =>
         this.registerInterceptor(owner, channel, matches, handler),
+      guard: (channel, guard) => this.registerGuard(owner, channel, guard),
     }
   }
 
@@ -161,7 +164,7 @@ export class HostConnectionService extends Service implements HostConnectionHand
     handler: ConnectionRpcHandler,
   ): () => Promise<void> {
     assertChannel(channel)
-    const fetchHandler = rpcFetchHandler(channel, handler)
+    const fetchHandler = rpcFetchHandler(channel, handler, () => this.guards.get(channel))
     const route: WebRoute = {
       kind: 'prefix',
       path: channel,
@@ -179,6 +182,21 @@ export class HostConnectionService extends Service implements HostConnectionHand
       () => owner.webServer.register(route),
       `client-connection: ${channel} rpc channel`,
     )
+  }
+
+  private registerGuard(
+    owner: Context,
+    channel: string,
+    guard: ConnectionRpcGuard,
+  ): () => Promise<void> {
+    assertChannel(channel)
+    return owner.effect(() => {
+      if (this.guards.has(channel)) {
+        throw new Error(`connection: RPC channel ${JSON.stringify(channel)} already has a guard`)
+      }
+      this.guards.set(channel, guard)
+      return () => { this.guards.delete(channel) }
+    }, `client-connection: ${channel} RPC guard`)
   }
 
   private registerInterceptor(
@@ -209,6 +227,7 @@ export class HostConnectionService extends Service implements HostConnectionHand
 function rpcFetchHandler(
   channel: string,
   handler: ConnectionRpcHandler,
+  guard?: () => ConnectionRpcGuard | undefined,
 ): ConnectionFetchHandler {
   return {
     requestBodyMode: () => 'buffered',
@@ -244,7 +263,14 @@ function rpcFetchHandler(
       }
 
       try {
-        const result = await handler(endpoint, message.payload, request.signal)
+        let payload = message.payload
+        const guardHandler = guard?.()
+        if (guardHandler !== undefined) {
+          const guarded = await guardHandler(request, endpoint, payload)
+          if (guarded instanceof Response) return guarded
+          payload = guarded.payload
+        }
+        const result = await handler(endpoint, payload, request.signal)
         return fullResponse(message.rpcId, result)
       } catch (error) {
         return new Response(`handler failure: ${String(error)}`, { status: 500 })

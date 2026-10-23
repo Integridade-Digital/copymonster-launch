@@ -21,6 +21,8 @@ export type {
   ConnectionIndexResponse,
   ConnectionRpcEndpointMatcher,
   ConnectionRpcFailure,
+  ConnectionRpcGuard,
+  ConnectionRpcGuardResult,
   ConnectionRpcHandler,
   ConnectionRequestRejection,
   ConnectionRpcResult,

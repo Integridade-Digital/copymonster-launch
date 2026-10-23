@@ -810,12 +810,13 @@ Ação futura: instalar o browser no CI e adotar uma abordagem que sobreviva ao 
 ### Dívida — Validação de modelo no Scheduled tasks (backend, registrado 2026-10-24)
 
 - O plugin `dsh-automation` permite escolher modelo via `modelKey` no client. No wire, o RPC `/dsh-automation` (`create`/`update`) recebe `input.provider` e `input.model`; os tools `automation_create`/`automation_update` usam os mesmos campos.
-- A UI foi corrigida para ocultar o seletor de não-admin (commit `098ac1501b`), mas a ocultação é apenas visual.
-- Pendente: o backend/host deve ignorar `provider`/`model` de não-admin e forçar o modelo padrão do CopyMonster.
-- Risco: usuário mal-intencionado pode forçar um modelo caro (Claude Opus) via inspeção de rede ou requisição direta.
+- A UI foi corrigida para ocultar o seletor de não-admin (commit `098ac1501b`).
+- Implementado no host (RPC): o guard `packages/api/auth-http/src/automation-model-guard.ts` intercepta `create`/`update` no canal `/dsh-automation`; sem `isAdmin === true`, reescreve `provider`, `model` e `reasoningEffort` para `null` (seguir a seleção global). O client envia o token Supabase em `Authorization` (`packages/client/connection/src/client/rpc.ts`). Commit `fix(api): force default model for non-admin in scheduled tasks`.
+- Residual: o caminho de tool `automation_create`/`automation_update` (agente) não passa pelo canal RPC e continua sem guard; fechar exige patch/fork do plugin (Opção 3) ou um policy hook no serviço.
+- Risco residual: usuário mal-intencionado ainda pode tentar o caminho de tool ou outro caller interno; o caminho HTTP/RPC direto está coberto.
 - Prioridade: média (segurança/custo).
 
-Referência: `scripts/apply-dsh-plugins-rebrand.mjs` marca o label do Model com `data-field="model"`. O plugin não lê `ctx.authIdentity`, `scopeOf()` usa `creatorKind: "web"` + `hostWide: true` sem identidade, e `AutomationConfig` só expõe `runTimeoutMs`, `misfireGraceMs` e `historyLimit`; um `cordis.patch.yml` isolado não consegue impor a regra.
+Referência: `scripts/apply-dsh-plugins-rebrand.mjs` marca o label do Model com `data-field="model"`. O plugin não lê `ctx.authIdentity`, `scopeOf()` usa `creatorKind: "web"` + `hostWide: true` sem identidade, e `AutomationConfig` só expõe `runTimeoutMs`, `misfireGraceMs` e `historyLimit`; por isso o guard vive no host.
 
 ### Etapa 9 — anti-abuso (itens adiados 2026-10-09)
 

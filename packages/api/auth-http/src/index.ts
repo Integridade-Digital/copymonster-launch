@@ -8,6 +8,8 @@
  * - `POST /api/billing/checkout`: creates a Stripe Checkout session.
  * - `POST /api/billing/portal`: creates a Stripe Customer Portal session.
  * - `POST /api/billing/webhook`: receives and handles Stripe webhooks with raw stream signature verification.
+ * - `/dsh-automation` RPC guard: non-admin create/update writes lose explicit
+ *   model selection and follow the runtime global model.
  *
  * A Cordis function plugin: `inject` waits for the webserver, auth service, and
  * connection, and `apply` registers routes through `ctx.effect(...)` so they
@@ -20,11 +22,12 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-api-auth-context'
-import { BEARER_PREFIX } from '@deepseek-ai/dsh-constants'
+import { bearerToken } from './bearer-token.ts'
 import type { AuthIdentityResponse, AuthErrorResponse } from './types.ts'
 import { handleCheckout, handlePortal, handleWebhook } from './billing.ts'
 import { HEALTHZ_PATH, handleHealthz } from './health.ts'
 import { LLM_TEST_PATH, handleLlmTest } from './llm-test.ts'
+import { AUTOMATION_RPC_CHANNEL, guardAutomationModel } from './automation-model-guard.ts'
 
 export type { AuthErrorResponse, AuthIdentityResponse } from './types.ts'
 export { handleCheckout, handlePortal, handleWebhook, readRawBody, verifyStripeSignature } from './billing.ts'
@@ -47,14 +50,6 @@ const ENTER_PATH = '/enter'
 const BILLING_CHECKOUT_PATH = '/api/billing/checkout'
 const BILLING_PORTAL_PATH = '/api/billing/portal'
 const BILLING_WEBHOOK_PATH = '/api/billing/webhook'
-
-/** Extract the bearer token from an Authorization header value. */
-function bearerToken(header: string | string[] | undefined): string | undefined {
-  const value = Array.isArray(header) ? header[0] : header
-  if (value === undefined || !value.startsWith(BEARER_PREFIX)) return undefined
-  const token = value.slice(BEARER_PREFIX.length).trim()
-  return token === '' ? undefined : token
-}
 
 /** Write one JSON response and end it. */
 function sendJson(res: ServerResponse, status: number, body: unknown): void {
@@ -80,7 +75,7 @@ async function handleMe(ctx: Context, req: IncomingMessage, res: ServerResponse)
     return
   }
 
-  const token = bearerToken(req.headers.authorization)
+  const token = bearerToken(firstHeader(req.headers.authorization))
   if (token === undefined) {
     const body: AuthIdentityResponse = { authenticated: false }
     sendJson(res, 401, body)
@@ -173,4 +168,10 @@ export function apply(ctx: Context): void {
     path: BILLING_WEBHOOK_PATH,
     handler: (req: IncomingMessage, res: ServerResponse) => { handleWebhook(ctx, req, res) },
   }), `auth-http: ${BILLING_WEBHOOK_PATH}`)
+
+  ctx.effect(
+    () => ctx.connection.rpc.guard(AUTOMATION_RPC_CHANNEL, (request, endpoint, payload) =>
+      guardAutomationModel(ctx, request, endpoint, payload)),
+    `auth-http: ${AUTOMATION_RPC_CHANNEL} model guard`,
+  )
 }

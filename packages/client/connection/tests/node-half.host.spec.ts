@@ -385,6 +385,49 @@ describe('connection node half', () => {
     expect(routes).toHaveLength(0)
   })
 
+  it('guards a dedicated channel payload before its handler', async () => {
+    const { routes, connection, dispose } = await mounted()
+    try {
+      const calls: unknown[] = []
+      const removeChannel = connection.rpc.handle('/rpc', async (endpoint, payload) => {
+        calls.push({ endpoint, payload })
+        return { ok: true, value: { accepted: true } }
+      })
+      const removeGuard = connection.rpc.guard('/rpc', async (request, endpoint, payload) => {
+        calls.push({ guarded: endpoint, authorization: request.headers.get('authorization'), payload })
+        return { payload: { guarded: true } }
+      })
+      const route = routes.find(candidate => candidate.path === '/rpc')!
+      const request: ClientRequest = {
+        type: 'client-request',
+        rpcId: RpcId('rpc-guarded'),
+        method: 'goals/create',
+        payload: { args: { agentId: 'agent-1' } },
+      }
+      const result = fakeResponse()
+      await route.handler(fakePost({
+        host: '127.0.0.1:3080',
+        cookie: browserCookie(connection, '127.0.0.1:3080'),
+        authorization: 'Bearer member-token',
+      }, '/rpc/goals/create', request), result.response)
+      expect(result.state.status).toBe(200)
+      expect(calls).toEqual([
+        {
+          guarded: 'goals/create',
+          authorization: 'Bearer member-token',
+          payload: { args: { agentId: 'agent-1' } },
+        },
+        { endpoint: 'goals/create', payload: { guarded: true } },
+      ])
+      expect(() => connection.rpc.guard('/rpc', async (_request, _endpoint, payload) => ({ payload })))
+        .toThrow('already has a guard')
+      await removeGuard()
+      await removeChannel()
+    } finally {
+      await dispose()
+    }
+  })
+
   it('dispatches claimed /api endpoints and withdraws the claim', async () => {
     const ctx = new Context()
     const routes: WebRoute[] = []

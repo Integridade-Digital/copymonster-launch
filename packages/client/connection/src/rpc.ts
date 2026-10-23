@@ -106,6 +106,16 @@ export type ConnectionRpcHandler = (
 /** Synchronous ownership test for one endpoint on a shared RPC channel. */
 export type ConnectionRpcEndpointMatcher = (endpoint: string) => boolean
 
+/** Result of one channel guard: a replacement payload or a response that stops dispatch. */
+export type ConnectionRpcGuardResult = { readonly payload: unknown } | Response
+
+/** Middleware applied to every decoded request on one RPC channel before its handler. */
+export type ConnectionRpcGuard = (
+  request: Request,
+  endpoint: string,
+  payload: unknown,
+) => ConnectionRpcGuardResult | Promise<ConnectionRpcGuardResult>
+
 /** HTTP methods supported by exact Fetch routes on the shared API channel. */
 export type ConnectionFetchMethod = 'GET' | 'HEAD' | 'POST'
 
@@ -158,6 +168,17 @@ export interface HostConnectionRpc {
     channel: '/api',
     matches: ConnectionRpcEndpointMatcher,
     handler: ConnectionRpcHandler,
+  ): () => Promise<void>
+
+  /**
+   * Guard every request on one registered channel before its handler.
+   * @param channel - absolute logical channel such as `/dsh-automation`.
+   * @param guard - payload middleware; return a replacement payload or a response to stop dispatch.
+   * @returns asynchronous disposer removing the guard.
+   */
+  guard(
+    channel: string,
+    guard: ConnectionRpcGuard,
   ): () => Promise<void>
 }
 

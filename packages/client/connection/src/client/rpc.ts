@@ -22,6 +22,12 @@ export type RpcStreamOpen = (
   signal: AbortSignal,
 ) => AsyncIterable<unknown>
 
+/** Bearer token published by the CopyMonster shell, when a Supabase session exists. */
+function authorizationHeader(): string | undefined {
+  const token = (globalThis as { __DSH_AUTH__?: { accessToken?: string } }).__DSH_AUTH__?.accessToken
+  return typeof token === 'string' && token !== '' ? `Bearer ${token}` : undefined
+}
+
 /**
  * Create the browser-backed generic RPC caller.
  * @param doFetch - transport override; defaults to the page's global fetch.
@@ -40,11 +46,15 @@ export function createWebConnectionRpc(doFetch?: RpcFetch, openStream?: RpcStrea
         method: endpoint,
         payload,
       }
+      const authorization = authorizationHeader()
       const response = await send(
         new URL(`${channel}/${endpoint}`, resolveBase()),
         {
           method: 'POST',
-          headers: { 'content-type': 'application/json' },
+          headers: {
+            'content-type': 'application/json',
+            ...authorization === undefined ? {} : { authorization },
+          },
           body: JSON.stringify(message),
           ...signal === undefined ? {} : { signal },
         },

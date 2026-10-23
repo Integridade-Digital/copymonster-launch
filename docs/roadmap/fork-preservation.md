@@ -809,11 +809,13 @@ Ação futura: instalar o browser no CI e adotar uma abordagem que sobreviva ao 
 
 ### Dívida — Validação de modelo no Scheduled tasks (backend, registrado 2026-10-24)
 
-O plugin `dsh-automation` aceita um `modelKey` no formulário de criação/edição de tarefas agendadas. A UI agora oculta o seletor **Model** para não-admin (`data-field="model"` + `html:not([data-cm-is-admin="true"])` em `apps/web/src/cm-theme.css`), mas a ocultação é apenas visual.
+- O plugin `dsh-automation` permite escolher modelo via `modelKey` no client. No wire, o RPC `/dsh-automation` (`create`/`update`) recebe `input.provider` e `input.model`; os tools `automation_create`/`automation_update` usam os mesmos campos.
+- A UI foi corrigida para ocultar o seletor de não-admin (commit `098ac1501b`), mas a ocultação é apenas visual.
+- Pendente: o backend/host deve ignorar `provider`/`model` de não-admin e forçar o modelo padrão do CopyMonster.
+- Risco: usuário mal-intencionado pode forçar um modelo caro (Claude Opus) via inspeção de rede ou requisição direta.
+- Prioridade: média (segurança/custo).
 
-Pendente: o backend/host deve ignorar qualquer `modelKey` enviado por não-admin e forçar o modelo padrão do CopyMonster. Risco: um usuário mal-intencionado pode forçar um modelo caro (por exemplo, Claude Opus) via inspeção de rede ou requisição direta.
-
-Referência: `scripts/apply-dsh-plugins-rebrand.mjs` marca o label do Model com `data-field="model"`; o enforcement de autorização ainda não existe no host.
+Referência: `scripts/apply-dsh-plugins-rebrand.mjs` marca o label do Model com `data-field="model"`. O plugin não lê `ctx.authIdentity`, `scopeOf()` usa `creatorKind: "web"` + `hostWide: true` sem identidade, e `AutomationConfig` só expõe `runTimeoutMs`, `misfireGraceMs` e `historyLimit`; um `cordis.patch.yml` isolado não consegue impor a regra.
 
 ### Etapa 9 — anti-abuso (itens adiados 2026-10-09)
 

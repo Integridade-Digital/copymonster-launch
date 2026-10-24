@@ -488,6 +488,18 @@ const AUTOMATION_PACKAGE_REPLACEMENTS = [
     'CopyMonster Automation — Schedule and manage coding tasks in isolated CopyMonster sessions'],
 ];
 
+/** Automation client UI and command matching strings, longest first. */
+const AUTOMATION_CLIENT_REPLACEMENTS = [
+  ["删除工作区", "Delete Workspace"],
+  ["新建任务", "New Task"],
+  ["新会话", "New Session"],
+  ["重命名", "Rename"],
+  ["设置", "Settings"],
+  ["账号", "Account"],
+  ["账户", "Account"],
+  ["删除", "Delete"],
+];
+
 /** CopyMonster palette bridge for the Scheduled tasks panel.
  *
  * Unlike the MCP Connector, the Automation client is not an iframe: its bundle
@@ -793,6 +805,12 @@ function translateAutomationPackage(text) {
   return next;
 }
 
+function translateAutomationClient(text) {
+  let next = text;
+  for (const [from, to] of AUTOMATION_CLIENT_REPLACEMENTS) next = next.split(from).join(to);
+  return next;
+}
+
 function applyAutomationTheme(text) {
   let next = text;
   next = next.replace(
@@ -914,7 +932,7 @@ const plugins = [
   {
     name: '@michengai/dsh-automation',
     files: [
-      { relative: 'lib/client.js', transform: text => applyAutomationTheme(markAutomationModelField(rebrand(text))) },
+      { relative: 'lib/client.js', transform: text => applyAutomationTheme(markAutomationModelField(translateAutomationClient(rebrand(text)))) },
       { relative: 'locale/en.json', transform: rebrand },
       { relative: 'locale/zh.json', transform: rebrand },
       { relative: 'package.json', transform: text => translateAutomationPackage(rebrand(text)) },

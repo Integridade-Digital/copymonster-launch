@@ -495,8 +495,9 @@ const AUTOMATION_PACKAGE_REPLACEMENTS = [
  * directly. Its own stylesheet reads DSH design tokens (`--dsw-alias-*`) and
  * hardcodes the indigo hover/accent surfaces, so this block remaps those tokens
  * inside the panel's subtrees and replaces the indigo literals with token mixes.
- * The primary button is an antd component whose seed color comes from the
- * `ConfigProvider` theme, patched in `applyAutomationTheme`. */
+ * antd surfaces and the primary seed come from `ConfigProvider` theme tokens
+ * patched in `applyAutomationTheme`, which also reaches portaled modals and
+ * selects that live outside these subtrees. */
 const AUTOMATION_THEME_CSS = `
 /* data-cm-automation-theme:start */
 .dsh-st-shell,
@@ -598,8 +599,70 @@ const AUTOMATION_THEME_CSS = `
 .dsh-st-muted,
 .dsh-st-banner { color: var(--cm-muted-foreground); }
 .dsh-st-error { color: var(--cm-destructive); }
+.dsh-st-n-hover {
+  border-color: var(--cm-border);
+  background: var(--cm-popover);
+  color: var(--cm-card-foreground);
+}
+.dsh-st-overview-row:not(.is-paused) .dsh-st-overview-next strong { color: var(--cm-success); }
+.dsh-st-n-danger-button { color: var(--cm-destructive) !important; }
+.dsh-st-n-danger-button:hover {
+  background: color-mix(in srgb, var(--cm-destructive) 12%, transparent) !important;
+}
+.dsh-st-add-workspace.ant-btn,
+.ant-select-dropdown .dsh-st-add-workspace.ant-btn,
+.ant-select-dropdown .dsh-st-add-workspace.ant-btn span,
+.ant-select-dropdown .dsh-st-add-workspace.ant-btn .ant-btn-icon,
+.dsh-st-add-workspace.ant-btn svg {
+  --ant-btn-text-color: var(--cm-primary);
+  --ant-btn-text-color-hover: var(--cm-primary);
+  --ant-btn-text-color-active: var(--cm-primary);
+  color: var(--cm-primary) !important;
+}
+.dsh-st-add-workspace.ant-btn:not(:disabled):hover,
+.dsh-st-add-workspace.ant-btn:not(:disabled):active,
+.ant-select-dropdown .dsh-st-add-workspace.ant-btn:hover { color: var(--cm-primary) !important; }
 /* data-cm-automation-theme:end */
 `;
+
+/** antd seed and surface tokens resolved from the CopyMonster palette.
+ *
+ * antd derives hover, active, and border tones from these seeds at runtime,
+ * so the helper resolves each variable to the concrete color
+ * `getComputedStyle` reports before antd builds its palette. The tokens apply
+ * to every antd component under the automation `ConfigProvider`, including
+ * modals and selects that React portals render outside the `.dsh-st-*`
+ * subtrees covered by {@link AUTOMATION_THEME_CSS}. */
+const AUTOMATION_ANTD_TOKEN_SOURCES = {
+  colorPrimary: '--cm-primary',
+  colorLink: '--cm-primary',
+  colorTextLightSolid: '--cm-primary-foreground',
+  colorBgBase: '--cm-background',
+  colorBgLayout: '--cm-background',
+  colorBgContainer: '--cm-card',
+  colorBgElevated: '--cm-popover',
+  colorBgSpotlight: '--cm-popover',
+  colorText: '--cm-foreground',
+  colorTextHeading: '--cm-card-foreground',
+  colorTextSecondary: '--cm-muted-foreground',
+  colorTextTertiary: '--cm-muted-foreground',
+  colorTextQuaternary: '--cm-muted-foreground',
+  colorBorder: '--cm-border',
+  colorBorderSecondary: '--cm-border',
+  colorFill: '--cm-accent',
+  colorFillSecondary: '--cm-accent',
+  colorFillTertiary: '--cm-accent',
+  colorFillQuaternary: '--cm-accent',
+  controlItemBgHover: '--cm-accent',
+  controlItemBgActive: '--cm-accent',
+};
+
+/** Minified helper appended next to the plugin's `oH` token reader. */
+const AUTOMATION_ANTD_TOKEN_HELPER = `function oC(){let e={${
+  Object.entries(AUTOMATION_ANTD_TOKEN_SOURCES)
+    .map(([token, variable]) => `${token}:${JSON.stringify(variable)}`)
+    .join(',')
+}},t={};for(let o in e){let n=oH(e[o]);n!==""&&(t[o]=n)}return t}`;
 
 /** CopyMonster palette bridge for the MCP Connector iframe. Parent CSS cannot cross
  * the iframe document boundary, so the iframe copies the live `--cm-*` values
@@ -733,13 +796,35 @@ function translateAutomationPackage(text) {
 function applyAutomationTheme(text) {
   let next = text;
   next = next.replace(
-    'let t=Mk(),o=kk(),n=oH("--dsw-alias-link");',
-    'let t=Mk(),o=kk(),n=oH("--cm-primary")||oH("--dsw-alias-link"),c=oH("--cm-primary");',
+    'n=oH("--dsw-alias-link");',
+    'n=oH("--cm-primary")||oH("--dsw-alias-link"),c=oH("--cm-primary");',
   );
-  next = next.replace(
-    '...n===""?{}:{token:{colorLink:n,colorLinkHover:n,colorLinkActive:n}}',
-    '...n===""?{}:{token:{colorLink:n,colorLinkHover:n,colorLinkActive:n,...c===""?{}:{colorPrimary:c}}}',
-  );
+  const helperStart = next.indexOf('function oC(){');
+  if (helperStart !== -1) {
+    const helperEnd = next.indexOf('function Rn(', helperStart);
+    if (helperEnd !== -1) {
+      next = next.slice(0, helperStart) + AUTOMATION_ANTD_TOKEN_HELPER + next.slice(helperEnd);
+    }
+  } else {
+    const tokenReaderEnd = 'getComputedStyle(document.documentElement).getPropertyValue(e).trim()}';
+    const anchor = next.indexOf(tokenReaderEnd);
+    if (anchor !== -1) {
+      const end = anchor + tokenReaderEnd.length;
+      next = next.slice(0, end) + AUTOMATION_ANTD_TOKEN_HELPER + next.slice(end);
+    }
+  }
+  if (!next.includes('...oC()')) {
+    const primaryOnly = '...c===""?{}:{colorPrimary:c}}';
+    const linkOnly = '...n===""?{}:{token:{colorLink:n,colorLinkHover:n,colorLinkActive:n}}';
+    if (next.includes(primaryOnly)) {
+      next = next.replace(primaryOnly, '...c===""?{}:{colorPrimary:c,...oC()}}');
+    } else {
+      next = next.replace(
+        linkOnly,
+        '...n===""?{}:{token:{colorLink:n,colorLinkHover:n,colorLinkActive:n,...c===""?{}:{colorPrimary:c,...oC()}}}',
+      );
+    }
+  }
   const start = '/* data-cm-automation-theme:start */';
   const end = '/* data-cm-automation-theme:end */';
   const blockStart = next.indexOf(start);

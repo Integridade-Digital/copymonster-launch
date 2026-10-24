@@ -29,6 +29,7 @@ import { readFileSync } from 'node:fs';
 import { access, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
+import { Script } from 'node:vm';
 
 /** Exact English replacements for the bundled MCP connector catalog. */
 const MCP_CATALOG_I18N = JSON.parse(
@@ -493,7 +494,7 @@ const MCP_UI_REPLACEMENTS = [
   [' 个', ''],
   [' 条', ''],
   ['可选择任一 Workspace；项目范围只在该 Workspace 的 Agent 中可见。全局范围由所有 Workspace 继承，范围绑定不保存或复制凭据。',
-    'Select any workspace; project scope is visible only in that workspace\'s agents. Global scope is inherited by all workspaces; scope binding does not save or copy credentials.'],
+    'Select any workspace; project scope is visible only in agents in that workspace. Global scope is inherited by all workspaces; scope binding does not save or copy credentials.'],
   ['策略', 'policy'],
   ['未知', 'Unknown'],
   ['最后成功', 'Last success'],
@@ -515,7 +516,7 @@ const MCP_UI_REPLACEMENTS = [
   ['当前 Host 未观察到该工具，不能报告为已禁用或健康',
     'Current host has not observed this tool; cannot report as disabled or healthy'],
   ['关闭社区入口', 'Close community entry'],
-  ['本次不再显示', "Don't show again"],
+  ['本次不再显示', 'Do not show again'],
   ['当前：', 'Current: '],
   ['当前连接不会中断；', 'The current connection is not interrupted; '],
   ['远程入口解析公网可访问的 URL；本地入口读取对话中上传、粘贴或指定路径的文件并自动提交解析，需 Node.js 20+。',
@@ -592,7 +593,7 @@ const MCP_UI_REPLACEMENTS = [
   ['所选范围？', 'the selected scope?'],
   ['确认将全部连接范围恢复到', 'Restore all connection scopes to'],
   ['按会话启用不会断开 MCP 连接，但会在所有会话中默认隐藏该连接的业务工具。\\n\\n之后需要在对话中明确选择工具才会临时激活，最长 30 分钟。确认继续？',
-    'Session mode does not disconnect the MCP connection, but hides that connection\'s business tools by default in all sessions.\\n\\nYou must explicitly select a tool in the conversation to activate it temporarily, for up to 30 minutes. Continue?'],
+    'Session mode does not disconnect the MCP connection, but hides the business tools of that connection by default in all sessions.\\n\\nYou must explicitly select a tool in the conversation to activate it temporarily, for up to 30 minutes. Continue?'],
   ['请按 Ctrl/Cmd+C 复制脱敏配置', 'Press Ctrl/Cmd+C to copy the redacted configuration'],
   ['名称与启动命令必填', 'Name and start command are required'],
   ['环境变量必须是 JSON 对象', 'Environment variables must be a JSON object'],
@@ -1157,6 +1158,13 @@ function translateMcpCatalog(text) {
   return `${JSON.stringify(translated, null, 2)}\n`;
 }
 
+/** Rejects translated copy that breaks the inline iframe script. */
+function assertMcpInlineScriptParses(text) {
+  const match = text.match(/<script>([\s\S]*?)<\/script>/);
+  if (match !== null) new Script(match[1]);
+  return text;
+}
+
 function injectMcpTheme(text) {
   let next = text;
   if (!/<html[^>]*data-plugin="dsh-mcp-connector"/.test(next)) {
@@ -1203,7 +1211,7 @@ const plugins = [
   {
     name: 'dsh-mcp-connector',
     files: [
-      { relative: 'ui/index.html', transform: text => injectMcpTheme(translateMcp(text)) },
+      { relative: 'ui/index.html', transform: text => assertMcpInlineScriptParses(injectMcpTheme(translateMcp(text))) },
       { relative: 'lib/client.js', transform: text => translateMcpClient(rebrand(text)) },
       { relative: 'lib/constants.js', transform: translateMcpConstants },
       { relative: 'catalog/catalog.json', transform: translateMcpCatalog },

@@ -488,6 +488,119 @@ const AUTOMATION_PACKAGE_REPLACEMENTS = [
     'CopyMonster Automation — Schedule and manage coding tasks in isolated CopyMonster sessions'],
 ];
 
+/** CopyMonster palette bridge for the Scheduled tasks panel.
+ *
+ * Unlike the MCP Connector, the Automation client is not an iframe: its bundle
+ * runs in the host document, so it resolves `--cm-*` from `apps/web/src/cm-theme.css`
+ * directly. Its own stylesheet reads DSH design tokens (`--dsw-alias-*`) and
+ * hardcodes the indigo hover/accent surfaces, so this block remaps those tokens
+ * inside the panel's subtrees and replaces the indigo literals with token mixes.
+ * The primary button is an antd component whose seed color comes from the
+ * `ConfigProvider` theme, patched in `applyAutomationTheme`. */
+const AUTOMATION_THEME_CSS = `
+/* data-cm-automation-theme:start */
+.dsh-st-shell,
+.dsh-st-shell-rail,
+.dsh-st-n,
+.dsh-st-overview,
+.dsh-st-form,
+.dsh-st-prompt-card,
+.dsh-st-skill-menu {
+  --dsw-alias-bg-layer-1: var(--cm-popover);
+  --dsw-alias-bg-layer-2: var(--cm-card);
+  --dsw-alias-bg-layer-3: var(--cm-popover);
+  --dsw-alias-border-l2: var(--cm-border);
+  --dsw-alias-border-l4: var(--cm-border);
+  --dsw-alias-border-inverted: var(--cm-border);
+  --dsw-alias-label-primary: var(--cm-card-foreground);
+  --dsw-alias-label-secondary: var(--cm-muted-foreground);
+  --dsw-alias-label-tertiary: var(--cm-muted-foreground);
+  --dsw-alias-label-caption: var(--cm-muted-foreground);
+  --dsw-alias-link: var(--cm-primary);
+  --dsw-alias-brand-primary: var(--cm-primary);
+  --dsw-alias-button-elevated-fill: var(--cm-card);
+  --dsw-alias-interactive-bg-hover: var(--cm-accent);
+  --dsw-alias-state-business-primary: var(--cm-primary);
+  --dsw-alias-state-business-tertiary: color-mix(in srgb, var(--cm-primary) 14%, transparent);
+  --dsw-alias-state-error-primary: var(--cm-destructive);
+  --dsw-alias-state-success-primary: var(--cm-success);
+  --ant-color-primary: var(--cm-primary);
+  --ant-color-primary-hover: color-mix(in srgb, var(--cm-primary) 86%, var(--cm-background));
+  --ant-color-primary-active: color-mix(in srgb, var(--cm-primary) 74%, var(--cm-background));
+  --ant-color-primary-text: var(--cm-primary);
+  --ant-color-primary-text-hover: var(--cm-primary);
+  --ant-color-primary-text-active: var(--cm-primary);
+  --ant-color-link: var(--cm-primary);
+  --ant-color-text: var(--cm-foreground);
+  --ant-color-text-light-solid: var(--cm-primary-foreground);
+  --ant-color-border: var(--cm-border);
+  --ant-button-primary-color: var(--cm-primary-foreground);
+  --ant-tabs-item-color: var(--cm-muted-foreground);
+  --ant-tabs-item-selected-color: var(--cm-primary);
+  --ant-tabs-ink-bar-color: var(--cm-primary);
+}
+.dsh-st-shell [class*="css-var-"],
+.dsh-st-shell-rail [class*="css-var-"],
+.dsh-st-n [class*="css-var-"],
+.dsh-st-overview [class*="css-var-"],
+.dsh-st-form [class*="css-var-"],
+.dsh-st-prompt-card [class*="css-var-"] {
+  --ant-color-primary: var(--cm-primary);
+  --ant-color-primary-hover: color-mix(in srgb, var(--cm-primary) 86%, var(--cm-background));
+  --ant-color-primary-active: color-mix(in srgb, var(--cm-primary) 74%, var(--cm-background));
+  --ant-color-primary-text: var(--cm-primary);
+  --ant-color-primary-text-hover: var(--cm-primary);
+  --ant-color-primary-text-active: var(--cm-primary);
+  --ant-color-link: var(--cm-primary);
+  --ant-color-text: var(--cm-foreground);
+  --ant-color-text-light-solid: var(--cm-primary-foreground);
+  --ant-color-border: var(--cm-border);
+  --ant-button-primary-color: var(--cm-primary-foreground);
+  --ant-tabs-item-color: var(--cm-muted-foreground);
+  --ant-tabs-item-selected-color: var(--cm-primary);
+  --ant-tabs-ink-bar-color: var(--cm-primary);
+}
+.dsh-st-shell,
+.dsh-st-n,
+.dsh-st-overview { color: var(--cm-foreground); }
+.dsh-st-card,
+.dsh-st-empty,
+.dsh-st-example,
+.dsh-st-banner,
+.dsh-st-prompt-card,
+.dsh-st-overview-row {
+  border-color: var(--cm-border);
+  background: var(--cm-card);
+  color: var(--cm-card-foreground);
+}
+.dsh-st-card:hover,
+.dsh-st-example:hover,
+.dsh-st-overview-row:hover {
+  border-color: color-mix(in srgb, var(--cm-primary) 45%, transparent);
+}
+.dsh-st-chip,
+.dsh-st-skill-token {
+  background: color-mix(in srgb, var(--cm-primary) 14%, transparent);
+  color: var(--cm-primary);
+}
+.dsh-st-tabs,
+.dsh-st-shell-tabs { border-bottom-color: var(--cm-border); }
+.dsh-st-settings-tabs .ant-tabs-tab-btn { color: var(--cm-muted-foreground); }
+.dsh-st-settings-tabs .ant-tabs-tab-active .ant-tabs-tab-btn { color: var(--cm-primary); }
+.dsh-st-settings-tabs .ant-tabs-ink-bar { background: var(--cm-primary); }
+.dsh-st-top h1,
+.dsh-st-card h3,
+.dsh-st-empty h3 { color: var(--cm-card-foreground); }
+.dsh-st-card p,
+.dsh-st-empty p,
+.dsh-st-example p,
+.dsh-st-card-foot,
+.dsh-st-muted,
+.dsh-st-banner { color: var(--cm-muted-foreground); }
+.dsh-st-error { color: var(--cm-destructive); }
+/* data-cm-automation-theme:end */
+`;
+
 /** CopyMonster palette bridge for the MCP Connector iframe. Parent CSS cannot cross
  * the iframe document boundary, so the iframe copies the live `--cm-*` values
  * from the host body and maps them onto its own `--bg`/`--card`/`--accent` set. */
@@ -617,6 +730,36 @@ function translateAutomationPackage(text) {
   return next;
 }
 
+function applyAutomationTheme(text) {
+  let next = text;
+  next = next.replace(
+    'let t=Mk(),o=kk(),n=oH("--dsw-alias-link");',
+    'let t=Mk(),o=kk(),n=oH("--cm-primary")||oH("--dsw-alias-link"),c=oH("--cm-primary");',
+  );
+  next = next.replace(
+    '...n===""?{}:{token:{colorLink:n,colorLinkHover:n,colorLinkActive:n}}',
+    '...n===""?{}:{token:{colorLink:n,colorLinkHover:n,colorLinkActive:n,...c===""?{}:{colorPrimary:c}}}',
+  );
+  const start = '/* data-cm-automation-theme:start */';
+  const end = '/* data-cm-automation-theme:end */';
+  const blockStart = next.indexOf(start);
+  if (blockStart !== -1) {
+    const blockEnd = next.indexOf(end, blockStart);
+    if (blockEnd !== -1) {
+      const before = next.slice(0, blockStart);
+      const after = next.slice(blockEnd + end.length);
+      const css = AUTOMATION_THEME_CSS.trim();
+      const cssStart = css.indexOf(start);
+      return before + css.slice(cssStart) + after;
+    }
+  }
+  const cssAnchor = next.indexOf(',HO=`');
+  if (cssAnchor === -1) return next;
+  const cssEnd = next.indexOf('`;function WO()', cssAnchor);
+  if (cssEnd === -1) return next;
+  return next.slice(0, cssEnd) + AUTOMATION_THEME_CSS + next.slice(cssEnd);
+}
+
 function translateMcpClient(text) {
   let next = text;
   const ordered = [...MCP_CLIENT_REPLACEMENTS].sort((left, right) => right[0].length - left[0].length);
@@ -686,7 +829,7 @@ const plugins = [
   {
     name: '@michengai/dsh-automation',
     files: [
-      { relative: 'lib/client.js', transform: text => markAutomationModelField(rebrand(text)) },
+      { relative: 'lib/client.js', transform: text => applyAutomationTheme(markAutomationModelField(rebrand(text))) },
       { relative: 'locale/en.json', transform: rebrand },
       { relative: 'locale/zh.json', transform: rebrand },
       { relative: 'package.json', transform: text => translateAutomationPackage(rebrand(text)) },

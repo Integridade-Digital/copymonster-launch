@@ -3,13 +3,15 @@
  *
  * The MCP Connector ships a Chinese-first iframe UI; GenUI and Automation ship
  * English base copy with product-brand references. This script translates the
- * MCP Connector's interface chrome to English and replaces user-visible
- * `DSH` / `DeepSeek Harness` references with CopyMonster in all three plugins.
+ * MCP Connector's interface chrome and bundled catalog to English and replaces
+ * user-visible `DSH` / `DeepSeek Harness` references with CopyMonster in all
+ * three plugins. It also disables the remote MCP catalog so the translated
+ * bundled catalog is authoritative.
  *
- * Protected: package names, API paths, config keys, tool names, catalog data,
- * Chinese host diagnostics used by the MCP regex matchers, and the GenUI /
- * Automation Chinese locale dictionaries (they remain available for Chinese
- * users; the app's English locale selects the English dictionaries).
+ * Protected: package names, API paths, config keys, tool names, Chinese host
+ * diagnostics used by the MCP regex matchers, and the GenUI / Automation
+ * Chinese locale dictionaries (they remain available for Chinese users; the
+ * app's English locale selects the English dictionaries).
  *
  * Safe to run repeatedly: already-translated copy is left alone and absent
  * files are skipped.
@@ -23,9 +25,15 @@
  * The relative path assumes the profile and repository share the same parent.
  */
 
+import { readFileSync } from 'node:fs';
 import { access, readFile, writeFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { homedir } from 'node:os';
+
+/** Exact English replacements for the bundled MCP connector catalog. */
+const MCP_CATALOG_I18N = JSON.parse(
+  readFileSync(new URL('./dsh-mcp-catalog-i18n.json', import.meta.url), 'utf8'),
+);
 
 /** MCP Connector's user-visible interface copy, longest first at apply time. */
 const MCP_UI_REPLACEMENTS = [
@@ -1109,6 +1117,46 @@ function translateMcpClient(text) {
   return next;
 }
 
+/** Points catalog resolution at the bundled English catalog and drops remote fallbacks. */
+function translateMcpConstants(text) {
+  let next = text;
+  next = next.replace(
+    /export const DEFAULT_CATALOG_URL =\s*'[^']*';/,
+    "export const DEFAULT_CATALOG_URL = '';",
+  );
+  next = next.replace(
+    /export const DEFAULT_CATALOG_FALLBACK_URLS = \[[^\]]*\];/,
+    'export const DEFAULT_CATALOG_FALLBACK_URLS = [];',
+  );
+  if (!/export const DEFAULT_CATALOG_URL = '';/.test(next)
+    || !/export const DEFAULT_CATALOG_FALLBACK_URLS = \[\];/.test(next)) {
+    throw new Error('MCP catalog URL was not neutralized');
+  }
+  return next;
+}
+
+/** Replaces every Chinese catalog string through the exact translation table. */
+function translateMcpCatalog(text) {
+  if (!/[\u4e00-\u9fff]/.test(text)) return text;
+  const translate = (value) => typeof value === 'string'
+    ? (MCP_CATALOG_I18N[value] ?? value)
+    : value;
+  const walk = (value) => {
+    if (typeof value === 'string') return translate(value);
+    if (Array.isArray(value)) return value.map(walk);
+    if (value !== null && typeof value === 'object') {
+      return Object.fromEntries(Object.entries(value).map(([key, entry]) => [key, walk(entry)]));
+    }
+    return value;
+  };
+  const translated = walk(JSON.parse(text));
+  const remaining = JSON.stringify(translated).match(/[\u4e00-\u9fff]+/g);
+  if (remaining !== null) {
+    throw new Error(`untranslated MCP catalog strings: ${[...new Set(remaining)].join(', ')}`);
+  }
+  return `${JSON.stringify(translated, null, 2)}\n`;
+}
+
 function injectMcpTheme(text) {
   let next = text;
   if (!/<html[^>]*data-plugin="dsh-mcp-connector"/.test(next)) {
@@ -1157,6 +1205,8 @@ const plugins = [
     files: [
       { relative: 'ui/index.html', transform: text => injectMcpTheme(translateMcp(text)) },
       { relative: 'lib/client.js', transform: text => translateMcpClient(rebrand(text)) },
+      { relative: 'lib/constants.js', transform: translateMcpConstants },
+      { relative: 'catalog/catalog.json', transform: translateMcpCatalog },
       { relative: 'package.json', transform: rebrand },
     ],
   },

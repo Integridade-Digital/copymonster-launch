@@ -35,6 +35,7 @@ import type {
   SessionWireEvent,
 } from './types.ts'
 import { SessionAssistantStreamAccumulator } from './assistant-stream.ts'
+import { sanitizeProviderFailureEvent } from './provider-error.ts'
 
 const DEFAULT_MAX_MESSAGES = 50
 const MESSAGE_TYPES = new Set(['user/message', 'assistant/message'])
@@ -430,7 +431,7 @@ function entryFor(event: SessionEvent): SessionEventEntry {
   return {
     type: 'event',
     // Session.append validates and freezes event data as JSON before publication.
-    event: event as unknown as SessionWireEvent,
+    event: sanitizeProviderFailureEvent(event) as unknown as SessionWireEvent,
   }
 }
 

@@ -741,6 +741,43 @@ describe('Session history raw journal', () => {
     ])
   })
 
+  it('redacts provider failures on the wire while retaining the durable diagnostic', async () => {
+    const { ctx } = await harness()
+    const remote = createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    session.append('turn/start', { turn: 1 })
+    const failure = {
+      code: 'UNKNOWN',
+      status: 404,
+      message: '404: {"message":"The free offer `Claude Haiku5.5 — Limited Time` has ended. Use the paid model `claude-haiku-5.5` to keep going.","type":"campaign_ended","code":"campaign_ended"}',
+    }
+    const end = session.append('turn/end', {
+      turn: 1,
+      reason: { kind: 'error', error: failure },
+    })
+
+    const response = await remote.page({
+      address: { kind: 'session', sessionId: session.id },
+      throughSeq: session.seq - 1,
+    })
+    if (!response.ok) throw new Error('unreachable')
+    const [wireEnd] = pageEvents(response.value).filter(event => event.type === 'turn/end')
+    expect(wireEnd?.data).toEqual({
+      turn: 1,
+      reason: {
+        kind: 'error',
+        error: {
+          code: 'MODEL_UNAVAILABLE',
+          message: 'The selected model is unavailable right now. Please try again or contact support.',
+        },
+      },
+    })
+    expect(JSON.stringify(wireEnd)).not.toContain('Claude')
+    expect(session.snapshotEvents().at(-1)).toEqual(end)
+    expect(end.data).toEqual({ turn: 1, reason: { kind: 'error', error: failure } })
+    await ctx.fiber.dispose()
+  })
+
   it('counts only append-origin messages toward maxMessages and keeps each compaction summary with its replacement', async () => {
     const { ctx } = await harness()
     const remote = createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })

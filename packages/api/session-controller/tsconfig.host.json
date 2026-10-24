@@ -20,6 +20,7 @@
     "src/list.ts",
     "src/media-references.ts",
     "src/model-selection-projection.ts",
+    "src/provider-error.ts",
     "src/skill-catalog.ts",
     "src/session-db-sync.ts"
   ],

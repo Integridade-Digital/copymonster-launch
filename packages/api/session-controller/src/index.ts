@@ -20,6 +20,7 @@ import { requireAuthIdentity } from './auth-identity.ts'
 import { SessionCommandController } from './commands.ts'
 import type { QuotaGateMode, TenantQuotaCheck } from './commands.ts'
 import { sessionTenantMap } from './commands.ts'
+import { sanitizeProviderFailureMessage } from './provider-error.ts'
 import { incrementSessionTokens, markSessionStatus, upsertSessionIndex } from './session-db-sync.ts'
 import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
 import { SessionControlController } from './control.ts'
@@ -176,7 +177,7 @@ export class SessionController extends TypertRemoteService {
       ctx.emit('api-session/status', agent.id, status === 'running')
     })
     ctx.on('agent/error', ({ agent, error }) => {
-      ctx.emit('api-session/error', agent.id, errorChain(error))
+      ctx.emit('api-session/error', agent.id, sanitizeProviderFailureMessage(errorChain(error)))
     })
     ctx.on('session/event', (session, event) => {
       if (event.type === 'request/header') {

@@ -52,7 +52,9 @@ function failureMessage(
   code: unknown,
   t: ChatViewSlotProps['t'],
 ): string {
-  return code === 'AUTH' ? t('message.failure.auth') : message
+  if (code === 'AUTH') return t('message.failure.auth')
+  if (code === 'MODEL_UNAVAILABLE') return t('message.failure.modelUnavailable')
+  return message
 }
 
 function ModelRetryItem({ node, active, t }: {

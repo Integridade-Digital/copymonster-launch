@@ -31,13 +31,15 @@ const allowQuota: TenantQuotaCheck = () =>
   Promise.resolve({ allowed: true, reason: 'ok', remainingTokens: 1_000_000 })
 
 /** ensureSession/resolveAgent fakes that never touch persistence. */
-function harnessAgents(): ApiSessionAgentController {
+function harnessAgents(overrides: object = {}): ApiSessionAgentController {
   return {
     ensureSession: (sessionId: SessionId) =>
       Promise.resolve({ id: sessionId, session: { id: sessionId } } as unknown as Agent),
+    disposeAgent: () => Promise.resolve(),
     composeAgent: () => Promise.resolve({ setup: () => {} }),
     presetForSession: () => undefined,
     presetForObservation: () => undefined,
+    ...overrides,
   } as unknown as ApiSessionAgentController
 }
 
@@ -76,6 +78,41 @@ describe('SessionCommandController.delete', () => {
 
     expect(value.deleted).toBe(true)
     expect(remove).toHaveBeenCalledWith(SessionId('s1'))
+    await ctx.fiber.dispose()
+  })
+
+  it('disposes an idle live Agent before removing its log', async () => {
+    const ctx = await baseContext()
+    const stat = vi.fn(async () => statSnapshot(`${sandboxRoot}/projects/p`))
+    const remove = vi.fn(async () => {})
+    const disposeAgent = vi.fn(async () => {})
+    ctx.provide('sessionPersistence', { stat, delete: remove } as never)
+    vi.spyOn(ctx.agents, 'get').mockReturnValue({ id: SessionId('s1'), status: 'idle' } as Agent)
+    const controller = new SessionCommandController(ctx, harnessAgents({ disposeAgent }), 'enforce', allowQuota)
+
+    const value = await controller.delete({ sessionId: SessionId('s1') }, sandboxRoot)
+
+    expect(value.deleted).toBe(true)
+    expect(disposeAgent).toHaveBeenCalledWith(SessionId('s1'))
+    expect(disposeAgent.mock.invocationCallOrder[0]).toBeLessThan(remove.mock.invocationCallOrder[0] as number)
+    await ctx.fiber.dispose()
+  })
+
+  it('refuses to delete while the Agent is running', async () => {
+    const ctx = await baseContext()
+    const stat = vi.fn(async () => statSnapshot(`${sandboxRoot}/projects/p`))
+    const remove = vi.fn(async () => {})
+    const disposeAgent = vi.fn(async () => {})
+    ctx.provide('sessionPersistence', { stat, delete: remove } as never)
+    vi.spyOn(ctx.agents, 'get').mockReturnValue({ id: SessionId('s1'), status: 'running' } as Agent)
+    const controller = new SessionCommandController(ctx, harnessAgents({ disposeAgent }), 'enforce', allowQuota)
+
+    await expectFailure(
+      controller.delete({ sessionId: SessionId('s1') }, sandboxRoot),
+      'session/writer-held',
+    )
+    expect(disposeAgent).not.toHaveBeenCalled()
+    expect(remove).not.toHaveBeenCalled()
     await ctx.fiber.dispose()
   })
 

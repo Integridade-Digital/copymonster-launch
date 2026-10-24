@@ -170,6 +170,30 @@ describe('ApiSession Agent lookup and recovery', () => {
     })
   })
 
+  it('retains the resolved Agent handle for explicit disposal', async () => {
+    const { ctx, agents } = await harness()
+    const meta = header('dispose-resume')
+    const resumed = unpublishedAgent(ctx, meta)
+    const dispose = vi.fn(() => Promise.resolve())
+    vi.spyOn(ctx.agents, 'resume').mockResolvedValue({ agent: resumed, dispose })
+    const observed = {
+      source: 'prepared',
+      header: meta,
+      events: [],
+      cursor: -1,
+      projections: { asOfSeq: -1, values: {} },
+      retain: vi.fn(),
+      [Symbol.dispose]: vi.fn(),
+    } as unknown as SessionObservation
+
+    await expect(agents.resolveObservedAgent(observed)).resolves.toEqual({ agent: resumed })
+    await agents.disposeAgent(meta.id)
+
+    expect(dispose).toHaveBeenCalledOnce()
+    await agents.disposeAgent(meta.id)
+    expect(dispose).toHaveBeenCalledOnce()
+  })
+
   it('projects live Agent contexts and maps missing cold identities through Typert lookup failures', async () => {
     const { ctx } = await harness()
     const live = agent(ctx, header('live'))

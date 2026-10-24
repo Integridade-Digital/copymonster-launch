@@ -116,6 +116,15 @@ function hasPromptContent(content: readonly PromptContentCandidate[]): boolean {
   return content.some(part => part.type !== 'text' || part.text.trim().length > 0)
 }
 
+/** Refusal for a Session whose Agent still owns the durable writer. */
+function sessionWriterHeld(sessionId: SessionId): RemoteError {
+  return new RemoteError(
+    'session/writer-held',
+    `session "${sessionId}" is in use and cannot be deleted`,
+    { sessionId },
+  )
+}
+
 /** Implements Session business commands delegated by the Session Controller Remote service. */
 export const sessionTenantMap = new WeakMap<Session, { tenantId: string; userId: string; positioningMappingId?: string }>()
 
@@ -396,8 +405,8 @@ export class SessionCommandController {
 
   /**
    * Permanently remove one stored Session and its durable log. Idempotent for
-   * an absent Session. A live Session (an open writer) refuses: the caller
-   * must end it first.
+   * an absent Session. An idle live Session is disposed first so its writer is
+   * released; a running Agent refuses until it settles.
    * @param request - Session identity to remove.
    * @param sandboxRoot - confined root; when supplied, the Session's cwd must be inside it.
    * @returns deletion confirmation.
@@ -407,16 +416,13 @@ export class SessionCommandController {
     if (snapshot === undefined) return { deleted: true }
     const cwd = snapshot.header.cwd
     if (cwd !== undefined && sandboxRoot !== undefined) this.assertCwdInSandbox(cwd, sandboxRoot)
+    const live = this.ctx.agents.get(request.sessionId)
+    if (live?.status === 'running') throw sessionWriterHeld(request.sessionId)
+    await this.agents.disposeAgent(request.sessionId)
     try {
       await this.ctx.sessionPersistence.delete(request.sessionId)
     } catch (error) {
-      if (error instanceof SessionAlreadyOwnedError) {
-        throw new RemoteError(
-          'session/writer-held',
-          `session "${request.sessionId}" is in use and cannot be deleted`,
-          { sessionId: request.sessionId },
-        )
-      }
+      if (error instanceof SessionAlreadyOwnedError) throw sessionWriterHeld(request.sessionId)
       throw error
     }
     return { deleted: true }

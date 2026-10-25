@@ -1148,6 +1148,11 @@ const MAIL_THEME_REPLACEMENTS = [
   ['.mlx-in:focus{outline:2px solid var(--brand);outline-offset:-1px}', '.mlx-in:focus{outline:2px solid var(--cm-ring,var(--brand));outline-offset:-1px}'],
 ];
 
+/** Visible dsh-better-sidebar labels; package ids and module keys stay unchanged. */
+const BETTER_SIDEBAR_UI_REPLACEMENTS = [
+  ['DSH-better-sidebar', 'CopyMonster Sidebar'],
+];
+
 /** Brand names shared by every delivery plugin. */
 const BRAND_REPLACEMENTS = [
   ['DeepSeek Harness', 'CopyMonster'],
@@ -1222,6 +1227,10 @@ function translateVercelHost(text) {
 
 function translatePreviewClient(text) {
   return rebrand(applyReplacementTable(text, PREVIEW_THEME_REPLACEMENTS));
+}
+
+function translateBetterSidebar(text) {
+  return rebrand(applyReplacementTable(text, BETTER_SIDEBAR_UI_REPLACEMENTS));
 }
 
 function markAutomationModelField(text) {
@@ -1440,6 +1449,18 @@ const plugins = [
     name: 'dsh-preview-plugin',
     files: [
       { relative: 'lib/client.js', transform: translatePreviewClient },
+      { relative: 'lib/index.js', transform: rebrand },
+      { relative: 'package.json', transform: rebrand },
+    ],
+  },
+  {
+    name: 'dsh-better-sidebar',
+    files: [
+      { relative: 'lib/client.js', transform: translateBetterSidebar },
+      { relative: 'lib/client-registry.js', transform: translateBetterSidebar },
+      { relative: 'lib/client-editor.js', transform: translateBetterSidebar },
+      { relative: 'lib/client-mermaid.js', transform: translateBetterSidebar },
+      { relative: 'lib/client-terminal.js', transform: translateBetterSidebar },
       { relative: 'lib/index.js', transform: rebrand },
       { relative: 'package.json', transform: rebrand },
     ],

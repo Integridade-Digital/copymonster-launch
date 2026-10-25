@@ -24,6 +24,12 @@ export function RegisterPage() {
   const [cooldown, setCooldown] = useState(0)
   const [resendFeedback, setResendFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
+  // Signup always opens dark, regardless of the stored or system preference.
+  useEffect(() => {
+    document.body.setAttribute('data-ds-dark-theme', '')
+    document.documentElement.style.colorScheme = 'dark'
+  }, [])
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value })
     setError(null)

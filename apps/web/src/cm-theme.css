@@ -131,3 +131,245 @@ html:not([data-cm-is-admin="true"]) .dsh-st-heading-links [data-mpi-check="@mich
 html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
   display: none !important;
 }
+
+/* Settings sections share one card recipe. The shell tags the active section
+ * with `data-settings-section`; section plugins ship their own stylesheets,
+ * so the app normalizes their surfaces here instead of editing each package.
+ * Card values: cm-card fill, 1px cm-border, 12px radius, 16px inset.
+ * Selected/featured/broken colors stay with the owning section. */
+
+/* Section columns use the full content width, like General. */
+[data-settings-section] [data-slot="settings.section"] > * {
+  width: 100% !important;
+  max-width: none !important;
+}
+
+/* Profile and Plans are app pages rendered into section slots. */
+[data-settings-section="profile"] .cm-profile-container,
+[data-settings-section="plans"] .cm-billing-container {
+  max-width: none !important;
+  padding: 0 !important;
+}
+
+[data-settings-section="profile"] .cm-profile-card,
+[data-settings-section="plans"] .cm-plan-card {
+  background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  box-shadow: none !important;
+}
+
+[data-settings-section="profile"] .cm-profile-card {
+  margin-bottom: 16px !important;
+}
+
+[data-settings-section="plans"] .cm-plan-card--featured {
+  border-color: var(--cm-primary) !important;
+  box-shadow: 0 0 16px color-mix(in srgb, var(--cm-primary) 10%, transparent) !important;
+}
+
+[data-settings-section="plans"] .cm-plan-card--current {
+  border-color: var(--cm-ring) !important;
+}
+
+[data-settings-section="plans"] .cm-billing-banner {
+  border-radius: 12px !important;
+  padding: 16px !important;
+}
+
+/* My DNA cards are CSS-module `card` classes. */
+[data-settings-section="my-dna"] :is(
+  [class^="_card_"], [class*=" _card_"],
+  [class$="_card"], [class*="_card "]
+) {
+  background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+  box-shadow: none !important;
+}
+
+/* Built-in plugins: the inventory cards carry their inset on the inner
+ * button, so only the surface moves here. MCP Connector's settings card is a
+ * global class published by the plugin stylesheet. */
+[data-settings-section="plugins"] :is(
+  [class^="_card_"], [class*=" _card_"],
+  [class$="_card"], [class*="_card "]
+) {
+  background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+[data-settings-section="plugins"] :is(
+  [class^="_cardContent_"], [class*=" _cardContent_"],
+  [class$="_cardContent"], [class*="_cardContent "]
+) {
+  padding: 16px !important;
+}
+
+[data-settings-section="plugins"] .mcpConnectorSettingsCard {
+  background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+[data-settings-section="plugins"] .mcpConnectorSettingsHeader {
+  padding: 16px !important;
+}
+
+[data-settings-section="plugins"] .mcpConnectorSettingsBody {
+  margin: 0 16px !important;
+}
+
+/* Agent presets: the outer card owns the surface and the inner button owns
+ * the inset. */
+[data-settings-section="agent-presets"] :is(
+  [class^="_pickerPreference_"], [class*=" _pickerPreference_"],
+  [class$="_pickerPreference"], [class*="_pickerPreference "]
+) {
+  background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+}
+
+[data-settings-section="agent-presets"] :is(
+  [class^="_card_"], [class*=" _card_"],
+  [class$="_card"], [class*="_card "]
+) {
+  background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+[data-settings-section="agent-presets"] :is(
+  [class^="_cardMain_"], [class*=" _cardMain_"],
+  [class$="_cardMain"], [class*="_cardMain "]
+) {
+  padding: 16px !important;
+}
+
+[data-settings-section="agent-presets"] :is(
+  [class^="_cardFoot_"], [class*=" _cardFoot_"],
+  [class$="_cardFoot"], [class*="_cardFoot "]
+) {
+  padding: 8px 16px !important;
+}
+
+[data-settings-section="agent-presets"] :is(
+  [class^="_cardActive_"], [class*=" _cardActive_"],
+  [class$="_cardActive"], [class*="_cardActive "]
+) {
+  background: color-mix(in srgb, var(--cm-primary) 10%, var(--cm-card)) !important;
+  border-color: var(--cm-primary) !important;
+}
+
+[data-settings-section="agent-presets"] :is(
+  [class^="_cardBroken_"], [class*=" _cardBroken_"],
+  [class$="_cardBroken"], [class*="_cardBroken "]
+) {
+  border-color: var(--cm-destructive) !important;
+}
+
+/* Models: provider rows and the add/setup cards. Nested editors keep their
+ * own module surface. */
+[data-settings-section="models"] :is(
+  [class^="_rowCard_"], [class*=" _rowCard_"],
+  [class$="_rowCard"], [class*="_rowCard "],
+  [class^="_setupCard_"], [class*=" _setupCard_"],
+  [class$="_setupCard"], [class*="_setupCard "],
+  [class^="_addCard_"], [class*=" _addCard_"],
+  [class$="_addCard"], [class*="_addCard "]
+) {
+  background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+}
+
+/* Scheduled tasks ships global `.dsh-st-*` classes. */
+[data-settings-section="scheduled-tasks"] :is(
+  .dsh-st-card, .dsh-st-example, .dsh-st-prompt-card
+) {
+  background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+[data-settings-section="scheduled-tasks"] :is(.dsh-st-card, .dsh-st-example) {
+  padding: 16px !important;
+}
+
+[data-settings-section="scheduled-tasks"] .dsh-st-overview-row {
+  background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: 12px !important;
+}
+
+[data-settings-section="scheduled-tasks"] .dsh-st-banner {
+  background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+}
+
+/* Vercel MCP renders one inline-styled card; its declarations are inline, so
+ * this recipe must be important. */
+[data-settings-section="vercel-mcp"] [data-slot="settings.section"] > div {
+  max-width: none !important;
+  background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+}
+
+/* Side card: the group containers and inventory cards are CSS-module
+ * `group` / `card` classes. */
+[data-settings-section="better-sidebar"] :is(
+  [class^="_group_"], [class*=" _group_"],
+  [class$="_group"], [class*="_group "]
+) {
+  background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: 12px !important;
+  padding: 16px !important;
+}
+
+[data-settings-section="better-sidebar"] :is(
+  [class^="_card_"], [class*=" _card_"],
+  [class$="_card"], [class*="_card "]
+) {
+  background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: 12px !important;
+  box-shadow: none !important;
+}
+
+[data-settings-section="better-sidebar"] :is(
+  [class^="_cardMain_"], [class*=" _cardMain_"],
+  [class$="_cardMain"], [class*="_cardMain "]
+) {
+  padding: 16px !important;
+}
+
+/* IM bots publishes global `.dim-*` classes. */
+[data-settings-section="xmanrui-dsh-im"] :is(.dim-botCard, .dim-channel) {
+  background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: 12px !important;
+}
+
+[data-settings-section="xmanrui-dsh-im"] .dim-botCardBody {
+  padding: 16px !important;
+}
+
+[data-settings-section="xmanrui-dsh-im"] .dim-channel[aria-selected="true"] {
+  background: color-mix(in srgb, var(--cm-primary) 10%, var(--cm-card)) !important;
+  border-color: var(--cm-primary) !important;
+}

@@ -330,6 +330,11 @@ describe('SettingsPanel navigation', () => {
     expect(screen.getByRole('button', { name: 'Models' }).getAttribute('aria-current')).toBeNull()
     expect(screen.getByRole('button', { name: 'Models' }).getAttribute('data-settings-section')).toBe('models')
     expect(screen.getByTestId('section-general')).toBeTruthy()
+    expect(
+      screen.getByTestId('section-general')
+        .closest('[data-settings-section]')
+        ?.getAttribute('data-settings-section'),
+    ).toBe('general')
   })
 
   it('shows the creator BYOK Models row for every caller', () => {

@@ -1092,6 +1092,18 @@ const MAIL_HOST_REPLACEMENTS = [
   ["trustedHosts: ['llm.tzekos.eu']", `trustedHosts: ['${COPYMONSTER_AUTHORITY}', 'localhost', '127.0.0.1']`],
 ];
 
+/** dsh-vercel-mcp's loopback fence rejects the proxy's public Host header. */
+const VERCEL_HOST_FENCE_REPLACEMENTS = [
+  [
+    'hostUrl.hostname !== "127.0.0.1" && hostUrl.hostname !== "localhost" && hostUrl.hostname !== "[::1]") return false;',
+    `hostUrl.hostname !== "127.0.0.1" && hostUrl.hostname !== "localhost" && hostUrl.hostname !== "[::1]" && hostUrl.hostname !== "${COPYMONSTER_AUTHORITY}") return false;`,
+  ],
+  [
+    'return hostUrl.hostname === "127.0.0.1" || hostUrl.hostname === "localhost" || hostUrl.hostname === "[::1]";',
+    `return hostUrl.hostname === "127.0.0.1" || hostUrl.hostname === "localhost" || hostUrl.hostname === "[::1]" || hostUrl.hostname === "${COPYMONSTER_AUTHORITY}";`,
+  ],
+];
+
 /** CopyMonster tokens for the dsh-vercel-mcp settings panel inline styles. */
 const VERCEL_THEME_REPLACEMENTS = [
   ['border: "1px solid rgba(128,128,128,0.3)"', 'border: "1px solid var(--cm-border)"'],
@@ -1203,7 +1215,8 @@ function translateVercelClient(text) {
 }
 
 function translateVercelHost(text) {
-  const translated = applyReplacementTable(text, VERCEL_HOST_REPLACEMENTS);
+  let translated = applyReplacementTable(text, VERCEL_HOST_REPLACEMENTS);
+  translated = applyReplacementTable(translated, VERCEL_HOST_FENCE_REPLACEMENTS);
   return rebrand(translated.replace('html lang=\\"zh-CN\\"', 'html lang=\\"en\\"'));
 }
 

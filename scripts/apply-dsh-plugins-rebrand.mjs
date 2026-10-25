@@ -1084,6 +1084,14 @@ const VERCEL_HOST_REPLACEMENTS = [
   ['join("、")', 'join(", ")'],
 ];
 
+/** Public authority the reverse proxy presents to the plugin route fences. */
+const COPYMONSTER_AUTHORITY = 'app.copymonster.co';
+
+/** dsh-mail's hardcoded trust fence must admit the CopyMonster proxy authority. */
+const MAIL_HOST_REPLACEMENTS = [
+  ["trustedHosts: ['llm.tzekos.eu']", `trustedHosts: ['${COPYMONSTER_AUTHORITY}', 'localhost', '127.0.0.1']`],
+];
+
 /** CopyMonster tokens for the dsh-vercel-mcp settings panel inline styles. */
 const VERCEL_THEME_REPLACEMENTS = [
   ['border: "1px solid rgba(128,128,128,0.3)"', 'border: "1px solid var(--cm-border)"'],
@@ -1183,6 +1191,10 @@ function applyReplacementTable(text, table) {
 
 function translateMailClient(text) {
   return rebrand(applyReplacementTable(text, MAIL_THEME_REPLACEMENTS));
+}
+
+function translateMailHost(text) {
+  return rebrand(applyReplacementTable(text, MAIL_HOST_REPLACEMENTS));
 }
 
 function translateVercelClient(text) {
@@ -1399,7 +1411,7 @@ const plugins = [
     name: 'dsh-mail',
     files: [
       { relative: 'lib/client.js', transform: translateMailClient },
-      { relative: 'lib/index.js', transform: rebrand },
+      { relative: 'lib/index.js', transform: translateMailHost },
       { relative: 'package.json', transform: rebrand },
     ],
   },

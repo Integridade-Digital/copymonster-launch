@@ -158,6 +158,24 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
   max-width: none !important;
 }
 
+/* Regra cirurgica unificada: padronizacao exata de cards em todas as secoes de Settings */
+[data-settings-section="profile"] :is(.card, .cm-profile-card),
+[data-settings-section="plans"] :is(.card, .cm-plan-card),
+[data-settings-section="my-dna"] :is(.card, [class*="_card"]),
+[data-settings-section="models"] :is(.card, [class*="_rowCard"], [class*="_setupCard"], [class*="_addCard"]),
+[data-settings-section="agent-presets"] :is(.card, [class*="_card"], [class*="_pickerPreference"]),
+[data-settings-section="plugins"] :is(.card, [class*="_card"], .mcpConnectorSettingsCard),
+[data-settings-section="xmanrui-dsh-im"] :is(.card, .dim-botCard, .dim-channel),
+[data-settings-section="scheduled-tasks"] :is(.card, .dsh-st-card, .dsh-st-example, .dsh-st-prompt-card),
+[data-settings-section="better-sidebar"] :is(.card, [class*="_card"], [class*="_group"]),
+[data-settings-section="vercel-mcp"] :is(.card, [data-slot="settings.section"] > div) {
+  border-radius: var(--cm-radius-lg, 12px) !important;
+  padding: var(--cm-padding-card, 16px) !important;
+  border: 1px solid var(--cm-border) !important;
+  background: var(--cm-card) !important;
+  box-shadow: none !important;
+}
+
 /* Profile and Plans are app pages rendered into section slots. */
 [data-settings-section="profile"] .cm-profile-container,
 [data-settings-section="plans"] .cm-billing-container {

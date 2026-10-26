@@ -39,6 +39,20 @@
   --cm-success: #15803d;
   --cm-shadow: 0 4px 20px -2px rgba(24, 22, 17, 0.08), 0 1px 4px rgba(24, 22, 17, 0.04);
   --cm-overlay: rgba(0, 0, 0, 0.65);
+
+  /* Geometria */
+  --cm-radius-sm: 6px;
+  --cm-radius-md: 8px;
+  --cm-radius-lg: 12px;
+  --cm-padding-card: 16px;
+  --cm-padding-section: 24px;
+  --cm-gap-card: 12px;
+
+  /* Tipografia */
+  --cm-font-size-sm: 12px;
+  --cm-font-size-md: 14px;
+  --cm-font-size-lg: 16px;
+  --cm-font-size-xl: 20px;
 }
 
 body[data-ds-dark-theme] {

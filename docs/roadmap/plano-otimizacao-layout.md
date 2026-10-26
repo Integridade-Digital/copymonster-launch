@@ -1,5 +1,7 @@
 # Plano de Otimização de Layout — CopyMonster
 
+> **Status:** Commits 1 a 5 concluídos. Commit 6 (remoção de `!important`) **adiado por dívida técnica** (ver `fork-preservation.md`). Commit 7 (regressão visual) é pré-requisito para retomar o Commit 6.
+
 **Status:** auditoria técnica de código concluída; auditoria visual de runtime pendente de capturas autenticadas.
 **Escopo:** seções de Settings e superfícies principais que compartilham o tema CopyMonster.
 **Base analisada:** branch `master` no checkout desta auditoria, incluindo `apps/web/src/cm-theme.css`, os registros de slots de Settings, estilos dos componentes client e `scripts/apply-dsh-plugins-rebrand.mjs`.

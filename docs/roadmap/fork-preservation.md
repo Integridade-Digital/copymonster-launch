@@ -785,6 +785,15 @@ R snapshots/web/present-svg/workspace.expected/von-neumann.svg -> snapshots/web/
 
 ## 8. Itens adiados
 
+### Dívida — Remoção de `!important` obsoletos (Commit 6)
+
+- O `cm-theme.css` mantém 90 ocorrências de `!important`.
+- Os Commits 2 a 5 já padronizaram o layout com tokens centralizados (`--cm-radius-*`, `--cm-padding-*`, etc.).
+- A auditoria confirmou que usar o mesmo token **não prova redundância**: algumas declarações sobrescrevem valores deliberadamente diferentes (ex: padding de Profile/Plans/My DNA).
+- Sem screenshots autenticados/computed styles, não é possível validar a remoção com segurança.
+- Risco: regressão silenciosa em seções com estados especiais (featured, current, selected, broken).
+- Correção futura: implementar regressão visual automatizada (Commit 7 do plano) e depois remover os `!important` com confiança.
+
 ### Dívida — check-theme.sh baseline vermelho (registrado 2026-10-21)
 
 `bash scripts/check-theme.sh` falha no baseline atual com 55 literais de cor fora de `apps/web/src/cm-theme.css`:

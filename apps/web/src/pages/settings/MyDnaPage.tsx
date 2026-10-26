@@ -145,7 +145,7 @@ export function MyDnaPage({ onClose }: MyDnaPageProps) {
 
       <div className={css.grid}>
         {rows.map(row => (
-          <div key={row.id} className={css.card}>
+          <div key={row.id} className={`${css.card} cm-settings-dna-card`}>
             <div className={css.cardHead}>
               <h4 className={css.cardName}>{row.name}</h4>
               <div className={css.badges}>

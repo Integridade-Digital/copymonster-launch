@@ -184,8 +184,29 @@ div[data-settings-section="vercel-mcp"] {
   padding: 0 !important;
 }
 
-[data-settings-section="plans"] .cm-plan-card {
+/* Section surfaces use the General card recipe: cm-card fill, 1px cm-border,
+ * 12px radius, 16px inset, no shadow. Selectors name one section surface each
+ * so no rule reaches nested controls or unrelated sections. */
+[data-settings-section="profile"] .cm-settings-profile-card,
+[data-settings-section="plans"] .cm-plan-card,
+[data-settings-section="my-dna"] .cm-settings-dna-card,
+[data-settings-section="scheduled-tasks"] .dsh-st-card,
+[data-settings-section="scheduled-tasks"] .dsh-st-example,
+[data-settings-section="scheduled-tasks"] .dsh-st-prompt-card,
+[data-settings-section="scheduled-tasks"] .dsh-st-banner,
+[data-settings-section="vercel-mcp"] [data-slot="settings.section"] > div {
+  box-sizing: border-box !important;
   background: var(--cm-card) !important;
+  border: 1px solid var(--cm-border) !important;
+  border-radius: var(--cm-radius-lg) !important;
+  padding: var(--cm-padding-card) !important;
+  box-shadow: none !important;
+}
+
+/* Billing banners keep their state tint (trial/expired/active) while sharing
+ * the card geometry. */
+[data-settings-section="plans"] .cm-billing-banner {
+  box-sizing: border-box !important;
   border: 1px solid var(--cm-border) !important;
   border-radius: var(--cm-radius-lg) !important;
   padding: var(--cm-padding-card) !important;
@@ -200,13 +221,6 @@ div[data-settings-section="vercel-mcp"] {
 [data-settings-section="plans"] .cm-plan-card--current {
   border-color: var(--cm-ring) !important;
 }
-
-[data-settings-section="plans"] .cm-billing-banner {
-  border-radius: var(--cm-radius-lg) !important;
-  padding: var(--cm-padding-card) !important;
-}
-
-/* My DNA cards own the shared recipe in MyDnaPage.module.css. */
 
 /* Built-in plugins: the inventory cards carry their inset on the inner
  * button, so only the surface moves here. MCP Connector's settings card is a
@@ -313,44 +327,36 @@ div[data-settings-section="vercel-mcp"] {
   padding: var(--cm-padding-card) !important;
 }
 
-/* Scheduled tasks ships global `.dsh-st-*` classes in the host document.
- * Scoped to section to avoid leaking into other surfaces. */
-[data-settings-section="scheduled-tasks"] :is(
-  .dsh-st-card, .dsh-st-example, .dsh-st-prompt-card
-) {
+/* Scheduled tasks overview rows keep their own compact inset. */
+[data-settings-section="scheduled-tasks"] .dsh-st-overview-row {
+  box-sizing: border-box !important;
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
   border-radius: var(--cm-radius-lg) !important;
   box-shadow: none !important;
 }
 
-[data-settings-section="scheduled-tasks"] :is(.dsh-st-card, .dsh-st-example) {
-  padding: var(--cm-padding-card) !important;
-}
-
-[data-settings-section="scheduled-tasks"] .dsh-st-overview-row {
-  background: var(--cm-card) !important;
-  border: 1px solid var(--cm-border) !important;
-  border-radius: var(--cm-radius-lg) !important;
-}
-
-[data-settings-section="scheduled-tasks"] .dsh-st-banner {
-  background: var(--cm-card) !important;
-  border: 1px solid var(--cm-border) !important;
-  border-radius: var(--cm-radius-lg) !important;
-  padding: var(--cm-padding-card) !important;
-}
-
-/* Vercel MCP renders one inline-styled card in host DOM; its declarations are inline.
- * Managed further in Commit 5 (bridge/inline normalization). */
+/* Vercel MCP renders one inline-styled card in host DOM. */
 [data-settings-section="vercel-mcp"] [data-slot="settings.section"] > div {
   width: 100% !important;
   max-width: none !important;
-  box-sizing: border-box !important;
-  background: var(--cm-card) !important;
-  border: 1px solid var(--cm-border) !important;
-  border-radius: var(--cm-radius-lg) !important;
-  padding: var(--cm-padding-card) !important;
+}
+
+/* Vercel MCP buttons are inline-styled too. They take the General selector
+ * geometry (pill control) rather than the card surface. */
+[data-settings-section="vercel-mcp"] button {
+  min-height: 44px !important;
+  padding: 0 14px !important;
+  border: none !important;
+  border-radius: 18px !important;
+  background: var(--dsw-alias-bg-module-platform) !important;
+  color: var(--dsw-alias-label-primary) !important;
+  font-size: var(--cm-font-size-md) !important;
+  box-shadow: none !important;
+}
+
+[data-settings-section="vercel-mcp"] button:disabled {
+  opacity: 0.5 !important;
 }
 
 /* Side card (dsh-better-sidebar): the group containers and inventory cards are CSS-module

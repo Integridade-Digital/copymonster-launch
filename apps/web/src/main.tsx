@@ -222,7 +222,7 @@ class WebAppErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
 
 function ProfileSettingsItem() {
   return (
-    <div className="cm-settings-page">
+    <div className="cm-settings-page cm-settings-profile-card">
       <ProfilePage />
     </div>
   )

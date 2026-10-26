@@ -19,7 +19,7 @@
 }
 
 .cm-profile-subtitle {
-  font-size: 14px;
+  font-size: var(--cm-font-size-md);
   color: var(--cm-muted-foreground);
   margin: 0;
 }
@@ -27,8 +27,8 @@
 .cm-profile-card {
   background: var(--cm-card);
   border: 1px solid color-mix(in srgb, var(--cm-primary) 20%, transparent);
-  border-radius: 12px;
-  padding: 24px;
+  border-radius: var(--cm-radius-lg);
+  padding: var(--cm-padding-section);
   margin-bottom: 24px;
   box-shadow: var(--cm-shadow);
 }
@@ -63,9 +63,9 @@
   padding: 10px 14px;
   background: var(--cm-muted);
   border: 1px solid var(--cm-input);
-  border-radius: 8px;
+  border-radius: var(--cm-radius-md);
   color: var(--cm-foreground);
-  font-size: 14px;
+  font-size: var(--cm-font-size-md);
   box-sizing: border-box;
   transition: border-color 0.2s, box-shadow 0.2s;
 }
@@ -84,14 +84,14 @@
 }
 
 .cm-profile-help {
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   color: var(--cm-muted-foreground);
   margin-top: 6px;
   margin-bottom: 0;
 }
 
 .cm-profile-error-text {
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   color: var(--cm-destructive);
   margin-top: 6px;
   margin-bottom: 0;
@@ -102,9 +102,9 @@
   background: linear-gradient(135deg, var(--cm-primary) 0%, var(--cm-primary) 100%);
   color: var(--cm-primary-foreground);
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--cm-font-size-md);
   border: none;
-  border-radius: 8px;
+  border-radius: var(--cm-radius-md);
   cursor: pointer;
   transition: opacity 0.2s, transform 0.1s;
 }
@@ -121,8 +121,8 @@
 
 .cm-profile-alert {
   padding: 12px 16px;
-  border-radius: 8px;
-  font-size: 14px;
+  border-radius: var(--cm-radius-md);
+  font-size: var(--cm-font-size-md);
   margin-bottom: 20px;
 }
 

@@ -6,14 +6,14 @@
 .section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--cm-gap-card);
   max-width: 720px;
   color: var(--dsw-alias-label-primary);
 }
 
 .title {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--cm-font-size-lg);
   line-height: 24px;
   font-weight: 500;
   color: var(--dsw-alias-label-primary);
@@ -21,21 +21,21 @@
 
 .intro {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--cm-font-size-md);
   line-height: 22px;
   color: var(--dsw-alias-label-tertiary);
 }
 
 .notice {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   line-height: 18px;
   color: var(--dsw-alias-state-warn-label);
 }
 
 .savedNotice {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   line-height: 18px;
   color: var(--dsw-alias-state-success-primary);
 }
@@ -54,11 +54,12 @@
    card it expands into reads as the nested object. */
 .rowCard {
   border: 0.5px solid var(--dsw-alias-border-l4);
+  /* Excecao: card de provider usa 16px (hierarquia intencional de container) */
   border-radius: 16px;
   padding: 12px 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--cm-gap-card);
 }
 
 .rowHead {
@@ -75,7 +76,7 @@
 }
 
 .rowName {
-  font-size: 14px;
+  font-size: var(--cm-font-size-md);
   line-height: 22px;
   font-weight: 500;
   color: var(--dsw-alias-label-primary);
@@ -89,6 +90,7 @@
   flex: none;
   padding: 1px 6px;
   border: 0.5px solid var(--dsw-alias-border-l3);
+  /* Excecao: tag compacta usa 4px */
   border-radius: 4px;
   font-size: 11px;
   line-height: 16px;
@@ -134,9 +136,10 @@
   height: 36px;
   padding: 0 14px;
   border: none;
+  /* Excecao: controle pill usa 18px (raio igual a metade da altura 36px) */
   border-radius: 18px;
   font: inherit;
-  font-size: 14px;
+  font-size: var(--cm-font-size-md);
   line-height: 22px;
   cursor: pointer;
 }
@@ -174,11 +177,12 @@
   height: 36px;
   padding: 0 14px;
   border: none;
+  /* Excecao: controle pill usa 18px (raio igual a metade da altura 36px) */
   border-radius: 18px;
   background: transparent;
   color: var(--dsw-alias-state-error-primary);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--cm-font-size-md);
   line-height: 22px;
   cursor: pointer;
 }
@@ -192,8 +196,9 @@
 .rowActions .dangerButton {
   height: 28px;
   padding: 0 10px;
+  /* Excecao: botao capsule .sm usa 14px (raio igual a metade da altura 28px) */
   border-radius: 14px;
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   line-height: 18px;
 }
 
@@ -222,7 +227,7 @@
 /* Editing surface: a filled module on the panel, matching the settings
    selector fill rather than adding another outline inside the row. */
 .editor {
-  border-radius: 12px;
+  border-radius: var(--cm-radius-lg);
   background: var(--dsw-alias-bg-module-platform);
   padding: 14px 16px;
   display: flex;
@@ -237,14 +242,14 @@
 }
 
 .editorTitle {
-  font-size: 14px;
+  font-size: var(--cm-font-size-md);
   line-height: 22px;
   font-weight: 500;
   color: var(--dsw-alias-label-primary);
 }
 
 .editorRoute {
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   line-height: 18px;
   color: var(--dsw-alias-label-tertiary);
 }
@@ -259,7 +264,7 @@
   display: inline-flex;
   align-items: center;
   gap: 10px;
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   line-height: 18px;
   font-weight: 500;
   color: var(--dsw-alias-label-secondary);
@@ -272,11 +277,12 @@
   height: 28px;
   padding: 0 10px;
   border: none;
+  /* Excecao: botao capsule .sm usa 14px (raio igual a metade da altura 28px) */
   border-radius: 14px;
   background: transparent;
   color: var(--dsw-alias-label-tertiary);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   line-height: 18px;
   cursor: pointer;
 }
@@ -288,7 +294,7 @@
 
 .advancedHint {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   line-height: 18px;
   color: var(--dsw-alias-label-tertiary);
 }
@@ -302,7 +308,7 @@
 .addBlock {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--cm-gap-card);
 }
 
 /* The two ways to gain a provider, as equal siblings spanning the same width
@@ -324,12 +330,13 @@
   gap: 6px;
   height: 44px;
   border: 1px dashed var(--dsw-alias-border-l3);
+  /* Excecao: card de provider usa 16px (hierarquia intencional de container) */
   border-radius: 16px;
 }
 
 .addCard,
 .setupCard {
-  border-radius: 12px;
+  border-radius: var(--cm-radius-lg);
   background: var(--dsw-alias-bg-module-platform);
   padding: 14px 16px;
   display: flex;
@@ -359,9 +366,9 @@
   width: fit-content;
   padding: 2px 4px;
   margin-left: -4px;
-  border-radius: 6px;
+  border-radius: var(--cm-radius-sm);
   cursor: pointer;
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   line-height: 18px;
   font-weight: 500;
   color: var(--dsw-alias-label-secondary);
@@ -393,7 +400,7 @@
 .customizedBody {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--cm-gap-card);
   padding-top: 12px;
 }
 
@@ -412,7 +419,7 @@
 }
 
 .modelCatalogTitle {
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   line-height: 18px;
   font-weight: 500;
   color: var(--dsw-alias-label-secondary);
@@ -422,7 +429,7 @@
 .modelEmpty {
   margin: 0;
   color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   line-height: 18px;
 }
 
@@ -436,11 +443,12 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--cm-gap-card);
 }
 
 .modelEntry {
   border: 0.5px solid var(--dsw-alias-border-l4);
+  /* Excecao: entrada interna de modelo usa 10px */
   border-radius: 10px;
   padding: 6px;
 }
@@ -462,7 +470,7 @@
   width: 28px;
   height: 28px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--cm-radius-sm);
   background: transparent;
   color: var(--dsw-alias-label-tertiary);
   cursor: pointer;
@@ -521,14 +529,14 @@
 
 .modelFieldLabel {
   color: var(--dsw-alias-label-tertiary);
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   line-height: 18px;
 }
 
 .modelEmpty {
   padding: 12px;
   border: 1px dashed var(--dsw-alias-border-l3);
-  border-radius: 8px;
+  border-radius: var(--cm-radius-md);
   text-align: center;
 }
 
@@ -541,11 +549,12 @@
   height: 28px;
   padding: 0 10px;
   border: 0.5px solid var(--dsw-alias-border-l3);
+  /* Excecao: botao capsule .sm usa 14px (raio igual a metade da altura 28px) */
   border-radius: 14px;
   background: transparent;
   color: var(--dsw-alias-label-primary);
   font: inherit;
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   line-height: 18px;
   cursor: pointer;
 }
@@ -560,9 +569,9 @@
   height: 32px;
   padding: 0 10px;
   border: 0.5px solid var(--dsw-alias-border-l4);
-  border-radius: 8px;
+  border-radius: var(--cm-radius-md);
   font: inherit;
-  font-size: 14px;
+  font-size: var(--cm-font-size-md);
   line-height: 22px;
   background: var(--dsw-alias-bg-layer-1);
   color: var(--dsw-alias-label-primary);
@@ -605,7 +614,7 @@ select.input {
 
 .error {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   line-height: 18px;
   color: var(--dsw-alias-state-error-primary);
 }
@@ -676,7 +685,7 @@ select.input {
 }
 
 .candidate {
-  border-radius: 6px;
+  border-radius: var(--cm-radius-sm);
 }
 
 .candidateLabel {

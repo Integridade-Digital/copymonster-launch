@@ -169,8 +169,8 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
 [data-settings-section="plans"] .cm-plan-card {
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 12px !important;
-  padding: 16px !important;
+  border-radius: var(--cm-radius-lg) !important;
+  padding: var(--cm-padding-card) !important;
   box-shadow: none !important;
 }
 
@@ -188,8 +188,8 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
 }
 
 [data-settings-section="plans"] .cm-billing-banner {
-  border-radius: 12px !important;
-  padding: 16px !important;
+  border-radius: var(--cm-radius-lg) !important;
+  padding: var(--cm-padding-card) !important;
 }
 
 /* My DNA cards are CSS-module `card` classes. */
@@ -199,8 +199,8 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
 ) {
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 12px !important;
-  padding: 16px !important;
+  border-radius: var(--cm-radius-lg) !important;
+  padding: var(--cm-padding-card) !important;
   box-shadow: none !important;
 }
 
@@ -247,8 +247,8 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
 ) {
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 12px !important;
-  padding: 16px !important;
+  border-radius: var(--cm-radius-lg) !important;
+  padding: var(--cm-padding-card) !important;
 }
 
 [data-settings-section="agent-presets"] :is(
@@ -257,7 +257,7 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
 ) {
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 12px !important;
+  border-radius: var(--cm-radius-lg) !important;
   box-shadow: none !important;
 }
 
@@ -265,7 +265,7 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
   [class^="_cardMain_"], [class*=" _cardMain_"],
   [class$="_cardMain"], [class*="_cardMain "]
 ) {
-  padding: 16px !important;
+  padding: var(--cm-padding-card) !important;
 }
 
 [data-settings-section="agent-presets"] :is(
@@ -302,8 +302,8 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
 ) {
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 12px !important;
-  padding: 16px !important;
+  border-radius: var(--cm-radius-lg) !important;
+  padding: var(--cm-padding-card) !important;
 }
 
 /* Scheduled tasks ships global `.dsh-st-*` classes. */

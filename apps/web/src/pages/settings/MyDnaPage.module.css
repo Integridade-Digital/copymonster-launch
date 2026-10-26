@@ -10,7 +10,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: var(--cm-gap-card);
   flex-wrap: wrap;
 }
 
@@ -22,7 +22,7 @@
   border-radius: 999px;
   background: color-mix(in srgb, var(--cm-primary) 12%, transparent);
   color: var(--cm-primary);
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -35,7 +35,7 @@
 .primaryButton {
   padding: 8px 16px;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--cm-radius-md);
   background: var(--cm-primary);
   color: var(--cm-primary-foreground);
   font-family: inherit;
@@ -64,10 +64,10 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: var(--cm-gap-card);
   padding: 56px 0;
   color: var(--cm-muted-foreground);
-  font-size: 14px;
+  font-size: var(--cm-font-size-md);
 }
 
 .spinner {
@@ -105,7 +105,7 @@
 .emptyText {
   margin: 0;
   max-width: 360px;
-  font-size: 14px;
+  font-size: var(--cm-font-size-md);
   line-height: 1.5;
   color: var(--cm-muted-foreground);
 }
@@ -122,7 +122,7 @@
   gap: 10px;
   padding: 20px;
   border: 1px solid var(--cm-border);
-  border-radius: 8px;
+  border-radius: var(--cm-radius-md);
   background: var(--cm-card);
   transition: box-shadow 0.15s ease;
 }
@@ -140,7 +140,7 @@
 
 .cardName {
   margin: 0;
-  font-size: 16px;
+  font-size: var(--cm-font-size-lg);
   font-weight: 600;
   color: var(--cm-foreground);
 }
@@ -182,7 +182,7 @@
 
 .cardUpdated {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   color: var(--cm-muted-foreground);
 }
 
@@ -196,11 +196,11 @@
 .cardButton {
   padding: 6px 12px;
   border: 1px solid var(--cm-border);
-  border-radius: 6px;
+  border-radius: var(--cm-radius-sm);
   background: transparent;
   color: var(--cm-foreground);
   font-family: inherit;
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   font-weight: 500;
   cursor: pointer;
   transition: border-color 0.15s ease, color 0.15s ease;
@@ -239,7 +239,7 @@
 
 .inlineHint {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   line-height: 1.5;
   color: var(--cm-muted-foreground);
 }
@@ -248,7 +248,7 @@
   height: 32px;
   padding: 0 10px;
   border: 1px solid var(--cm-border);
-  border-radius: 6px;
+  border-radius: var(--cm-radius-sm);
   background: var(--cm-background);
   color: var(--cm-foreground);
   font-family: inherit;

@@ -930,6 +930,23 @@ const AUTOMATION_ANTD_TOKEN_HELPER = `function oC(){let e={${
  * the iframe document boundary, so the iframe copies the live `--cm-*` values
  * from the host body and maps them onto its own `--bg`/`--card`/`--accent` set. */
 const MCP_THEME_STYLE = `
+  :root {
+    --cm-radius-sm: 6px;
+    --cm-radius-md: 8px;
+    --cm-radius-lg: 12px;
+    --cm-padding-card: 16px;
+    --cm-padding-section: 24px;
+    --cm-gap-card: 12px;
+    --cm-font-size-sm: 12px;
+    --cm-font-size-md: 14px;
+    --cm-font-size-lg: 16px;
+    --cm-font-size-xl: 20px;
+  }
+  [data-plugin="dsh-mcp-connector"] .card,
+  [data-plugin="dsh-mcp-connector"] [class*="card"] {
+    border-radius: var(--cm-radius-lg) !important;
+    padding: var(--cm-padding-card) !important;
+  }
   [data-plugin="dsh-mcp-connector"] .icon-btn.primary,
   [data-plugin="dsh-mcp-connector"] .btn-primary,
   [data-plugin="dsh-mcp-connector"] .btn:not(.ghost):not(.danger):not(.status-warning):not(.status-bad) {
@@ -981,6 +998,16 @@ const MCP_THEME_SCRIPT = `<script data-cm-mcp-theme-script>
       set('--accent-light', primary ? 'color-mix(in srgb, ' + primary + ' 16%, transparent)' : '');
       set('--accent-foreground', source.getPropertyValue('--cm-primary-foreground').trim());
       set('--shadow', source.getPropertyValue('--cm-shadow').trim());
+      set('--cm-radius-sm', source.getPropertyValue('--cm-radius-sm').trim());
+      set('--cm-radius-md', source.getPropertyValue('--cm-radius-md').trim());
+      set('--cm-radius-lg', source.getPropertyValue('--cm-radius-lg').trim());
+      set('--cm-padding-card', source.getPropertyValue('--cm-padding-card').trim());
+      set('--cm-padding-section', source.getPropertyValue('--cm-padding-section').trim());
+      set('--cm-gap-card', source.getPropertyValue('--cm-gap-card').trim());
+      set('--cm-font-size-sm', source.getPropertyValue('--cm-font-size-sm').trim());
+      set('--cm-font-size-md', source.getPropertyValue('--cm-font-size-md').trim());
+      set('--cm-font-size-lg', source.getPropertyValue('--cm-font-size-lg').trim());
+      set('--cm-font-size-xl', source.getPropertyValue('--cm-font-size-xl').trim());
       root.setAttribute('data-cm-theme', parentRoot.getAttribute('data-ds-theme-source') || '');
     } catch (error) { /* direct iframe open or a cross-origin parent: keep the plugin defaults */ }
   }
@@ -1104,7 +1131,9 @@ const VERCEL_HOST_FENCE_REPLACEMENTS = [
   ],
 ];
 
-/** CopyMonster tokens for the dsh-vercel-mcp settings panel inline styles. */
+/** CopyMonster tokens for the dsh-vercel-mcp settings panel inline styles.
+ * Geometry is normalized at host scope in apps/web/src/cm-theme.css ([data-settings-section="vercel-mcp"])
+ * using var(--cm-radius-lg) and var(--cm-padding-card); color palette tokens are replaced inline below. */
 const VERCEL_THEME_REPLACEMENTS = [
   ['border: "1px solid rgba(128,128,128,0.3)"', 'border: "1px solid var(--cm-border)"'],
   ['border: "1px solid rgba(128,128,128,0.35)"', 'border: "1px solid var(--cm-input)"'],

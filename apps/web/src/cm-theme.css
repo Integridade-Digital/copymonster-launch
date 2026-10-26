@@ -207,13 +207,15 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
 /* Built-in plugins: the inventory cards carry their inset on the inner
  * button, so only the surface moves here. MCP Connector's settings card is a
  * global class published by the plugin stylesheet. */
+/* Built-in plugins: inventory cards and MCP connector surfaces.
+ * Normalized to shared geometry tokens. */
 [data-settings-section="plugins"] :is(
   [class^="_card_"], [class*=" _card_"],
   [class$="_card"], [class*="_card "]
 ) {
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 12px !important;
+  border-radius: var(--cm-radius-lg) !important;
   box-shadow: none !important;
 }
 
@@ -221,22 +223,23 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
   [class^="_cardContent_"], [class*=" _cardContent_"],
   [class$="_cardContent"], [class*="_cardContent "]
 ) {
-  padding: 16px !important;
+  padding: var(--cm-padding-card) !important;
 }
 
 [data-settings-section="plugins"] .mcpConnectorSettingsCard {
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 12px !important;
+  border-radius: var(--cm-radius-lg) !important;
   box-shadow: none !important;
 }
 
 [data-settings-section="plugins"] .mcpConnectorSettingsHeader {
-  padding: 16px !important;
+  padding: var(--cm-padding-card) !important;
 }
 
 [data-settings-section="plugins"] .mcpConnectorSettingsBody {
-  margin: 0 16px !important;
+  /* Layout exception: margin horizontal matches card inset without duplicating vertical spacing */
+  margin: 0 var(--cm-padding-card) !important;
 }
 
 /* Agent presets: the outer card owns the surface and the inner button owns
@@ -306,53 +309,54 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
   padding: var(--cm-padding-card) !important;
 }
 
-/* Scheduled tasks ships global `.dsh-st-*` classes. */
+/* Scheduled tasks ships global `.dsh-st-*` classes in the host document.
+ * Scoped to section to avoid leaking into other surfaces. */
 [data-settings-section="scheduled-tasks"] :is(
   .dsh-st-card, .dsh-st-example, .dsh-st-prompt-card
 ) {
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 12px !important;
+  border-radius: var(--cm-radius-lg) !important;
   box-shadow: none !important;
 }
 
 [data-settings-section="scheduled-tasks"] :is(.dsh-st-card, .dsh-st-example) {
-  padding: 16px !important;
+  padding: var(--cm-padding-card) !important;
 }
 
 [data-settings-section="scheduled-tasks"] .dsh-st-overview-row {
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 12px !important;
+  border-radius: var(--cm-radius-lg) !important;
 }
 
 [data-settings-section="scheduled-tasks"] .dsh-st-banner {
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 12px !important;
-  padding: 16px !important;
+  border-radius: var(--cm-radius-lg) !important;
+  padding: var(--cm-padding-card) !important;
 }
 
-/* Vercel MCP renders one inline-styled card; its declarations are inline, so
- * this recipe must be important. */
+/* Vercel MCP renders one inline-styled card in host DOM; its declarations are inline.
+ * Managed further in Commit 5 (bridge/inline normalization). */
 [data-settings-section="vercel-mcp"] [data-slot="settings.section"] > div {
   max-width: none !important;
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 12px !important;
-  padding: 16px !important;
+  border-radius: var(--cm-radius-lg) !important;
+  padding: var(--cm-padding-card) !important;
 }
 
-/* Side card: the group containers and inventory cards are CSS-module
- * `group` / `card` classes. */
+/* Side card (dsh-better-sidebar): the group containers and inventory cards are CSS-module
+ * `group` / `card` classes in the host document. */
 [data-settings-section="better-sidebar"] :is(
   [class^="_group_"], [class*=" _group_"],
   [class$="_group"], [class*="_group "]
 ) {
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 12px !important;
-  padding: 16px !important;
+  border-radius: var(--cm-radius-lg) !important;
+  padding: var(--cm-padding-card) !important;
 }
 
 [data-settings-section="better-sidebar"] :is(
@@ -361,7 +365,7 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
 ) {
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 12px !important;
+  border-radius: var(--cm-radius-lg) !important;
   box-shadow: none !important;
 }
 
@@ -369,21 +373,26 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
   [class^="_cardMain_"], [class*=" _cardMain_"],
   [class$="_cardMain"], [class*="_cardMain "]
 ) {
-  padding: 16px !important;
+  padding: var(--cm-padding-card) !important;
 }
 
-/* IM bots publishes global `.dim-*` classes. */
+/* IM bots (dsh-im) publishes global `.dim-*` classes in the host document. */
 [data-settings-section="xmanrui-dsh-im"] :is(.dim-botCard, .dim-channel) {
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 12px !important;
+  border-radius: var(--cm-radius-lg) !important;
 }
 
 [data-settings-section="xmanrui-dsh-im"] .dim-botCardBody {
-  padding: 16px !important;
+  padding: var(--cm-padding-card) !important;
 }
 
 [data-settings-section="xmanrui-dsh-im"] .dim-channel[aria-selected="true"] {
   background: color-mix(in srgb, var(--cm-primary) 10%, var(--cm-card)) !important;
   border-color: var(--cm-primary) !important;
 }
+
+/* GenUI plugin (@changfenhuang/dsh-genui):
+ * Runs in host document; rebrand handles client text and i18n copy.
+ * Surfaces inherit theme root variables and standard container styling without
+ * requiring section overrides in Settings. */

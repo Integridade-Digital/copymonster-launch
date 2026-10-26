@@ -158,24 +158,38 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
   max-width: none !important;
 }
 
-/* Profile and Plans are app pages rendered into section slots. */
-[data-settings-section="profile"] .cm-profile-container,
+/* General's first row starts 16px into the options area. The settings header
+ * action button overflows its row by 10px, so these sections take the same
+ * top inset to clear it and start their content on the General baseline. */
+div[data-settings-section="profile"],
+div[data-settings-section="plans"],
+div[data-settings-section="my-dna"],
+div[data-settings-section="scheduled-tasks"],
+div[data-settings-section="vercel-mcp"] {
+  padding-top: 16px !important;
+}
+
+/* Profile and Plans are app pages rendered into section slots. Profile keeps
+ * its modal-sized column when opened standalone, so the settings wrapper
+ * removes that inset only inside the settings shell. */
+[data-settings-section="profile"] .cm-settings-page > div {
+  width: 100% !important;
+  max-width: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 [data-settings-section="plans"] .cm-billing-container {
   max-width: none !important;
   padding: 0 !important;
 }
 
-[data-settings-section="profile"] .cm-profile-card,
 [data-settings-section="plans"] .cm-plan-card {
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
   border-radius: var(--cm-radius-lg) !important;
   padding: var(--cm-padding-card) !important;
   box-shadow: none !important;
-}
-
-[data-settings-section="profile"] .cm-profile-card {
-  margin-bottom: 16px !important;
 }
 
 [data-settings-section="plans"] .cm-plan-card--featured {
@@ -192,17 +206,7 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
   padding: var(--cm-padding-card) !important;
 }
 
-/* My DNA cards are CSS-module `card` classes. */
-[data-settings-section="my-dna"] :is(
-  [class^="_card_"], [class*=" _card_"],
-  [class$="_card"], [class*="_card "]
-) {
-  background: var(--cm-card) !important;
-  border: 1px solid var(--cm-border) !important;
-  border-radius: var(--cm-radius-lg) !important;
-  padding: var(--cm-padding-card) !important;
-  box-shadow: none !important;
-}
+/* My DNA cards own the shared recipe in MyDnaPage.module.css. */
 
 /* Built-in plugins: the inventory cards carry their inset on the inner
  * button, so only the surface moves here. MCP Connector's settings card is a
@@ -340,7 +344,9 @@ html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
 /* Vercel MCP renders one inline-styled card in host DOM; its declarations are inline.
  * Managed further in Commit 5 (bridge/inline normalization). */
 [data-settings-section="vercel-mcp"] [data-slot="settings.section"] > div {
+  width: 100% !important;
   max-width: none !important;
+  box-sizing: border-box !important;
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
   border-radius: var(--cm-radius-lg) !important;

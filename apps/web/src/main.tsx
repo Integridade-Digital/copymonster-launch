@@ -221,7 +221,11 @@ class WebAppErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBound
  */
 
 function ProfileSettingsItem() {
-  return <ProfilePage />
+  return (
+    <div className="cm-settings-page">
+      <ProfilePage />
+    </div>
+  )
 }
 
 function PlansSettingsItem() {

@@ -128,18 +128,6 @@ html:not([data-cm-is-admin="true"]) .dsh-st-heading-links [data-mpi-check="@mich
   display: none !important;
 }
 
-/* MCP Connector's host-rendered update button ships the plugin's indigo
- * palette; keep it on the CopyMonster primary surface. */
-.mcpConnectorUpdateButton {
-  background-color: var(--cm-primary) !important;
-  color: var(--cm-primary-foreground) !important;
-  border: 1px solid var(--cm-border) !important;
-}
-
-.mcpConnectorUpdateButton:hover {
-  opacity: 0.9;
-}
-
 /* Model selection is admin-only. The automation task form tags its Model
  * picker with data-field="model"; keep the row out of non-admin forms. */
 html:not([data-cm-is-admin="true"]) .dsh-st-form [data-field="model"] {
@@ -242,22 +230,6 @@ div[data-settings-section="vercel-mcp"] {
   [class$="_cardContent"], [class*="_cardContent "]
 ) {
   padding: var(--cm-padding-card) !important;
-}
-
-[data-settings-section="plugins"] .mcpConnectorSettingsCard {
-  background: var(--cm-card) !important;
-  border: 1px solid var(--cm-border) !important;
-  border-radius: var(--cm-radius-lg) !important;
-  box-shadow: none !important;
-}
-
-[data-settings-section="plugins"] .mcpConnectorSettingsHeader {
-  padding: var(--cm-padding-card) !important;
-}
-
-[data-settings-section="plugins"] .mcpConnectorSettingsBody {
-  /* Layout exception: margin horizontal matches card inset without duplicating vertical spacing */
-  margin: 0 var(--cm-padding-card) !important;
 }
 
 /* Agent presets: the outer card owns the surface and the inner button owns

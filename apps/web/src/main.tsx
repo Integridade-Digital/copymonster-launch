@@ -2,6 +2,7 @@ import { t } from './locales'
 import { FooterActionsRoot } from './components/layout/FooterActionsRoot'
 import { installDnaOnboarding } from './components/dna/installDnaOnboarding'
 import { installDnaSelection } from './components/dna/installDnaSelection'
+import { installImSettingsHidden } from './components/im/installImSettingsHidden'
 import { ProfilePage } from './pages/ProfilePage'
 import { PlansPage } from './pages/billing/PlansPage'
 import { MyDnaPage } from './pages/settings/MyDnaPage'
@@ -273,6 +274,7 @@ const LazyWebApp = React.lazy(async () => {
             })
             installDnaOnboarding(ctx)
             installDnaSelection(ctx)
+            installImSettingsHidden(ctx)
           },
         })
 

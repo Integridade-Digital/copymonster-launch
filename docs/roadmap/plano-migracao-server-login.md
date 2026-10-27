@@ -337,3 +337,31 @@ Reportar o resultado.
 - NUNCA tocar packages/core/ ou packages/llm/.
 - NUNCA expor a service_role_key.
 - Apenas investigar e reportar.
+
+
+# Testar compatibilidade do dsh-server-login com a versão atual do CopyMonster
+
+## Contexto
+O plano de migração (`docs/roadmap/plano-migracao-server-login.md`) foi aprovado, mas o relatório de segurança do dsh.so mostra que o `dsh-server-login` falhou no teste de instalação Web Smoke (L5) na versão `dsh 0.2.1-rc.2`. Precisamos validar se ele funciona na nossa versão atual (0.1.6-alpha.2) antes de migrar.
+
+## Ação
+
+1. **Criar um ambiente de staging isolado** (não tocar na produção).
+2. **Instalar o `dsh-server-login` no staging:**
+   `pnpm exec dsh plugin --profile web add github:pointer-a/dsh-server-login`
+3. **Verificar se o plugin carrega sem erros:**
+   `journalctl -u copymonster.service -n 50 --no-pager | grep "server-login"`
+4. **Testar o fluxo básico no staging:**
+   - Criar o admin (`bootstrap-admin`).
+   - Fazer login.
+   - Criar um usuário de teste.
+   - Verificar se a instância DSH do usuário sobe.
+5. **Reportar:**
+   - Se o plugin carregou sem erros.
+   - Se o login e o fluxo básico funcionaram.
+   - Se houve falha (igual ao L5 do dsh.so), colar o erro exato.
+
+## Regras
+- NUNCA tocar em produção (só staging).
+- NUNCA expor credenciais.
+- Apenas testar e reportar.

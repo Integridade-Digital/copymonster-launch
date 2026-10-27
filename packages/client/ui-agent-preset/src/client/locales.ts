@@ -47,13 +47,13 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   setDefault: 'Set as new task default',
   view: 'View configuration',
 
-  presetStandardName: 'Standard mode',
+  presetStandardName: 'Standard Monster',
   presetStandardDescription:
     'Work with code, files, and information. Suitable for most tasks, with search, editing, terminal commands, and other tools available as needed.',
-  presetPtcName: 'PTC mode',
+  presetPtcName: 'PTC Monster',
   presetPtcDescription:
     'Includes all Standard mode capabilities. Better suited to tasks that call tools in batches and then filter, organize, deduplicate, count, or summarize the results.',
-  presetMinimalName: 'Minimal mode',
+  presetMinimalName: 'Minimal Monster',
   presetMinimalDescription:
     'The agent uses a terminal and image reading, with context compaction. Useful for testing and comparing its basic performance.',
   presetCordisName: 'Creator mode',
@@ -92,11 +92,11 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   setDefault: '设为新任务默认',
   view: '查看配置',
 
-  presetStandardName: '标准模式',
+  presetStandardName: '标准 Monster',
   presetStandardDescription: '处理代码、文件和资料，适合大多数任务。Agent 会按需使用检索、编辑和终端等工具。',
-  presetPtcName: 'PTC 模式',
+  presetPtcName: 'PTC Monster',
   presetPtcDescription: '包含标准模式的所有能力，更适合批量调用工具，并对结果进行筛选、整理、去重、统计或汇总的任务。',
-  presetMinimalName: '极简模式',
+  presetMinimalName: '极简 Monster',
   presetMinimalDescription: 'Agent 使用终端和图片读取工具，并支持上下文压缩，适合测试和对比其基础表现。',
   presetCordisName: '创造模式',
   presetCordisDescription: '用对话定制 DSH：让 Agent 编写插件，添加新功能或界面；也能组合工具和提示词，创建自己的模式。',

@@ -869,3 +869,11 @@ Implementado na Etapa 9: blocklist de e-mails descartáveis via trigger `BEFORE 
 - O `packages/api/settings-controller` mantém o RBAC/admin/tenant do fork.
 - Migração para plugin do bundle adiada.
 - Risco: merge futuro pode quebrar o RBAC.
+
+### Dívida — Testes desatualizados (pós-merge)
+
+- Após o merge com o upstream, 211 erros de teste permanecem.
+- Causa: os testes do fork usam assinaturas antigas (`commands.ts`, presets, quota).
+- O código de produção compila (Client + Host PASS) e `build:web` passa.
+- Ação futura: atualizar os testes para a nova API, um por um.
+- Prioridade: média (não bloqueia deploy).

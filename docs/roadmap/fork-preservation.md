@@ -877,3 +877,11 @@ Implementado na Etapa 9: blocklist de e-mails descartáveis via trigger `BEFORE 
 - O código de produção compila (Client + Host PASS) e `build:web` passa.
 - Ação futura: atualizar os testes para a nova API, um por um.
 - Prioridade: média (não bloqueia deploy).
+
+### Dívida — Erros de tipo do client compiler (pós-merge)
+
+- O `build:artifacts` falha com 147 erros TS em ~20 pacotes.
+- Causa: mistura de APIs copymonster (antigas) e upstream (novas) em vários pacotes client.
+- O app funciona (HTTP 200), mas o build completo não passa.
+- Ação futura: reconciliar pacote por pacote, começando por `ui-settings-general`, `ui-settings-plugin-inventory`, `ui-workspace`, `ui-chat`.
+- Prioridade: média (não bloqueia deploy, mas bloqueia CI).

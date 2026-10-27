@@ -185,6 +185,7 @@ export class SessionEventStream extends RemoteJournalStream<
     for await (const frame of this.remote.session.follow({
       address: this.address,
       assistantStream: true,
+      ...this.repairRequest(request),
       ...(request.maxMessages === undefined ? {} : { maxMessages: request.maxMessages }),
       ...(authToken === undefined ? {} : { authToken }),
     }, signal)) {
@@ -245,6 +246,9 @@ export class SessionEventStream extends RemoteJournalStream<
   protected override repairRequest(
     request: ClientSessionPageRequest,
   ): ClientSessionPageRequest {
-    return request.maxMessages === undefined ? {} : { maxMessages: request.maxMessages }
+    return {
+      ...(request.maxMessages === undefined ? {} : { maxMessages: request.maxMessages }),
+      ...(request.turnWindow === undefined ? {} : { turnWindow: request.turnWindow }),
+    }
   }
 }

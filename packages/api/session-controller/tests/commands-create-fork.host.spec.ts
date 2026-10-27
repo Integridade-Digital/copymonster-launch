@@ -1,73 +1,54 @@
-import { resolve } from 'node:path'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry from '@deepseek-ai/dsh-agent'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import type { Agent, AgentHandle, CreateAgentOptions } from '@deepseek-ai/dsh-agent'
-import type {} from '@deepseek-ai/dsh-agent-presets'
-import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
+import type {} from '@deepseek-ai/dsh-agent-preset-registry'
 import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
-import { resolveUserSandboxRoot, type Workspace, type WorkspaceId } from '@deepseek-ai/dsh-workspace'
+import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
+import type { Workspace, WorkspaceId } from '@deepseek-ai/dsh-workspace'
 import { describe, expect, it, vi } from 'vitest'
 import {
   ApiSessionAgentController,
   ApiSessionCwdConflict,
+  type ApiSessionCreated,
+  type ApiSessionCreateRequest,
 } from '../src/agent.ts'
-import { SessionCommandController, type TenantQuotaCheck } from '../src/commands.ts'
+import { SessionCommandController } from '../src/commands.ts'
 import { installSessionReadTestServices, testSessionPersistence } from './test-remote.ts'
-
-// The fork's create path reads the subscription from Supabase and mirrors the
-// session index over the wire; these cases exercise non-Supabase behavior, so
-// the admin client is stubbed to answer fast instead of resolving DNS.
-vi.mock('@deepseek-ai/dsh-supabase-client', () => ({
-  supabaseAdminClient: {
-    from: () => ({
-      select: () => ({ eq: () => ({ single: () => Promise.resolve({ data: null, error: null }) }) }),
-    }),
-    rpc: () => Promise.resolve({ data: null, error: null }),
-  },
-}))
 
 async function expectFailure(operation: Promise<unknown>, code: string): Promise<void> {
   await expect(operation).rejects.toMatchObject({ code })
 }
 
-const identity: UserIdentity = {
-  userId: 'user-x',
-  tenantId: 'tenant-x',
-  role: 'member',
-  email: 'user-x@example.com',
-}
-const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
-
-function controllerAgents(overrides: object = {}): ApiSessionAgentController {
-  return {
-    ensureSession: (sessionId: SessionId) =>
-      Promise.resolve({ id: sessionId, session: { id: sessionId } } as unknown as Agent),
-    composeAgent: () => Promise.resolve({ setup: () => {} }),
-    presetForSession: () => undefined,
-    presetForObservation: () => undefined,
-    ...overrides,
-  } as unknown as ApiSessionAgentController
+/** The Agent controller with a fixed Agent composition, and optionally a fixed creation outcome. */
+function controllerAgents(
+  ctx: Context,
+  fixed: {
+    readonly composeAgent?: ApiSessionAgentController['composeAgent']
+    readonly createSession?: ApiSessionAgentController['createSession']
+  } = {},
+): ApiSessionAgentController {
+  const agents = new ApiSessionAgentController(ctx)
+  vi.spyOn(agents, 'composeAgent').mockImplementation(fixed.composeAgent ?? (() => Promise.resolve({ setup: () => {} })))
+  if (fixed.createSession !== undefined) vi.spyOn(agents, 'createSession').mockImplementation(fixed.createSession)
+  return agents
 }
 
-/**
- * Always-allow tenant quota stub. These cases exercise non-quota creation and
- * fork paths; the gate itself is covered by quota-gate.host.spec.ts. Without it
- * the controller's default reads Supabase's `check_tenant_quota` over the wire
- * and every create fails closed with `session/quota-check-failed`.
- */
-const allowQuota: TenantQuotaCheck = () =>
-  Promise.resolve({ allowed: true, reason: 'ok', remainingTokens: 1_000_000 })
-
-/** Construct the command controller with the always-allow quota gate. */
-function makeController(ctx: Context, agents: ApiSessionAgentController): SessionCommandController {
-  return new SessionCommandController(ctx, agents, 'enforce', allowQuota)
+/** A creation outcome that publishes `sessionId` in `cwd` as a stand-in Agent. */
+function publishedSession(ctx: Context, sessionId: SessionId) {
+  return (request: ApiSessionCreateRequest): Promise<ApiSessionCreated> => {
+    const session = ctx.sessions.create(sessionId, { meta: { cwd: request.cwd } })
+    return Promise.resolve({ agent: { id: session.id, session, status: 'idle', ctx } as Agent, agentPreset: undefined })
+  }
 }
 
 async function baseContext(): Promise<Context> {
   const ctx = new Context()
+  await ctx.plugin(TypertRegistry)
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   installSessionReadTestServices(ctx)
   ctx.provide('agentDefaultModel', {
@@ -78,61 +59,54 @@ async function baseContext(): Promise<Context> {
 }
 
 describe('Session creation failures', () => {
-  it('mints an identity with the default cwd when no explicit target is supplied', async () => {
+  it('creates in the default cwd without a named identity when no explicit target is supplied', async () => {
     const ctx = await baseContext()
-    ctx.provide('workspaceRegistry', { get: () => undefined, list: () => [] } as never)
-    const ensureSession = vi.fn((sessionId: SessionId, cwd: string) => {
-      const session = ctx.sessions.create(sessionId, { meta: { cwd } })
-      return Promise.resolve({ id: sessionId, session } as Agent)
-    })
-    const controller = makeController(
-      ctx,
-      controllerAgents({ ensureSession }),
-    )
+    ctx.provide('workspaceRegistry', { get: () => undefined, list: () => [], archivedSessionIds: [] } as never)
+    const createSession = vi.fn(publishedSession(ctx, SessionId('session-minted')))
+    const controller = new SessionCommandController(ctx, controllerAgents(ctx, { createSession }))
 
-    const created = await controller.create({}, identity)
+    const created = await controller.create({})
 
-    expect(created.sessionId).toMatch(/^session-/)
-    expect(created).not.toHaveProperty('agentPreset')
-    expect(ensureSession).toHaveBeenCalledWith(
-      created.sessionId,
-      sandboxRoot,
-      false,
-      undefined,
-    )
+    expect(created).toEqual({ sessionId: 'session-minted' })
+    expect(createSession).toHaveBeenCalledOnce()
+    const request = createSession.mock.calls[0]?.[0]
+    expect(request?.cwd).toBe('/default-workspace')
+    expect(Object.keys(request ?? {}).sort()).toEqual(['cwd', 'reusable'])
     await ctx.fiber.dispose()
   })
 
   it('maps missing Workspaces and attachment failures', async () => {
     const missing = await baseContext()
     missing.provide('workspaceRegistry', { get: () => undefined, list: () => [] } as never)
-    const missingController = makeController(
+    const missingController = new SessionCommandController(
       missing,
-      controllerAgents(),
+      controllerAgents(missing),
+      '/default',
     )
     await expectFailure(missingController.create({
       workspaceId: 'missing' as WorkspaceId,
-    }, identity), 'workspace/not-found')
+    }), 'workspace/not-found')
     await missing.fiber.dispose()
 
     const failed = await baseContext()
     const workspace = {
       id: 'workspace-1' as WorkspaceId,
-      path: resolve(sandboxRoot, 'project-a'),
+      path: '/workspace',
       attachSession: () => Promise.reject(new Error('read-only workspace')),
     } as unknown as Workspace
     failed.provide('workspaceRegistry', {
       get: () => workspace,
       list: () => [workspace],
     } as never)
-    const failedController = makeController(
+    const failedController = new SessionCommandController(
       failed,
-      controllerAgents(),
+      controllerAgents(failed, { createSession: publishedSession(failed, SessionId('workspace-session')) }),
+      '/default',
     )
     await expectFailure(failedController.create({
       sessionId: SessionId('workspace-session'),
       workspaceId: workspace.id,
-    }, identity), 'session/workspace-attach-failed')
+    }), 'session/workspace-attach-failed')
     await failed.fiber.dispose()
   })
 
@@ -160,25 +134,26 @@ describe('Session creation failures', () => {
   ])('maps $code creation failures', async ({ error, code }) => {
     const ctx = await baseContext()
     ctx.provide('workspaceRegistry', { get: () => undefined, list: () => [] } as never)
-    const controller = makeController(
+    const controller = new SessionCommandController(
       ctx,
-      controllerAgents({ ensureSession: () => Promise.reject(error) }),
+      controllerAgents(ctx, { createSession: () => Promise.reject(error) }),
+      '/default',
     )
 
     await expectFailure(controller.create({
-      sessionId: SessionId('failed-create'), cwd: resolve(sandboxRoot, 'requested'),
-    }, identity), code)
+      sessionId: SessionId('failed-create'), cwd: '/requested',
+    }), code)
     await ctx.fiber.dispose()
   })
 
   it('rejects contradictory create targets', async () => {
     const ctx = await baseContext()
-    const controller = makeController(ctx, controllerAgents())
+    const controller = new SessionCommandController(ctx, controllerAgents(ctx))
 
     await expectFailure(controller.create({
       workspaceId: 'workspace-1' as WorkspaceId,
       cwd: '/workspace',
-    }, identity), 'gateway/bad-request')
+    }), 'gateway/bad-request')
     await ctx.fiber.dispose()
   })
 
@@ -212,8 +187,8 @@ describe('Session fork failures', () => {
   it('maps missing cold sources with and without persistence', async () => {
     const withoutPersistence = await baseContext()
     withoutPersistence.provide('workspaceRegistry', { list: () => [] } as never)
-    const unavailableController = makeController(
-      withoutPersistence, controllerAgents(),
+    const unavailableController = new SessionCommandController(
+      withoutPersistence, controllerAgents(withoutPersistence), '/default',
     )
     await expectFailure(unavailableController.fork({
       sessionId: SessionId('missing'),
@@ -226,7 +201,7 @@ describe('Session fork failures', () => {
       list: () => Promise.resolve([]),
       inspect: vi.fn(),
     }) as never)
-    const missingController = makeController(missing, controllerAgents())
+    const missingController = new SessionCommandController(missing, controllerAgents(missing))
     await expectFailure(missingController.fork({
       sessionId: SessionId('missing'),
     }), 'session/not-found')
@@ -237,7 +212,7 @@ describe('Session fork failures', () => {
     const ctx = await baseContext()
     ctx.provide('workspaceRegistry', { list: () => [] } as never)
     vi.spyOn(ctx.sessionQuery, 'observeSession').mockRejectedValue(new Error('storage offline'))
-    const controller = makeController(ctx, controllerAgents())
+    const controller = new SessionCommandController(ctx, controllerAgents(ctx))
 
     await expectFailure(controller.fork({ sessionId: SessionId('unreadable') }), 'gateway/internal')
     await ctx.fiber.dispose()
@@ -247,9 +222,13 @@ describe('Session fork failures', () => {
     const ctx = await baseContext()
     ctx.provide('workspaceRegistry', { list: () => [] } as never)
     const source = ctx.sessions.create(SessionId('empty-source'))
-    const controller = makeController(ctx, controllerAgents())
+    const controller = new SessionCommandController(ctx, controllerAgents(ctx))
 
     await expectFailure(controller.fork({ sessionId: source.id }), 'session/fork-unavailable')
+    await expect(controller.fork({ sessionId: source.id, atSeq: 0 })).rejects.toMatchObject({
+      code: 'session/fork-unavailable',
+      message: 'event 0 does not exist in session "empty-source" (last seq: none)',
+    })
     await ctx.fiber.dispose()
   })
 
@@ -262,7 +241,7 @@ describe('Session fork failures', () => {
       parentSession: SessionId('parent'),
       origin: 'subagent',
     })
-    const lineageController = makeController(lineage, controllerAgents())
+    const lineageController = new SessionCommandController(lineage, controllerAgents(lineage))
     await expectFailure(lineageController.fork({ sessionId: child.id }), 'gateway/internal')
     await lineage.fiber.dispose()
 
@@ -270,7 +249,7 @@ describe('Session fork failures', () => {
     creation.provide('workspaceRegistry', { list: () => [] } as never)
     const source = completedSession(creation, 'creation-source', '/workspace')
     vi.spyOn(creation.agents, 'create').mockRejectedValue(new Error('factory failed'))
-    const creationController = makeController(creation, controllerAgents())
+    const creationController = new SessionCommandController(creation, controllerAgents(creation))
     await expectFailure(creationController.fork({ sessionId: source.id }), 'gateway/internal')
     await creation.fiber.dispose()
   })
@@ -287,7 +266,7 @@ describe('Session fork failures', () => {
     const create = vi.spyOn(ctx.agents, 'create').mockImplementation(
       (options: CreateAgentOptions) => Promise.resolve(resolvedHandle(ctx, options.sessionId)),
     )
-    const controller = makeController(ctx, controllerAgents())
+    const controller = new SessionCommandController(ctx, controllerAgents(ctx))
 
     await expectFailure(controller.fork({ sessionId: source.id }), 'session/workspace-attach-failed')
     const options = create.mock.calls[0]?.[0]
@@ -304,9 +283,9 @@ describe('Session fork failures', () => {
     const create = vi.spyOn(ctx.agents, 'create').mockImplementation(
       (options: CreateAgentOptions) => Promise.resolve(resolvedHandle(ctx, options.sessionId)),
     )
-    const controller = makeController(ctx, controllerAgents({
+    const controller = new SessionCommandController(ctx, controllerAgents(ctx, {
       composeAgent: () => Promise.resolve({ agentPreset: 'minimal', setup: () => {} }),
-    }))
+    }), '/default')
 
     const forked = await controller.fork({ sessionId: source.id })
     expect(forked.sessionId).toMatch(/^session-/)

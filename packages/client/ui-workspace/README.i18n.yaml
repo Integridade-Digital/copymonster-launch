@@ -1,6 +1,64 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-workspace/README.md
-README.md: f5b4d6cf5235c9b204b5b11a3403057a3dac42ff
-README.zh.md: 4462f72896c72704dc72dc554f6862ad145638d9
+/:
+  en: c4662fcadfa66f25
+  zh: 796569a3a3eff89f
+/deepseek-ai-dsh-client-ui-workspace:
+  en: c611184cd49f130f
+  zh: caddcda48dc30f11
+/deepseek-ai-dsh-client-ui-workspace/summary:
+  en: 2c72186f1375ff08
+  zh: 82508ba92aa7ef2a
+/deepseek-ai-dsh-client-ui-workspace/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-client-ui-workspace/use-this-package:
+  en: d2973905f9fc3331
+  zh: 5d557bd5c8eb783a
+/deepseek-ai-dsh-client-ui-workspace/use-this-package/reordering-and-view-options:
+  en: 6cea302320f00839
+  zh: d695994ec569a43e
+/deepseek-ai-dsh-client-ui-workspace/use-this-package/workspace-hierarchy:
+  en: 5e049b90c55eddb3
+  zh: e06dc8d0d25c013f
+/deepseek-ai-dsh-client-ui-workspace/use-this-package/search:
+  en: faf570bcad825439
+  zh: a65300b0b40a8550
+/deepseek-ai-dsh-client-ui-workspace/use-this-package/managing-sessions:
+  en: f0b693df14cc8fb0
+  zh: d2838f3c1b801283
+/deepseek-ai-dsh-client-ui-workspace/use-this-package/pending-interactions:
+  en: efcede0546e167c5
+  zh: 74afe770abb49016
+/deepseek-ai-dsh-client-ui-workspace/use-this-package/active-schedule-markers:
+  en: 2b0cda3b7b38ce39
+  zh: e33243b642a6164a
+/deepseek-ai-dsh-client-ui-workspace/understand-the-implementation:
+  en: f08ceb1f5612a6ac
+  zh: a75b56cc094b5c45
+/deepseek-ai-dsh-client-ui-workspace/understand-the-implementation/the-directory-flow-hole:
+  en: 978415ec6b2e0cc0
+  zh: 0d5c705ff34fb1da
+/deepseek-ai-dsh-client-ui-workspace/understand-the-implementation/view-state:
+  en: d522534ee04fe819
+  zh: 6747c6393d3c85e5
+/deepseek-ai-dsh-client-ui-workspace/understand-the-implementation/hover-cards:
+  en: f236cadca4c98088
+  zh: 8b36850c1d5f73d2
+/deepseek-ai-dsh-client-ui-workspace/further-exploration:
+  en: 2abbf27abbd71ba4
+  zh: ace33fa2ea042357
+/deepseek-ai-dsh-client-ui-workspace/model-experience:
+  en: 3120df665299c634
+  zh: 1d9f365d091d0d2a
+/deepseek-ai-dsh-client-ui-workspace/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: de54f3467ef3b9be
+/deepseek-ai-dsh-client-ui-workspace/known-limitations-and-deferred-work:
+  en: 6fcfbaa9e229c334
+  zh: 53d03c0ca07a02c5
+/deepseek-ai-dsh-client-ui-workspace/known-limitations-and-deferred-work/dev-note:
+  en: 585813ff2c68c20c
+  zh: 18b43c0d64fa8a72

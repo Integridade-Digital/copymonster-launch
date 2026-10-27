@@ -1,15 +1,23 @@
 /** Raw Session journal transport and message-aligned pagination coverage. */
 
-import { describe, expect, it, vi } from 'vitest'
+import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import AgentRegistry, { type Agent, type AssistantStreamFrame } from '@deepseek-ai/dsh-agent'
+import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SessionStore from '@deepseek-ai/dsh-session'
 import { LlmAttemptId, ToolCallId, createMessage, createToolResultMessage, createUserMessage } from '@deepseek-ai/dsh-llm'
+import type { MessageSource } from '@deepseek-ai/dsh-llm'
 import type { Session, SessionEvent, SessionId } from '@deepseek-ai/dsh-session'
 import { SessionHistoryController } from '@deepseek-ai/dsh-api-session-controller/src/history.ts'
 import type { SessionFollowFrame, SessionPage, SessionWireEvent } from '@deepseek-ai/dsh-api-session-controller/types'
-import { createSessionTestRemote, installSessionReadTestServices, testSandboxCwd } from './test-remote.ts'
+import { createSessionTestRemote, installSessionReadTestServices } from './test-remote.ts'
 
+type CheckpointSource = Extract<MessageSource, { readonly kind: 'compact-checkpoint' }>
+
+/** Build a typed checkpoint source for a journal fixture without owning compaction. */
+function checkpointSource(compactionId: string): CheckpointSource {
+  return { kind: 'compact-checkpoint', compactionId: compactionId as CheckpointSource['compactionId'] }
+}
 /** Append a production-shaped human prompt to the session surface. */
 function appendUserText(session: Session, text: string): SessionEvent {
   return session.append('user/message', createUserMessage({
@@ -18,9 +26,9 @@ function appendUserText(session: Session, text: string): SessionEvent {
 }
 
 /** Append a production-shaped assistant message to the session surface. */
-function appendAssistantText(session: Session, text: string, step: number): SessionEvent {
+function appendAssistantText(session: Session, text: string, step: number, turn = 1): SessionEvent {
   return session.append('assistant/message', {
-    turn: 1,
+    turn,
     step,
     message: createMessage({
       role: 'assistant',
@@ -43,6 +51,7 @@ function appendExtension(session: Session, type: string, data: unknown): Session
 async function harness(): Promise<{ ctx: Context }> {
   const ctx = new Context()
   await ctx.plugin(SessionStore)
+  await ctx.plugin(SessionProjectionRegistry)
   await ctx.plugin(AgentRegistry)
   installSessionReadTestServices(ctx)
   return { ctx }
@@ -97,7 +106,7 @@ function pageEvents(page: SessionPage): SessionWireEvent[] {
 describe('Session history raw journal', () => {
   it('opens an empty opted-in Assistant baseline before any live attempt exists', async () => {
     const { ctx } = await harness()
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
     const abort = new AbortController()
     const iterator = history.follow({
@@ -116,7 +125,7 @@ describe('Session history raw journal', () => {
 
   it('filters foreign and opening-baseline frames buffered during the source observation', async () => {
     const { ctx } = await harness()
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const agent = { id: session.id, session, status: 'running', ctx } as Agent
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
     const originalObserve = ctx.sessionQuery.observeSession.bind(ctx.sessionQuery)
@@ -147,7 +156,7 @@ describe('Session history raw journal', () => {
         time: 2, chunk: { type: 'text-delta', index: 0, text: 'buffered' },
       },
     })
-    const foreign = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const foreign = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     ctx.emit('agent/assistant-stream', {
       agent: { id: foreign.id, session: foreign, status: 'running', ctx } as Agent,
       frame: {
@@ -171,7 +180,7 @@ describe('Session history raw journal', () => {
 
   it('opens an opted-in assistant baseline and preserves mixed live FIFO order', async () => {
     const { ctx } = await harness()
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const agent = { id: session.id, session, status: 'running', ctx } as Agent
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
     const attemptId = LlmAttemptId('live-follow-attempt')
@@ -238,7 +247,7 @@ describe('Session history raw journal', () => {
 
   it('forwards revision one when the attached Agent lifecycle restarts after opening', async () => {
     const { ctx } = await harness()
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const agent = { id: session.id, session, status: 'running', ctx } as Agent
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
     const attemptId = LlmAttemptId(`${session.id}:1`)
@@ -300,7 +309,7 @@ describe('Session history raw journal', () => {
 
   it('publishes an empty replacement baseline after an Agent frame revision gap', async () => {
     const { ctx } = await harness()
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const agent = { id: session.id, session, status: 'running', ctx } as Agent
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
     const attemptId = LlmAttemptId('revision-gap-attempt')
@@ -340,7 +349,7 @@ describe('Session history raw journal', () => {
 
   it('drops active attempts when an Agent chunk index is not dense', async () => {
     const { ctx } = await harness()
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const agent = { id: session.id, session, status: 'running', ctx } as Agent
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
     const attemptId = LlmAttemptId('dense-index-attempt')
@@ -380,7 +389,7 @@ describe('Session history raw journal', () => {
 
   it('reuses an unchanged Assistant baseline across follow openings', async () => {
     const { ctx } = await harness()
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const agent = { id: session.id, session, status: 'running', ctx } as Agent
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
     const attemptId = LlmAttemptId('cached-baseline-attempt')
@@ -421,7 +430,7 @@ describe('Session history raw journal', () => {
 
   it('opens an empty Assistant baseline before the target Agent emits frames', async () => {
     const { ctx } = await harness()
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
     const abort = new AbortController()
     const iterator = history.follow({
@@ -444,7 +453,7 @@ describe('Session history raw journal', () => {
 
   it('filters Assistant frames from another Session out of the target follow', async () => {
     const { ctx } = await harness()
-    const target = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd('target') } })
+    const target = ctx.sessions.create(undefined, { meta: { cwd: '/target' } })
     const other = ctx.sessions.create(undefined, { meta: { cwd: '/other' } })
     const otherAgent = { id: other.id, session: other, status: 'running', ctx } as Agent
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
@@ -478,7 +487,7 @@ describe('Session history raw journal', () => {
 
   it('does not replay a buffered Assistant frame already represented by the opening baseline', async () => {
     const { ctx } = await harness()
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const agent = { id: session.id, session, status: 'running', ctx } as Agent
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
     const observationStarted = Promise.withResolvers<undefined>()
@@ -528,7 +537,7 @@ describe('Session history raw journal', () => {
 
   it('does not release an old-lifecycle frame after the opening baseline resets to revision one', async () => {
     const { ctx } = await harness()
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const agent = { id: session.id, session, status: 'running', ctx } as Agent
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
     const attemptId = LlmAttemptId(`${session.id}:1`)
@@ -602,7 +611,7 @@ describe('Session history raw journal', () => {
 
   it('keeps assistant frames out of a durable-only follower', async () => {
     const { ctx } = await harness()
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const agent = { id: session.id, session, status: 'running', ctx } as Agent
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
     const abort = new AbortController()
@@ -645,7 +654,7 @@ describe('Session history raw journal', () => {
 
   it('follows raw tool events and preserves result metadata without a Tools service', async () => {
     const { ctx } = await harness()
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
     const abort = new AbortController()
     const stream = await openFollow(history, session.id, abort.signal)
@@ -674,7 +683,7 @@ describe('Session history raw journal', () => {
 
   it('follows live results without rescanning Session history', async () => {
     const { ctx } = await harness()
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
     const abort = new AbortController()
     const stream = await openFollow(history, session.id, abort.signal)
@@ -712,8 +721,8 @@ describe('Session history raw journal', () => {
 
   it('serves raw call and result entries without parsing tool arguments', async () => {
     const { ctx } = await harness()
-    const remote = createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const remote = await createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const start = session.append('turn/start', { turn: 1 })
     const call = session.append('tool/call', {
       turn: 1, step: 1, callId: ToolCallId('history-call'), name: 'custom', arguments: '{broken',
@@ -741,47 +750,78 @@ describe('Session history raw journal', () => {
     ])
   })
 
-  it('redacts provider failures on the wire while retaining the durable diagnostic', async () => {
+  it.each([
+    { name: 'two long Turns', replies: [9, 39, 39], beforeMessage: undefined, firstTurn: 2, steering: false },
+    { name: 'the partial upper Turn and its predecessor', replies: [9, 39, 99], beforeMessage: 20, firstTurn: 2, steering: false },
+    { name: 'an upper window beginning at its user message', replies: [9, 59, 59], beforeMessage: 0, firstTurn: 2, steering: false },
+    { name: 'short Turns until 50 messages', replies: [9, 9, 9, 9, 9, 9], beforeMessage: undefined, firstTurn: 2, steering: false },
+    { name: 'navigation until 200 messages', replies: [9, 49, 49, 49, 49], beforeMessage: undefined, firstTurn: 2, steering: false, minMessages: 200 },
+    { name: 'steering within one Turn', replies: [9, 39, 39], beforeMessage: undefined, firstTurn: 2, steering: true },
+    { name: 'exhausted history below both minima', replies: [9], beforeMessage: undefined, firstTurn: 1, steering: false },
+    { name: 'the 500-message cap inside one Turn', replies: [9, 600], beforeMessage: undefined, firstTurn: undefined, steering: false },
+  ])('paginates $name in one contiguous Turn window', async ({ replies, beforeMessage, firstTurn, steering, minMessages = 50 }) => {
     const { ctx } = await harness()
-    const remote = createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
-    session.append('turn/start', { turn: 1 })
-    const failure = {
-      code: 'UNKNOWN',
-      status: 404,
-      message: '404: {"message":"The free offer `Claude Haiku5.5 — Limited Time` has ended. Use the paid model `claude-haiku-5.5` to keep going.","type":"campaign_ended","code":"campaign_ended"}',
+    onTestFinished(() => ctx.fiber.dispose())
+    const remote = await createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
+    const starts: SessionEvent[] = []
+    const messages: SessionEvent[][] = []
+    for (const [index, count] of replies.entries()) {
+      const turn = index + 1
+      starts.push(session.append('turn/start', { turn }))
+      const rows = [appendUserText(session, `prompt ${turn}`)]
+      for (let step = 1; step <= count; step++) {
+        rows.push(appendAssistantText(session, `reply ${turn}/${step}`, step, turn))
+        if (steering && index === replies.length - 1 && step % 3 === 0) {
+          rows.push(appendUserText(session, `steering ${step}`))
+        }
+      }
+      messages.push(rows)
+      session.append('turn/end', { turn, reason: { kind: 'completed' } })
     }
-    const end = session.append('turn/end', {
-      turn: 1,
-      reason: { kind: 'error', error: failure },
-    })
-
+    const beforeSeq = beforeMessage === undefined ? session.seq : messages.at(-1)![beforeMessage]!.seq
     const response = await remote.page({
       address: { kind: 'session', sessionId: session.id },
       throughSeq: session.seq - 1,
+      beforeSeq,
+      maxMessages: 500,
+      turnWindow: { minMessages, minTurns: 2 },
     })
-    if (!response.ok) throw new Error('unreachable')
-    const [wireEnd] = pageEvents(response.value).filter(event => event.type === 'turn/end')
-    expect(wireEnd?.data).toEqual({
-      turn: 1,
-      reason: {
-        kind: 'error',
-        error: {
-          code: 'MODEL_UNAVAILABLE',
-          message: 'The selected model is unavailable right now. Please try again or contact support.',
-        },
-      },
-    })
-    expect(JSON.stringify(wireEnd)).not.toContain('Claude')
-    expect(session.snapshotEvents().at(-1)).toEqual(end)
-    expect(end.data).toEqual({ turn: 1, reason: { kind: 'error', error: failure } })
-    await ctx.fiber.dispose()
+    if (!response.ok) throw new Error('expected a history page')
+    const page = pageEvents(response.value)
+    const expectedStart = firstTurn === undefined ? messages.at(-1)!.at(-500)!.seq : starts[firstTurn - 1]!.seq
+    expect(page.map(event => event.seq)).toEqual(Array.from({ length: beforeSeq - expectedStart }, (_, index) => expectedStart + index))
+    expect(response.value.hasMore).toBe(expectedStart > 0)
+    if (firstTurn === undefined) {
+      expect(page.filter(event => event.type === 'user/message' || event.type === 'assistant/message')).toHaveLength(500)
+      expect(page.some(event => event.type === 'user/message')).toBe(false)
+    } else {
+      expect(page[0]?.type).toBe('turn/start')
+      expect(page.some(event => event.seq === messages[firstTurn - 1]![0]!.seq)).toBe(true)
+    }
+    if (beforeMessage === undefined) {
+      const abort = new AbortController()
+      const stream = remote.follow({
+        address: { kind: 'session', sessionId: session.id },
+        maxMessages: 500,
+        turnWindow: { minMessages, minTurns: 2 },
+      }, abort.signal)[Symbol.asyncIterator]()
+      try {
+        await expect(stream.next()).resolves.toMatchObject({
+          done: false,
+          value: { type: 'snapshot', records: response.value.records, hasMore: response.value.hasMore },
+        })
+      } finally {
+        abort.abort()
+        await stream.return?.()
+      }
+    }
   })
 
   it('counts only append-origin messages toward maxMessages and keeps each compaction summary with its replacement', async () => {
     const { ctx } = await harness()
-    const remote = createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const remote = await createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     session.append('turn/start', { turn: 1 })
     const first = appendUserText(session, 'first prompt')
     appendAssistantText(session, 'first reply', 1)
@@ -805,7 +845,7 @@ describe('Session history raw journal', () => {
     })
     session.append('user/message', createUserMessage({
       content: [{ type: 'text', text: '<context_checkpoint>summary</context_checkpoint>' }],
-      source: { kind: 'plugin', plugin: 'compact' },
+      source: checkpointSource('journal-compaction'),
     }), {
       surfaceOp: { op: 'replace', startSeq: shadowedStart, endSeq: shadowedEnd },
       sourceEventSeqs: [...shadowed, summary.seq],
@@ -834,8 +874,8 @@ describe('Session history raw journal', () => {
 
   it('paginates a message with a large embedded stream without expanding physical records', async () => {
     const { ctx } = await harness()
-    const remote = createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const remote = await createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     session.append('turn/start', { turn: 1 })
     session.append('step/start', { turn: 1, step: 1 })
     const texts = Array.from({ length: 128 }, () => 'x')
@@ -872,8 +912,8 @@ describe('Session history raw journal', () => {
 
   it('keeps an earlier declared source on the same message-aligned page', async () => {
     const { ctx } = await harness()
-    const remote = createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const remote = await createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const source = session.append('request/context', { provider: 'p', model: 'm' })
     const laterSource = session.append('request/context', { provider: 'p', model: 'm' })
     const message = session.append('user/message', createUserMessage({
@@ -893,8 +933,8 @@ describe('Session history raw journal', () => {
 
   it('keeps compact reasoning and tool-call runs nested in one attempt event', async () => {
     const { ctx } = await harness()
-    const remote = createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const remote = await createSessionTestRemote(ctx, { defaultModelSelection: () => ({ provider: 'p', model: 'm' }), cwd: '/tmp' })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const callId = ToolCallId('packed-call')
     const attempt = session.append('assistant/attempt', {
       turn: 1,
@@ -916,7 +956,7 @@ describe('Session history raw journal', () => {
 
   it('follows a result after turn/end without reading the addressed Session log', async () => {
     const { ctx } = await harness()
-    const session = ctx.sessions.create(undefined, { meta: { cwd: testSandboxCwd() } })
+    const session = ctx.sessions.create(undefined, { meta: { cwd: '/workspace' } })
     const history = new SessionHistoryController(ctx, (observation) => { observation[Symbol.dispose]() })
     const abort = new AbortController()
     const stream = await openFollow(history, session.id, abort.signal)

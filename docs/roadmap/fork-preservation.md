@@ -849,3 +849,23 @@ Implementado na Etapa 9: blocklist de e-mails descartáveis via trigger `BEFORE 
 - Causa: o runner de teste do Cordis não estabelece connection com o host em ambiente de teste.
 - Impacto: `test:web` falha em 6 specs (fora do CI do fork). Não bloqueia deploy; dívida técnica do fork.
 - Correção futura: alinhar auth/connection do runner com o fluxo real do CopyMonster.
+
+## Dívidas registradas após a sincronização de 2026-10-27
+
+### Dívida — Migração de quota/tenancy para plugin do bundle
+
+- O gate de quota/tenancy (`assertTenantQuota`, `sessionTenantMap`, `upsertSessionIndex`) está em `packages/api/session-controller/src/commands.ts` (fork).
+- Migração para plugin do bundle adiada.
+- Risco: merge futuro pode quebrar novamente.
+
+### Dívida — Migração do shell anônimo para plugin do bundle
+
+- O `packages/host/frontend-static` mantém o fork (shell anônimo público).
+- Migração para plugin do bundle adiada.
+- Risco: merge futuro pode quebrar o boot.
+
+### Dívida — Migração do RBAC/admin/tenant para plugin do bundle
+
+- O `packages/api/settings-controller` mantém o RBAC/admin/tenant do fork.
+- Migração para plugin do bundle adiada.
+- Risco: merge futuro pode quebrar o RBAC.

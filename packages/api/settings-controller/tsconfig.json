@@ -18,7 +18,7 @@
       "path": "../auth-context/tsconfig.host.json"
     },
     {
-      "path": "../../preset/agent-presets"
+      "path": "../../preset/agent-preset-registry"
     },
     {
       "path": "../../credentials/credentials"

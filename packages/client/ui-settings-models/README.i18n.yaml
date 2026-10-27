@@ -1,6 +1,61 @@
-# Bilingual-pair consistency record (docs/i18n/README.md): the git blob hash of each
-# side as of the last confirmed-consistent state. Both languages carry equal authority;
-# after editing either side, bring the other along and re-record with:
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/client/ui-settings-models/README.md
-README.md: 3d2e19839fee3ec9bd9efd2a618a2949347e84d5
-README.zh.md: 93b0d9f355221d6ad93e481e024003ea3c628eea
+/:
+  en: d1bc4d9ef67bfb19
+  zh: fcb330c0048c3ff6
+/deepseek-ai-dsh-client-ui-settings-models:
+  en: 65e1e8a17a23e576
+  zh: 01de4e98a002d376
+/deepseek-ai-dsh-client-ui-settings-models/summary:
+  en: c80881402e72629a
+  zh: b6d0f3ed5bd0de37
+/deepseek-ai-dsh-client-ui-settings-models/table-of-contents:
+  en: d152484eb41ac6b4
+  zh: 09388d293f9be9cb
+/deepseek-ai-dsh-client-ui-settings-models/use-this-package:
+  en: cac50319f379a794
+  zh: 5452cb099584cfd7
+/deepseek-ai-dsh-client-ui-settings-models/use-this-package/api-keys:
+  en: 52dc56789932574f
+  zh: e79a8684569ceca8
+/deepseek-ai-dsh-client-ui-settings-models/use-this-package/editing-a-provider:
+  en: 63243594b46bbf07
+  zh: e83c8383ca376de6
+/deepseek-ai-dsh-client-ui-settings-models/use-this-package/adding-and-deleting-providers:
+  en: 51f4bac2296ac90e
+  zh: 0b1e3e41bb8ad0a9
+/deepseek-ai-dsh-client-ui-settings-models/use-this-package/first-run-dialogs:
+  en: 589397a35f82244e
+  zh: 1528fc78b5d38db3
+/deepseek-ai-dsh-client-ui-settings-models/use-this-package/extension-slots:
+  en: 7a755256c3d1b3a1
+  zh: 1c952883e905a859
+/deepseek-ai-dsh-client-ui-settings-models/understand-the-implementation:
+  en: a87afbec5e339b36
+  zh: 0c06c1a3447e1263
+/deepseek-ai-dsh-client-ui-settings-models/understand-the-implementation/validation:
+  en: 74948a88fe1f9aac
+  zh: 8ad2200fa74c12c9
+/deepseek-ai-dsh-client-ui-settings-models/understand-the-implementation/concurrency-and-credentials:
+  en: dfa69c8f6c7e522e
+  zh: ee084759767805b4
+/deepseek-ai-dsh-client-ui-settings-models/understand-the-implementation/onboarding-coordinator:
+  en: eac24fa25db3476f
+  zh: 8e64007e285b261f
+/deepseek-ai-dsh-client-ui-settings-models/further-exploration:
+  en: ebe784b59b29d781
+  zh: b6d97f6927e9c4b3
+/deepseek-ai-dsh-client-ui-settings-models/model-experience:
+  en: 3120df665299c634
+  zh: 1d9f365d091d0d2a
+/deepseek-ai-dsh-client-ui-settings-models/model-experience/kv-cache-effect:
+  en: ca75c51c89c2c9b0
+  zh: de54f3467ef3b9be
+/deepseek-ai-dsh-client-ui-settings-models/known-limitations-and-deferred-work:
+  en: 7c9e422161e3613d
+  zh: e340b8f0a325d9f0
+/deepseek-ai-dsh-client-ui-settings-models/known-limitations-and-deferred-work/dev-note:
+  en: 4f6749870e661a48
+  zh: 4953f3ea814546a4

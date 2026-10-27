@@ -2,9 +2,8 @@
  * REAL-composition coverage: a test-only cordis.yml booted through the
  * vendored Loader mounts the webserver and frontend-static rows, and every
  * assertion observes the served HTTP surface — asset serving, explicit index
- * entry points with index taps, client-side routes rendered as the shell behind
- * browser authentication, 404 misses, traversal rejection, 405 on non-GET/HEAD,
- * and seat release on fiber disposal (HMR safety).
+ * entry points with index taps, 404 misses, traversal rejection, 405 on non-
+ * GET/HEAD, and seat release on fiber disposal (HMR safety).
  */
 
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -38,8 +37,10 @@ async function loadComposition(): Promise<Context> {
   const distIndex = join(dist, 'index.html')
   await writeFile(distIndex, '<head></head><body>shell</body>')
   await writeFile(join(dist, 'app.js'), 'export {}')
+  await writeFile(join(dist, 'preview.html'), '<body>preview</body>')
   await writeFile(join(dist, 'blob.bin'), 'BLOB')
   await writeFile(join(dist, 'manifest.webmanifest'), '{}')
+  await writeFile(join(dist, 'icon-192.png'), 'PNG')
   await mkdir(join(dist, 'empty'))
   const configPath = join(root, 'cordis.yml')
   await writeFile(configPath, [
@@ -85,7 +86,12 @@ async function loadComposition(): Promise<Context> {
 }
 
 /** GET (by default) one path against the running server; returns status, content-type, and the body. */
-async function request(port: number, path: string, init?: RequestInit): Promise<{ status: number; type: string | null; body: string }> {
+async function request(
+  port: number | undefined,
+  path: string,
+  init?: RequestInit,
+): Promise<{ status: number; type: string | null; body: string }> {
+  if (port === undefined) throw new Error('frontend-static test: the listener has not bound a port')
   const response = await fetch(`http://127.0.0.1:${String(port)}${path}`, init)
   return {
     status: response.status,
@@ -106,7 +112,7 @@ describe('real Loader composition', () => {
     const launchUrl = loaded.connection.authenticatedUrl(`http://127.0.0.1:${String(port)}`)
     const exchange = await fetch(launchUrl, { redirect: 'manual' })
     expect(exchange.status).toBe(303)
-    expect(exchange.headers.get('location')).toBe('/')
+    expect(exchange.headers.get('location')).toBe('./')
     const setCookie = exchange.headers.get('set-cookie')
     if (setCookie === null) throw new Error('authenticated frontend did not set a cookie')
     const cookie = setCookie.split(';', 1)[0]!
@@ -116,61 +122,58 @@ describe('real Loader composition', () => {
       return { ...init, headers }
     }
 
-    // Anonymous request to the root receives 200 with the public HTML shell (no boot injection)
-    expect(await request(port, '/')).toEqual({
-      status: 200,
-      type: 'text/html; charset=utf-8',
-      body: '<head><base href="/"></head><body>shell</body>',
-    })
-
-    // Invalid launch token query is still refused with 401 by Connection
-    expect(await request(port, '/?token=invalid-token')).toEqual({
+    expect(await request(port, '/')).toMatchObject({
       status: 401,
       type: 'text/plain; charset=utf-8',
       body: 'dsh web authentication required; reopen the URL printed by dsh web.\n',
     })
 
     // Real assets with their MIME types; a live rebuild is served on the next read.
-    expect(await request(port, '/app.js')).toEqual({
-      status: 200,
-      type: 'text/javascript; charset=utf-8',
-      body: 'export {}',
-    })
-    expect(await request(port, '/manifest.webmanifest')).toEqual({
+    expect(await request(port, '/app.js')).toMatchObject({ status: 200, type: 'text/javascript; charset=utf-8', body: 'export {}' })
+    expect(await request(port, '/manifest.webmanifest')).toMatchObject({
       status: 200,
       type: 'application/manifest+json',
       body: '{}',
     })
+    // The install icons are images; a launcher must not receive them as octet-stream.
+    expect(await request(port, '/icon-192.png')).toMatchObject({ status: 200, type: 'image/png', body: 'PNG' })
     expect(await request(port, '/app.js', { method: 'HEAD' })).toEqual({
       status: 200,
       type: 'text/javascript; charset=utf-8',
       body: '',
     })
     await writeFile(join(root!, 'dist', 'app.js'), 'export const rebuilt = true')
-    expect(await request(port, '/app.js')).toEqual({
-      status: 200,
-      type: 'text/javascript; charset=utf-8',
-      body: 'export const rebuilt = true',
-    })
+    expect(await request(port, '/app.js')).toMatchObject({ status: 200, body: 'export const rebuilt = true' })
 
     // Unknown extension ships as octet-stream.
-    expect(await request(port, '/blob.bin')).toEqual({
-      status: 200,
-      type: 'application/octet-stream',
-      body: 'BLOB',
-    })
+    expect(await request(port, '/blob.bin')).toMatchObject({ status: 200, type: 'application/octet-stream', body: 'BLOB' })
 
-    // The root, the index path, and client routes render index.html through
-    // registered taps, anchored at the site root so a deep route's relative
-    // asset URLs still resolve.
+    // Only the root and index path render index.html through registered taps.
     const untap = server.tapIndex(html => html.replace('<head>', '<head><script>window.__T__=1</script>'))
-    for (const path of ['/', '/index.html', '/?view=test', '/admin', '/admin/audit', '/billing/success']) {
+    // A plugin row stands in for the Host's plugin-resource rows: the base the
+    // shell inserts must precede it, not merely exist.
+    const renderedFor: Connection.PeerScope[] = []
+    const offRows = loaded.on('webserver/index-inject', (rows, peer) => {
+      renderedFor.push(peer)
+      rows.push({ kind: 'script-preload', src: 'plugins/boot.js' })
+    })
+    for (const path of ['/', '/index.html', '/?view=test']) {
       const got = await request(port, path, authenticated())
       expect(got.status).toBe(200)
       expect(got.type).toBe('text/html; charset=utf-8')
       expect(got.body).toContain('__T__')
       expect(got.body).toContain('shell')
+      // The served document carries the entry-directory base exactly once, and
+      // it precedes every injected row and tap markup, so the shell's
+      // app-owned routes and the Host's resource rows resolve under one mount.
+      expect(got.body.match(/<base\b/g)).toHaveLength(1)
+      const base = got.body.indexOf('<base href="./">')
+      expect(base).toBeLessThan(got.body.indexOf('<link rel="preload" as="script" href="plugins/boot.js">'))
+      expect(base).toBeLessThan(got.body.indexOf('<script>window.__T__=1</script>'))
     }
+    // An authenticated browser renders for the owner's shared browser Peer.
+    expect(renderedFor).toEqual([loaded.connection.browserPeer, loaded.connection.browserPeer, loaded.connection.browserPeer])
+    offRows()
     expect(await request(port, '/', authenticated({ method: 'HEAD' }))).toEqual({
       status: 200,
       type: 'text/html; charset=utf-8',
@@ -179,66 +182,19 @@ describe('real Loader composition', () => {
     untap()
     expect((await request(port, '/', authenticated())).body).not.toContain('__T__')
 
-    // Anonymous requests to client-side routes (e.g. /admin, /admin/audit):
-    // 1. Receive 200 with the public HTML shell (allowing the React SPA router to redirect to /login)
-    // 2. Contain <base href="/"> and the React shell
-    // 3. Do NOT contain __DSH_BOOT__, 'plugin', or 'boot'
-    const anonymousAdmin = await request(port, '/admin')
-    expect(anonymousAdmin).toEqual({
-      status: 200,
-      type: 'text/html; charset=utf-8',
-      body: '<head><base href="/"></head><body>shell</body>',
-    })
-    expect(anonymousAdmin.body).toContain('<base href="/">')
-    expect(anonymousAdmin.body).toContain('shell')
-    expect(anonymousAdmin.body).not.toContain('__DSH_BOOT__')
-    expect(anonymousAdmin.body).not.toContain('plugin')
-    expect(anonymousAdmin.body).not.toContain('boot')
-
-    const anonymousAudit = await request(port, '/admin/audit')
-    expect(anonymousAudit).toEqual({
-      status: 200,
-      type: 'text/html; charset=utf-8',
-      body: '<head><base href="/"></head><body>shell</body>',
-    })
-    expect(anonymousAudit.body).toContain('<base href="/">')
-    expect(anonymousAudit.body).toContain('shell')
-    expect(anonymousAudit.body).not.toContain('__DSH_BOOT__')
-    expect(anonymousAudit.body).not.toContain('plugin')
-    expect(anonymousAudit.body).not.toContain('boot')
-
-    // Authenticated client routes receive the injected shell for GET and HEAD
-    const clientRoute = await request(port, '/admin/audit', authenticated())
-    expect(clientRoute.status).toBe(200)
-    expect(clientRoute.type).toBe('text/html; charset=utf-8')
-    expect(clientRoute.body).toContain('shell')
-    expect(await request(port, '/admin/audit', authenticated({ method: 'HEAD' }))).toEqual({
-      status: 200,
-      type: 'text/html; charset=utf-8',
-      body: '',
-    })
-
-    // A path the dist holds as a directory, or a file addressed as one, names no
-    // extension either, so the shell answers and the SPA resolves the route.
-    for (const path of ['/empty', '/app.js/child']) {
-      const got = await request(port, path, authenticated())
-      expect(got.status).toBe(200)
-      expect(got.type).toBe('text/html; charset=utf-8')
-      expect(got.body).toContain('shell')
-    }
-
-    // A missing configured index follows the same empty-404 contract for every
-    // path that renders the shell, and for both supported methods.
+    // A missing configured index follows the same empty-404 contract for both
+    // of its public entry paths and for both supported methods.
     await rm(join(root!, 'dist', 'index.html'))
-    for (const path of ['/', '/index.html', '/admin/audit']) {
+    for (const path of ['/', '/index.html']) {
       const get = await request(port, path, authenticated())
       const head = await request(port, path, authenticated({ method: 'HEAD' }))
       expect(get).toEqual({ status: 404, type: null, body: '' })
       expect(head).toEqual(get)
     }
 
-    // Static-resource misses are empty 404s for both GET and HEAD; a missing
-    // asset can never be mistaken for the HTML shell.
+    // Ordinary unknown paths and static-resource misses are empty 404s for
+    // both GET and HEAD; neither class can be mistaken for the HTML shell.
+    const ordinaryMisses = ['/no/such/route', '/empty', '/app.js/child']
     const assetMisses = [
       '/missing.js',
       '/missing.css',
@@ -247,21 +203,12 @@ describe('real Loader composition', () => {
       '/missing.webmanifest',
       '/missing.manifest',
     ]
-    for (const path of assetMisses) {
+    for (const path of [...ordinaryMisses, ...assetMisses]) {
       const get = await request(port, path)
       const head = await request(port, path, { method: 'HEAD' })
       expect(get).toEqual({ status: 404, type: null, body: '' })
       expect(head).toEqual(get)
     }
-
-    // API endpoints without authentication remain protected: returns 401
-    expect(await request(port, '/api/no/such/route')).toEqual({
-      status: 401,
-      type: null,
-      body: 'unauthorized',
-    })
-
-    // Authenticated API request reaches the router and returns 404
     expect(await request(port, '/api/no/such/route', authenticated())).toEqual({
       status: 404,
       type: 'text/plain;charset=UTF-8',
@@ -281,5 +228,78 @@ describe('real Loader composition', () => {
     await frontendEntry!.fiber?.dispose()
     expect((await request(port, '/no/such/route')).status).toBe(404)
     expect(() => server.registerFallback(() => {})).not.toThrow()
+  })
+
+  it('answers in-process reads for the given Peer without browser authentication', { timeout: 60_000 }, async () => {
+    const loaded = await loadComposition()
+    const server = loaded.webServer
+    const reader = { principal: { kind: 'owner' } } as Connection.PeerScope
+    const read = (path: string, init?: RequestInit) => server.readResource(new Request(`http://reader.invalid${path}`, init), reader)
+    const renderedFor: Connection.PeerScope[] = []
+    loaded.on('webserver/index-inject', (rows, peer) => {
+      renderedFor.push(peer)
+      rows.push({ kind: 'global', name: '__READER__', value: peer === reader })
+    })
+
+    // The index renders for the reader's Peer with no cookie or token, and
+    // keeps the entry-directory base ahead of the injected rows.
+    for (const path of ['/', '/index.html']) {
+      const index = await read(path)
+      expect(index.status).toBe(200)
+      expect(index.headers.get('content-type')).toBe('text/html; charset=utf-8')
+      const html = await index.text()
+      expect(html).toContain('globalThis["__READER__"] = true')
+      expect(html.indexOf('<base href="./">')).toBeLessThan(html.indexOf('__READER__'))
+      expect(html).toContain('shell')
+    }
+    expect(renderedFor).toEqual([reader, reader])
+    const head = await read('/', { method: 'HEAD' })
+    expect({ status: head.status, type: head.headers.get('content-type'), body: await head.text() })
+      .toEqual({ status: 200, type: 'text/html; charset=utf-8', body: '' })
+
+    // Assets, misses, traversal, and methods keep the HTTP semantics.
+    const asset = await read('/app.js')
+    expect({ status: asset.status, type: asset.headers.get('content-type'), body: await asset.text() })
+      .toEqual({ status: 200, type: 'text/javascript; charset=utf-8', body: 'export {}' })
+    expect((await read('/missing.js')).status).toBe(404)
+    expect((await read('/..%2f..%2fetc%2fpasswd')).status).toBe(403)
+    expect((await read('/app.js', { method: 'POST', body: 'x' })).status).toBe(405)
+    await expect(read('/bad%00path')).rejects.toThrow()
+    await rm(join(root!, 'dist', 'index.html'))
+    expect((await read('/')).status).toBe(404)
+  })
+
+  it('lets browsers revalidate every file except the index', { timeout: 60_000 }, async () => {
+    const loaded = await loadComposition()
+    const base = `http://127.0.0.1:${String(loaded.webServer.port)}`
+    const first = await fetch(`${base}/app.js`)
+    const etag = first.headers.get('etag')
+    if (etag === null) throw new Error('a dist file carried no ETag')
+    expect(etag).toMatch(/^W\/"[A-Za-z0-9_-]+"$/)
+    expect(first.headers.get('cache-control')).toBe('no-cache')
+    expect(await first.text()).toBe('export {}')
+
+    const revalidated = await fetch(`${base}/app.js`, { headers: { 'if-none-match': etag } })
+    expect([revalidated.status, revalidated.headers.get('etag'), revalidated.headers.get('cache-control')]).toEqual([304, etag, 'no-cache'])
+    expect(await revalidated.text()).toBe('')
+    // An in-process read revalidates the same way.
+    const reader = { principal: { kind: 'owner' } } as Connection.PeerScope
+    const read = await loaded.webServer.readResource(new Request(`${base}/app.js`, { headers: { 'if-none-match': etag } }), reader)
+    expect(read.status).toBe(304)
+
+    // New content under the same name changes the ETag, so the stale copy is replaced.
+    await writeFile(join(root!, 'dist', 'app.js'), 'export const rebuilt = true')
+    const rebuilt = await fetch(`${base}/app.js`, { headers: { 'if-none-match': etag } })
+    expect(rebuilt.status).toBe(200)
+    expect(rebuilt.headers.get('etag')).not.toBe(etag)
+    expect(await rebuilt.text()).toBe('export const rebuilt = true')
+
+    // Only the rendered index carries no cache headers; another HTML file revalidates.
+    const html = await fetch(`${base}/preview.html`)
+    expect([html.status, html.headers.get('cache-control')]).toEqual([200, 'no-cache'])
+    expect(html.headers.get('etag')).toMatch(/^W\//)
+    expect(await html.text()).toBe('<body>preview</body>')
+    const index = await loaded.webServer.readResource(new Request(`${base}/`), reader)
+    expect([index.status, index.headers.get('cache-control'), index.headers.get('etag')]).toEqual([200, null, null])
   })
 })

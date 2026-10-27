@@ -256,3 +256,84 @@ Cada instância DSH deve executar operações em nome do usuário autenticado ou
 Este plano não confirma o estado do VPS, permissões root/`setuid`, versão do Node, DNS, certificado, Nginx, systemd, limites de recursos nem comportamento da revisão atual do `dsh-server-login`. Esses itens exigem acesso e testes no ambiente de staging/produção.
 
 Também não está comprovado neste documento que o `dsh-server-login` integra diretamente com Supabase Auth ou transporta de forma segura a identidade Supabase para o DSH. O desenho de autenticação e RLS por usuário é um **bloqueio técnico anterior ao corte**; não deve ser resolvido distribuindo uma chave privilegiada compartilhada.
+
+
+Os 2 bloqueios críticos que ele levantou (e que você precisa resolver)
+1. Identidade Supabase por instância
+"A orquestração de instâncias Linux isola o SO, mas não gera credenciais do Supabase automaticamente; é mandatório validar como o JWT do usuário será fornecido a cada instância sem expor a service_role_key a plugins."
+
+Traduzindo: O dsh-server-login isola o sistema operacional, mas não sabe qual usuário do Supabase está logado. Se cada instância do DSH usar a service_role_key (que ignora o RLS), um plugin malicioso pode ler todos os dados do Supabase (de todos os tenants). Isso anula o isolamento.
+
+A solução: cada instância precisa receber o JWT do usuário (não a service_role_key). Mas o dsh-server-login não faz isso nativamente. Você precisa de uma ponte entre o login do orquestrador e o Supabase Auth.
+
+2. Root/setuid no VPS
+"Acesso root e setuid: ainda não puderam ser verificados neste ambiente sandbox e precisam ser confirmados diretamente no VPS."
+
+Traduzindo: O modo account (hard isolation) exige root no VPS para criar as contas Linux e usar setuid. Se o seu VPS não permitir isso (ou se o provedor bloquear), o modo account não funciona e você fica no modo soft (inútil para segurança).
+
+O que fazer agora (decisão sua)
+Você tem 3 caminhos:
+
+Caminho A — Resolver os bloqueios antes de migrar (recomendado)
+Ação:
+
+Verificar root/setuid no VPS: rodar sudo -l ou id para confirmar que você tem root e que o setuid funciona.
+
+Projetar a ponte Supabase: definir como o JWT do usuário será passado para cada instância do DSH (ex: o orquestrador autentica no Supabase Auth e injeta o JWT no DSH_HOME da instância).
+
+Testar em staging (antes de tocar em produção).
+
+Tempo: 2-3 dias.
+
+Caminho B — Migrar sem resolver o bloqueio do Supabase (arriscado)
+Ação: Seguir o plano, mas usar a service_role_key compartilhada nas instâncias. Isso anula o isolamento (um plugin malicioso lê tudo). Não recomendo.
+
+Caminho C — Adiar o Market e focar em features de valor
+Ação: Manter o Market admin-only por enquanto e focar em features de valor (visão, imagem, e-mail). O Market fica para depois, quando você tiver tempo de resolver os bloqueios.
+
+Minha recomendação
+Caminho A. O plano está sólido, mas os 2 bloqueios são reais. Resolvê-los antes de migrar evita que você faça a migração e descubra, em produção, que o isolamento não funciona (por causa da service_role_key) ou que o modo account não roda no VPS.
+
+Prompt para o OpenCode (verificar os bloqueios):
+
+markdown
+# Verificar bloqueios da migração (root/setuid + ponte Supabase)
+
+## Contexto
+O plano `docs/roadmap/plano-migracao-server-login.md` foi aprovado
+(4a3d7b6938), mas há 2 bloqueios críticos:
+1. Root/setuid no VPS (modo account).
+2. Ponte entre o login do orquestrador e o Supabase Auth (JWT do
+   usuário, sem expor service_role_key).
+
+## Ação 1 — Verificar root/setuid no VPS
+Rodar no VPS:
+1. `id` (confirmar que é root ou tem sudo).
+2. `sudo -l` (confirmar permissões).
+3. Testar `setuid` com um script simples:
+   `sudo -u nobody id` (deve funcionar).
+4. Verificar se o provedor do VPS bloqueia `setuid` (alguns
+   provedores gerenciados bloqueiam).
+
+Reportar o resultado.
+
+## Ação 2 — Investigar a ponte Supabase
+1. Verificar como o `dsh-server-login` autentica (SQLite local,
+   não Supabase Auth).
+2. Investigar se há como o orquestrador autenticar no Supabase
+   Auth (ex: via API) e injetar o JWT no `DSH_HOME` de cada
+   instância.
+3. Verificar se o DSH suporta injeção de JWT por instância
+   (ex: variável de ambiente `SUPABASE_JWT` ou similar).
+4. Documentar a arquitetura da ponte (se viável).
+
+## Reportar
+- Resultado do teste de root/setuid.
+- Viabilidade da ponte Supabase.
+- Se há bloqueio técnico que impeça a migração.
+- NÃO aplicar nada ainda (só investigar).
+
+## Regras
+- NUNCA tocar packages/core/ ou packages/llm/.
+- NUNCA expor a service_role_key.
+- Apenas investigar e reportar.

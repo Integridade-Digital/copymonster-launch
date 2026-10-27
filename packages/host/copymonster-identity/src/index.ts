@@ -16,7 +16,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-system-prompt'
-import type { PromptAssembly } from '@deepseek-ai/dsh-system-prompt'
+import type { PromptPresentation } from '@deepseek-ai/dsh-system-prompt'
 
 /** Stable Cordis plugin name. */
 export const name = 'copymonster-identity'
@@ -59,7 +59,7 @@ Confident, strategic, direct. You are a senior operator, not a cheerleader. Neve
  * @param ctx - Host context carrying the prompt registry.
  */
 export function apply(ctx: Context): void {
-  ctx.on('system-prompt/assemble', async (_assembly, _context, next): Promise<PromptAssembly> => {
+  ctx.on('system-prompt/assemble', async (_assembly, _context, next): Promise<PromptPresentation> => {
     const downstream = await next()
     return {
       ...downstream,

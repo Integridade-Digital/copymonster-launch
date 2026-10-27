@@ -15,9 +15,9 @@
  * @module @deepseek-ai/dsh-host-frontend-static
  */
 
-import type { ServerResponse } from 'node:http'
 import { readFile } from 'node:fs/promises'
 import { dirname, extname, join, normalize, resolve, sep } from 'node:path'
+import type { ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import type {} from '@deepseek-ai/dsh-client-connection'
@@ -53,6 +53,8 @@ const MIME: Record<string, string> = {
   '.html': HTML_MIME,
   '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
+  // Launchers require an image Content-Type for the install icons.
+  '.png': 'image/png',
   '.svg': 'image/svg+xml',
   '.json': 'application/json',
   '.map': 'application/json',
@@ -185,9 +187,10 @@ function createIndexProbe(): IndexProbe {
   return probe
 }
 
+
 /**
- * Claim the webserver fallback seat and serve the dist.
- * @param ctx - plugin context carrying the webServer service.
+ * Claim the webserver fallback seat with a resource serving the dist.
+ * @param ctx - plugin context carrying the webServer and connection services.
  * @param config - validated {@link Config}.
  */
 export function apply(ctx: Context, config: Config): void {
@@ -199,7 +202,7 @@ export function apply(ctx: Context, config: Config): void {
   // served form anchors them at the site root ahead of every URL-bearing tag.
   const anchorBase = (html: string): string => html
     .replace(/<head(?:\s[^>]*)?>/i, open => `${open}<base href="/">`)
-  const renderIndex = (html: string): string => anchorBase(ctx.webServer.renderIndex(html))
+  const renderIndex = (html: string): string => anchorBase(ctx.webServer.renderIndex(html, ctx.connection.browserPeer))
   // The public shell reuses only the base anchoring: rendering it through the
   // webserver would attach the boot manifest rows that leak the host's plugin
   // graph to anonymous visitors.

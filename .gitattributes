@@ -8,12 +8,35 @@
 
 *.pdf binary
 
-# Pairing records are generated from the three confirmed owner-blob pairs.
-# The worktree-local installer registers the fail-closed driver command.
-*.i18n.yaml merge=dsh-translation-pairing
-
 # The persistence catalog is the readable projection of these generated schemas.
 docs/persistence-schema.json linguist-generated=true
 docs/persistence-changes/*.schema.json linguist-generated=true
 docs/persistence-changes/releases/*.schema.json linguist-generated=true
 docs/persistence-changes/historical-formats/*.schema.json linguist-generated=true
+
+# 2a: fork-owned branding. The fork's file is the final state; upstream changes
+# to these paths are not semantically interesting. Requires merge.ours.driver=true.
+apps/web/index.html merge=ours
+apps/web/public/manifest.webmanifest merge=ours
+apps/web/public/favicon.svg merge=ours
+apps/desktop/installer/assets/brand.png merge=ours
+apps/desktop/installer/assets/brand-2x.png merge=ours
+apps/desktop/installer/assets/brand-dark.png merge=ours
+apps/desktop/installer/assets/brand-dark-2x.png merge=ours
+apps/desktop/installer/assets/uninstaller-sidebar.png merge=ours
+apps/desktop/resources/icon.png merge=ours
+apps/desktop/resources/icon-macos.png merge=ours
+apps/desktop/resources/icon-macos.svg merge=ours
+apps/desktop/resources/icon-windows.png merge=ours
+apps/desktop/resources/icon-windows.svg merge=ours
+apps/desktop/resources/icon.svg merge=ours
+apps/desktop/resources/Icon.png merge=ours
+website/public/favicon.svg merge=ours
+website/public/wordmark.svg merge=ours
+packages/skill/skill-badge/assets/dsh-badge.png merge=ours
+docs/user/guide/providers-custom-form.png merge=ours
+docs/user/guide/providers-custom-form.zh.png merge=ours
+docs/user/guide/providers-models-page.png merge=ours
+docs/user/guide/providers-models-page.zh.png merge=ours
+packages/client/ui-sidebar/tests/__snapshots__/sidebar-snapshot.client.spec.tsx.snap merge=ours
+packages/bundle/copymonster/** merge=ours

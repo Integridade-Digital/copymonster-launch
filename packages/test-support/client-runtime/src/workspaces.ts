@@ -81,20 +81,14 @@ export class TestWorkspaces implements IWorkspaces {
   }
 
   /**
-   * Auto-provision the initial default Workspace (recorded). The default
-   * echoes a minimal view.
-   * @returns the initial Workspace view.
+   * Initialize the default Workspace through a test stub; defaults to an ineligible first use.
+   * @param signal - caller lifetime.
+   * @returns the stubbed Workspace, or undefined when initialization is ineligible.
    */
-  async ensureInitial(): Promise<WorkspaceView> {
-    this.calls.push({ method: 'ensureInitial', args: [] })
-    const stub = this.stubs.get('ensureInitial')
-    if (stub !== undefined) return await (stub() as Promise<WorkspaceView>)
-    return {
-      workspaceId: 'ws-initial' as WorkspaceId,
-      title: 'default',
-      path: '/default',
-      sessionIds: [],
-    } as unknown as WorkspaceView
+  async initializeDefault(signal?: AbortSignal): Promise<WorkspaceView | undefined> {
+    this.calls.push({ method: 'initializeDefault', args: [signal] })
+    const stub = this.stubs.get('initializeDefault')
+    return await (stub?.(signal) as Promise<WorkspaceView | undefined> | undefined)
   }
 
   /**
@@ -174,6 +168,43 @@ export class TestWorkspaces implements IWorkspaces {
     }
     await this.update((draft) => {
       draft.archivedSessionIds = draft.archivedSessionIds.filter(id => id !== sessionId)
+    })
+  }
+
+  /**
+   * Pin a session (recorded). The default mirrors the production face's
+   * observable effect: the id leads the list state's pin set.
+   * @param sessionId - session to pin.
+   */
+  async pinSession(sessionId: SessionId): Promise<void> {
+    this.calls.push({ method: 'pinSession', args: [sessionId] })
+    const stub = this.stubs.get('pinSession')
+    if (stub !== undefined) {
+      await (stub(sessionId) as Promise<void>)
+      return
+    }
+    await this.update((draft) => {
+      draft.pinnedSessionIds = [
+        sessionId,
+        ...draft.pinnedSessionIds.filter(id => id !== sessionId),
+      ]
+    })
+  }
+
+  /**
+   * Unpin a session (recorded). The default mirrors the production face's
+   * observable effect: the id leaves the list state's pin set.
+   * @param sessionId - session to unpin.
+   */
+  async unpinSession(sessionId: SessionId): Promise<void> {
+    this.calls.push({ method: 'unpinSession', args: [sessionId] })
+    const stub = this.stubs.get('unpinSession')
+    if (stub !== undefined) {
+      await (stub(sessionId) as Promise<void>)
+      return
+    }
+    await this.update((draft) => {
+      draft.pinnedSessionIds = draft.pinnedSessionIds.filter(id => id !== sessionId)
     })
   }
 }

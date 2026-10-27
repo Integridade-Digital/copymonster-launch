@@ -177,14 +177,6 @@ export class FixtureSession implements SessionFace {
   rename(): never {
     throw new Error(`test session "${this.sessionId}": rename is not stubbed — supply it on the fixture's session face`)
   }
-
-  /**
-   * Fail-loud stub; supply `delete` on the fixture's session face to exercise it.
-   * @returns never — always throws.
-   */
-  delete(): never {
-    throw new Error(`test session "${this.sessionId}": delete is not stubbed — supply it on the fixture's session face`)
-  }
 }
 
 /** Catalog fixture data remains available across live Client generations. */
@@ -319,7 +311,7 @@ export class TestSessions implements ISessions {
 
   /** Calls observed on the service-level face, newest last. */
   readonly calls: {
-    method: 'create' | 'delete' | 'setSubagentCatalogOpen' | 'refreshSubagents' | 'refresh' | 'search' | 'fork'
+    method: 'create' | 'refreshProjections' | 'refresh' | 'search' | 'fork'
     args: unknown[]
   }[] = []
 
@@ -336,7 +328,7 @@ export class TestSessions implements ISessions {
    */
   constructor(private readonly stabilize: Stabilizer, private readonly rootCtx: Context) {
     this.list = createSnapshotStore<SessionListState>({
-      ids: [], byId: {}, phase: 'ready', subagentsByParent: {}, jobsBySession: {},
+      ids: [], byId: {}, phase: 'ready', projectionsBySession: {},
     })
     rootCtx.effect(() => async () => {
       this.closed = true
@@ -633,36 +625,22 @@ export class TestSessions implements ISessions {
     return id
   }
 
-  /**
-   * Recorded delete stub: drops the catalog row and its retained generation.
-   * @param sessionId - Session to remove.
-   */
-  async delete(sessionId: SessionId): Promise<void> {
-    this.calls.push({ method: 'delete', args: [sessionId] })
-    if (this.records.has(sessionId)) await this.remove(sessionId)
-  }
-
   /** Resolve a retained or catalog-derived address independently of a view. */
   subagentAddress(id: SessionId): SubagentAddress | undefined {
     const retained = this.addresses.get(id)
     if (retained !== undefined) return retained
-    for (const [parentSessionId, catalog] of Object.entries(this.list.getSnapshot().subagentsByParent)) {
-      const child = catalog.entries.find(entry => entry.kind === 'child' && entry.id === id)
-      if (child?.kind === 'child') {
+    for (const [parentSessionId, projections] of Object.entries(this.list.getSnapshot().projectionsBySession)) {
+      const child = projections.values.subagentCatalog?.find(entry => entry.id === id)
+      if (child !== undefined && child.mode !== 'external') {
         return { parentSessionId: parentSessionId as SessionId, childSessionId: id, mode: child.mode }
       }
     }
     return undefined
   }
 
-  /** Record catalog consumption; fixture callers drive snapshots explicitly. */
-  setSubagentCatalogOpen(parentSessionId: SessionId, open: boolean): void {
-    this.calls.push({ method: 'setSubagentCatalogOpen', args: [parentSessionId, open] })
-  }
-
-  /** Record a catalog refresh; fixture callers drive snapshots explicitly. */
-  refreshSubagents(parentSessionId: SessionId): Promise<void> {
-    this.calls.push({ method: 'refreshSubagents', args: [parentSessionId] })
+  /** Record a projection refresh; fixture callers drive snapshots explicitly. */
+  refreshProjections(sessionId: SessionId): Promise<void> {
+    this.calls.push({ method: 'refreshProjections', args: [sessionId] })
     return Promise.resolve()
   }
 
@@ -699,7 +677,7 @@ export class TestSessions implements ISessions {
    * @param opts - source session id, optional cut anchor, and client title policy.
    * @returns the source id (no child record is created).
    */
-  fork(opts: { sessionId: SessionId; atSeq?: number; increaseTitle?: boolean }): Promise<SessionId> {
+  fork(opts: Parameters<ISessions['fork']>[0]): Promise<SessionId> {
     this.calls.push({ method: 'fork', args: [opts] })
     return Promise.resolve(opts.sessionId)
   }

@@ -20,7 +20,7 @@
 
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-system-prompt'
-import type { PromptAssembly } from '@deepseek-ai/dsh-system-prompt'
+import type { PromptPresentation } from '@deepseek-ai/dsh-system-prompt'
 import { sessionTenantMap } from '@deepseek-ai/dsh-api-session-controller'
 import type { PositioningMappingRow } from '@deepseek-ai/dsh-supabase-client'
 import { buildPositioningText, POSITIONING_SECTION } from './prompt.ts'
@@ -63,7 +63,7 @@ async function loadAndCache(
  * @param ctx - Host context carrying the prompt registry.
  */
 export function apply(ctx: Context): void {
-  ctx.on('system-prompt/assemble', async (_assembly, context, next): Promise<PromptAssembly> => {
+  ctx.on('system-prompt/assemble', async (_assembly, context, next): Promise<PromptPresentation> => {
     const downstream = await next()
     const agent = context.scope as { session?: MappedSession } | undefined
     const session = agent?.session

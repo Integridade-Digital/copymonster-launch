@@ -849,3 +849,39 @@ Implementado na Etapa 9: blocklist de e-mails descartáveis via trigger `BEFORE 
 - Causa: o runner de teste do Cordis não estabelece connection com o host em ambiente de teste.
 - Impacto: `test:web` falha em 6 specs (fora do CI do fork). Não bloqueia deploy; dívida técnica do fork.
 - Correção futura: alinhar auth/connection do runner com o fluxo real do CopyMonster.
+
+## Dívidas registradas após a sincronização de 2026-10-27
+
+### Dívida — Migração de quota/tenancy para plugin do bundle
+
+- O gate de quota/tenancy (`assertTenantQuota`, `sessionTenantMap`, `upsertSessionIndex`) está em `packages/api/session-controller/src/commands.ts` (fork).
+- Migração para plugin do bundle adiada.
+- Risco: merge futuro pode quebrar novamente.
+
+### Dívida — Migração do shell anônimo para plugin do bundle
+
+- O `packages/host/frontend-static` mantém o fork (shell anônimo público).
+- Migração para plugin do bundle adiada.
+- Risco: merge futuro pode quebrar o boot.
+
+### Dívida — Migração do RBAC/admin/tenant para plugin do bundle
+
+- O `packages/api/settings-controller` mantém o RBAC/admin/tenant do fork.
+- Migração para plugin do bundle adiada.
+- Risco: merge futuro pode quebrar o RBAC.
+
+### Dívida — Testes desatualizados (pós-merge)
+
+- Após o merge com o upstream, 211 erros de teste permanecem.
+- Causa: os testes do fork usam assinaturas antigas (`commands.ts`, presets, quota).
+- O código de produção compila (Client + Host PASS) e `build:web` passa.
+- Ação futura: atualizar os testes para a nova API, um por um.
+- Prioridade: média (não bloqueia deploy).
+
+### Dívida — Erros de tipo do client compiler (pós-merge)
+
+- O `build:artifacts` falha com 147 erros TS em ~20 pacotes.
+- Causa: mistura de APIs copymonster (antigas) e upstream (novas) em vários pacotes client.
+- O app funciona (HTTP 200), mas o build completo não passa.
+- Ação futura: reconciliar pacote por pacote, começando por `ui-settings-general`, `ui-settings-plugin-inventory`, `ui-workspace`, `ui-chat`.
+- Prioridade: média (não bloqueia deploy, mas bloqueia CI).

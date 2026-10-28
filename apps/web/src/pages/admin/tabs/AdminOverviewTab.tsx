@@ -21,8 +21,6 @@ interface ModelStat {
 interface SystemHealth {
   dbStatus: 'operational' | 'degraded' | 'down'
   dbLatencyMs: number
-  providersCount: number
-  providersActive: number
 }
 
 export function AdminOverviewTab() {
@@ -36,8 +34,6 @@ export function AdminOverviewTab() {
   const [health, setHealth] = useState<SystemHealth>({
     dbStatus: 'operational',
     dbLatencyMs: 0,
-    providersCount: 0,
-    providersActive: 0,
   })
 
   const loadOverviewData = useCallback(async () => {
@@ -45,28 +41,24 @@ export function AdminOverviewTab() {
       setIsLoading(true)
       setError(null)
 
-      // 1. Verificação de latência e saúde do banco via llm_providers
+      // 1. Verificação de latência e saúde do banco.
       const tStart = performance.now()
-      const { data: providersData, error: providersErr } = await supabase
-        .from('llm_providers')
-        .select('id, is_active')
+      const { error: healthError } = await supabase
+        .from('users')
+        .select('id')
+        .limit(1)
       const tEnd = performance.now()
       const latency = Math.round(tEnd - tStart)
 
-      if (providersErr) {
+      if (healthError) {
         setHealth({
           dbStatus: 'down',
           dbLatencyMs: latency,
-          providersCount: 0,
-          providersActive: 0,
         })
       } else {
-        const activeCount = (providersData || []).filter((p: { is_active: boolean }) => p.is_active).length
         setHealth({
           dbStatus: latency > 1000 ? 'degraded' : 'operational',
           dbLatencyMs: latency,
-          providersCount: (providersData || []).length,
-          providersActive: activeCount,
         })
       }
 
@@ -262,7 +254,7 @@ export function AdminOverviewTab() {
             {health.dbStatus === 'operational' ? 'Operacional' : health.dbStatus === 'degraded' ? 'Degradado' : 'Indisponível'}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
-            Latência: {health.dbLatencyMs}ms ({health.providersActive} provedores)
+            Latência: {health.dbLatencyMs}ms
           </div>
         </div>
       </div>

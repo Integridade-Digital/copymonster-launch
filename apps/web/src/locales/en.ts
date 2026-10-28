@@ -27,8 +27,6 @@ export const en = {
   'admin.tab.overview': 'Overview',
   'admin.tab.users': 'Users',
   'admin.tab.tenants': 'Tenants',
-  'admin.tab.llm_providers': 'LLM Providers',
-  'admin.tab.models': 'Models',
   'admin.tab.settings': 'Settings',
   'admin.tab.sessions': 'Sessions',
   'admin.tab.audit': 'Audit',

@@ -11971,37 +11971,6 @@ importers:
         specifier: workspace:*
         version: link:../webserver
 
-  packages/host/llm-credentials-supabase:
-    dependencies:
-      '@deepseek-ai/dsh-credentials':
-        specifier: workspace:^
-        version: link:../../credentials/credentials
-      '@deepseek-ai/dsh-credentials-local':
-        specifier: workspace:^
-        version: link:../../credentials/credentials-local
-      '@deepseek-ai/dsh-llm':
-        specifier: workspace:^
-        version: link:../../llm/llm
-      '@deepseek-ai/dsh-supabase-client':
-        specifier: workspace:*
-        version: link:../../server/supabase-client
-      '@deepseek-ai/schemastery':
-        specifier: link:../../../vendor/schemastery
-        version: link:../../../vendor/schemastery
-    devDependencies:
-      '@deepseek-ai/cordis':
-        specifier: workspace:^
-        version: link:../../../vendor/cordis
-      '@types/node':
-        specifier: ^22.0.0
-        version: 22.20.1
-      typescript:
-        specifier: ^6.0.3
-        version: 6.0.3
-      vitest:
-        specifier: ^4.1.8
-        version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@22.20.1)(@vitest/coverage-v8@4.1.11)(happy-dom@20.11.6)(jsdom@29.1.1(@noble/hashes@2.4.0))(vite@8.2.2(@types/node@22.20.1)(esbuild@0.28.2)(jiti@2.7.0)(tsx@4.23.13)(yaml@2.9.0))
-
   packages/host/llm-fallback:
     dependencies:
       '@deepseek-ai/dsh-agent':

@@ -27,8 +27,6 @@ export const zh = {
   'admin.tab.overview': '概览',
   'admin.tab.users': '用户',
   'admin.tab.tenants': '租户',
-  'admin.tab.llm_providers': 'LLM 提供商',
-  'admin.tab.models': '模型',
   'admin.tab.settings': '设置',
   'admin.tab.sessions': '会话',
   'admin.tab.audit': '审计',

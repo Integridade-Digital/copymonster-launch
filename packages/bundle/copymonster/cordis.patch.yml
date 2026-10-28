@@ -26,6 +26,7 @@
 - id: connection
   config:
     trustedHosts: !!js "['app.copymonster.co', ...ctx.webStartup.trustedHosts]"
+    trustedOrigins: ['https://app.copymonster.co']
 
 - id: web-runtime
   config:
@@ -33,6 +34,7 @@
     printUrl: true
     publicUrl: !!js "ctx.webStartup.publicUrl ?? 'https://app.copymonster.co'"
     surfaceContext: true
+    trustedOrigins: ['https://app.copymonster.co']
 
 - insert:
     # Brand DNA positioning context: prepends the creator's mapped positioning

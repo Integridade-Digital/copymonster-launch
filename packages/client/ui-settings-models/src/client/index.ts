@@ -63,7 +63,7 @@ export function refreshIfLoaded(controller: ModelsSettingsStore): void {
  */
 export const inject = [
   'slots', 'locale', 'remote', 'remote.credentials', 'remote.llm', 'remote.settings',
-  'configForms', 'settingsSchema',
+  'remote.session', 'configForms', 'settingsSchema',
 ]
 
 /**

@@ -25,6 +25,7 @@ import {
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import SessionQueryEngine from '@deepseek-ai/dsh-session-query'
 import { vi } from 'vitest'
+import type { NativeFileApplication } from '@deepseek-ai/dsh-native-command/types'
 import {
   RemoteError,
   remoteErrorOf,
@@ -81,6 +82,10 @@ export interface TestSessionRemote {
     request: SessionOpenWorkspacePathRequest,
     signal?: AbortSignal,
   ): Promise<RemoteResult<SessionOpenWorkspacePathValue>>
+  workspacePathApplications(
+    request: SessionOpenWorkspacePathRequest,
+    signal?: AbortSignal,
+  ): Promise<RemoteResult<readonly NativeFileApplication[]>>
   page(request: SessionPageRequest, signal?: AbortSignal): Promise<RemoteResult<SessionPage>>
   follow(request: SessionFollowRequest, signal?: AbortSignal): AsyncIterable<SessionFollowFrame>
   control(signal?: AbortSignal): AsyncIterable<SessionControlFrame>
@@ -97,6 +102,12 @@ export interface TestSessionRemoteDefaults {
   readonly canOpenPath?: () => boolean
   /** Tenant quota check; defaults to always-allow outside the quota suites. */
   readonly checkTenantQuota?: TenantQuotaCheck
+  /** Native file-application query for workspace-path application tests. */
+  readonly fileApplications?: (path: string, signal: AbortSignal) => Promise<readonly NativeFileApplication[]>
+  /** Native open-file-application handler for workspace-path application tests. */
+  readonly openFileApplication?: (path: string, application: string, signal: AbortSignal) => Promise<void>
+  /** List-work budget in milliseconds (defaults to 16). */
+  readonly listWorkSliceMs?: number
 }
 
 const installed = new WeakMap<Context, SessionController>()
@@ -305,11 +316,14 @@ function installControllers(
       authCtx,
       {
         ...defaults.nativeOpen === undefined ? {} : { nativeOpen: defaults.nativeOpen },
+        ...defaults.listWorkSliceMs === undefined ? {} : { listWorkSliceMs: defaults.listWorkSliceMs },
       },
       {
         ...defaults.openPath === undefined ? {} : { openPath: defaults.openPath },
         ...defaults.revealPath === undefined ? {} : { revealPath: defaults.revealPath },
         ...defaults.canOpenPath === undefined ? {} : { canOpenPath: defaults.canOpenPath },
+        ...defaults.fileApplications === undefined ? {} : { fileApplications: defaults.fileApplications },
+        ...defaults.openFileApplication === undefined ? {} : { openFileApplication: defaults.openFileApplication },
         checkTenantQuota: defaults.checkTenantQuota
           ?? (() => Promise.resolve({ allowed: true, reason: 'ok', remainingTokens: 1_000_000 })),
       },
@@ -379,6 +393,10 @@ export function createSessionTestRemote(
     cancel: request => remoteResult(() => direct.cancel(request)),
     openWorkspacePath: (request, signal = new AbortController().signal) => remoteResult(
       () => direct.openWorkspacePath(request, signal),
+      signal,
+    ),
+    workspacePathApplications: (request, signal = new AbortController().signal) => remoteResult(
+      () => direct.workspacePathApplications(request, signal),
       signal,
     ),
     page: (request, signal = new AbortController().signal) => remoteResult(

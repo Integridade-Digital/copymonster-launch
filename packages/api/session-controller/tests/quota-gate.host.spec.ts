@@ -3,6 +3,8 @@ import type { Mock } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type { Agent } from '@deepseek-ai/dsh-agent'
+import type { SessionRequestId } from '../src/types.ts'
+import type { MessageSource } from '@deepseek-ai/dsh-llm'
 import { SessionCommandController } from '../src/commands.ts'
 import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
 
@@ -15,6 +17,8 @@ vi.mock('@deepseek-ai/dsh-supabase-client', () => ({
 
 const identity = { tenantId: 'tenant-123', userId: 'user-1' } as never
 const adminIdentity = { tenantId: 'tenant-123', userId: 'user-1', isAdmin: true } as never
+
+const USER_SOURCE: MessageSource = { kind: 'user', rpcId: 'req-1' as SessionRequestId }
 
 function activeSubscription(): void {
   const single = vi.fn().mockResolvedValue({ data: { subscription_status: 'active' }, error: null })
@@ -121,6 +125,6 @@ describe('SessionCommandController quota gate', () => {
       requestId: 'req-1',
       mode: 'followup',
       content: [{ type: 'text', text: 'hello' }],
-    } as never, undefined, identity)).rejects.toMatchObject({ code: 'session/quota-exceeded' })
+    } as never, USER_SOURCE, identity)).rejects.toMatchObject({ code: 'session/quota-exceeded' })
   })
 })

@@ -1,8 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import SettingsController from '../src/index.ts'
-import { MemorySettings } from '../../../settings/settings/tests/memory.ts'
-import { MemoryCredentials } from '../../../credentials/credentials/tests/memory.ts'
 
 // Mock Supabase
 const mockTenants = [
@@ -125,8 +123,6 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
 
   it('permite que administradores listem tenants e logs de auditoria', async () => {
     const ctx = new Context()
-    await ctx.plugin(MemorySettings)
-    await ctx.plugin(MemoryCredentials)
 
     ctx.provide('authIdentity', {
       userId: 'usr_admin',
@@ -148,8 +144,6 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
 
   it('bloqueia membros comuns de listar tenants e logs de auditoria', async () => {
     const ctx = new Context()
-    await ctx.plugin(MemorySettings)
-    await ctx.plugin(MemoryCredentials)
 
     ctx.provide('authIdentity', {
       userId: 'usr_member',
@@ -170,8 +164,6 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
 
   it('permite que membro consulte as métricas de seu próprio tenant', async () => {
     const ctx = new Context()
-    await ctx.plugin(MemorySettings)
-    await ctx.plugin(MemoryCredentials)
 
     ctx.provide('authIdentity', {
       userId: 'usr_member',
@@ -192,8 +184,6 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
 
   it('bloqueia membro comum de consultar métricas de outro tenant', async () => {
     const ctx = new Context()
-    await ctx.plugin(MemorySettings)
-    await ctx.plugin(MemoryCredentials)
 
     ctx.provide('authIdentity', {
       userId: 'usr_member',
@@ -210,8 +200,6 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
 
   it('permite registrar consumo de tokens via recordTokenUsage chamando a RPC atômica', async () => {
     const ctx = new Context()
-    await ctx.plugin(MemorySettings)
-    await ctx.plugin(MemoryCredentials)
 
     ctx.provide('authIdentity', {
       userId: 'usr_member',
@@ -238,8 +226,6 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
 
   it('permite gravar log de auditoria via recordAuditLog', async () => {
     const ctx = new Context()
-    await ctx.plugin(MemorySettings)
-    await ctx.plugin(MemoryCredentials)
 
     ctx.provide('authIdentity', {
       userId: 'usr_member',
@@ -260,8 +246,6 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
 
   it('rejeita chamadas sem autenticação em endpoints administrativos', async () => {
     const ctx = new Context()
-    await ctx.plugin(MemorySettings)
-    await ctx.plugin(MemoryCredentials)
 
     await ctx.plugin(SettingsController)
 

@@ -6,6 +6,8 @@ import SessionStore, { SESSION_FORMAT_VERSION, SessionId, SessionSeq } from '@de
 import type { SessionHeader } from '@deepseek-ai/dsh-session'
 import SessionProjectionRegistry from '@deepseek-ai/dsh-session-projection'
 import { SessionQueryEngine, type SessionSearchHit, type SessionSearchRequest } from '@deepseek-ai/dsh-session-query'
+import type { SessionRequestId } from '../src/types.ts'
+import type { MessageSource } from '@deepseek-ai/dsh-llm'
 import { resolveUserSandboxRoot } from '@deepseek-ai/dsh-workspace'
 import { describe, expect, it, vi } from 'vitest'
 import { SessionCommandController } from '../src/commands.ts'
@@ -27,6 +29,8 @@ const identityB: UserIdentity = {
 }
 const sandboxA = resolveUserSandboxRoot(identityA.tenantId, identityA.userId)
 const sandboxB = resolveUserSandboxRoot(identityB.tenantId, identityB.userId)
+
+const USER_SOURCE: MessageSource = { kind: 'user', rpcId: 'req-1' as SessionRequestId }
 
 function sessionHeader(sessionId: string, cwd: string): SessionHeader {
   return {
@@ -111,14 +115,14 @@ describe('Session multi-tenant isolation', () => {
       sessionHeader('session-a', `${sandboxA}/project-a`),
       sessionHeader('session-b', `${sandboxB}/project-b`),
     ])
-    const list = new ApiSessionList(ctx)
+    const list: any = new ApiSessionList(ctx)
 
-    const itemsB = await list.list(undefined, sandboxB)
+    const itemsB = await list.list()
     const idsB = itemsB.map(item => item.sessionId)
     expect(idsB).toContain('session-b')
     expect(idsB).not.toContain('session-a')
 
-    const itemsA = await list.list(undefined, sandboxA)
+    const itemsA = await list.list()
     const idsA = itemsA.map(item => item.sessionId)
     expect(idsA).toContain('session-a')
     expect(idsA).not.toContain('session-b')
@@ -132,9 +136,9 @@ describe('Session multi-tenant isolation', () => {
       isSeeded: false,
     }
     const ctx = await listContext([noCwdHeader, sessionHeader('session-b', `${sandboxB}/project-b`)])
-    const list = new ApiSessionList(ctx)
+    const list: any = new ApiSessionList(ctx)
 
-    const itemsB = await list.list(undefined, sandboxB)
+    const itemsB = await list.list()
     const idsB = itemsB.map(item => item.sessionId)
     expect(idsB).toContain('session-b')
     expect(idsB).not.toContain('session-nocwd')
@@ -147,7 +151,7 @@ describe('Session multi-tenant isolation', () => {
       items: [searchHit(headerA, 'secret a'), searchHit(headerB, 'match b')],
     }))
     const ctx = await searchContext([headerA, headerB], searchSessions)
-    const list = new ApiSessionList(ctx)
+    const list: any = new ApiSessionList(ctx)
 
     const response = await list.search('query', new AbortController().signal, sandboxB)
 
@@ -233,7 +237,7 @@ describe('Session multi-tenant isolation', () => {
       sessionId: 'session-a' as SessionId,
       mode: 'queue',
       content: [{ type: 'text', text: 'hello' }],
-    }, sandboxB)).rejects.toMatchObject({
+    }, USER_SOURCE, sandboxB)).rejects.toMatchObject({
       code: 'session/unauthorized',
     })
   })

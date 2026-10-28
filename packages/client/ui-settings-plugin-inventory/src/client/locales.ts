@@ -233,6 +233,7 @@ export const en = {
 
 /** Japanese copy, checked against the English keys. */
 export const ja = {
+  ...en,
   'tab': 'プラグイン一覧',
   'loading': 'プラグインを読み込み中…',
   'clientSyncing': 'このページでプラグインを同期中…',
@@ -274,6 +275,7 @@ export const ja = {
 
 /** Spanish dictionary, checked against the English keys. */
 export const es = {
+  ...en,
   tab: 'Lista de complementos',
   loading: 'Leyendo complementos…',
   clientSyncing: 'Sincronizando complementos en esta página…',
@@ -315,6 +317,7 @@ export const es = {
 
 /** French dictionary, checked against the English keys. */
 export const fr = {
+  ...en,
   tab: 'Liste des plugins',
   loading: 'Plugins de lecture…',
   clientSyncing: 'Synchronisation des plugins sur cette page…',
@@ -356,6 +359,7 @@ export const fr = {
 
 /** German dictionary, checked against the English keys. */
 export const de = {
+  ...en,
   tab: 'Plugin-Liste',
   loading: 'Plugins lesen…',
   clientSyncing: 'Plugins auf dieser Seite werden synchronisiert…',
@@ -397,6 +401,7 @@ export const de = {
 
 /** Russian dictionary, checked against the English keys. */
 export const ru = {
+  ...en,
   tab: 'Список плагинов',
   loading: 'Чтение плагинов…',
   clientSyncing: 'Синхронизация плагинов на этой странице…',
@@ -438,6 +443,7 @@ export const ru = {
 
 /** Portuguese dictionary, checked against the English keys. */
 export const pt = {
+  ...en,
   tab: 'Lista de plug-ins',
   loading: 'Lendo plug-ins…',
   clientSyncing: 'Sincronizando plug-ins nesta página…',

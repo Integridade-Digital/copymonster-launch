@@ -119,8 +119,7 @@ describe('DirectoryPicker and Workspace Tenant Isolation (authenticated)', () =>
     })
 
     const feed = new WorkspaceFeed(ctx)
-    const identity = { tenantId, userId, role: 'member', email: 'user@example.com' } as UserIdentity
-    const baseline = feed.baseline(identity)
+    const baseline = feed.baseline()
 
     expect(baseline.items).toHaveLength(1)
     expect(baseline.items[0]?.workspaceId).toBe('ws-1')

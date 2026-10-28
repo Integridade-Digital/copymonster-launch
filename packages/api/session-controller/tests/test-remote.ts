@@ -101,7 +101,7 @@ export interface TestSessionRemoteDefaults {
 
 const installed = new WeakMap<Context, SessionController>()
 
-const TEST_IMAGE_LIMITS: ImageAttachmentLimits = Object.freeze({
+export const TEST_IMAGE_LIMITS: ImageAttachmentLimits = Object.freeze({
   maxImageBytes: 5 * 1024 * 1024,
   maxImagesPerMessage: 20,
   maxMessageImageBytes: 100 * 1024 * 1024,

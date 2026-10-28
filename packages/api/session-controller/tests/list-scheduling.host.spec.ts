@@ -193,7 +193,7 @@ describe('Session-list work slices', () => {
     h.ctx.provide('agentDefaultModel', { currentSelection: () => ({ provider: 'test', model: 'test' }) } as never)
     h.ctx.provide('workspaceRegistry', { list: () => [], archivedSessionIds: [] } as never)
     const controller = await createSessionTestController(h.ctx, {
-      nativeOpen: false, listWorkSliceMs: 4, canOpenPath: () => false,
+      nativeOpen: false, canOpenPath: () => false,
       defaultModelSelection: () => ({ provider: 'test', model: 'test' }), cwd: '/tmp',
     })
     const yieldWork = vi.spyOn(scheduler, 'yield')

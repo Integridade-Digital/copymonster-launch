@@ -7,8 +7,13 @@ import { createUserMessage } from '@deepseek-ai/dsh-llm'
 import SessionStore, { SessionId } from '@deepseek-ai/dsh-session'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import TypertRegistry from '@deepseek-ai/dsh-typert-registry'
+import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
 import type { Workspace, WorkspaceId } from '@deepseek-ai/dsh-workspace'
 import { describe, expect, it, vi } from 'vitest'
+
+const TEST_IDENTITY: UserIdentity = {
+  userId: 'u1', tenantId: 't1', role: 'member', isAdmin: false, email: 'u@example.com',
+}
 import {
   ApiSessionAgentController,
   ApiSessionCwdConflict,
@@ -65,7 +70,7 @@ describe('Session creation failures', () => {
     const createSession = vi.fn(publishedSession(ctx, SessionId('session-minted')))
     const controller = new SessionCommandController(ctx, controllerAgents(ctx, { createSession }))
 
-    const created = await controller.create({})
+    const created = await controller.create({}, TEST_IDENTITY)
 
     expect(created).toEqual({ sessionId: 'session-minted' })
     expect(createSession).toHaveBeenCalledOnce()
@@ -81,11 +86,10 @@ describe('Session creation failures', () => {
     const missingController = new SessionCommandController(
       missing,
       controllerAgents(missing),
-      '/default',
     )
     await expectFailure(missingController.create({
       workspaceId: 'missing' as WorkspaceId,
-    }), 'workspace/not-found')
+    }, TEST_IDENTITY), 'workspace/not-found')
     await missing.fiber.dispose()
 
     const failed = await baseContext()
@@ -101,12 +105,11 @@ describe('Session creation failures', () => {
     const failedController = new SessionCommandController(
       failed,
       controllerAgents(failed, { createSession: publishedSession(failed, SessionId('workspace-session')) }),
-      '/default',
     )
     await expectFailure(failedController.create({
       sessionId: SessionId('workspace-session'),
       workspaceId: workspace.id,
-    }), 'session/workspace-attach-failed')
+    }, TEST_IDENTITY), 'session/workspace-attach-failed')
     await failed.fiber.dispose()
   })
 
@@ -137,12 +140,11 @@ describe('Session creation failures', () => {
     const controller = new SessionCommandController(
       ctx,
       controllerAgents(ctx, { createSession: () => Promise.reject(error) }),
-      '/default',
     )
 
     await expectFailure(controller.create({
       sessionId: SessionId('failed-create'), cwd: '/requested',
-    }), code)
+    }, TEST_IDENTITY), code)
     await ctx.fiber.dispose()
   })
 
@@ -153,7 +155,7 @@ describe('Session creation failures', () => {
     await expectFailure(controller.create({
       workspaceId: 'workspace-1' as WorkspaceId,
       cwd: '/workspace',
-    }), 'gateway/bad-request')
+    }, TEST_IDENTITY), 'gateway/bad-request')
     await ctx.fiber.dispose()
   })
 
@@ -188,7 +190,7 @@ describe('Session fork failures', () => {
     const withoutPersistence = await baseContext()
     withoutPersistence.provide('workspaceRegistry', { list: () => [] } as never)
     const unavailableController = new SessionCommandController(
-      withoutPersistence, controllerAgents(withoutPersistence), '/default',
+      withoutPersistence, controllerAgents(withoutPersistence),
     )
     await expectFailure(unavailableController.fork({
       sessionId: SessionId('missing'),
@@ -285,7 +287,7 @@ describe('Session fork failures', () => {
     )
     const controller = new SessionCommandController(ctx, controllerAgents(ctx, {
       composeAgent: () => Promise.resolve({ agentPreset: 'minimal', setup: () => {} }),
-    }), '/default')
+    }))
 
     const forked = await controller.fork({ sessionId: source.id })
     expect(forked.sessionId).toMatch(/^session-/)

@@ -187,24 +187,41 @@ export function apply(ctx: ClientContext): void {
   ctx.inject(['slots', 'modelDirectories'], (scope: ClientContext) => {
     const models = scope.modelDirectories
     const sessions = scope.sessions
-    scope.slots.inject('conversation.input.model', () => scope.slots.register({
-      name: 'conversation.input.model',
-      locale: NS,
-      children: { 'conversation.input.model.label': { kind: 'single', scope: 'session' } },
-      inject: (sessionId): ModelSelectInjected => {
-        const directory = models.directoryFor(sessionId)
-        const available = isPlatformAdminSession() && sessions.subagentAddress(sessionId) === undefined
-        return {
-          available,
-          directory: directory.store,
-          load: () => {
-            if (available) directory.load().catch(() => { /* surfaced on the store */ })
+    scope.effect(() => {
+      const register = (): (() => void) => scope.slots.inject(
+        'conversation.input.model',
+        () => scope.slots.register({
+          name: 'conversation.input.model',
+          locale: NS,
+          children: { 'conversation.input.model.label': { kind: 'single', scope: 'session' } },
+          inject: (sessionId): ModelSelectInjected => {
+            const directory = models.directoryFor(sessionId)
+            const available = isPlatformAdminSession() && sessions.subagentAddress(sessionId) === undefined
+            return {
+              available,
+              directory: directory.store,
+              load: () => {
+                if (available) directory.load().catch(() => { /* surfaced on the store */ })
+              },
+              select: (selection: ModelSelection) => available
+                ? directory.select(selection)
+                : Promise.resolve(undefined),
+            }
           },
-          select: (selection: ModelSelection) => available
-            ? directory.select(selection)
-            : Promise.resolve(undefined),
-        }
-      },
-    }, ModelSelect))
+        }, ModelSelect),
+      )
+
+      let dispose = register()
+      const browser = (globalThis as { readonly window?: Window }).window
+      const refreshAuth = (): void => {
+        dispose()
+        dispose = register()
+      }
+      browser?.addEventListener('copymonster:auth', refreshAuth)
+      return () => {
+        browser?.removeEventListener('copymonster:auth', refreshAuth)
+        dispose()
+      }
+    }, 'ui-model-selection: auth-aware composer seat')
   })
 }

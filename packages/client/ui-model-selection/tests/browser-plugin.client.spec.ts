@@ -32,6 +32,7 @@ interface AuthGlobal {
 
 afterEach(() => {
   delete (globalThis as AuthGlobal).__DSH_AUTH__
+  vi.unstubAllGlobals()
 })
 
 const GROUPS = [{
@@ -557,6 +558,22 @@ describe('ui-model-selection dual entry', () => {
     expect(b.contribution().available(projection('s1'))).toBe(true)
 
     b.mint('s1')
+    expect(b.seat().inject!(sid('s1')).available).toBe(true)
+  })
+
+  it('re-publishes the composer seat when browser auth resolves', async () => {
+    const browser = new EventTarget()
+    vi.stubGlobal('window', browser)
+    const b = await bench()
+    const initial = b.seat()
+
+    ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'creator-token', isAdmin: false }
+    browser.dispatchEvent(new Event('copymonster:auth'))
+    expect(b.seat()).not.toBe(initial)
+    expect(b.seat().inject!(sid('s1')).available).toBe(false)
+
+    ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'admin-token', isAdmin: true }
+    browser.dispatchEvent(new Event('copymonster:auth'))
     expect(b.seat().inject!(sid('s1')).available).toBe(true)
   })
 

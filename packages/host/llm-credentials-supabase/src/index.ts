@@ -24,14 +24,8 @@ import type {
   ResolvedCredential,
 } from '@deepseek-ai/dsh-credentials'
 import { LocalCredentialProvider } from '@deepseek-ai/dsh-credentials-local'
-import {
-  LlmAdapter,
-  type LlmModelInfo,
-} from '@deepseek-ai/dsh-llm'
-import type {} from '@deepseek-ai/dsh-llm'
 import { SupabaseRuntimeCatalog } from './catalog.ts'
 import type { RuntimeCatalog } from './types.ts'
-import type { RuntimeProviderEntry } from './types.ts'
 
 /** Message every refused write carries (decision C1: keys live in the admin panel). */
 export const ADMIN_MANAGED_MESSAGE =
@@ -83,10 +77,6 @@ export class SupabaseLlmCredentialsProvider extends CredentialProvider {
   private readonly values = new Map<string, string>()
   /** Every reference the catalog declares, present or not (for fail-closed reads). */
   private readonly managed = new Set<string>()
-  /** Runtime routes registered from Supabase `provider_route` rows. */
-  private readonly registeredRoutes = new Set<string>()
-  /** Disposers for routes registered with the live LLM registry. */
-  private readonly routeDisposers: Array<() => void> = []
   private loaded = false
   private loadedAt = 0
   private refreshPromise: Promise<void> | undefined
@@ -122,9 +112,6 @@ export class SupabaseLlmCredentialsProvider extends CredentialProvider {
 
     yield async () => {
       if (this.refreshTimer !== undefined) clearTimeout(this.refreshTimer)
-      for (const dispose of this.routeDisposers) dispose()
-      this.routeDisposers.length = 0
-      this.registeredRoutes.clear()
       let disposer = disposers.pop()
       while (disposer !== undefined) {
         await disposer()
@@ -249,19 +236,7 @@ export class SupabaseLlmCredentialsProvider extends CredentialProvider {
   }
 
   private async loadNow(): Promise<void> {
-    let rows: readonly RuntimeProviderEntry[]
-    try {
-      rows = await this.createCatalog().load()
-    } catch (error) {
-      // The Supabase RPC is a credential source, not a hard gate: when it is
-      // unreachable or returns an error, keep serving the last known values
-      // (or none) so credential describe/resolve never hangs the Models page.
-      this.ctx.logger.warn('llm-credentials-supabase: runtime LLM catalog load failed')
-      this.ctx.logger.warn(error)
-      this.loaded = true
-      this.loadedAt = Date.now()
-      return
-    }
+    const rows = await this.createCatalog().load()
     const values = new Map<string, string>()
     const managed = new Set<string>()
     for (const row of rows) {
@@ -277,21 +252,6 @@ export class SupabaseLlmCredentialsProvider extends CredentialProvider {
     for (const ref of managed) this.managed.add(ref)
     this.loaded = true
     this.loadedAt = Date.now()
-
-    // Register runtime LLM routes for each Supabase `provider_route` so the
-    // Models page can join Supabase providers with settings/credential state.
-    // Providers without a route (or already registered) are skipped.
-    const llm = this.ctx.get('llm')
-    if (llm !== undefined && typeof (llm as { registerAdapter?: unknown }).registerAdapter === 'function') {
-      for (const row of rows) {
-        const route = row.provider_route
-        if (route === null || route === '' || this.registeredRoutes.has(route)) continue
-        const adapter = new SupabaseCatalogAdapter(route, row.models ?? [])
-        const handle = llm.registerAdapter([route], adapter)
-        this.routeDisposers.push(handle)
-        this.registeredRoutes.add(route)
-      }
-    }
   }
 
   private warnRefresh(error: unknown): void {
@@ -301,32 +261,3 @@ export class SupabaseLlmCredentialsProvider extends CredentialProvider {
 }
 
 export default SupabaseLlmCredentialsProvider
-
-/**
- * Minimal live LLM adapter for one Supabase catalog route. It advertises the
- * route and its catalog models; the stream entry point reports that the route
- * has no transport configured until a deployment wires one.
- */
-class SupabaseCatalogAdapter extends LlmAdapter {
-  private readonly models: readonly LlmModelInfo[]
-
-  constructor(route: string, models: RuntimeProviderEntry['models']) {
-    super()
-    this.models = models.map(model => ({
-      provider: route,
-      id: model.model_id,
-      name: model.display_name ?? model.model_id,
-      ...(model.context_window !== null && model.context_window !== undefined
-        ? { contextWindow: model.context_window }
-        : {}),
-    }))
-  }
-
-  override listModels(): Promise<readonly LlmModelInfo[]> {
-    return Promise.resolve(this.models)
-  }
-
-  override async *stream(): AsyncIterable<never> {
-    throw new Error('Supabase catalog route has no transport configured; wire a deployment adapter to use this route')
-  }
-}

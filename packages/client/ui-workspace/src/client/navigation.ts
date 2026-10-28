@@ -22,6 +22,13 @@ interface MainSelection {
 }
 
 /** Workspace archive and directory operations consumed by Client UI domains. */
+export interface StartSessionOptions {
+  /** @deprecated Use `openSession` with a `SessionTarget` instead. */
+  readonly sessionId?: SessionId
+  readonly workspaceId?: WorkspaceId
+}
+
+/** Workspace archive and directory UI capability. */
 export interface UiWorkspace {
   /**
    * Select a Session and show its Conversation as one UI navigation action.

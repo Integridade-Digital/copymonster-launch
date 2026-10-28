@@ -11,6 +11,8 @@
 import type { Context } from '@deepseek-ai/cordis'
 import type { RemoteHostFacts } from '@deepseek-ai/dsh-api-remotes/client'
 import type { ISessions } from '@deepseek-ai/dsh-api-session-controller/client'
+import type { SessionId } from '@deepseek-ai/dsh-session'
+import type { WorkspaceId } from '@deepseek-ai/dsh-workspace/types'
 import type { IWorkspaces, WorkspaceSnapshot } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { HostObservable, SnapshotSelectorHook } from '@deepseek-ai/dsh-client-ui-slots'
 // Type-only: pulls the Controller service merges.
@@ -143,7 +145,7 @@ export function apply(ctx: Context): void {
     open: openSession,
     searchSessions,
     searchResultLimit: sessions.searchResultLimit,
-    renameSession: async (sessionId, title) => {
+    renameSession: async (sessionId: SessionId, title: string) => {
       const result = await sessions.using(
         sessionId,
         { source: 'workspaceOperation' },
@@ -151,19 +153,19 @@ export function apply(ctx: Context): void {
       )
       if (!result.ok) throw new Error(result.error.message)
     },
-    forkSession: (sessionId) => {
+    forkSession: (sessionId: SessionId) => {
       uiWorkspace.forkSession(sessionId)
         .catch(() => {
           // Fork or child-rename failure keeps the current selection.
         })
     },
-    renameWorkspace: async (workspaceId, title) => { await workspaces.rename(workspaceId, title) },
-    deleteWorkspace: async (workspaceId) => { await workspaces.delete(workspaceId) },
-    insertWorkspaceBefore: async (workspaceId, beforeWorkspaceId) => {
+    renameWorkspace: async (workspaceId: WorkspaceId, title: string) => { await workspaces.rename(workspaceId, title) },
+    deleteWorkspace: async (workspaceId: WorkspaceId) => { await workspaces.delete(workspaceId) },
+    insertWorkspaceBefore: async (workspaceId: WorkspaceId, beforeWorkspaceId?: WorkspaceId) => {
       await workspaces.insertBefore(workspaceId, beforeWorkspaceId)
     },
-    archiveSession: async (sessionId) => { await uiWorkspace.archiveSession(sessionId) },
-    deleteSession: async (sessionId) => { await sessions.delete(sessionId) },
+    archiveSession: async (sessionId: SessionId) => { await uiWorkspace.archiveSession(sessionId) },
+    deleteSession: async (sessionId: SessionId) => { await sessions.delete(sessionId) },
     createWorkspace: input => workspaces.create(input),
     hooks: { directoryFlow: browserFlowSource, hostInfo },
   })

@@ -14,6 +14,7 @@
  */
 
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import type { RemoteEndpoint } from '@deepseek-ai/dsh-api-remote-access/client'
 import type { ChangeEvent, KeyboardEvent, MouseEvent } from 'react'
 import clsx from 'clsx'
 import {
@@ -59,9 +60,8 @@ export const InputBar = memo(function InputBar({
   const stopKeys = useStopShortcut(keys => keys)
   // A page whose access snapshot excludes prompting, stopping, or uploading to this Session is offered
   // no Send, no Stop, or no file intake rather than a disabled control. `useAccess` is undefined only
-  // without a Session, where the bar is an inert placeholder with no keyboard, stop, or file intake.
-  const promptDenied = useAccess('session/prompt') === false
-  const cancelDenied = useAccess('session/cancel') === false
+  const promptDenied = useAccess('session/prompt' as RemoteEndpoint) === false
+  const cancelDenied = useAccess(('session/cancel' as RemoteEndpoint)) === false
   const uploadDenied = useAccess('fileUploads/upload') === false
   const stopAction = cancelDenied ? undefined : stop
   void useLexicon // hook seat stays bound by the inject compartment; text-ref decoration rides the shell's editor transforms

@@ -1,4 +1,5 @@
 /** Window-chrome controls for the fully hidden sidebar (frame shell.leading seat). */
+import type { RemoteEndpoint } from '@deepseek-ai/dsh-api-remote-access/client'
 import {
   IconNewChatOutlineRegular, IconPanelLeftOutlineRegular, Tooltip,
 } from '@deepseek-ai/dsh-client-ui-primitives'
@@ -27,7 +28,7 @@ export function HeaderLeadingControls({
   toggleSidebar, startSession, trackEntryClick, useRemoteAccess, useShortcuts, t,
 }: HeaderLeadingControlsProps) {
   // A page whose access snapshot excludes starting a Session keeps only the sidebar toggle here.
-  const canStartSession = useRemoteAccess('session/create')
+  const canStartSession = useRemoteAccess('session/create' as RemoteEndpoint)
   const shortcut = useShortcuts(rows => rows.find(row => row.id === 'sidebar.left.toggle'))
   const newShortcut = useShortcuts(rows => rows.find(row => row.id === 'session.new'))
   return (

@@ -103,6 +103,7 @@ export const en = {
 
 /** Japanese copy, checked against the English keys. */
 export const ja = {
+  ...en,
   'trigger': '設定',
   'shortcut.open': '設定を開く',
   'desktop.update.available': '更新',
@@ -149,6 +150,7 @@ export const ja = {
 
 /** Spanish dictionary, checked against the English keys. */
 export const es = {
+  ...en,
   'trigger': 'Configuración',
   'shortcut.open': 'Abrir configuración',
   'desktop.update.available': 'Actualizar',
@@ -195,6 +197,7 @@ export const es = {
 
 /** French dictionary, checked against the English keys. */
 export const fr = {
+  ...en,
   'trigger': 'Paramètres',
   'shortcut.open': 'Ouvrir les paramètres',
   'desktop.update.available': 'Mise à jour',
@@ -241,6 +244,7 @@ export const fr = {
 
 /** German dictionary, checked against the English keys. */
 export const de = {
+  ...en,
   'trigger': 'Einstellungen',
   'shortcut.open': 'Einstellungen öffnen',
   'desktop.update.available': 'Aktualisieren',
@@ -287,6 +291,7 @@ export const de = {
 
 /** Russian dictionary, checked against the English keys. */
 export const ru = {
+  ...en,
   'trigger': 'Настройки',
   'shortcut.open': 'Открыть настройки',
   'desktop.update.available': 'Обновить',
@@ -333,6 +338,7 @@ export const ru = {
 
 /** Portuguese dictionary, checked against the English keys. */
 export const pt = {
+  ...en,
   'trigger': 'Configurações',
   'shortcut.open': 'Abrir configurações',
   'desktop.update.available': 'Atualizar',

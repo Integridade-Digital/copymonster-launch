@@ -2,9 +2,10 @@ import { useEffect, useId, useMemo, useState, type ReactNode } from 'react'
 import type { ClientEntryState } from '@deepseek-ai/dsh-client-modules/client'
 import type { ObservableSnapshot } from '@deepseek-ai/dsh-client-store'
 import type { PluginInventorySnapshot } from '@deepseek-ai/dsh-api-remotes/client'
+import type { LocalizedText } from '@deepseek-ai/dsh-package-manifest'
 import {
   IconChevronDownOutline14,
-  IconSearchOutline16,
+  IconSearchOutlineMedium,
   Menu,
   StateDot,
   Tag,
@@ -27,6 +28,8 @@ export interface PluginInventorySettingsTabInjected {
   retryClient: () => void
   /** Read a current Host inventory snapshot. */
   list: () => Promise<PluginInventorySnapshot>
+  /** Resolve package metadata in the active client locale. */
+  resolveText: (text: LocalizedText) => string
   /**
    * Display name for one preset: shipped presets resolve through the
    * agent-preset dictionaries, user-authored ones keep their own metadata.
@@ -437,7 +440,7 @@ export function PluginInventorySettingsTab(
       {snapshot !== undefined ? (
         <div className={css.catalog}>
           <label className={css.search}>
-            <IconSearchOutline16 aria-hidden="true" />
+            <IconSearchOutlineMedium size={16} aria-hidden="true" />
             <span className={css.visuallyHidden}>{t('search')}</span>
             <input
               type="search"

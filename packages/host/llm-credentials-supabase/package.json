@@ -27,6 +27,7 @@
   "dependencies": {
     "@deepseek-ai/dsh-credentials": "workspace:^",
     "@deepseek-ai/dsh-credentials-local": "workspace:^",
+    "@deepseek-ai/dsh-llm": "workspace:^",
     "@deepseek-ai/dsh-supabase-client": "workspace:*",
     "@deepseek-ai/schemastery": "workspace:^"
   },

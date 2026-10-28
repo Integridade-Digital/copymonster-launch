@@ -192,4 +192,16 @@ describe('SupabaseLlmCredentialsProvider', () => {
     const logged = warn.mock.calls.flat().map(value => String(value))
     expect(logged.some(line => line.includes(SECRET))).toBe(false)
   })
+
+  it('does not hang describe/resolve when the Supabase catalog fails', async () => {
+    const file = await writeLocalStore('DSH_LOCAL_KEY', 'from-file')
+    const failing = new FakeCatalog([])
+    failing.load = () => Promise.reject(new Error('Supabase down'))
+    const ctx = await boot(file, failing)
+    // describe/resolve must not throw or hang when the catalog RPC fails.
+    await ctx.credentials.describe(MANAGED_REF)
+    await ctx.credentials.resolve(MANAGED_REF)
+    // Unmanaged ref still delegates to the local provider.
+    expect(await ctx.credentials.describe(LOCAL_REF)).toEqual({ configured: true, source: 'file', writable: true })
+  })
 })

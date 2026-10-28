@@ -25,6 +25,9 @@
     },
     {
       "path": "../../server/supabase-client"
+    },
+    {
+      "path": "../../../packages/llm/llm"
     }
   ]
 }

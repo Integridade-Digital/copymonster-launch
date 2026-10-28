@@ -313,7 +313,7 @@ function cardSeatCalls(
     ])
 }
 
-async function mountFace(scripted: ReturnType<typeof scriptedFace>, canManage = true) {
+async function mountFace(scripted: ReturnType<typeof scriptedFace>) {
   const { face, update, mutate, set, unset } = scripted
   const ctx = ctxWith(face)
   const mirror = new SettingsDescribeMirror(ctx)
@@ -326,16 +326,14 @@ async function mountFace(scripted: ReturnType<typeof scriptedFace>, canManage = 
     operations: operationsWith(face),
     schema: settingsSchema,
     t,
-    // The row actions under test render only for a platform operator.
-    canManage,
     renderSlot: renderSlot as unknown as ModelsSectionProps['renderSlot'],
   }
   const view = render(<ModelsSection {...injected} />)
   return { view, ctx, face, update, mutate, set, unset, controller, mirror, renderSlot }
 }
 
-async function mountSection(overrides: Parameters<typeof scriptedFace>[0] = {}, canManage = true) {
-  return mountFace(scriptedFace(overrides), canManage)
+async function mountSection(overrides: Parameters<typeof scriptedFace>[0] = {}) {
+  return mountFace(scriptedFace(overrides))
 }
 
 /**
@@ -609,17 +607,6 @@ describe('ModelsSection', () => {
     expect(screen.queryByRole('button', { name: en.add })).toBeNull()
   })
 
-  it('hides every mutation control for a session that cannot manage providers', async () => {
-    await mountSection({}, false)
-    expect(screen.queryByRole('button', { name: en.add })).toBeNull()
-    expect(screen.queryByRole('button', { name: en.addCustom })).toBeNull()
-    // The rows themselves stay visible; only their action buttons go.
-    expect(screen.queryByRole('button', { name: openaiCopy(en.editProvider) })).toBeNull()
-    expect(screen.queryByRole('button', { name: deepSeekCopy(en.editProvider) })).toBeNull()
-    expect(screen.queryByRole('button', { name: deepSeekCopy(en.removeProvider) })).toBeNull()
-    expect(screen.getByText('DeepSeek')).toBeTruthy()
-  })
-
   it('offers only providers whose settings namespace can open an editor', async () => {
     const scripted = scriptedFace()
     scripted.face.settings.describe.mockResolvedValue(remoteOk({
@@ -769,7 +756,6 @@ describe('ModelsSection', () => {
       operations={operationsWith(face)}
       schema={settingsSchema}
       t={t}
-      canManage={true}
       renderSlot={() => null}
     />)
 
@@ -795,7 +781,6 @@ describe('ModelsSection', () => {
       operations={operationsWith(face)}
       schema={settingsSchema}
       t={t}
-      canManage={true}
       renderSlot={() => null}
     />)
     // Now a row with an Edit button, not an open card.
@@ -1603,7 +1588,6 @@ describe('ModelsSection', () => {
       operations={operationsWith(face)}
       schema={settingsSchema}
       t={t}
-      canManage={true}
       renderSlot={() => null}
     />)
     const key = await screen.findByLabelText<HTMLInputElement>(en.keyInput)
@@ -1727,7 +1711,6 @@ describe('ModelsSection', () => {
       operations={operationsWith(face.face)}
       schema={settingsSchema}
       t={t}
-      canManage={true}
       renderSlot={() => null}
     />)
     expect(screen.getByText(/directory down/)).toBeTruthy()
@@ -1751,7 +1734,6 @@ describe('ModelsSection', () => {
       operations={operationsWith(face)}
       schema={settingsSchema}
       t={t}
-      canManage={true}
       renderSlot={() => null}
     />)
     expect(screen.getByText(en.readOnly)).toBeTruthy()
@@ -2075,7 +2057,6 @@ describe('ModelsSection', () => {
       operations={operationsWith(face)}
       schema={settingsSchema}
       t={t}
-      canManage={true}
       renderSlot={() => null}
     />)
     await screen.findByText('DeepSeek')

@@ -57,16 +57,6 @@ export function refreshIfLoaded(controller: ModelsSettingsStore): void {
 }
 
 /**
- * Whether the current session carries the platform-operator flag the app
- * bootstrap publishes on `__DSH_AUTH__`. Fail-closed: an absent or non-true
- * flag is not an admin. Read from the page global rather than a Cordis
- * service because the flag is resolved by `apps/web` after the profile RPC.
- */
-function readIsAdmin(): boolean {
-  return (globalThis as { __DSH_AUTH__?: { isAdmin?: boolean } }).__DSH_AUTH__?.isAdmin === true
-}
-
-/**
  * Required services (cordis fiber inject). The target slot is declared by
  * ui-settings' apply, whose activation order relative to this one is NOT
  * constrained; registration depends on each slot through `slots.inject()`.
@@ -99,7 +89,6 @@ export function apply(ctx: ClientContext): void {
     operations,
     schema,
     t,
-    canManage: readIsAdmin(),
   })
   const deepSeekOnboardingInjected = (): DeepSeekOnboardingInjected => ({
     controller,
@@ -136,50 +125,27 @@ export function apply(ctx: ClientContext): void {
     }
   }, 'ui-settings-models: pushed invalidations')
 
-  // Admin-only surfaces: the Models section and both onboarding dialogs exist
-  // only for a platform operator. `__DSH_AUTH__.isAdmin` resolves after boot
-  // (the flag lives in users.metadata, not the JWT), so the registrations are
-  // installed or torn down on each `copymonster:auth` notification instead of
-  // once at apply time. A non-admin never sees the section or the dialogs.
-  ctx.effect(() => {
-    const disposers: Array<() => void> = []
-    const sync = (): void => {
-      while (disposers.length > 0) disposers.pop()?.()
-      if (!readIsAdmin()) return
-      disposers.push(ctx.slots.inject('settings.section', () => ctx.slots.register({
-        name: 'settings.section',
-        id: 'models',
-        order: 10,
-        label: () => t('nav'),
-        inject: injected,
-        children: {
-          'settings.models.provider-card': { kind: 'keyed', scope: 'root' },
-          'settings.models.footer': { kind: 'list', scope: 'root' },
-        },
-      }, ModelsSection)))
-      disposers.push(ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
-        name: 'settings.onboarding',
-        id: 'welcome-notice',
-        order: -100,
-        inject: welcomeInjected,
-      }, WelcomeNotice)))
-      disposers.push(ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
-        name: 'settings.onboarding',
-        id: 'deepseek-official',
-        order: 0,
-        inject: deepSeekOnboardingInjected,
-      }, DeepSeekOnboardingDialog)))
-    }
-    sync()
-    // The flag resolves after boot, so the registrations re-evaluate on each
-    // app notification. `window` is absent under the node test lane, where the
-    // flag is never published and the surfaces stay unregistered.
-    const browser = (globalThis as { readonly window?: Window }).window
-    const onAuthResolved = (): void => { sync() }
-    browser?.addEventListener('copymonster:auth', onAuthResolved)
-    return () => {
-      browser?.removeEventListener('copymonster:auth', onAuthResolved)
-      while (disposers.length > 0) disposers.pop()?.()
-    }
-  }, 'ui-settings-models: admin-gated registrations')
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'models',
+    order: 10,
+    label: () => t('nav'),
+    inject: injected,
+    children: {
+      'settings.models.provider-card': { kind: 'keyed', scope: 'root' },
+      'settings.models.footer': { kind: 'list', scope: 'root' },
+    },
+  }, ModelsSection))
+  ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
+    name: 'settings.onboarding',
+    id: 'welcome-notice',
+    order: -100,
+    inject: welcomeInjected,
+  }, WelcomeNotice))
+  ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
+    name: 'settings.onboarding',
+    id: 'deepseek-official',
+    order: 0,
+    inject: deepSeekOnboardingInjected,
+  }, DeepSeekOnboardingDialog))
 }

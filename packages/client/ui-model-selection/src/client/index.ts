@@ -114,21 +114,6 @@ function selectionOf(state: ModelDirectoryState, id: string): ModelSelection | u
 /** Dictionary namespace owned by this plugin. */
 const NS = 'model'
 
-/**
- * Whether the published browser session is a platform operator, the only
- * caller that may pick a model. Every creator owns a personal tenant, so the
- * app shell resolves platform membership (the master tenant's claim) and
- * publishes it as `isPlatformAdmin`. Fail-closed: a missing session, access
- * token, or operator flag hides both entries, so the creator stays on the
- * deployment default model.
- * @returns true only for a published platform-operator session.
- */
-function isPlatformAdminSession(): boolean {
-  const session = (globalThis as { __DSH_AUTH__?: { accessToken?: string; isPlatformAdmin?: boolean; isAdmin?: boolean } }).__DSH_AUTH__
-  if (session?.accessToken === undefined) return false
-  return session.isAdmin === true
-}
-
 /** Required services: the contribution registry, the seat's slot registry, locale, and the service's own faces. */
 export const inject = ['commandUi', 'locale', 'sessions', 'slots', 'remote', 'remote.session']
 
@@ -155,7 +140,7 @@ export function apply(ctx: ClientContext): void {
       label: () => t('command.label'),
       description: () => t('command.description'),
       icon: IconDataOutline16,
-      available: session => isPlatformAdminSession() && sessions.subagentAddress(session.sessionId) === undefined,
+      available: session => sessions.subagentAddress(session.sessionId) === undefined,
       ui: {
         kind: 'popupSelect',
         options: async (session) => {
@@ -187,41 +172,24 @@ export function apply(ctx: ClientContext): void {
   ctx.inject(['slots', 'modelDirectories'], (scope: ClientContext) => {
     const models = scope.modelDirectories
     const sessions = scope.sessions
-    scope.effect(() => {
-      const register = (): (() => void) => scope.slots.inject(
-        'conversation.input.model',
-        () => scope.slots.register({
-          name: 'conversation.input.model',
-          locale: NS,
-          children: { 'conversation.input.model.label': { kind: 'single', scope: 'session' } },
-          inject: (sessionId): ModelSelectInjected => {
-            const directory = models.directoryFor(sessionId)
-            const available = isPlatformAdminSession() && sessions.subagentAddress(sessionId) === undefined
-            return {
-              available,
-              directory: directory.store,
-              load: () => {
-                if (available) directory.load().catch(() => { /* surfaced on the store */ })
-              },
-              select: (selection: ModelSelection) => available
-                ? directory.select(selection)
-                : Promise.resolve(undefined),
-            }
+    scope.slots.inject('conversation.input.model', () => scope.slots.register({
+      name: 'conversation.input.model',
+      locale: NS,
+      children: { 'conversation.input.model.label': { kind: 'single', scope: 'session' } },
+      inject: (sessionId): ModelSelectInjected => {
+        const directory = models.directoryFor(sessionId)
+        const available = sessions.subagentAddress(sessionId) === undefined
+        return {
+          available,
+          directory: directory.store,
+          load: () => {
+            if (available) directory.load().catch(() => { /* surfaced on the store */ })
           },
-        }, ModelSelect),
-      )
-
-      let dispose = register()
-      const browser = (globalThis as { readonly window?: Window }).window
-      const refreshAuth = (): void => {
-        dispose()
-        dispose = register()
-      }
-      browser?.addEventListener('copymonster:auth', refreshAuth)
-      return () => {
-        browser?.removeEventListener('copymonster:auth', refreshAuth)
-        dispose()
-      }
-    }, 'ui-model-selection: auth-aware composer seat')
+          select: (selection: ModelSelection) => available
+            ? directory.select(selection)
+            : Promise.resolve(undefined),
+        }
+      },
+    }, ModelSelect))
   })
 }

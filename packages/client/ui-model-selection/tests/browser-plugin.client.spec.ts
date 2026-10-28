@@ -25,13 +25,7 @@ import { zh } from '../src/client/locales.ts'
 
 const sid = (k: string): SessionId => k as SessionId
 
-/** Page global the model entries read for their platform-operator gate. */
-interface AuthGlobal {
-  __DSH_AUTH__?: { accessToken?: string; isAdmin?: boolean; isPlatformAdmin?: boolean }
-}
-
 afterEach(() => {
-  delete (globalThis as AuthGlobal).__DSH_AUTH__
   vi.unstubAllGlobals()
 })
 
@@ -79,9 +73,6 @@ const GROUPS = [{
 /** Boot the plugin over fake faces + a stateful fake host (current moves on selectModel). */
 async function bench(locale: 'zh' | 'en' = 'zh') {
   const ctx = new Context()
-  // Default to an admin session so the model entries are admitted;
-  // the gate cases override or clear it to exercise non-admin and signed-out callers.
-  ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'test-access-token', isAdmin: true }
   let defaultSelection: ModelSelection = { provider: 'deepseek-official', model: 'deepseek-v4-flash' }
   let selected = defaultSelection
   const calls = { models: 0, select: 0 }
@@ -552,7 +543,7 @@ describe('ui-model-selection dual entry', () => {
     expect(b.calls).toEqual({ models: 2, select: 0 })
   })
 
-  it('admits both model entries for an admin', async () => {
+  it('admits both model entries for a regular session', async () => {
     const b = await bench()
 
     expect(b.contribution().available(projection('s1'))).toBe(true)
@@ -561,51 +552,6 @@ describe('ui-model-selection dual entry', () => {
     expect(b.seat().inject!(sid('s1')).available).toBe(true)
   })
 
-  it('re-publishes the composer seat when browser auth resolves', async () => {
-    const browser = new EventTarget()
-    vi.stubGlobal('window', browser)
-    const b = await bench()
-    const initial = b.seat()
-
-    ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'creator-token', isAdmin: false }
-    browser.dispatchEvent(new Event('copymonster:auth'))
-    expect(b.seat()).not.toBe(initial)
-    expect(b.seat().inject!(sid('s1')).available).toBe(false)
-
-    ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'admin-token', isAdmin: true }
-    browser.dispatchEvent(new Event('copymonster:auth'))
-    expect(b.seat().inject!(sid('s1')).available).toBe(true)
-  })
-
-  it('hides both model entries from a non-operator creator', async () => {
-    const b = await bench()
-    ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'creator-token', isAdmin: false }
-
-    expect(b.contribution().available(projection('s1'))).toBe(false)
-
-    b.mint('s1')
-    expect(b.seat().inject!(sid('s1')).available).toBe(false)
-  })
-
-  it('hides both model entries when only isPlatformAdmin is true without strict isAdmin', async () => {
-    const b = await bench()
-    ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'tenant-admin-token', isPlatformAdmin: true, isAdmin: false }
-
-    expect(b.contribution().available(projection('s1'))).toBe(false)
-
-    b.mint('s1')
-    expect(b.seat().inject!(sid('s1')).available).toBe(false)
-  })
-
-  it('hides both model entries when no session is published', async () => {
-    const b = await bench()
-    delete (globalThis as AuthGlobal).__DSH_AUTH__
-
-    expect(b.contribution().available(projection('s1'))).toBe(false)
-
-    b.mint('s1')
-    expect(b.seat().inject!(sid('s1')).available).toBe(false)
-  })
 })
 
 

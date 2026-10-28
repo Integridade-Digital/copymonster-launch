@@ -1,20 +1,12 @@
 # The CopyMonster SaaS bundle patch: the Cordis-native auth layer over the
 # shipped web profile. Applied after `dsh-base` and `dsh-web-app`, it mounts the
-# CopyMonster credentials composite, inserts the auth service (Typert Host
+# CopyMonster auth services, inserts the auth service (Typert Host
 # Context adapter), its HTTP routes, and the cross-provider LLM fallback, and
 # keeps the rest of the shipped DSH composition intact.
 #
 # Use it as a stacked bundle in a profile, or as an overlay on the shipped
 # profile:
 #   dsh --profile web --patch ./packages/bundle/copymonster/cordis.patch.yml
-
-# The composite below is the single root `credentials` provider. The base
-# `credentials-local` row is disabled as a standalone provider because Cordis
-# permits one provider per service per scope; the composite mounts that same
-# local provider on an isolated scope and delegates to it, so `.credentials.yaml`,
-# `.env`, and authorization records keep working.
-- id: credentials
-  disabled: true
 
 - id: system-prompt
   config:
@@ -43,11 +35,6 @@
     # above the DNA block in the final assembly.
     - id: positioning-injection
       name: '@deepseek-ai/dsh-host-positioning-injection'
-
-    # Composite credentials provider: Supabase runtime LLM keys in memory, with
-    # the local provider as its delegate for every other reference.
-    - id: llm-credentials-supabase
-      name: '@deepseek-ai/dsh-host-llm-credentials-supabase'
 
     # Immutable CopyMonster identity prepended to every agent system prompt.
     - id: copymonster-identity

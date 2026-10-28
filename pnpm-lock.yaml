@@ -397,9 +397,6 @@ importers:
       '@deepseek-ai/dsh-host-copymonster-identity':
         specifier: workspace:*
         version: link:../../packages/host/copymonster-identity
-      '@deepseek-ai/dsh-host-llm-credentials-supabase':
-        specifier: workspace:*
-        version: link:../../packages/host/llm-credentials-supabase
       '@deepseek-ai/dsh-host-llm-fallback':
         specifier: workspace:*
         version: link:../../packages/host/llm-fallback
@@ -2773,9 +2770,6 @@ importers:
       '@deepseek-ai/dsh-host-copymonster-identity':
         specifier: workspace:*
         version: link:../../host/copymonster-identity
-      '@deepseek-ai/dsh-host-llm-credentials-supabase':
-        specifier: workspace:*
-        version: link:../../host/llm-credentials-supabase
       '@deepseek-ai/dsh-host-llm-fallback':
         specifier: workspace:*
         version: link:../../host/llm-fallback

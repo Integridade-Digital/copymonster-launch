@@ -3,8 +3,6 @@ import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { AdminOverviewTab } from '../../pages/admin/tabs/AdminOverviewTab'
 import { AdminUsersTab } from '../../pages/admin/tabs/AdminUsersTab'
 import { AdminTenantsTab } from '../../pages/admin/tabs/AdminTenantsTab'
-import { AdminLLMProvidersTab } from '../../pages/admin/tabs/AdminLLMProvidersTab'
-import { AdminModelsTab } from '../../pages/admin/tabs/AdminModelsTab'
 import { AdminSystemTab } from '../../pages/admin/tabs/AdminSystemTab'
 import { AdminSessionsTab } from '../../pages/admin/tabs/AdminSessionsTab'
 import { AdminAuditTab } from '../../pages/admin/tabs/AdminAuditTab'
@@ -23,8 +21,6 @@ export type AdminTabKey =
   | 'overview'
   | 'users'
   | 'tenants'
-  | 'llm_providers'
-  | 'models'
   | 'system'
   | 'sessions'
   | 'audit'
@@ -41,8 +37,6 @@ const ADMIN_TABS: TabConfig[] = [
   { key: 'overview', labelEn: 'Overview', labelZh: '概览', icon: '📊' },
   { key: 'users', labelEn: 'Users', labelZh: '用户', icon: '👥' },
   { key: 'tenants', labelEn: 'Tenants', labelZh: '租户', icon: '🏢' },
-  { key: 'llm_providers', labelEn: 'LLM Providers', labelZh: 'LLM 提供商', icon: '🤖' },
-  { key: 'models', labelEn: 'Models', labelZh: '模型', icon: '🧠' },
   { key: 'system', labelEn: 'Settings', labelZh: '设置', icon: '⚙️' },
   { key: 'sessions', labelEn: 'Sessions', labelZh: '会话', icon: '💬' },
   { key: 'audit', labelEn: 'Audit', labelZh: '审计', icon: '📜' },
@@ -118,8 +112,6 @@ export function AdminModal({ isOpen, onClose, triggerRef, isPlatformAdmin }: Adm
                 {activeTab === 'overview' && <AdminOverviewTab />}
                 {activeTab === 'users' && <AdminUsersTab />}
                 {activeTab === 'tenants' && <AdminTenantsTab />}
-                {activeTab === 'llm_providers' && <AdminLLMProvidersTab />}
-                {activeTab === 'models' && <AdminModelsTab />}
                 {activeTab === 'system' && <AdminSystemTab />}
                 {activeTab === 'sessions' && <AdminSessionsTab />}
                 {activeTab === 'audit' && <AdminAuditTab />}

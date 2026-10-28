@@ -204,6 +204,18 @@ class FakeWorkspaces implements IWorkspaces {
     this.unarchiveCalls.push(sessionId)
     return this.onUnarchive(sessionId)
   }
+
+  initializeDefault(_signal?: AbortSignal): Promise<WorkspaceView | undefined> {
+    return Promise.resolve(undefined)
+  }
+
+  pinSession(_sessionId: SessionId): Promise<void> {
+    return Promise.resolve()
+  }
+
+  unpinSession(_sessionId: SessionId): Promise<void> {
+    return Promise.resolve()
+  }
 }
 
 const listing: DirectoryListing = {

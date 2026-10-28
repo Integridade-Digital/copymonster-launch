@@ -115,15 +115,15 @@ describe('Session multi-tenant isolation', () => {
       sessionHeader('session-a', `${sandboxA}/project-a`),
       sessionHeader('session-b', `${sandboxB}/project-b`),
     ])
-    const list: any = new ApiSessionList(ctx)
+    const list = new ApiSessionList(ctx, 100)
 
     const itemsB = await list.list()
-    const idsB = itemsB.map(item => item.sessionId)
+    const idsB = itemsB.map((item: { sessionId: string }) => item.sessionId)
     expect(idsB).toContain('session-b')
     expect(idsB).not.toContain('session-a')
 
     const itemsA = await list.list()
-    const idsA = itemsA.map(item => item.sessionId)
+    const idsA = itemsA.map((item: { sessionId: string }) => item.sessionId)
     expect(idsA).toContain('session-a')
     expect(idsA).not.toContain('session-b')
   })
@@ -136,10 +136,10 @@ describe('Session multi-tenant isolation', () => {
       isSeeded: false,
     }
     const ctx = await listContext([noCwdHeader, sessionHeader('session-b', `${sandboxB}/project-b`)])
-    const list: any = new ApiSessionList(ctx)
+    const list = new ApiSessionList(ctx, 100)
 
     const itemsB = await list.list()
-    const idsB = itemsB.map(item => item.sessionId)
+    const idsB = itemsB.map((item: { sessionId: string }) => item.sessionId)
     expect(idsB).toContain('session-b')
     expect(idsB).not.toContain('session-nocwd')
   })
@@ -151,7 +151,7 @@ describe('Session multi-tenant isolation', () => {
       items: [searchHit(headerA, 'secret a'), searchHit(headerB, 'match b')],
     }))
     const ctx = await searchContext([headerA, headerB], searchSessions)
-    const list: any = new ApiSessionList(ctx)
+    const list = new ApiSessionList(ctx, 100)
 
     const response = await list.search('query', new AbortController().signal, sandboxB)
 

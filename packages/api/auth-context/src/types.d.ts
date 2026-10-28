@@ -24,6 +24,11 @@ export interface UserIdentity {
   readonly tenantId: string
   /** Role held inside {@link tenantId}. */
   readonly role: UserRole
+  /**
+     * Platform-operator flag from `users.metadata.is_admin`.
+     * Fail-closed: se ausente → false.
+     */
+  readonly isAdmin?: boolean
   /** Account e-mail. */
   readonly email: string
   /** Display name, when the profile carries one. */

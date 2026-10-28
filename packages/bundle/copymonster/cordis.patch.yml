@@ -22,6 +22,18 @@
     personaPrefix: 'You are CopyMonster AI, an autonomous copywriting and funnel agent.'
     personaSuffix: Your working directory is {{cwd}}.
 
+
+- id: connection
+  config:
+    trustedHosts: !!js "['app.copymonster.co', ...ctx.webStartup.trustedHosts]"
+
+- id: web-runtime
+  config:
+    openBrowser: false
+    printUrl: true
+    publicUrl: !!js "ctx.webStartup.publicUrl ?? 'https://app.copymonster.co'"
+    surfaceContext: true
+
 - insert:
     # Brand DNA positioning context: prepends the creator's mapped positioning
     # to sessions created with a positioningMappingId (opt-in per session).
@@ -63,14 +75,3 @@
           - primary: deepseek-official
             fallbackProvider: openrouter
             fallbackModel: openrouter/free
-
-- id: connection
-      config:
-        trustedHosts: !!js "['app.copymonster.co', ...ctx.webStartup.trustedHosts]"
-
-- id: web-runtime
-      config:
-        openBrowser: false
-        printUrl: true
-        publicUrl: !!js "ctx.webStartup.publicUrl ?? 'https://app.copymonster.co'"
-        surfaceContext: true

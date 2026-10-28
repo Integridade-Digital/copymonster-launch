@@ -10,7 +10,7 @@ import type { SessionMarkdownCopyToastProps } from '../src/client/CopyToast.tsx'
 import { en } from '../src/client/locales.ts'
 
 const unused = (): never => { throw new Error('This isolated component does not consume framework hooks') }
-const standard: GlobalStandardProps = {
+const standard: GlobalStandardProps & { useWorkspaceAccess: (workspaceId: string, action: string) => boolean } = {
   useSessions: unused, useSessionStatus: unused, useSessionRetainInfo: unused,
   useSessionAccess: () => true, useRemoteAccess: () => true, useWorkspaceAccess: () => true,
   usePanelInfo: unused, useResource: unused, useWorkspaces: unused,

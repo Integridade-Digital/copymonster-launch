@@ -85,6 +85,18 @@ export class TestWorkspaces implements IWorkspaces {
    * @param signal - caller lifetime.
    * @returns the stubbed Workspace, or undefined when initialization is ineligible.
    */
+  async ensureInitial(signal?: AbortSignal): Promise<WorkspaceView> {
+    this.calls.push({ method: 'ensureInitial', args: [signal] })
+    const stub = this.stubs.get('ensureInitial')
+    if (stub !== undefined) return await (stub(signal) as Promise<WorkspaceView>)
+    throw new Error('test workspaces: ensureInitial is not stubbed — call stub() first')
+  }
+
+  /**
+   * Initialize the default Workspace through a test stub; defaults to an ineligible first use.
+   * @param signal - caller lifetime.
+   * @returns the stubbed Workspace, or undefined when initialization is ineligible.
+   */
   async initializeDefault(signal?: AbortSignal): Promise<WorkspaceView | undefined> {
     this.calls.push({ method: 'initializeDefault', args: [signal] })
     const stub = this.stubs.get('initializeDefault')

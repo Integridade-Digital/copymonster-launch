@@ -24,15 +24,13 @@ import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
 import { IconDataOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ModelDirectoryState } from './directory.ts'
-import { ModelDirectoryResolver } from './service.ts'
 import type { ModelSelectInjected } from './slots.ts'
 import { ModelSelect } from './ModelSelect.tsx'
 import { en, zh, type ModelKey } from './locales.ts'
 
 export { ModelDirectory } from './directory.ts'
 export type { ModelDirectoryState } from './directory.ts'
-export { ModelDirectoryResolver } from './service.ts'
-export type { ModelSelectInjected } from './slots.ts'
+export type { ModelSelectInjected, ModelLabelOwner } from './slots.ts'
 export type { ModelKey } from './locales.ts'
 
 declare module '@deepseek-ai/dsh-client-ui-slots' {
@@ -147,10 +145,6 @@ export function apply(ctx: ClientContext): void {
   // through the bound translate; the seat component reads the standard seat.
   const t = ctx.locale.bind(NS)
 
-  // The composer-block reason is this plugin's own copy, read at raise time so
-  // a locale change reaches the next publish.
-  ctx.plugin(ModelDirectoryResolver, { blockReason: () => t('blocked.composer') })
-
   // Entry 1: the /model popupSelect over the shared directory.
   ctx.inject(['commandUi', 'modelDirectories'], (scope: ClientContext) => {
     const command = scope.get('commandUi') as CommandUiContract
@@ -196,6 +190,7 @@ export function apply(ctx: ClientContext): void {
     scope.slots.inject('conversation.input.model', () => scope.slots.register({
       name: 'conversation.input.model',
       locale: NS,
+      children: { 'conversation.input.model.label': { kind: 'single', scope: 'session' } },
       inject: (sessionId): ModelSelectInjected => {
         const directory = models.directoryFor(sessionId)
         const available = isPlatformAdminSession() && sessions.subagentAddress(sessionId) === undefined

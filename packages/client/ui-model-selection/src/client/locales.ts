@@ -33,6 +33,9 @@ export const zh = {
   'search.empty': '没有匹配的模型。',
   'empty.models': '暂无可用模型',
   'empty.efforts': '当前模型未提供推理等级。',
+  'option.deepseekV4Flash.description': '面向一般任务的最快模型。',
+  'option.deepseekV4Pro.description': '面向复杂任务的最强模型。',
+  'blocked.composer': '模型选择当前受阻。',
 } satisfies Record<string, string>
 
 /** The model namespace key union. */
@@ -44,6 +47,9 @@ export const en = {
   'command.label': 'Model',
   'command.description': 'Select the model for this conversation',
   'option.loadError': 'Catalog failed to load: {message}',
+  'option.deepseekV4Flash.description': 'Fastest model for general tasks.',
+  'option.deepseekV4Pro.description': 'Most capable model for complex tasks.',
+  'blocked.composer': 'Model selection is blocked.',
   'trigger.fallback': 'Select model',
   'trigger.loading': 'Loading models…',
   'trigger.selectAria': 'Select model',
@@ -90,6 +96,9 @@ export const ja = {
   'search.empty': '一致するモデルがありません。',
   'empty.models': '利用可能なモデルがありません。',
   'empty.efforts': 'このモデルには推論強度の設定がありません。',
+  'option.deepseekV4Flash.description': 'Fastest model for general tasks.',
+  'option.deepseekV4Pro.description': 'Most capable model for complex tasks.',
+  'blocked.composer': 'Model selection is blocked.',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
@@ -117,6 +126,9 @@ export const es = {
   'search.empty': 'No hay modelos coincidentes.',
   'empty.models': 'No hay modelos disponibles.',
   'empty.efforts': 'Este modelo no proporciona niveles de esfuerzo de razonamiento.',
+  'option.deepseekV4Flash.description': 'Fastest model for general tasks.',
+  'option.deepseekV4Pro.description': 'Most capable model for complex tasks.',
+  'blocked.composer': 'Model selection is blocked.',
 } satisfies Record<keyof typeof en, string>
 
 /** French dictionary, checked against the English keys. */
@@ -144,6 +156,9 @@ export const fr = {
   'search.empty': 'Aucun modèle correspondant.',
   'empty.models': 'Aucun modèle disponible.',
   'empty.efforts': 'Ce modèle ne fournit aucun niveau d’effort de raisonnement.',
+  'option.deepseekV4Flash.description': 'Fastest model for general tasks.',
+  'option.deepseekV4Pro.description': 'Most capable model for complex tasks.',
+  'blocked.composer': 'Model selection is blocked.',
 } satisfies Record<keyof typeof en, string>
 
 /** German dictionary, checked against the English keys. */
@@ -171,6 +186,9 @@ export const de = {
   'search.empty': 'Keine passenden Modelle.',
   'empty.models': 'Keine Modelle verfügbar.',
   'empty.efforts': 'Dieses Modell liefert keine Argumentationsaufwandsstufen.',
+  'option.deepseekV4Flash.description': 'Fastest model for general tasks.',
+  'option.deepseekV4Pro.description': 'Most capable model for complex tasks.',
+  'blocked.composer': 'Model selection is blocked.',
 } satisfies Record<keyof typeof en, string>
 
 /** Russian dictionary, checked against the English keys. */
@@ -198,6 +216,9 @@ export const ru = {
   'search.empty': 'Нет подходящих моделей.',
   'empty.models': 'Нет доступных моделей.',
   'empty.efforts': 'Эта модель не обеспечивает обоснования уровней усилий.',
+  'option.deepseekV4Flash.description': 'Fastest model for general tasks.',
+  'option.deepseekV4Pro.description': 'Most capable model for complex tasks.',
+  'blocked.composer': 'Model selection is blocked.',
 } satisfies Record<keyof typeof en, string>
 
 /** Portuguese dictionary, checked against the English keys. */
@@ -225,4 +246,7 @@ export const pt = {
   'search.empty': 'Não há modelos correspondentes.',
   'empty.models': 'Nenhum modelo disponível.',
   'empty.efforts': 'Este modelo não fornece níveis de esforço de raciocínio.',
+  'option.deepseekV4Flash.description': 'Fastest model for general tasks.',
+  'option.deepseekV4Pro.description': 'Most capable model for complex tasks.',
+  'blocked.composer': 'Model selection is blocked.',
 } satisfies Record<keyof typeof en, string>

@@ -144,3 +144,22 @@ export {
   IconNewChatOutlineRegular as IconNewChatOutline16,
   IconPanelLeftOutlineRegular as IconPanelLeftOutline16,
 } from './icons/index.tsx'
+export {
+  IconAlarmClockOutlineRegular as IconAlarmClockOutline16,
+  IconAgentPresetOutlineRegular as IconAgentPresetOutline16,
+  IconArchiveOutlineRegular as IconArchiveOutline20,
+  IconBranchOutlineRegular as IconBranchOutline16,
+  IconCloseFillRegular as IconCloseFill14,
+  IconCloseOutlineRegular as IconCloseOutline16,
+  IconContextInjectionOutlineRegular as IconContextInjectionOutline16,
+  IconDataOutlineRegular as IconDataOutline16,
+  IconEllipsisOutlineRegular as IconEllipsisOutline16,
+  IconEditOutlineRegular as IconEditOutline16,
+  IconPersonalizationOutlineRegular as IconPersonalizationOutline16,
+  IconPlusOutlineRegular as IconPlusOutline16,
+  IconProjectAddOutlineRegular as IconProjectAddOutline16,
+  IconSearchOutlineRegular as IconSearchOutline16,
+  IconSettingsOutlineRegular as IconSettingsOutline16,
+  IconTriangleRightFillRegular as IconTriangleRightFill14,
+  IconTrashOutlineRegular as IconTrashOutline16,
+} from './icons/index.tsx'

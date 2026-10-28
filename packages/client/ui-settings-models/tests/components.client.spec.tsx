@@ -612,7 +612,7 @@ describe('ModelsSection', () => {
   it('hides every mutation control for a session that cannot manage providers', async () => {
     await mountSection({}, false)
     expect(screen.queryByRole('button', { name: en.add })).toBeNull()
-    expect(screen.queryByRole('button', { name: en.customAdd })).toBeNull()
+    expect(screen.queryByRole('button', { name: en.addCustom })).toBeNull()
     // The rows themselves stay visible; only their action buttons go.
     expect(screen.queryByRole('button', { name: openaiCopy(en.editProvider) })).toBeNull()
     expect(screen.queryByRole('button', { name: deepSeekCopy(en.editProvider) })).toBeNull()

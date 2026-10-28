@@ -13,6 +13,7 @@
 
 import { Service, type Context } from '@deepseek-ai/cordis'
 import type { AccessEffect, ClientRemoteAccess, RemoteEndpoint, TypertResourceKind } from '@deepseek-ai/dsh-api-remote-access/client'
+import type { WorkspaceId } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { GlobalStandardProps, HostObservable, SessionStandardProps } from '@deepseek-ai/dsh-client-ui-slots'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
@@ -20,8 +21,10 @@ import type {} from '@deepseek-ai/dsh-client-ui-workspace/client'
 
 /** The access Hooks every Slot component receives. */
 export type AccessStandardProps =
-  & Pick<GlobalStandardProps, 'useRemoteAccess' | 'useSessionAccess' | 'useWorkspaceAccess'>
+  & Pick<GlobalStandardProps, 'useRemoteAccess' | 'useSessionAccess'>
   & Pick<SessionStandardProps, 'useAccess'>
+  /** Whether the current Peer may call `action` on one Workspace resource. */
+  & { useWorkspaceAccess: (workspaceId: WorkspaceId, action: RemoteEndpoint) => boolean }
 
 /** Access Hooks that allow every action on every resource, for hand-built component props. */
 export const allowAllAccess: AccessStandardProps = {

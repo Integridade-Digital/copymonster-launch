@@ -26,6 +26,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 // Type-only: pulls the Session root standard-hook merge.
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type { WorkspaceBrowserInjected, WorkspacePickerInjected } from './contract/slots.ts'
+import { menuOpenStateFactory } from './contract/slots.ts'
 import { UiWorkspaceService } from './navigation.ts'
 import { createWorkspaceViewStore } from './stores.ts'
 import { WorkspaceBrowser } from './rows/WorkspaceBrowser.tsx'
@@ -69,7 +70,7 @@ const NS = 'workspace'
  * declaration through `slots.inject()` instead of assuming order.
  */
 export const inject = [
-  'slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.directoryPicker', 'layout',
+  'slots', 'sessions', 'workspaces', 'locale', 'remote', 'remote.directoryPicker', 'layout', 'shortcuts',
 ]
 
 /**
@@ -164,9 +165,21 @@ export function apply(ctx: Context): void {
     insertWorkspaceBefore: async (workspaceId: WorkspaceId, beforeWorkspaceId?: WorkspaceId) => {
       await workspaces.insertBefore(workspaceId, beforeWorkspaceId)
     },
+    unarchiveSession: async (sessionId: SessionId) => { await uiWorkspace.unarchiveSession(sessionId) },
     archiveSession: async (sessionId: SessionId) => { await uiWorkspace.archiveSession(sessionId) },
     deleteSession: async (sessionId: SessionId) => { await sessions.delete(sessionId) },
     createWorkspace: input => workspaces.create(input),
+    // The fork keeps the directory-flow occupancy contract declared but does
+    // not wire shortcut-driven opening/closing; these stay no-ops so the
+    // browser registration satisfies the declared injected share.
+    requestSearch: () => {},
+    requestAddWorkspace: () => {},
+    closeAddWorkspace: () => {},
+    setDirectoryBusy: () => {},
+    notifyArchivedNotOpenable: () => {},
+    // The fork's row-menu rename entry reads `onSessionRename` from the
+    // browser props directly; the injected share stays a no-op here.
+    requestSessionRename: () => {},
     hooks: { directoryFlow: browserFlowSource, hostInfo },
   })
   const pickerInjected = (): WorkspacePickerInjected => ({
@@ -178,7 +191,19 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('sidebar.workspaces', () => ctx.slots.register(
     {
       name: 'sidebar.workspaces',
-      children: { 'sidebar.workspaces.directoryFlow': { kind: 'single', scope: 'root' } },
+      children: {
+        'sidebar.workspaces.directoryFlow': { kind: 'single', scope: 'root' },
+        // Row entries read the menu's open state through a hook bound from the
+        // row's render occurrence (the owner passes the state pair as hookContext).
+        'sidebar.workspaces.session.menu.item': {
+          kind: 'list', scope: 'root',
+          inject: { hooks: { menuOpenState: menuOpenStateFactory, shortcuts: ctx.shortcuts.catalog } },
+        },
+        'sidebar.workspaces.session.row.action': { kind: 'list', scope: 'root' },
+        'sidebar.session.row.leading': { kind: 'list', scope: 'root', inline: true },
+        'sidebar.session.row.trailing': { kind: 'list', scope: 'root', inline: true },
+        'sidebar.session.row.hover': { kind: 'list', scope: 'root' },
+      },
       store: createWorkspaceViewStore(),
       inject: browserInjected,
       locale: NS,

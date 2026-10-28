@@ -20,7 +20,7 @@ const clipboard: SessionMarkdownClipboard = {
 const dictionary: Record<string, string> = en
 const translate: SessionLogDownloadHeaderProps['t'] = key => dictionary[key] ?? key
 const unused = (): never => { throw new Error('This isolated component does not consume framework hooks') }
-const standard: GlobalStandardProps & SessionStandardProps = {
+const standard: GlobalStandardProps & SessionStandardProps & { useWorkspaceAccess: (workspaceId: string, action: string) => boolean } = {
   sessionId: SID, useSession: unused, useProjection: unused, useAccess: () => true,
   useSessions: unused, useSessionStatus: unused, useSessionRetainInfo: unused,
   useSessionAccess: () => true, useRemoteAccess: () => true, useWorkspaceAccess: () => true,

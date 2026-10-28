@@ -605,6 +605,8 @@ export const ja = {
   'json.truncated': '… 省略表示、全{total}文字',
   'clock.md': '{m}/{d}',
   'clock.ymd': '{y}-{m}-{d}',
+  'message.systemContext': 'System context',
+  'message.failure.modelUnavailable': 'The selected model is unavailable right now. Please try again or contact support.',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
@@ -804,6 +806,8 @@ export const es = {
   'json.truncated': '… truncado, caracteres {total} en total',
   'clock.md': '{m}/{d}',
   'clock.ymd': '{y}-{m}-{d}',
+  'message.systemContext': 'System context',
+  'message.failure.modelUnavailable': 'The selected model is unavailable right now. Please try again or contact support.',
 } satisfies Record<keyof typeof en, string>
 
 /** French dictionary, checked against the English keys. */
@@ -1003,6 +1007,8 @@ export const fr = {
   'json.truncated': '… tronqué, nombre total de caractères {total}',
   'clock.md': '{m}/{d}',
   'clock.ymd': '{y}-{m}-{d}',
+  'message.systemContext': 'System context',
+  'message.failure.modelUnavailable': 'The selected model is unavailable right now. Please try again or contact support.',
 } satisfies Record<keyof typeof en, string>
 
 /** German dictionary, checked against the English keys. */
@@ -1202,6 +1208,8 @@ export const de = {
   'json.truncated': '… gekürzt, {total} Zeichen insgesamt',
   'clock.md': '{m}/{d}',
   'clock.ymd': '{y}-{m}-{d}',
+  'message.systemContext': 'System context',
+  'message.failure.modelUnavailable': 'The selected model is unavailable right now. Please try again or contact support.',
 } satisfies Record<keyof typeof en, string>
 
 /** Russian dictionary, checked against the English keys. */
@@ -1401,6 +1409,8 @@ export const ru = {
   'json.truncated': '… усечено, всего символов {total}',
   'clock.md': '{m}/{d}',
   'clock.ymd': '{y}-{m}-{d}',
+  'message.systemContext': 'System context',
+  'message.failure.modelUnavailable': 'The selected model is unavailable right now. Please try again or contact support.',
 } satisfies Record<keyof typeof en, string>
 
 /** Portuguese dictionary, checked against the English keys. */
@@ -1600,4 +1610,6 @@ export const pt = {
   'json.truncated': '… truncado, {total} caracteres no total',
   'clock.md': '{m}/{d}',
   'clock.ymd': '{y}-{m}-{d}',
+  'message.systemContext': 'System context',
+  'message.failure.modelUnavailable': 'The selected model is unavailable right now. Please try again or contact support.',
 } satisfies Record<keyof typeof en, string>

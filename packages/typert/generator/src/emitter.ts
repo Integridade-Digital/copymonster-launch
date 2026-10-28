@@ -431,7 +431,14 @@ export class FaceModelEmitter {
         lines.push('  }')
       }
       lines.push('  interface TypertRemoteMap {')
-      for (const invocation of direct) {
+      // Scoped verbs share the `<namespace>/<method>` wire name, so the flat map that
+      // `RemoteEndpoint` derives from must name them too. Direct entries win a collision.
+      const endpoints = new Map<string, InvocationModel>()
+      for (const invocation of [...direct, ...scoped]) {
+        const endpoint = `${invocation.namespace}/${invocation.method}`
+        if (!endpoints.has(endpoint)) endpoints.set(endpoint, invocation)
+      }
+      for (const invocation of endpoints.values()) {
         this.pushRemoteSignature(lines, sourceMap, packageModel, invocation, referenceNames, false)
       }
       lines.push('  }')

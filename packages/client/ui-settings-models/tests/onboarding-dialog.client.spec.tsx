@@ -143,7 +143,6 @@ function harness(options: {
   const complete = vi.fn()
   const unusedHook = (() => { throw new Error('unused standard hook') }) as never
   const props: DeepSeekOnboardingDialogProps = {
-    automatic: true,
     stepId: 'deepseek-official',
     complete,
     openSection,

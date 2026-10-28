@@ -24,7 +24,7 @@ import type { WorkspaceBrowserProps } from '../contract/slots.ts'
 import type { GroupNode, SessionNode, SessionOrderBy } from '../tree.ts'
 import {
   deriveFlat, deriveGroups, deriveSearchResults, orderByRecency, owningGroupKey, owningParentFolder,
-  pinCurrentBlank, reconcileManualOrder, UNGROUPED_KEY, visibleSessionIds,
+  pinCurrentBlank, reconcileManualOrder, SessionRowState, UNGROUPED_KEY, visibleSessionIds,
 } from '../tree.ts'
 import { ProjectRowItem, SearchResultItem, SessionNodeItem } from './Rows.tsx'
 import { FLAT_SESSION_ORDER_KEY, type SessionGroupBy } from '../stores.ts'
@@ -190,8 +190,8 @@ type SessionTreeProps = Pick<
   setGroupExpanded: (key: string, expanded: boolean) => void
   /** Save a drag order and select Manual. */
   setSessionOrder: (accountKey: string, order: readonly string[]) => void
-  /** Registry-global archive set (hidden rows). */
-  archivedSessionIds: readonly SessionNode['id'][]
+  /** Registry-global pin/archive sets plus archived visibility filter. */
+  rowState: SessionRowState
   /** Open the browser-owned rename dialog for a real Workspace group. */
   onRenameRequest: (workspaceId: WorkspaceId, currentTitle: string) => void
   /** Open the browser-owned delete-confirmation dialog for a real Workspace group. */
@@ -211,8 +211,7 @@ type SessionTreeProps = Pick<
 /** The scrolling session tree; unmounting drops the sessions subscription and expand-all state. */
 function SessionTree({
   list, useSessionStatus, startSession, open, forkSession, workspaces, ungroupedSessionIds,
-  archivedSessionIds,
-  workspaceReady, usePanelInfo,
+  rowState, workspaceReady, usePanelInfo,
   onRenameRequest, onDeleteRequest, onSessionRename, onSessionArchive, onSessionDelete,
   insertWorkspaceBefore,
   nestWorkspaces, groupExpansion, setGroupExpanded,
@@ -264,11 +263,11 @@ function SessionTree({
       .filter(key => groupExpansion[key] ?? ancestorKeys.has(key))
   }, [groupExpansion, parents, workspaces])
   const groups = useMemo(
-    () => deriveGroups(list, workspaces, archivedSessionIds, statuses, {
+    () => deriveGroups(list, workspaces, rowState, statuses, {
       expandedGroups,
       ungroupedOrder: ungroupedSessionIds,
     }),
-    [list, workspaces, archivedSessionIds, statuses, expandedGroups, ungroupedSessionIds],
+    [list, workspaces, rowState, statuses, expandedGroups, ungroupedSessionIds],
   )
   useEffect(() => {
     for (let key = revealGroup; key !== undefined; key = parents.get(key)) {
@@ -569,9 +568,8 @@ function SessionTree({
 
 /** The flat "In one list" body: every session is one draggable top-level row. */
 function FlatList({
-  list, sessionIds, useSessionStatus, open, forkSession, onSessionRename, onSessionArchive, onSessionDelete,
-  usePanelInfo, setSessionOrder,
-  revealSessionId, onSessionRevealed, t,
+  list, sessionIds, rowState, useSessionStatus, open, forkSession, onSessionRename, onSessionArchive, onSessionDelete,
+  usePanelInfo, setSessionOrder, revealSessionId, onSessionRevealed, t,
 }: Pick<
   SessionTreeProps,
   | 'useSessionStatus'
@@ -585,6 +583,7 @@ function FlatList({
   | 'revealSessionId'
   | 'onSessionRevealed'
   | 't'
+  | 'rowState'
 > & {
   list: SessionListState
   sessionIds: readonly SessionId[]
@@ -592,8 +591,8 @@ function FlatList({
   const panelActive = usePanelInfo(info => info.activePanelId !== null)
   const statuses = useSessionStatus(s => s)
   const rows = useMemo(
-    () => deriveFlat(list, sessionIds, statuses),
-    [list, sessionIds, statuses],
+    () => deriveFlat(list, sessionIds, rowState, statuses),
+    [list, sessionIds, rowState, statuses],
   )
   const [drag, setDrag] = useState<DragState | null>(null)
   const dropCommitted = useRef(false)
@@ -688,7 +687,7 @@ function SearchResults({
   useSessionStatus,
   open,
   workspaces,
-  archivedSessionIds,
+  rowState,
   query,
   remote,
   resultLimit,
@@ -696,7 +695,7 @@ function SearchResults({
   t,
 }: Pick<WorkspaceBrowserProps, 'useSessions' | 'useSessionStatus' | 'open' | 't' | 'usePanelInfo'> & {
   workspaces: readonly WorkspaceView[]
-  archivedSessionIds: readonly SessionNode['id'][]
+  rowState: SessionRowState
   query: string
   remote: RemoteSearchState
   resultLimit: number
@@ -712,12 +711,13 @@ function SearchResults({
       list,
       workspaces,
       query,
-      archivedSessionIds,
+      rowState.archivedSessionIds,
+      rowState.archivedFilter,
       statuses,
       currentRemote,
       resultLimit,
     ),
-    [list, workspaces, query, archivedSessionIds, statuses, currentRemote, resultLimit],
+    [list, workspaces, query, rowState, statuses, currentRemote, resultLimit],
   )
   const pending = currentRemote.status === 'loading'
   const failed = currentRemote.status === 'error'
@@ -799,13 +799,20 @@ export function WorkspaceBrowser({
   const workspacePhase = useWorkspaces(state => state.phase)
   const workspaceStreamState = useWorkspaces(state => state.state)
   const archivedSessionIds = useWorkspaces(state => state.archivedSessionIds)
+  const pinnedSessionIds = useWorkspaces(state => state.pinnedSessionIds)
   // Live occupancy of this surface's directory-flow hole (the same source the
   // flow reads): a composition without a picking affordance can add nothing.
   const directoryFlowAvailable = useDirectoryFlow(occupied => occupied)
   const groupBy = useStore(s => s.groupBy)
   const orderBy = useStore(s => s.orderBy)
+  // Persisted view blobs written before the archived filter existed rehydrate
+  // without the field; they read as the default hide-archived view.
+  const archivedFilter = useStore(s => s.archivedFilter ?? 'default')
   const groupExpansion = useStore(s => s.groupExpansion)
   const sessionOrderByAccount = useStore(s => s.sessionOrderByAccount)
+  const rowState = useMemo<SessionRowState>(() => ({
+    pinnedSessionIds, archivedSessionIds, archivedFilter,
+  }), [pinnedSessionIds, archivedSessionIds, archivedFilter])
   const workspaceReady = workspacePhase === 'ready' && workspaceStreamState !== 'loading'
   const mainSessionId = Object.values(list.byId)
     .find(session => (session.retainedBy.mainView ?? 0) > 0)?.id
@@ -817,8 +824,8 @@ export function WorkspaceBrowser({
     return list.ids.filter(id => list.byId[id] !== undefined && !accounted.has(id))
   }, [list, workspaces])
   const flatMemberIds = useMemo(
-    () => visibleSessionIds(list, archivedSessionIds),
-    [archivedSessionIds, list],
+    () => visibleSessionIds(list, rowState.archivedSessionIds, archivedFilter),
+    [rowState.archivedSessionIds, archivedFilter, list],
   )
   const orderedWorkspaces = useMemo(() => workspaces.map((workspace) => {
     const memberIds = workspace.sessionIds
@@ -1297,7 +1304,7 @@ export function WorkspaceBrowser({
               useSessionStatus={useSessionStatus}
               open={openSearchResult}
               workspaces={workspaces}
-              archivedSessionIds={archivedSessionIds}
+              rowState={rowState}
               query={normalizedQuery}
               remote={remoteSearch}
               resultLimit={searchResultLimit}
@@ -1315,6 +1322,7 @@ export function WorkspaceBrowser({
                 onSessionRename={onSessionRename} onSessionArchive={onSessionArchive}
                 onSessionDelete={onSessionDelete}
                 setSessionOrder={saveSessionOrder}
+                rowState={rowState}
                 revealSessionId={revealSessionId}
                 onSessionRevealed={acknowledgeSessionReveal}
                 t={t}
@@ -1336,7 +1344,7 @@ export function WorkspaceBrowser({
                 groupExpansion={groupExpansion}
                 setGroupExpanded={actions.setGroupExpanded}
                 setSessionOrder={saveSessionOrder}
-                archivedSessionIds={archivedSessionIds}
+                rowState={rowState}
                 startSession={startSession}
                 open={open}
                 insertWorkspaceBefore={insertWorkspaceBefore}

@@ -605,6 +605,7 @@ export const ja = {
   'layout.toolsRemovedCount': '{count} 件削除',
   'layout.systemPromptAndToolsUpdated': 'システムプロンプトとツールを更新',
   'layout.compactionInterrupted': '圧縮は完了前に中断されました。',
+  'details.failure.modelUnavailable': 'The selected model is temporarily unavailable. Please try again or contact support.',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
@@ -801,6 +802,7 @@ export const es = {
   'layout.toolsRemovedCount': '{count} eliminado',
   'layout.systemPromptAndToolsUpdated': 'Aviso del sistema y herramientas actualizadas',
   'layout.compactionInterrupted': 'La compactación se interrumpió antes de finalizar.',
+  'details.failure.modelUnavailable': 'The selected model is temporarily unavailable. Please try again or contact support.',
 } satisfies Record<keyof typeof en, string>
 
 /** French dictionary, checked against the English keys. */
@@ -997,6 +999,7 @@ export const fr = {
   'layout.toolsRemovedCount': '{count} supprimé',
   'layout.systemPromptAndToolsUpdated': 'Invite système et outils mis à jour',
   'layout.compactionInterrupted': 'Le compactage a été interrompu avant la fin.',
+  'details.failure.modelUnavailable': 'The selected model is temporarily unavailable. Please try again or contact support.',
 } satisfies Record<keyof typeof en, string>
 
 /** German dictionary, checked against the English keys. */
@@ -1193,6 +1196,7 @@ export const de = {
   'layout.toolsRemovedCount': '{count} entfernt',
   'layout.systemPromptAndToolsUpdated': 'Systemaufforderung und Tools aktualisiert',
   'layout.compactionInterrupted': 'Die Verdichtung wurde vor der Fertigstellung unterbrochen.',
+  'details.failure.modelUnavailable': 'The selected model is temporarily unavailable. Please try again or contact support.',
 } satisfies Record<keyof typeof en, string>
 
 /** Russian dictionary, checked against the English keys. */
@@ -1389,6 +1393,7 @@ export const ru = {
   'layout.toolsRemovedCount': '{count} удален.',
   'layout.systemPromptAndToolsUpdated': 'Системная подсказка и инструменты обновлены',
   'layout.compactionInterrupted': 'Уплотнение было прервано до завершения.',
+  'details.failure.modelUnavailable': 'The selected model is temporarily unavailable. Please try again or contact support.',
 } satisfies Record<keyof typeof en, string>
 
 /** Portuguese dictionary, checked against the English keys. */
@@ -1585,4 +1590,5 @@ export const pt = {
   'layout.toolsRemovedCount': '{count} removido',
   'layout.systemPromptAndToolsUpdated': 'Prompt do sistema e ferramentas atualizadas',
   'layout.compactionInterrupted': 'A compactação foi interrompida antes da conclusão.',
+  'details.failure.modelUnavailable': 'The selected model is temporarily unavailable. Please try again or contact support.',
 } satisfies Record<keyof typeof en, string>

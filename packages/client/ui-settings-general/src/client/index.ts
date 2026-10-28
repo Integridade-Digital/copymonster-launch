@@ -25,7 +25,7 @@ import type {
 } from './shell-contract.ts'
 import { SettingsRoot } from './SettingsRoot.tsx'
 import { DesktopUpdateBadge } from './DesktopUpdateIndicator.tsx'
-import type { DesktopUpdateBridge } from './desktop-update-bridge.ts'
+import type { DesktopUpdateBridge } from '../types.ts'
 import { DesktopUpdateSource } from './desktop-update-source.ts'
 import { CloseLabel, HeaderContent, TriggerContent } from './chrome.tsx'
 import { GeneralSection } from './GeneralSection.tsx'
@@ -35,6 +35,7 @@ import { MyDnaSection } from './MyDnaSection.tsx'
 import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.tsx'
 import { SettingsDocumentStore } from './settings-document-store.ts'
+import { createSettingsShellStore } from './shell-store.ts'
 import { en, zh, type SettingsKey } from './locales.ts'
 
 export type {
@@ -68,7 +69,7 @@ const NS = 'settings'
  * ui-settings' apply, whose activation order relative to this one is NOT
  * constrained; registrations depend on their slots through `slots.inject()`.
  */
-export const inject = ['slots', 'locale', 'connection', 'remote', 'remote.settings', 'settingsScope']
+export const inject = ['slots', 'locale', 'connection', 'remote', 'remote.settings', 'configForms', 'shortcuts']
 
 /**
  * Register the `settings` dictionaries, the chrome content, and the General
@@ -92,7 +93,7 @@ export function apply(ctx: ClientContext): void {
   const t = ctx.locale.bind(NS)
   // The shared SettingsScope mirror updates after document commits and reconnects.
   const documentController = ctx.remote.$host.isLoopback
-    ? new SettingsDocumentStore(ctx, ctx.settingsScope.describe())
+    ? new SettingsDocumentStore(ctx, ctx.configForms.describe())
     : undefined
   const documentInjected = documentController === undefined
     ? undefined
@@ -117,6 +118,7 @@ export function apply(ctx: ClientContext): void {
     hooks: {
       desktopUpdate: desktopUpdate.store,
       connectionState: connection.state,
+      shortcuts: ctx.shortcuts.catalog,
       sections: {
         getSnapshot: () => {
           const version = ctx.slots.getVersion('settings.section')
@@ -166,7 +168,9 @@ export function apply(ctx: ClientContext): void {
   ctx.slots.inject('sidebar.settings', () => ctx.slots.register({
     name: 'sidebar.settings',
     locale: NS,
+    store: createSettingsShellStore(),
     children: {
+      'settings.launcher': { kind: 'single', scope: 'root' },
       'settings.trigger': { kind: 'single', scope: 'root' },
       'settings.header': { kind: 'single', scope: 'root' },
       'settings.action': { kind: 'list', scope: 'root' },

@@ -51,7 +51,6 @@ import type { RemoteHostFacts } from '@deepseek-ai/dsh-api-remotes/client'
 import type { SessionActivity, WorkspaceId, WorkspaceView } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 import type { ShortcutCatalogEntry } from '@deepseek-ai/dsh-client-shortcuts/client'
-import type { WorkspaceShortcutState } from '../shortcuts.ts'
 import type { StartSessionOptions } from '../navigation.ts'
 import type {} from './toast.ts'
 import type { createWorkspaceViewStore } from '../stores.ts'
@@ -242,8 +241,6 @@ export type WorkspaceBrowserInjected = {
      * saw. Select the field the surface needs (`info => info.home`).
      */
     hostInfo: HostObservable<RemoteHostFacts>
-    workspaceShortcuts: HostObservable<WorkspaceShortcutState>
-    shortcuts: HostObservable<readonly ShortcutCatalogEntry[]>
   }
   /** Open the browser search and focus its input. */
   requestSearch: () => void
@@ -284,8 +281,16 @@ export type WorkspaceBrowserInjected = {
    * Omitted anchor appends to the end.
    */
   insertWorkspaceBefore: (workspaceId: WorkspaceId, beforeWorkspaceId?: WorkspaceId) => Promise<void>
+  /** Fork a Session at its last completed turn; the child arrives through the Host list. */
+  forkSession: (sessionId: SessionId) => void
   /** Remove a Session from the registry-global archived set (the search results' restore button). */
   unarchiveSession: (sessionId: SessionId) => Promise<void>
+  /** Rename a Session; the dialog entry answers the raised request. */
+  renameSession: (sessionId: SessionId, title: string) => Promise<void>
+  /** Archive a Session after the Host stops its running work. */
+  archiveSession: (sessionId: SessionId) => Promise<void>
+  /** Delete a Session from the Host registry. */
+  deleteSession: (sessionId: SessionId) => Promise<void>
   /** Adopt a picked host directory as a real Workspace before targeting a Session. */
   createWorkspace: (input: { path: string }) => Promise<WorkspaceView>
 }

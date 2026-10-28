@@ -14,6 +14,7 @@ import type {
   IWorkspaces, WorkspaceId, WorkspaceView,
 } from '@deepseek-ai/dsh-api-workspace-controller/client'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
+import type { DraftInitializationOptions } from '@deepseek-ai/dsh-client-ui-conversation/client'
 import type {} from '@deepseek-ai/dsh-client-ui-layout/client'
 
 interface MainSelection {
@@ -22,10 +23,9 @@ interface MainSelection {
 }
 
 /** Workspace archive and directory operations consumed by Client UI domains. */
-export interface StartSessionOptions {
-  /** @deprecated Use `openSession` with a `SessionTarget` instead. */
-  readonly sessionId?: SessionId
-  readonly workspaceId?: WorkspaceId
+export interface StartSessionOptions extends DraftInitializationOptions {
+  /** Agent preset the Session runs; the Host default when omitted. */
+  readonly agentPreset?: string
 }
 
 /** Workspace archive and directory UI capability. */
@@ -57,8 +57,9 @@ export interface UiWorkspace {
   /**
    * Start a New Session flow and navigate to its Session.
    * @param workspaceId - explicit target; absent inherits the current or most recent Workspace.
+   * @param options - optional draft/preset initialization for the new Session.
    */
-  startSession(workspaceId?: WorkspaceId): void
+  startSession(workspaceId?: WorkspaceId, options?: StartSessionOptions): void
   /**
    * Archive a Session and clear it when it is the current selection.
    * @param sessionId - Session to archive.
@@ -141,7 +142,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     }, 'ui-workspace: Workspace navigation policy')
   }
 
-  async connectWorkspace(workspaceId: WorkspaceId): Promise<SessionId> {
+  async connectWorkspace(workspaceId: WorkspaceId, agentPreset?: string): Promise<SessionId> {
     const workspace = this.workspaces.list.getSnapshot().items
       .find(item => item.workspaceId === workspaceId)
     if (workspace === undefined) {
@@ -159,7 +160,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
         && !archived.includes(summary.id)) return summary.id
     }
 
-    const attempt = this.sessions.create({ workspaceId })
+    const attempt = this.sessions.create({ workspaceId, ...(agentPreset === undefined ? {} : { agentPreset }) })
       .finally(() => { this.connecting.delete(workspaceId) })
     this.connecting.set(workspaceId, attempt)
     return attempt
@@ -169,9 +170,9 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     this.replaceMain(target, this.lifetime.signal)
   }
 
-  async openWorkspace(workspaceId: WorkspaceId, beforeOpen?: (sessionId: SessionId) => void): Promise<void> {
+  async openWorkspace(workspaceId: WorkspaceId, beforeOpen?: (sessionId: SessionId) => void, agentPreset?: string): Promise<void> {
     const navigation = AbortSignal.any([this.ctx.layout.beginNavigation(), this.lifetime.signal])
-    const sessionId = await this.connectWorkspace(workspaceId)
+    const sessionId = await this.connectWorkspace(workspaceId, agentPreset)
     if (navigation.aborted) return
     this.replaceMain(sessionId, navigation, beforeOpen)
   }
@@ -182,7 +183,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     if (!navigation.aborted) this.replaceMain(childId, navigation)
   }
 
-  startSession(workspaceId?: WorkspaceId): void {
+  startSession(workspaceId?: WorkspaceId, options?: StartSessionOptions): void {
     const workspace = this.workspaces.list.getSnapshot()
     const sessions = this.sessions.list.getSnapshot()
     const current = this.mainReference?.sessionId
@@ -197,7 +198,7 @@ class UiWorkspaceService extends Service implements UiWorkspace {
       this.clearMain()
       return
     }
-    void this.openWorkspace(target).catch(
+    void this.openWorkspace(target, undefined, options?.agentPreset).catch(
       (reason: unknown) => { console.warn('new session failed:', reason) },
     )
   }
@@ -250,9 +251,6 @@ class UiWorkspaceService extends Service implements UiWorkspace {
       if (savedTarget !== undefined) {
         initial = 'connecting'
         try {
-          if (saved.subagentAddress !== undefined) {
-            void this.sessions.refreshSubagents(saved.subagentAddress.parentSessionId)
-          }
           this.openSession(savedTarget)
           initial = 'done'
         } catch (reason: unknown) {
@@ -336,7 +334,6 @@ class UiWorkspaceService extends Service implements UiWorkspace {
     const previous = this.mainReference
     this.mainReference = reference
     previous?.release()
-    void this.sessions.refreshSubagents(reference.sessionId)
     this.ctx.layout.selectPanel(null)
   }
 

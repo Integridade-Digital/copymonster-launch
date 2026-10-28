@@ -19,7 +19,7 @@ import type { InjectFace, PropsRenderSlots } from '@deepseek-ai/dsh-client-ui-sl
 // Type-only: pulls this package's SlotMap merge (the two Models child slots).
 import type {} from './slot-contract.ts'
 import { CustomProviderCard } from './CustomProviderCard.tsx'
-import { deriveKeyRef, protocolChoices, providerUsable } from './store.ts'
+import { deriveKeyRef, protocolChoices, providerUsable, reasoningLevelChoices } from './store.ts'
 import type { ModelsSettingsStore, ProviderRow } from './store.ts'
 import type { ModelsOperations } from './operations.ts'
 import type { SettingsSchemaOperations } from './schema-operations.ts'
@@ -508,6 +508,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                 <CustomProviderCard
                   taken={state.rows.map(row => row.entry.provider)}
                   protocols={protocols}
+                  reasoningLevels={reasoningLevelChoices(state.namespaces.get('llm-pi-ai'), schema)}
                   /* v8 ignore next -- the card only opens from a button disabled without this namespace */
                   revision={state.namespaces.get('llm-pi-ai')?.revision ?? 0}
                   operations={operations}
@@ -558,7 +559,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                     }}
                   >
                     <IconPlusOutline16 size={14} />
-                    {t('customAdd')}
+                    {t('addCustom')}
                   </button>
                 )}
               </div>

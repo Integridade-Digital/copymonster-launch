@@ -132,6 +132,7 @@ export const zh = {
   'time.months': '{n}个月',
   'time.years': '{n}年',
   'time.ago': '{t}前',
+  'search.unavailable': '搜索失败。',
 } satisfies Record<string, string>
 
 /** The workspace namespace key union. */
@@ -178,6 +179,7 @@ export const en = {
   'search.pending': 'Searching session history…',
   'search.noMatches': 'No matching sessions',
   'search.hasMore': 'Showing the first {n} results. Narrow your search.',
+  'search.unavailable': 'Search failed.',
   'menu.addWorkspace': 'Add workspace…',
   'picker.loading': 'Loading workspaces…',
   'conflict.named': 'A workspace named “{name}” already exists.',
@@ -388,6 +390,14 @@ export const ja = {
   'time.months': '{n}か月',
   'time.years': '{n}年',
   'time.ago': '{t}前',
+  'search.unavailable': 'Search failed.',
+  'delete.final': 'This removes the workspace registration (the folder and session logs are kept). Delete now?',
+  'delete.confirm': 'Delete anyway',
+  'delete.session': 'Delete session',
+  'delete.session.desc': 'This permanently removes “{name}” and its session log. This cannot be undone.',
+  'delete.session.final': 'This is permanent and cannot be undone. Delete the session and its log now?',
+  'delete.session.confirm': 'Delete permanently',
+  'delete.session.pending': 'Deleting session…',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
@@ -511,6 +521,14 @@ export const es = {
   'time.months': '{n}mo',
   'time.years': '{n}y',
   'time.ago': 'Hace {t}',
+  'search.unavailable': 'Search failed.',
+  'delete.final': 'This removes the workspace registration (the folder and session logs are kept). Delete now?',
+  'delete.confirm': 'Delete anyway',
+  'delete.session': 'Delete session',
+  'delete.session.desc': 'This permanently removes “{name}” and its session log. This cannot be undone.',
+  'delete.session.final': 'This is permanent and cannot be undone. Delete the session and its log now?',
+  'delete.session.confirm': 'Delete permanently',
+  'delete.session.pending': 'Deleting session…',
 } satisfies Record<keyof typeof en, string>
 
 /** French dictionary, checked against the English keys. */
@@ -634,6 +652,14 @@ export const fr = {
   'time.months': '{n}mo',
   'time.years': '{n}y',
   'time.ago': 'Il y a {t}',
+  'search.unavailable': 'Search failed.',
+  'delete.final': 'This removes the workspace registration (the folder and session logs are kept). Delete now?',
+  'delete.confirm': 'Delete anyway',
+  'delete.session': 'Delete session',
+  'delete.session.desc': 'This permanently removes “{name}” and its session log. This cannot be undone.',
+  'delete.session.final': 'This is permanent and cannot be undone. Delete the session and its log now?',
+  'delete.session.confirm': 'Delete permanently',
+  'delete.session.pending': 'Deleting session…',
 } satisfies Record<keyof typeof en, string>
 
 /** German dictionary, checked against the English keys. */
@@ -757,6 +783,14 @@ export const de = {
   'time.months': '{n}mo',
   'time.years': '{n}y',
   'time.ago': 'Vor {t}',
+  'search.unavailable': 'Search failed.',
+  'delete.final': 'This removes the workspace registration (the folder and session logs are kept). Delete now?',
+  'delete.confirm': 'Delete anyway',
+  'delete.session': 'Delete session',
+  'delete.session.desc': 'This permanently removes “{name}” and its session log. This cannot be undone.',
+  'delete.session.final': 'This is permanent and cannot be undone. Delete the session and its log now?',
+  'delete.session.confirm': 'Delete permanently',
+  'delete.session.pending': 'Deleting session…',
 } satisfies Record<keyof typeof en, string>
 
 /** Russian dictionary, checked against the English keys. */
@@ -880,6 +914,14 @@ export const ru = {
   'time.months': '{n}mo',
   'time.years': '{n}y',
   'time.ago': '{t} назад',
+  'search.unavailable': 'Search failed.',
+  'delete.final': 'This removes the workspace registration (the folder and session logs are kept). Delete now?',
+  'delete.confirm': 'Delete anyway',
+  'delete.session': 'Delete session',
+  'delete.session.desc': 'This permanently removes “{name}” and its session log. This cannot be undone.',
+  'delete.session.final': 'This is permanent and cannot be undone. Delete the session and its log now?',
+  'delete.session.confirm': 'Delete permanently',
+  'delete.session.pending': 'Deleting session…',
 } satisfies Record<keyof typeof en, string>
 
 /** Portuguese dictionary, checked against the English keys. */
@@ -1003,4 +1045,12 @@ export const pt = {
   'time.months': '{n} mês',
   'time.years': '{n}s',
   'time.ago': '{t} atrás',
+  'search.unavailable': 'Search failed.',
+  'delete.final': 'This removes the workspace registration (the folder and session logs are kept). Delete now?',
+  'delete.confirm': 'Delete anyway',
+  'delete.session': 'Delete session',
+  'delete.session.desc': 'This permanently removes “{name}” and its session log. This cannot be undone.',
+  'delete.session.final': 'This is permanent and cannot be undone. Delete the session and its log now?',
+  'delete.session.confirm': 'Delete permanently',
+  'delete.session.pending': 'Deleting session…',
 } satisfies Record<keyof typeof en, string>

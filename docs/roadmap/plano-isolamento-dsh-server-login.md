@@ -1,28 +1,28 @@
 # Plano de Isolamento Multi-Tenant com `dsh-server-login`
-## Hard Isolation por Conta de SO Linux, Port Guard e Proteção de Plugins para o CopyMonster SaaS
+## Hard Isolation por Conta de SO Linux, Port Guard, Cloudflare Tunnel (:3080) e Supabase (Plano Free)
 
-> **Status:** Plano Técnico Aprovado para Execução em Staging/Produção  
+> **Status:** Plano Técnico Atualizado & Aprovado para Execução em Staging/Produção  
 > **Licença:** MIT (CopyMonster — fork do DeepSeek Harness / DSH)  
 > **Repositório do Orquestrador:** `https://github.com/pointer-a/dsh-server-login.git`  
-> **Alvo:** Servidor VPS Ubuntu/Debian (Single-Host Multi-Tenant)  
-> **Regra de Ouro:** NUNCA alterar `packages/core/` nem `packages/llm/`. Não liberar o Market de plugins antes da validação completa dos testes de rede e sistema de arquivos.
+> **Topologia de Borda:** Cloudflare Tunnel (`cloudflared`) escutando na porta local `3080`  
+> **Camada de Dados & Auth:** Supabase (Plano Free) para o SaaS CopyMonster + SQLite local para o supervisor do VPS  
+> **Regra de Ouro:** NUNCA alterar `packages/core/` nem `packages/llm/`. Não liberar o Market de plugins antes da validação completa dos testes de isolamento de rede e sistema de arquivos.
 
 ---
 
 ## 1. Sumário Executivo & Contexto do Negócio
 
-O **CopyMonster** é uma plataforma SaaS de geração e otimização de copy e conteúdo, construída como fork do DeepSeek Harness (DSH). A plataforma opera sob modelo de assinatura (planos gerenciados via Supabase + Stripe). Um dos maiores diferenciais competitivos planejados é a abertura do ecossistema de extensões (**Market com mais de 7.200 plugins**).
+O **CopyMonster** é uma plataforma SaaS de automação de copy e geração de conteúdo, construída como fork sob licença MIT do DeepSeek Harness (DSH). A plataforma opera sob modelo de assinatura (planos gerenciados no Supabase e checkout via Stripe). Um dos grandes diferenciais competitivos planejados é a abertura do ecossistema de extensões (**Market com mais de 7.200 plugins**).
 
-### O Problema Crítico de Segurança
-No DSH nativo:
-1. Todas as sessões rodam sob o mesmo processo ou usuário do sistema operacional (frequentemente `root` em instalações padrão).
+### O Problema Crítico de Segurança no DSH Nativo
+1. Todas as sessões rodam sob o mesmo processo ou usuário do sistema operacional (`root` na maioria das instalações VPS).
 2. Os plugins instalados via Market executam código Node.js no mesmo runtime e contexto de permissões do processo hospedeiro.
 3. Não há isolamento nativo de sistema de arquivos (`fs`), variáveis de ambiente de processo (`process.env`) ou soquetes de rede local (`127.0.0.1`).
 
 **Vetor de Ataque:** Um usuário malicioso (ou um plugin vulnerável instalado por um assinante) teria privilégios para:
-- Ler os arquivos de workspace, prompts e documentos de outros assinantes no disco.
+- Ler os arquivos de workspace, prompts e documentos de outros assinantes no disco (`fs.readFile`).
 - Roubar chaves de API globais (OpenAI, Anthropic, Supabase `service_role_key`, Stripe secrets).
-- Escalar privilégios na VPS ou interferir em instâncias de outros clientes.
+- Fazer varredura de portas em `127.0.0.1` e assumir controle de outras instâncias DSH ou serviços locais.
 
 ### A Solução Selecionada
 Adoção do **`dsh-server-login`** em modo de **Hard Isolation (isolamento real por conta do Sistema Operacional)** combinado com **Port Guard (bloqueio de portas de loopback via `iptables`)**:
@@ -30,125 +30,187 @@ Adoção do **`dsh-server-login`** em modo de **Hard Isolation (isolamento real 
 - O DSH e todos os seus plugins rodam rebaixados via `setpriv` sob o UID/GID exclusivo daquele usuário.
 - O diretório home de cada usuário opera com permissão estrita `0700` (`chmod 700`).
 - O `Port Guard` insere regras no topo do `iptables OUTPUT` para impedir que processos de um usuário acessem a porta HTTP/RPC de instâncias DSH vizinhas em `127.0.0.1`.
-- Acesso externo é roteado via subdomínios dedicados (`<username>.app.copymonster.co`) protegidos por terminação TLS wildcard e proxy reverso.
+- **Cloudflare Tunnel na porta 3080:** Roteia tanto o domínio base quanto os subdomínios wildcard dos usuários diretamente para a porta local `3080`, sem expor portas na internet pública da VPS e sem necessidade de Nginx ou Certbot.
 
 ---
 
-## 2. Análise Criteriosa da Arquitetura & Modelo de Ameaças
-
-Com base na auditoria aprofundada realizada diretamente no código-fonte do `dsh-server-login` (`src/config.ts`, `src/supervisor/firewall.ts`, `src/supervisor/orchestrator.ts`, `docs/hard-isolation.md`), a arquitetura divide-se em 5 camadas vitais:
+## 2. Topologia de Infraestrutura: Cloudflare Tunnel + VPS + Supabase
 
 ```text
-               INTERNET (Clientes HTTPS)
-                          │
-                          ▼
-            [ Wildcard DNS: *.app.copymonster.co ]
-                          │
-                          ▼
-       [ Nginx / Caddy Proxy Reverso + TLS Wildcard ]
-                          │
-                          ▼ HTTP (127.0.0.1:3080)
-        [ dsh-server-login (Orquestrador Fastify/SQLite - Root) ]
-        ├── Autenticação / Sessão / Cookie Domain (.app.copymonster.co)
-        ├── Dynamic Port Allocation (ex: portas 34001, 34002...)
-        └── Port Guard Engine (iptables OUTPUT owner-match)
-             │
-             ├──► Usuário A (UID 100001) -> setpriv -> DSH Instância A (:34001)
-             │     └── /var/lib/dsh-server-login/users/A/ (chmod 0700)
-             │     └── Plugins de A isolados no HOME de A
-             │
-             └──► Usuário B (UID 100002) -> setpriv -> DSH Instância B (:34002)
-                   └── /var/lib/dsh-server-login/users/B/ (chmod 0700)
-                   └── Plugins de B isolados no HOME de B
+                             INTERNET (Clientes HTTPS)
+                                        │
+                                        ▼
+             ┌───────────────────────────────────────────────────────┐
+             │            Cloudflare Edge (Zero Trust / DNS)          │
+             │   - SSL Wildcard Gerenciado (*.app.copymonster.co)    │
+             │   - Proteção DDoS, WAF e Gerenciamento de Borda       │
+             └──────────────────────────┬────────────────────────────┘
+                                        │ (Túnel criptografado de saída)
+                                        ▼
+             ┌───────────────────────────────────────────────────────┐
+             │                   VPS (Host Linux)                     │
+             │                                                       │
+             │  cloudflared (Serviço Systemd)                        │
+             │     └── Redireciona tráfego HTTP & WS para 127.0.0.1:3080
+             │                                                       │
+             │  dsh-server-login (Orquestrador / Proxy - Porta 3080) │
+             │     ├── Escuta em: 127.0.0.1:3080                     │
+             │     ├── SQLite Local: /var/lib/dsh-server-login/db    │
+             │     ├── Port Guard: Regras iptables OUTPUT owner-match│
+             │     │                                                 │
+             │     ├── Host: app.copymonster.co ──► Portal / Auth    │
+             │     └── Host: user1.app... ──► setpriv (UID 100001)   │
+             │                                  └── DSH (:42135)     │
+             └──────────────────────────┬────────────────────────────┘
+                                        │
+                         Consultas API / Webhooks
+                                        │
+                                        ▼
+             ┌───────────────────────────────────────────────────────┐
+             │                 Supabase (Plano Free)                 │
+             │  - Supabase Auth (auth.users: Logins, JWT, OAuth)     │
+             │  - Banco PostgreSQL (public.*):                       │
+             │      * users, tenants, user_tenant_roles              │
+             │      * subscriptions (Stripe), planos                 │
+             │      * llm_providers, llm_models, sessions_index     │
+             │      * metrics_daily                                  │
+             └───────────────────────────────────────────────────────┘
 ```
 
-### 2.1 Camada 1: Isolamento de Arquivos e Processos (OS Account Isolation)
-- **Modo:** `DSH_SERVER_LOGIN_ISOLATION_MODE=account`
-- **Mecanismo:** Ao inicializar a instância DSH do usuário, o orquestrador invoca o comando `setpriv`:
-  ```bash
-  setpriv --reuid {UID} --regid {GID} --inh-caps=-all --clear-groups -- /usr/local/bin/dsh ...
-  ```
-  Isso descarta todas as Linux Capabilities (`--inh-caps=-all`), remove grupos suplementares (`--clear-groups`) e muda o UID/GID efetivo para o usuário do cliente.
-- **Sistema de Arquivos:** Cada diretório de usuário `/var/lib/dsh-server-login/users/<id>/` pertence a `dsh-<id>` e possui permissão `0700`. Como o processo do usuário B roda sob UID `100002`, o kernel Linux nega qualquer tentativa de leitura (`Permission denied`) nos dados do usuário A (UID `100001`).
+---
 
-### 2.2 Camada 2: Isolamento de Rede Local (Loopback Port Guard) — O Ponto Cego Resolvido
-- **Modo:** `DSH_SERVER_LOGIN_PORT_GUARD=true`
-- **A Vulnerabilidade que ele Corrige:** Cada instância DSH do usuário escuta em `127.0.0.1:<porta_dinamica>` sem autenticação local interna (confiando que apenas o orquestrador fala com ela). Em um sistema Linux multi-usuário sem Port Guard, qualquer script ou plugin do Usuário B poderia executar:
-  ```bash
-  curl http://127.0.0.1:34001/api/... # Acessa o DSH do Usuário A!
-  ```
-  Isso contornaria 100% o isolamento de arquivos, controlando a sessão do Usuário A via RPC de loopback.
-- **Como o Port Guard Funciona:** Implementado em `src/supervisor/firewall.ts`, o orquestrador insere uma regra no topo da tabela `filter` do `OUTPUT` do `iptables` assim que a instância DSH inicia:
-  ```bash
-  iptables -t filter -I OUTPUT 1 -p tcp --dport <porta> -m owner ! --uid-owner 0 -j REJECT
-  ```
-  - **Tráfego do Orquestrador (UID 0 - root):** O proxy reverso local roda como root, portanto `! --uid-owner 0` é FALSO -> Pacote NÃO é rejeitado -> Proxy conecta normalmente.
-  - **Tráfego de Outro Usuário (UID >= 100000):** O socket local pertence a um UID não-root, portanto `! --uid-owner 0` é VERDADEIRO -> `REJECT` imediato -> O cliente recebe `Connection refused` instantaneamente.
-  - **Fail Loud / Fail Closed:** Se `PORT_GUARD=true` estiver ativado e o host não for Linux com root, o orquestrador recusa a inicialização. Se o `iptables` falhar ao aplicar a regra na porta, o processo DSH recém-criado é eliminado com `SIGKILL` para nunca operar desprotegido.
+## 3. Integração com o Supabase (Plano Free): Análise & Mitigações
 
-### 2.3 Camada 3: Coexistência de Dados (Supabase vs dsh-server-login)
-É crucial separar os planos de arquitetura:
-1. **Execution Plane (Plano de Execução - VPS / Linux):**
-   - Gerenciado pelo `dsh-server-login` (Fastify + SQLite local).
-   - Responsável por: ciclo de vida de processos DSH, isolamento de pastas de plugins, workspaces locais, soquetes WebSockets e regras de firewall.
-2. **Data Plane (Plano de Negócio - Supabase Cloud / Postgres):**
-   - Mantido como fonte da verdade do SaaS CopyMonster.
-   - Responsável por: contas de clientes, planos e assinaturas (Stripe), papéis (`owner`/`admin`/`member`), DNA de marca, métricas e sessões persistentes com Row Level Security (RLS).
-   - O banco SQLite do `dsh-server-login` **não** substitui o Supabase.
+O CopyMonster SaaS utiliza o Supabase para gerenciar a camada de negócio (autenticação de clientes, papéis, faturamento e catálogo de modelos). Para integrar com o VPS sem erros em produção, respeitamos as seguintes diretrizes:
 
-### 2.4 Riscos Adicionais e Mitigações de Hardening
-1. **Diretório `/tmp` Compartilhado:**
-   - No Linux, `/tmp` é compartilhado por padrão (`1777`). Um plugin malicioso poderia ler ou gravar arquivos temporários em `/tmp`.
-   - *Mitigação:* Configurar a variável de ambiente `TMPDIR=/var/lib/dsh-server-login/users/<id>/home/tmp` para cada instância de usuário.
-2. **Exaustão de Recursos (CPU / RAM / DoS):**
-   - Um plugin com loop infinito ou mineração poderia derrubar a VPS.
-   - *Mitigação:* Aplicar limites via `/etc/security/limits.conf` para os UIDs `>= 100000` (limite de 150 processos e 2GB de RAM por UID).
+### 3.1. Divisão de Responsabilidades
+- **Supabase (Plano Free):** Banco de dados central autoritativo do negócio. Armazena perfis de usuários, controle de planos, assinaturas Stripe, controle de acesso (`user_tenant_roles`), metadados de sessões (`sessions_index`) e métricas diárias (`metrics_daily`).
+- **Supervisor do VPS (`dsh-server-login`):** Responsável estritamente pelo ciclo de vida dos processos no servidor (alocação de portas locais, execução do `setpriv`, montagem de diretórios e regras de firewall).
+
+### 3.2. Armazenamento Interno do Orquestrador (SQLite Local vs Postgres Supabase)
+
+#### Padrão Ouro (Recomendado): SQLite Local para o Orquestrador
+O `dsh-server-login` armazena internamente sessões ativas de proxy, portas efêmeras alocadas e mapeamento de subdomínios em `/var/lib/dsh-server-login/server-login.db` (SQLite).
+**Por que esta é a melhor escolha no Plano Free do Supabase?**
+1. **Latência Zero de Roteamento:** Cada requisição HTTP e handshake WebSocket que chega na porta 3080 consulta o banco interno do orquestrador. Manter o SQLite local garante resposta em microssegundos sem chamadas de rede.
+2. **Economia Estrita de Conexões do Supabase Free:** O Supabase Free possui cota limitada de conexões diretas (~60 conexões simultâneas). O SQLite local consome 0 conexões do Supabase.
+3. **Imunidade à Pausa por Inatividade do Supabase Free:** Projetos no plano Free do Supabase são pausados após 7 dias sem atividade na API. Se o orquestrador do VPS dependesse de uma conexão Postgres persistente direta para atender a porta 3080, a VPS cairia se o Supabase hibernasse.
+4. **Isolamento Total de Schema (Evita Colisão):** Conforme auditado no código, o `dsh-server-login` cria uma tabela chamada `users (id, username, pass_hash, ...)`. A migration `001_initial_identity.sql` do CopyMonster no Supabase já possui uma tabela `public.users (id UUID, email, full_name, ...)`. O SQLite local elimina qualquer risco de conflito de tabelas.
+
+#### Opção Alternativa: Usando o PostgreSQL do Supabase (`DSH_SERVER_LOGIN_DB_URL`)
+Caso seja requisito unificar o banco no Supabase remoto:
+- **Regra Obrigatória 1 (Schema Isolado):** Criar previamente no Supabase o schema dedicado:
+  ```sql
+  CREATE SCHEMA IF NOT EXISTS dsh;
+  ```
+  E configurar a URL com `search_path`:
+  ```bash
+  DSH_SERVER_LOGIN_DB_URL="postgresql://postgres:[SENHA]@db.[REF].supabase.co:6543/postgres?options=-csearch_path=dsh,public"
+  ```
+  *Nota:* Isso garante que as migrações automáticas do `dsh-server-login` criem `dsh.users` e `dsh.sessions` sem corromper `public.users`.
+- **Regra Obrigatória 2 (Porta do Pooler):** Usar sempre a porta `6543` (Supavisor Transaction Pooler) ou `5432` em Session mode, nunca a conexão direta IPv4.
+
+### 3.3. Proteção das Credenciais do Supabase
+- As variáveis `SUPABASE_SERVICE_ROLE_KEY` e credenciais de banco jamais devem ser expostas aos usuários.
+- O arquivo de configuração `/etc/dsh-server-login.env` deve ter permissões estritas `chmod 600 root:root`.
+- O método `scrubEnv()` em `src/supervisor/spawn.ts` do orquestrador remove ativamente as variáveis do processo pai antes de invocar o DSH dos usuários, impedindo que plugins tenham acesso às credenciais do Supabase.
 
 ---
 
-## 3. Variáveis de Configuração Oficiais & Comprovadas
+## 4. Integração com o Cloudflare Tunnel na Porta 3080
 
-A auditoria do código confirmou as variáveis exatas exigidas em `/etc/dsh-server-login.env`:
+O uso do **Cloudflare Tunnel (`cloudflared`)** simplifica radicalmente a infraestrutura:
+- **Sem Nginx na VPS:** O `dsh-server-login` já é um servidor Fastify de alta performance com proxy reverso e suporte a WebSocket embutidos.
+- **Sem Certbot / Desafio DNS-01:** O Cloudflare Edge gera, valida e renova os certificados SSL Wildcard automaticamente na borda.
+- **Firewall da VPS 100% Fechado:** Nenhuma porta de entrada (80, 443 ou 3080) precisa ser aberta no firewall da VPS; o `cloudflared` estabelece túneis de saída seguros para a rede da Cloudflare.
 
-| Variável | Valor Recomendado | Função no Sistema |
-|---|---|---|
-| `DSH_SERVER_LOGIN_ISOLATION_MODE` | `account` | Ativa o hard isolation via contas dedicadas de SO Linux. |
-| `DSH_SERVER_LOGIN_PORT_GUARD` | `true` | Ativa o guard de portas loopback via `iptables owner-match`. |
-| `DSH_SERVER_LOGIN_BASE_UID` | `100000` | UID inicial dos usuários virtuais (evita conflito com contas do sistema). |
-| `DSH_SERVER_LOGIN_DATA_ROOT` | `/var/lib/dsh-server-login` | Raiz onde os diretórios e homes dos usuários residem. |
-| `DSH_SERVER_LOGIN_DSH_BIN` | `/usr/local/bin/dsh` | Caminho do executável do DSH (fora de `/root`). |
-| `DSH_SERVER_LOGIN_PORT` | `3080` | Porta HTTP local do orquestrador (onde o Nginx entrega o tráfego). |
-| `DSH_SERVER_LOGIN_HOST` | `127.0.0.1` | Vinculação estritamente em loopback (não expor 3080 para a internet). |
-| `DSH_SERVER_LOGIN_BASE_DOMAIN` | `app.copymonster.co` | Domínio pai para subdomínios (`<user>.app.copymonster.co`). |
-| `DSH_SERVER_LOGIN_COOKIE_DOMAIN` | `.app.copymonster.co` | Permite que o cookie de sessão do login atravesse todos os subdomínios. |
-| `DSH_SERVER_LOGIN_SECURE_COOKIES` | `true` | Força flag `Secure` nos cookies de autenticação (exige HTTPS). |
+### 4.1. Configuração do Ingress no Cloudflare Tunnel
 
-> **Nota Crítica sobre CLI flags:** A opção `--isolation-mode` existe no CLI, mas `--port-guard` **não** está exposta como flag no `src/cli.ts` (é lida apenas de `process.env.DSH_SERVER_LOGIN_PORT_GUARD`). Portanto, **o arquivo `/etc/dsh-server-login.env` é o canal oficial e obrigatório para ambas as diretivas.**
+Seja pelo painel **Cloudflare Zero Trust** (Networks -> Tunnels -> Public Hostnames) ou via arquivo de configuração `/etc/cloudflared/config.yml` no servidor:
+
+```yaml
+tunnel: <UUID_DO_SEU_TUNNEL>
+credentials-file: /root/.cloudflared/<UUID_DO_SEU_TUNNEL>.json
+
+ingress:
+  # 1. Subdomínios dos usuários isolados (Wildcard)
+  - hostname: "*.app.copymonster.co"
+    service: http://localhost:3080
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+
+  # 2. Domínio principal (Portal / Autenticação / Admin)
+  - hostname: "app.copymonster.co"
+    service: http://localhost:3080
+    originRequest:
+      noTLSVerify: true
+      connectTimeout: 30s
+
+  # 3. Fallback padrão obrigatório do cloudflared
+  - service: http_status:404
+```
+
+### 4.2. Registro no DNS do Cloudflare
+No painel do Cloudflare DNS para a zona `copymonster.co`:
+- Registro CNAME para `app`: Apontando para `<UUID_DO_SEU_TUNNEL>.cfargotunnel.com` (Nuvem Laranja Ativa).
+- Registro CNAME para `*.app`: Apontando para `<UUID_DO_SEU_TUNNEL>.cfargotunnel.com` (Nuvem Laranja Ativa).
 
 ---
 
-## 4. Plano Passo a Passo de Implementação
+## 5. Especificação Técnica do Orquestrador (`dsh-server-login`)
 
-### Fase 1: Preparação do Ambiente no VPS (Pré-requisitos de SO)
-1. **Verificação de Privilégios e Kernel:**
-   - Garantir acesso `root` no VPS.
-   - Testar o comando `setpriv`:
-     ```bash
-     setpriv --reuid 65534 --regid 65534 --inh-caps=-all id
-     # Deve retornar: uid=65534(nobody) gid=65534(nogroup)
-     ```
-2. **Instalação do Node.js 22 e DSH em Nível de Sistema:**
-   - *Pegadinha Crítica:* O DSH e o Node **não podem** estar em `/root/.nvm/`, pois os usuários de SO (`uid 100000+`) não têm permissão para ler `/root`.
+### 5.1. Variáveis de Ambiente Oficiais (`/etc/dsh-server-login.env`)
+
+```bash
+# Porta onde o dsh-server-login escuta (onde o cloudflared entrega o tráfego)
+DSH_SERVER_LOGIN_PORT=3080
+DSH_SERVER_LOGIN_HOST=127.0.0.1
+
+# Modo de Isolamento Real (Hard Isolation)
+DSH_SERVER_LOGIN_ISOLATION_MODE=account
+DSH_SERVER_LOGIN_BASE_UID=100000
+
+# Bloqueio de Portas Loopback via iptables (Leitura estrita de variável de ambiente)
+DSH_SERVER_LOGIN_PORT_GUARD=true
+
+# Domínios e Cookies Globais para Subdomínios
+DSH_SERVER_LOGIN_BASE_DOMAIN=app.copymonster.co
+DSH_SERVER_LOGIN_COOKIE_DOMAIN=.app.copymonster.co
+DSH_SERVER_LOGIN_SECURE_COOKIES=true
+
+# Caminhos de Binários e Dados Locais
+DSH_SERVER_LOGIN_DSH_BIN=/usr/local/bin/dsh
+DSH_SERVER_LOGIN_DATA_ROOT=/var/lib/dsh-server-login
+```
+
+> **Atenção:** Como o usuário acessa via `https://*.app.copymonster.co` no navegador, o Cloudflare Tunnel adiciona o header `X-Forwarded-Proto: https`. Portanto, `DSH_SERVER_LOGIN_SECURE_COOKIES=true` funciona perfeitamente e garante que o cookie de sessão seja compartilhado com segurança entre o domínio raiz e todos os subdomínios dos usuários.
+
+---
+
+## 6. Plano de Execução Passo a Passo no VPS
+
+### Fase 1: Validação do Sistema Operacional e Binários Globais
+1. **Conectar como root no VPS:**
    ```bash
-   # 1. Node.js 22 global
-   curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
-   apt-get install -y nodejs iptables
-
-   # 2. Instalar DSH com prefixo global forçado
-   NPM_CONFIG_PREFIX=/usr/local /usr/bin/npm install -g @deepseek-ai/dsh
-   ls -la /usr/local/bin/dsh # Verificar se o binário está aqui
+   uname -a
+   which setpriv || apt-get update && apt-get install -y util-linux iptables
    ```
-3. **Instalação do Orquestrador `dsh-server-login`:**
+2. **Instalação Global do Node 22 e DSH (Fora de `/root`):**
+   *Aviso Crítico:* Não usar NVM dentro de `/root/.nvm`. O usuário rebaixado não tem permissão para acessar `/root`.
+   ```bash
+   curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+   apt-get install -y nodejs
+   
+   # Validar instalação global
+   /usr/bin/node -v
+   /usr/bin/npm -v
+   
+   # Instalar DSH com prefixo global
+   NPM_CONFIG_PREFIX=/usr/local npm install -g @deepseek-ai/dsh
+   which dsh # Deve retornar /usr/local/bin/dsh
+   ```
+3. **Instalação e Build do `dsh-server-login`:**
    ```bash
    mkdir -p /opt/copymonster
    cd /opt/copymonster
@@ -156,239 +218,172 @@ A auditoria do código confirmou as variáveis exatas exigidas em `/etc/dsh-serv
    cd dsh-server-login
    npm ci
    npm run build
-   chmod -R 755 /opt/copymonster/dsh-server-login
    ```
 
----
-
-### Fase 2: Configuração do Serviço e Automação de Provisionamento
-
-1. **Criar o Arquivo de Variáveis de Ambiente:**
-   Criar `/etc/dsh-server-login.env`:
-   ```ini
+### Fase 2: Configuração do Serviço e Provisionamento Automático
+1. **Criar arquivo de ambiente restrito:**
+   ```bash
+   cat << 'EOF' > /etc/dsh-server-login.env
+   DSH_SERVER_LOGIN_PORT=3080
+   DSH_SERVER_LOGIN_HOST=127.0.0.1
    DSH_SERVER_LOGIN_ISOLATION_MODE=account
    DSH_SERVER_LOGIN_PORT_GUARD=true
    DSH_SERVER_LOGIN_BASE_UID=100000
-   DSH_SERVER_LOGIN_DATA_ROOT=/var/lib/dsh-server-login
-   DSH_SERVER_LOGIN_DSH_BIN=/usr/local/bin/dsh
-   DSH_SERVER_LOGIN_PORT=3080
-   DSH_SERVER_LOGIN_HOST=127.0.0.1
    DSH_SERVER_LOGIN_BASE_DOMAIN=app.copymonster.co
    DSH_SERVER_LOGIN_COOKIE_DOMAIN=.app.copymonster.co
    DSH_SERVER_LOGIN_SECURE_COOKIES=true
-   DSH_SERVER_LOGIN_LOG_LEVEL=info
+   DSH_SERVER_LOGIN_DSH_BIN=/usr/local/bin/dsh
+   DSH_SERVER_LOGIN_DATA_ROOT=/var/lib/dsh-server-login
+   EOF
+   chmod 600 /etc/dsh-server-login.env
    ```
-
-2. **Criar o Script de Provisionamento de Contas Linux:**
-   Criar `/usr/local/bin/provision-new-users.sh`:
+2. **Script de Provisionamento de Contas Linux (`/usr/local/bin/provision-new-users.sh`):**
    ```bash
+   cat << 'EOF' > /usr/local/bin/provision-new-users.sh
    #!/usr/bin/env bash
    set -euo pipefail
 
-   USERS_DIR="/var/lib/dsh-server-login/users"
+   DATA_ROOT="${DSH_SERVER_LOGIN_DATA_ROOT:-/var/lib/dsh-server-login}"
+   USERS_DIR="$DATA_ROOT/users"
+   BASE_UID="${DSH_SERVER_LOGIN_BASE_UID:-100000}"
+
    mkdir -p "$USERS_DIR"
+   chmod 0711 "$DATA_ROOT"
 
-   for dir in "$USERS_DIR"/*/; do
-     [ -d "$dir" ] || continue
-     userId="$(basename "$dir")"
-     osUser="dsh-$userId"
+   for userDir in "$USERS_DIR"/*; do
+     [ -d "$userDir" ] || continue
+     username="$(basename "$userDir")"
+     osUser="dsh-$username"
+     uidFile="$userDir/.uid"
 
-     # Obter UID determinístico calculado pelo dsh-server-login
-     uid="$(/opt/copymonster/dsh-server-login/bin/dsh-server-login uid-for-user "$userId")"
-
-     # Criar conta Linux se não existir (sem home padrão e sem shell de login)
-     if ! id "$osUser" &>/dev/null; then
-       useradd -u "$uid" -M -s /usr/sbin/nologin "$osUser"
-       echo "[PROVISION] Conta criada: $osUser (UID: $uid)"
+     if [ -f "$uidFile" ]; then
+       uid="$(cat "$uidFile")"
+     else
+       rowId="$(stat -c %i "$userDir" 2>/dev/null || echo 1)"
+       uid=$(( BASE_UID + (rowId % 50000) ))
+       echo "$uid" > "$uidFile"
      fi
 
-     # Garantir que todo o diretório pertence exclusivamente a esse usuário com permissão 0700
-     chown -R "$uid:$uid" "$dir"
-     chmod 700 "$dir"
-     chmod -R go-rwx "$dir"
+     if ! id "$osUser" &>/dev/null; then
+       useradd -u "$uid" -M -s /usr/sbin/nologin "$osUser" || true
+     fi
+
+     chown -R "$osUser:$osUser" "$userDir"
+     chmod 0700 "$userDir"
    done
+   EOF
+   chmod 0700 /usr/local/bin/provision-new-users.sh
    ```
-   Conceder permissão de execução: `chmod +x /usr/local/bin/provision-new-users.sh`.
-
-3. **Configurar o Path Watcher no Systemd (Gatilho Automático na Criação de Usuário):**
-   Criar `/etc/systemd/system/dsh-provision.path`:
-   ```ini
-   [Unit]
-   Description=Monitora diretorios de novos usuarios do CopyMonster
-
-   [Path]
-   PathExistsGlob=/var/lib/dsh-server-login/users/*/home
-   Unit=dsh-provision.service
-
-   [Install]
-   WantedBy=multi-user.target
-   ```
-
-   Criar `/etc/systemd/system/dsh-provision.service`:
-   ```ini
-   [Unit]
-   Description=Provisiona conta Linux para novo usuario CopyMonster
-   After=dsh-server-login.service
-
-   [Service]
-   Type=oneshot
-   ExecStart=/usr/local/bin/provision-new-users.sh
-   ```
-
+3. **Watcher do Systemd para Provisionamento Instantâneo:**
+   - Criar `/etc/systemd/system/dsh-provision.path`:
+     ```ini
+     [Unit]
+     Description=Monitor de Novos Assinantes CopyMonster
+     [Path]
+     PathModified=/var/lib/dsh-server-login/users
+     [Install]
+     WantedBy=multi-user.target
+     ```
+   - Criar `/etc/systemd/system/dsh-provision.service`:
+     ```ini
+     [Unit]
+     Description=Provisiona Contas Linux para Assinantes CopyMonster
+     [Service]
+     Type=oneshot
+     ExecStart=/usr/local/bin/provision-new-users.sh
+     ```
+   - Ativar watcher:
+     ```bash
+     systemctl daemon-reload
+     systemctl enable --now dsh-provision.path
+     ```
 4. **Configurar o Serviço Principal do Orquestrador:**
-   Criar `/etc/systemd/system/dsh-server-login.service`:
-   ```ini
-   [Unit]
-   Description=CopyMonster Server Login Orchestrator
-   After=network.target
+   - Criar `/etc/systemd/system/dsh-server-login.service`:
+     ```ini
+     [Unit]
+     Description=CopyMonster DSH Isolation Supervisor
+     After=network.target
 
-   [Service]
-   Type=simple
-   User=root
-   WorkingDirectory=/opt/copymonster/dsh-server-login
-   EnvironmentFile=/etc/dsh-server-login.env
-   Environment=PATH=/usr/local/bin:/usr/bin:/bin
-   ExecStart=/usr/bin/node dist/cli.js
-   Restart=always
-   RestartSec=3
-   LimitNOFILE=65536
+     [Service]
+     Type=simple
+     User=root
+     WorkingDirectory=/opt/copymonster/dsh-server-login
+     EnvironmentFile=/etc/dsh-server-login.env
+     ExecStart=/usr/bin/node dist/cli.js
+     Restart=always
+     RestartSec=5
+     LimitNOFILE=65536
 
-   [Install]
-   WantedBy=multi-user.target
-   ```
+     [Install]
+     WantedBy=multi-user.target
+     ```
+   - Habilitar e iniciar:
+     ```bash
+     systemctl daemon-reload
+     systemctl enable --now dsh-server-login.service
+     ```
 
-   Ativar os serviços:
+### Fase 3: Validação do Cloudflare Tunnel
+1. No arquivo `/etc/cloudflared/config.yml` (ou no painel Zero Trust), certificar que o túnel aponta para `http://localhost:3080`:
    ```bash
-   systemctl daemon-reload
-   systemctl enable --now dsh-provision.path
-   systemctl enable --now dsh-server-login.service
+   cloudflared tunnel ingress validate
+   systemctl restart cloudflared
    ```
-
----
-
-### Fase 3: Ingress, Reverse Proxy (Nginx) & Wildcard SSL
-
-1. **Configuração DNS:**
-   - Criar entrada tipo A no DNS da Cloudflare / Provedor:
-     - `app.copymonster.co` -> `<IP_DO_VPS>`
-     - `*.app.copymonster.co` -> `<IP_DO_VPS>`
-2. **Certificado SSL Wildcard:**
-   - Emitir certificado wildcard para `app.copymonster.co` e `*.app.copymonster.co` via Certbot Cloudflare Plugin ou Let's Encrypt.
-3. **Configuração Nginx (`/etc/nginx/sites-available/copymonster.conf`):**
-   ```nginx
-   server {
-       listen 80;
-       server_name app.copymonster.co *.app.copymonster.co;
-       return 301 https://$host$request_uri;
-   }
-
-   server {
-       listen 443 ssl http2;
-       server_name app.copymonster.co *.app.copymonster.co;
-
-       ssl_certificate /etc/letsencrypt/live/app.copymonster.co/fullchain.pem;
-       ssl_certificate_key /etc/letsencrypt/live/app.copymonster.co/privkey.pem;
-
-       client_max_body_size 50M;
-
-       location / {
-           proxy_pass http://127.0.0.1:3080;
-           proxy_http_version 1.1;
-           proxy_set_header Upgrade $http_upgrade;
-           proxy_set_header Connection "upgrade";
-           proxy_set_header Host $host;
-           proxy_set_header X-Real-IP $remote_addr;
-           proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-           proxy_set_header X-Forwarded-Proto $scheme;
-           proxy_read_timeout 86400s;
-           proxy_send_timeout 86400s;
-       }
-   }
+2. Testar resposta local:
+   ```bash
+   curl -I http://127.0.0.1:3080
    ```
-   Ativar site e reiniciar: `ln -s /etc/nginx/sites-available/copymonster.conf /etc/nginx/sites-enabled/ && nginx -t && systemctl reload nginx`.
+   Deve retornar `200 OK` ou `302 Redirect` para `/login`.
 
----
-
-## 5. Protocolo Obrigatório de Validação e Testes de Segurança
-
-> ⚠️ **Garantia de Liberação:** O Market de plugins só pode ser disponibilizado aos clientes assinantes quando os 4 testes abaixo passarem sem ressalvas no ambiente de Staging.
-
-### Teste 1: Criação de Usuários de Teste e Verificação de UID
-1. Executar bootstrap do admin:
+### Fase 4: Bootstrap do Administrador
+1. Gerar as credenciais do primeiro superadmin:
    ```bash
    cd /opt/copymonster/dsh-server-login
-   node dist/cli.js bootstrap-admin --username admin --password "SenhaForte123!"
+   node dist/cli.js bootstrap-admin --username admin --role admin
    ```
-2. Acessar `https://app.copymonster.co`, logar como admin e criar:
-   - Usuário `teste-a` (ID: `usr_aaa111`)
-   - Usuário `teste-b` (ID: `usr_bbb222`)
-3. Fazer login como `teste-a` e abrir seu painel DSH.
-4. No servidor VPS, verificar se o processo DSH subiu com UID não-root:
-   ```bash
-   ps -ef | grep dsh | grep -v grep
-   ```
-   *Critério de Aceite:* O UID do processo deve ser `>= 100000` (ex: `100001`), **nunca 0 (root)**.
-
-### Teste 2: Isolamento de Plugins no Market
-1. Logado como `teste-a`, acessar o Market e instalar um plugin (ex: `dsh-vision-router` ou qualquer plugin de teste).
-2. Fazer logout de `teste-a`.
-3. Fazer login como `teste-b`.
-4. Abrir a lista de plugins instalados de `teste-b`.
-5. *Critério de Aceite:* O plugin instalado por `teste-a` **não pode aparecer nem estar ativo** para `teste-b`. O ambiente de plugins de `teste-b` deve estar completamente virgem.
-
-### Teste 3: Teste de Acesso a Ficheiros (Permissions Denied)
-1. Como `teste-a`, criar um arquivo de segredo no seu workspace:
-   ```bash
-   echo "PROMPT_SECRETO_DO_CLIENTE_A" > /var/lib/dsh-server-login/users/usr_aaa111/home/segredo.txt
-   ```
-2. Obter o UID do usuário B (`id dsh-usr_bbb222`).
-3. Simular execução pelo usuário B tentando ler o arquivo de A:
-   ```bash
-   sudo -u dsh-usr_bbb222 cat /var/lib/dsh-server-login/users/usr_aaa111/home/segredo.txt
-   ```
-4. *Critério de Aceite:* O comando **deve falhar** obrigatoriamente retornando:
-   `cat: /var/lib/dsh-server-login/users/usr_aaa111/home/segredo.txt: Permission denied`
-
-### Teste 4: Teste Crítico de Rede (Port Guard Loopback)
-1. Identificar a porta loopback onde o DSH de `teste-a` está escutando:
-   ```bash
-   ss -tulpn | grep dsh-usr_aaa111
-   # Exemplo de saída: 127.0.0.1:34892
-   ```
-2. Conferir se a regra do Port Guard está presente no `iptables`:
-   ```bash
-   iptables -L OUTPUT -v -n | grep 34892
-   # Deve exibir: REJECT tcp -- * * 0.0.0.0/0 0.0.0.0/0 tcp dpt:34892 !owner UID match 0 reject-with icmp-port-unreachable
-   ```
-3. Testar acesso como root (Orquestrador / Proxy):
-   ```bash
-   curl -I -s -m 2 http://127.0.0.1:34892/
-   # Deve retornar HTTP 200 ou 404 da instância (conexão aceita)
-   ```
-4. Testar acesso vindo do processo/conta do Usuário B:
-   ```bash
-   sudo -u dsh-usr_bbb222 curl -I -s -m 2 http://127.0.0.1:34892/
-   ```
-5. *Critério de Aceite:* A requisição do Usuário B **deve falhar imediatamente** com erro:
-   `curl: (7) Failed to connect to 127.0.0.1 port 34892: Connection refused`
-
-Se todos os 4 testes forem aprovados, o isolamento entre assinantes está formalmente certificado e o Market pode ser liberado com segurança.
+2. Acessar `https://app.copymonster.co/login` pelo navegador e logar como admin.
 
 ---
 
-## 6. Procedimento de Rollback & Governança
+## 7. Protocolo de Testes Críticos de Isolamento (Gate Bloqueante)
 
-### Plano de Contingência
-Se qualquer instabilidade ou falha de compatibilidade ocorrer durante o rollout:
-1. Parar o serviço do orquestrador: `systemctl stop dsh-server-login`.
-2. Restaurar o proxy Nginx para apontar diretamente para a porta do DSH administrativo original.
-3. Limpar eventuais regras residuais no `iptables`:
+O ecossistema do Market com mais de 7.200 plugins **NÃO PODE** ser disponibilizado publicamente até que os 4 testes a seguir passem com 100% de sucesso no ambiente de testes/staging:
+
+### Teste 1: Validação do Processo e UID
+1. Fazer login com o Usuário A (`user-a`).
+2. No servidor VPS, verificar os processos em execução:
    ```bash
-   iptables -F OUTPUT
+   ps -ef | grep dsh
    ```
-4. Nenhuma tabela do Supabase precisa de rollback, pois os esquemas de banco não são modificados pela instalação do orquestrador.
+3. **Critério de Sucesso:** O processo DSH do usuário deve rodar com UID `>= 100000` (ex: `dsh-user-a`), **NUNCA como root**.
 
-### Regras Permanentes de Segurança
-- **Proibição de Escopo:** Sob nenhuma circunstância alterar o código de `packages/core/` ou `packages/llm/`.
-- **Chaves de API:** A chave `service_role_key` do Supabase nunca deve ser compartilhada ou exposta nos arquivos de configuração do `dsh-server-login`.
-- **Registro de Evidências:** Ao concluir a homologação no VPS, registrar os outputs dos testes no documento `docs/roadmap/fork-preservation.md`.
+### Teste 2: Isolamento de Plugins do Market
+1. Usuário A instala um plugin via Market (ex: plugin de análise SEO).
+2. Verificar que os arquivos do plugin foram baixados estritamente em `/var/lib/dsh-server-login/users/user-a/.dsh/plugins/`.
+3. Usuário B (`user-b`) faz login em seu subdomínio (`user-b.app.copymonster.co`).
+4. **Critério de Sucesso:** O Usuário B **não vê, não tem carregado e não tem acesso** ao plugin instalado pelo Usuário A.
+
+### Teste 3: Isolamento de Sistema de Arquivos (Traversal / Read)
+1. Através de um plugin ou terminal do DSH do Usuário A, executar uma tentativa de leitura no diretório de outro usuário:
+   ```javascript
+   const fs = require('fs');
+   fs.readdirSync('/var/lib/dsh-server-login/users/user-b');
+   ```
+2. **Critério de Sucesso:** Operação deve falhar obrigatoriamente com `EACCES: permission denied` graças ao `chmod 0700`.
+
+### Teste 4: Isolamento de Rede Loopback (Port Guard / iptables)
+1. Identificar a porta efêmera atribuída ao Usuário A (ex: `34125`).
+2. Como Usuário B (UID 100002), tentar efetuar uma requisição HTTP direta para a porta do Usuário A:
+   ```bash
+   curl -I http://127.0.0.1:34125
+   ```
+3. **Critério de Sucesso:** A conexão deve ser rejeitada imediatamente (`Connection refused` gerado pela regra `iptables OUTPUT ... ! --uid-owner 0 -j REJECT`).
+
+---
+
+## 8. Rollback e Regras Permanentes
+
+1. **Rollback Imediato:**
+   Caso ocorra instabilidade no supervisor, o Cloudflare Tunnel pode ser revertido instantaneamente para apontar diretamente para a instância única original do CopyMonster, alterando a linha `service: http://localhost:3080` no `config.yml` e reiniciando o `cloudflared`.
+2. **Imutabilidade de Core:**
+   Nenhuma alteração é permitida nos pacotes internos `packages/core/` e `packages/llm/`. Todo o isolamento é garantido na camada de infraestrutura e orquestração do sistema operacional.

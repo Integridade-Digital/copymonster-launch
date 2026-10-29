@@ -106,7 +106,7 @@ function isProtectedNamespace(ns: string): boolean {
  */
 function assertAdminRole(ctx: Context, action: string, ns: string): void {
   const identity = getAuthIdentity(ctx)
-  if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin') {
+  if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin' && identity.isAdmin !== true) {
     throw new RemoteError('settings/forbidden', `Apenas administradores podem ${action}.`, { ns })
   }
 }
@@ -153,7 +153,7 @@ export class SettingsController extends TypertRemoteService {
   describe(): SettingsDescribeValue {
     const settings = this.provider()
     const identity = getAuthIdentity(this.ctx)
-    const isNonAdmin = identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin'
+    const isNonAdmin = identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin' && identity.isAdmin !== true
     let descriptors = settings.describe({ redactSecrets: true })
     if (isNonAdmin) {
       descriptors = descriptors.filter(d => !isProtectedNamespace(String(d.ns)))

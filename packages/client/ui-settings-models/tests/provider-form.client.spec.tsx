@@ -217,6 +217,8 @@ async function mountSection(options: Parameters<typeof scriptedFace>[0] = {}) {
     operations: operationsWith(scripted.face),
     schema: settingsSchema,
     t,
+    // The row actions under test render only for a platform operator.
+    canManage: true,
     renderSlot: () => null,
   }
   render(<ModelsSection {...injected} />)

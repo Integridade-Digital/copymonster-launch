@@ -41,6 +41,12 @@ export interface ModelsSectionInjected {
   schema: SettingsSchemaOperations
   /** Section copy. */
   t: (key: keyof typeof en) => string
+  /**
+   * Whether the session may mutate providers. Fail-closed: Edit and Delete
+   * render only when true. The section itself is admin-gated at registration;
+   * this is the in-section defense behind that gate.
+   */
+  canManage: boolean
 }
 
 /** The child slots this section declares and dispatches (see ./slot-contract.ts). */
@@ -194,16 +200,21 @@ export function providerCopy(template: string, target: ProviderIdentity): string
  */
 
 export function ModelsSection(props: ModelsSectionProps): ReactNode {
-  const { controller, useSnapshot, operations, schema, t, renderSlot } = props
+  const { controller, useSnapshot, operations, schema, t, renderSlot, canManage } = props
   if (
     controller === undefined || useSnapshot === undefined || operations === undefined
     || schema === undefined || t === undefined
   ) return null
-  return <Loaded injected={{ controller, useSnapshot, operations, schema, t }} renderSlot={renderSlot} />
+  return (
+    <Loaded
+      injected={{ controller, useSnapshot, operations, schema, t, canManage: canManage === true }}
+      renderSlot={renderSlot}
+    />
+  )
 }
 
 function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderSlot: ModelsRenderSlot }): ReactNode {
-  const { controller, operations, schema, t } = injected
+  const { controller, operations, schema, t, canManage } = injected
   const state = injected.useSnapshot(snapshot => snapshot)
   const [editing, setEditing] = useState<EditorTarget | undefined>(undefined)
   const [adding, setAdding] = useState(false)
@@ -387,20 +398,27 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                       : null}
                 </span>
                 <span className={styles['rowActions']}>
-                  <button
-                    type="button"
-                    className={styles['secondaryButton']}
-                    aria-label={providerCopy(t('editProvider'), target)}
-                    onClick={() => {
-                      setSavedTarget(undefined)
-                      setDeclaring(false)
-                      setAdding(false)
-                      setEditing(open ? undefined : target)
-                    }}
-                  >
-                    {t('edit')}
-                  </button>
-                  {row.removable
+                  {canManage
+                    ? (
+                      <button
+                        type="button"
+                        className={styles['secondaryButton']}
+                        aria-label={providerCopy(t('editProvider'), target)}
+                        onClick={() => {
+                          setSavedTarget(undefined)
+                          // One card at a time: leaving `declaring` set would show
+                          // the create card beside this editor, and closing either
+                          // one discards the other's draft.
+                          setDeclaring(false)
+                          setAdding(false)
+                          setEditing(open ? undefined : target)
+                        }}
+                      >
+                        {t('edit')}
+                      </button>
+                    )
+                    : null}
+                  {canManage && row.removable
                     ? (
                       <button
                         type="button"
@@ -509,7 +527,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
               // and equal-width so they read as siblings and line up with the
               // rows above, rather than two pills of different lengths.
               <div className={styles['addActions']}>
-                {configurable.length > 0 && (
+                {canManage && configurable.length > 0 && (
                   <button
                     type="button"
                     className={styles['addButton']}
@@ -528,7 +546,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                     {t('add')}
                   </button>
                 )}
-                {state.namespaces.has('llm-pi-ai') && (
+                {canManage && state.namespaces.has('llm-pi-ai') && (
                   <button
                     type="button"
                     className={styles['addButton']}

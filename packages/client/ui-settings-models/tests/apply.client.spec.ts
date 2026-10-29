@@ -32,6 +32,9 @@ afterEach(() => { vi.unstubAllGlobals() })
 
 async function bench(mock = RemoteMock.create().load(remoteDefaultResponses), services: object = {}) {
   onTestFinished(() => { mock.assertNoUnmatched() })
+  const carrier = globalThis as { __DSH_AUTH__?: { isAdmin?: boolean } }
+  carrier.__DSH_AUTH__ = { isAdmin: true }
+  onTestFinished(() => { delete carrier.__DSH_AUTH__ })
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   const locale = new LocaleRuntime(ctx)
@@ -114,6 +117,16 @@ describe('ui-settings-models apply', () => {
       'slots', 'locale', 'remote', 'remote.credentials', 'remote.llm', 'remote.settings', 'remote.session',
       'configForms', 'settingsSchema',
     ])
+  })
+
+  it('registers no admin surface for a non-admin session', async () => {
+    const carrier = globalThis as { __DSH_AUTH__?: { isAdmin?: boolean } }
+    const b = await bench()
+    delete carrier.__DSH_AUTH__
+    declare(b.slots)
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    expect(b.slots.entries('settings.section')).toHaveLength(0)
+    expect(b.slots.entries('settings.onboarding')).toHaveLength(0)
   })
 
   it('registers the models nav entry for declarations before or after apply', async () => {

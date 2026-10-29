@@ -221,6 +221,8 @@
     "verify-provider-data": "tsx packages/llm/llm-pi-ai/scripts/gen-provider-data.ts --check",
     "verify-product-use": "tsx scripts/verify-product-use.ts",
     "check:theme": "bash scripts/check-theme.sh",
+    "rebrand:locales": "node scripts/apply-copymonster-locales-rebrand.mjs",
+    "check:branding": "node scripts/check-branding.mjs",
     "start:copymonster": "node apps/cli/lib/bin.js web --patch packages/bundle/copymonster/cordis.patch.yml --trusted-host app.copymonster.co --public-url https://app.copymonster.co --no-open",
     "dev:copymonster": "node --import tsx/esm apps/cli/src/bin.ts web --patch packages/bundle/copymonster/cordis.patch.yml --trusted-host app.copymonster.co --public-url https://app.copymonster.co --no-open",
     "test:isolation": "node scripts/validate-tenant-isolation-e2e.mjs"

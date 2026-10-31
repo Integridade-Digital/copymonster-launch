@@ -89,21 +89,21 @@ export function AdminSystemTab() {
     setError(null)
     try {
       const [configsRes, workspacesRes, storageRes] = await Promise.all([
-        supabase.rpc('get_admin_system_config'),
-        supabase.rpc('get_admin_workspaces'),
-        supabase.rpc('get_admin_storage_paths'),
+        supabase.rpc('get_admin_system_config' as never),
+        supabase.rpc('get_admin_workspaces' as never),
+        supabase.rpc('get_admin_storage_paths' as never),
       ])
 
       if (configsRes.error) throw new Error(configsRes.error.message)
       if (workspacesRes.error) throw new Error(workspacesRes.error.message)
       if (!storageRes.error && storageRes.data) {
-        setStorageData(storageRes.data as StoragePathsData)
+        setStorageData(storageRes.data as unknown as StoragePathsData)
       } else if (storageRes.error) {
         console.warn('get_admin_storage_paths ainda não disponível ou erro:', storageRes.error.message)
       }
 
-      setConfigs((configsRes.data as SystemConfigItem[]) || [])
-      setWorkspaces((workspacesRes.data as WorkspaceItem[]) || [])
+      setConfigs(configsRes.data as unknown as SystemConfigItem[] || [])
+      setWorkspaces(workspacesRes.data as unknown as WorkspaceItem[] || [])
     } catch (err: unknown) {
       console.error('Error ao carregar configurações do sistema:', err)
       setError(err instanceof Error ? err.message : 'Falha ao buscar configurações do sistema e workspaces.')
@@ -219,7 +219,7 @@ export function AdminSystemTab() {
     }
 
     try {
-      const { error: saveErr } = await supabase.rpc('admin_upsert_system_config', {
+      const { error: saveErr } = await supabase.rpc('admin_upsert_system_config' as never, {
         p_key: item.key,
         p_value: nextValue,
         p_description: item.description,
@@ -255,7 +255,7 @@ export function AdminSystemTab() {
 
     setIsMutating(true)
     try {
-      const { error: saveErr } = await supabase.rpc('admin_upsert_system_config', {
+      const { error: saveErr } = await supabase.rpc('admin_upsert_system_config' as never, {
         p_key: key,
         p_value: parsedValue,
         p_description: formDescription.trim() || null,
@@ -278,7 +278,7 @@ export function AdminSystemTab() {
     setIsMutating(true)
     setFormError(null)
     try {
-      const { error: delErr } = await supabase.rpc('admin_delete_system_config', {
+      const { error: delErr } = await supabase.rpc('admin_delete_system_config' as never, {
         p_key: selectedConfig.key,
       })
       if (delErr) throw new Error(delErr.message)
@@ -298,7 +298,7 @@ export function AdminSystemTab() {
     setIsMutating(true)
     setFormError(null)
     try {
-      const { error: archErr } = await supabase.rpc('admin_delete_workspace', {
+      const { error: archErr } = await supabase.rpc('admin_delete_workspace' as never, {
         p_id: selectedWorkspace.id,
       })
       if (archErr) throw new Error(archErr.message)
@@ -510,8 +510,8 @@ export function AdminSystemTab() {
                 {filteredFlags.map((item) => {
                   const isBool = typeof item.value === 'boolean'
                   const isEnabledObj =
-                    item.value && typeof item.value === 'object' && 'enabled' in item.value
-                  const isActive = isBool ? item.value : isEnabledObj ? Boolean(item.value.enabled) : false
+                    item.value && typeof item.value === 'object' && 'enabled' in (item.value as Record<string, unknown>)
+                  const isActive = isBool ? item.value : isEnabledObj ? Boolean((item.value as { enabled: boolean }).enabled) : false
                   const canQuickToggle = isBool || isEnabledObj
 
                   return (
@@ -531,7 +531,7 @@ export function AdminSystemTab() {
                           </button>
                         ) : (
                           <span style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cm-foreground)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }}>
-                            {JSON.stringify(item.value)}
+                            {JSON.stringify(item.value as unknown)}
                           </span>
                         )}
                       </td>
@@ -628,7 +628,7 @@ export function AdminSystemTab() {
                     </td>
                     <td>
                       <span style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cm-primary)', fontWeight: 600, background: 'color-mix(in srgb, var(--cm-primary) 10%, transparent)', padding: '2px 8px', borderRadius: '4px', border: '1px solid color-mix(in srgb, var(--cm-primary) 20%, transparent)' }}>
-                        {typeof item.value === 'object' ? JSON.stringify(item.value) : String(item.value)}
+                        {typeof item.value === 'object' ? JSON.stringify(item.value as unknown) : String(item.value)}
                       </span>
                     </td>
                     <td style={{ color: 'var(--cm-muted-foreground)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>

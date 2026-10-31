@@ -10,30 +10,30 @@
 
 .cm-dna-title {
   font-weight: 600;
-  color: #7c3aed;
+  color: var(--cm-primary);
   white-space: nowrap;
 }
 
 .cm-dna-progress {
-  color: #6b7280;
+  color: var(--cm-muted-foreground);
   white-space: nowrap;
 }
 
 .cm-dna-hint {
-  color: #9ca3af;
+  color: var(--cm-muted-foreground);
   font-size: 12px;
   white-space: nowrap;
 }
 
 .cm-dna-hint--error {
-  color: #dc2626;
+  color: var(--cm-destructive);
 }
 
 .cm-dna-skip {
-  border: 1px solid #d1d5db;
+  border: 1px solid var(--cm-border);
   background: transparent;
-  color: #6b7280;
-  border-radius: 6px;
+  color: var(--cm-muted-foreground);
+  border-radius: var(--cm-radius-sm);
   padding: 3px 10px;
   font-size: 12px;
   cursor: pointer;
@@ -41,8 +41,8 @@
 }
 
 .cm-dna-skip:hover {
-  border-color: #7c3aed;
-  color: #7c3aed;
+  border-color: var(--cm-primary);
+  color: var(--cm-primary);
 }
 
 .cm-dna-overlay {
@@ -52,15 +52,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(17, 24, 39, 0.6);
+  background: var(--cm-overlay);
 }
 
 .cm-dna-card {
-  background: #ffffff;
-  border-radius: 14px;
-  padding: 28px;
+  background: var(--cm-card);
+  border-radius: var(--cm-radius-lg);
+  padding: var(--cm-padding-card);
   max-width: 420px;
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--cm-shadow);
   text-align: center;
 }
 
@@ -71,14 +71,14 @@
 
 .cm-dna-card-title {
   margin: 0 0 8px;
-  font-size: 18px;
-  color: #111827;
+  font-size: var(--cm-font-size-xl);
+  color: var(--cm-foreground);
 }
 
 .cm-dna-card-text {
   margin: 0 0 20px;
-  color: #6b7280;
-  font-size: 14px;
+  color: var(--cm-muted-foreground);
+  font-size: var(--cm-font-size-md);
 }
 
 .cm-dna-card-actions {
@@ -89,19 +89,19 @@
 }
 
 .cm-dna-button {
-  border: 1px solid #d1d5db;
-  background: #ffffff;
-  color: #111827;
-  border-radius: 8px;
+  border: 1px solid var(--cm-border);
+  background: var(--cm-card);
+  color: var(--cm-foreground);
+  border-radius: var(--cm-radius-md);
   padding: 8px 16px;
-  font-size: 14px;
+  font-size: var(--cm-font-size-md);
   cursor: pointer;
 }
 
 .cm-dna-button--primary {
-  background: #7c3aed;
-  border-color: #7c3aed;
-  color: #ffffff;
+  background: var(--cm-primary);
+  border-color: var(--cm-primary);
+  color: var(--cm-primary-foreground);
 }
 
 .cm-dna-export {
@@ -109,13 +109,13 @@
   overflow: auto;
   white-space: pre-wrap;
   font: inherit;
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
+  background: var(--cm-muted);
+  border: 1px solid var(--cm-border);
+  border-radius: var(--cm-radius-md);
+  padding: var(--cm-padding-card);
   margin: 0 0 16px;
-  color: #111827;
-  font-size: 13px;
+  color: var(--cm-foreground);
+  font-size: var(--cm-font-size-sm);
 }
 
 .cm-dna-chip { position: relative; display: flex; align-items: center; gap: 6px; }
@@ -137,7 +137,7 @@
 .cm-dna-chip-menu {
   position: absolute; bottom: calc(100% + 6px); right: 0; z-index: 1000;
   background: var(--cm-popover); color: var(--cm-popover-foreground);
-  border: 1px solid var(--cm-border); border-radius: 20px;
+  border: 1px solid var(--cm-border); border-radius: var(--cm-radius-lg);
   box-shadow: var(--cm-shadow);
   display: flex; flex-direction: column; min-width: 218px; max-height: 280px;
   overflow: auto; padding: 4px;
@@ -174,31 +174,31 @@ html[data-cm-onboarding-chat] [data-chat-flow] > [data-chat-flow-kind='assistant
 
 .cm-dna-card-label {
   display: block;
-  font-size: 13px;
+  font-size: var(--cm-font-size-sm);
   font-weight: 500;
-  color: #374151;
+  color: var(--cm-muted-foreground);
   margin-bottom: 6px;
 }
 
 .cm-dna-input {
   width: 100%;
   box-sizing: border-box;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
+  border: 1px solid var(--cm-border);
+  border-radius: var(--cm-radius-md);
   padding: 10px 14px;
-  font-size: 14px;
-  color: #111827;
+  font-size: var(--cm-font-size-md);
+  color: var(--cm-foreground);
   margin-bottom: 14px;
   outline: none;
 }
 
 .cm-dna-input:focus {
-  border-color: #7c3aed;
-  box-shadow: 0 0 0 2px rgba(124, 58, 237, 0.2);
+  border-color: var(--cm-primary);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--cm-primary) 20%, transparent);
 }
 
 .cm-dna-card-error {
-  color: #dc2626;
-  font-size: 12px;
+  color: var(--cm-destructive);
+  font-size: var(--cm-font-size-sm);
   margin-bottom: 12px;
 }

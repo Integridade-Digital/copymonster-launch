@@ -4,7 +4,7 @@ import { supabase } from '../../../lib/supabase/client'
 
 export interface SystemConfigItem {
   key: string
-  value: any
+  value: unknown
   description: string | null
   is_secret: boolean
   updated_at: string
@@ -89,9 +89,9 @@ export function AdminSystemTab() {
     setError(null)
     try {
       const [configsRes, workspacesRes, storageRes] = await Promise.all([
-        (supabase.rpc as any)('get_admin_system_config'),
-        (supabase.rpc as any)('get_admin_workspaces'),
-        (supabase.rpc as any)('get_admin_storage_paths'),
+        supabase.rpc('get_admin_system_config'),
+        supabase.rpc('get_admin_workspaces'),
+        supabase.rpc('get_admin_storage_paths'),
       ])
 
       if (configsRes.error) throw new Error(configsRes.error.message)
@@ -104,9 +104,9 @@ export function AdminSystemTab() {
 
       setConfigs((configsRes.data as SystemConfigItem[]) || [])
       setWorkspaces((workspacesRes.data as WorkspaceItem[]) || [])
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error ao carregar configurações do sistema:', err)
-      setError(err?.message || 'Falha ao buscar configurações do sistema e workspaces.')
+      setError(err instanceof Error ? err.message : 'Falha ao buscar configurações do sistema e workspaces.')
     } finally {
       if (!isSilent) setIsLoading(false)
       setIsRefreshing(false)
@@ -144,7 +144,7 @@ export function AdminSystemTab() {
   const totalWorkspacesCount = workspaces.length
 
   const maskedSupabaseUrl = useMemo(() => {
-    const rawUrl = (import.meta as any).env?.VITE_SUPABASE_URL || ''
+    const rawUrl = (import.meta.env as Record<string, string | undefined>)?.VITE_SUPABASE_URL || ''
     if (!rawUrl) return 'Not configured'
     try {
       const url = new URL(rawUrl)
@@ -208,18 +208,18 @@ export function AdminSystemTab() {
   const handleToggleFeatureFlag = async (item: SystemConfigItem) => {
     if (item.is_secret || item.key.startsWith('system.')) return
 
-    let nextValue: any
+    let nextValue: unknown
     if (typeof item.value === 'boolean') {
       nextValue = !item.value
     } else if (item.value && typeof item.value === 'object' && 'enabled' in item.value) {
-      nextValue = { ...item.value, enabled: !item.value.enabled }
+      nextValue = { ...(item.value as Record<string, unknown>), enabled: !(item.value as { enabled: boolean }).enabled }
     } else {
       openEditConfigModal(item)
       return
     }
 
     try {
-      const { error: saveErr } = await (supabase.rpc as any)('admin_upsert_system_config', {
+      const { error: saveErr } = await supabase.rpc('admin_upsert_system_config', {
         p_key: item.key,
         p_value: nextValue,
         p_description: item.description,
@@ -227,8 +227,8 @@ export function AdminSystemTab() {
       })
       if (saveErr) throw new Error(saveErr.message)
       loadData(true)
-    } catch (err: any) {
-      alert(err?.message || 'Error ao alterar feature flag.')
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Error ao alterar feature flag.')
     }
   }
 
@@ -246,7 +246,7 @@ export function AdminSystemTab() {
       return
     }
 
-    let parsedValue: any
+    let parsedValue: unknown
     try {
       parsedValue = JSON.parse(formValueStr)
     } catch {
@@ -255,7 +255,7 @@ export function AdminSystemTab() {
 
     setIsMutating(true)
     try {
-      const { error: saveErr } = await (supabase.rpc as any)('admin_upsert_system_config', {
+      const { error: saveErr } = await supabase.rpc('admin_upsert_system_config', {
         p_key: key,
         p_value: parsedValue,
         p_description: formDescription.trim() || null,
@@ -265,9 +265,9 @@ export function AdminSystemTab() {
 
       closeModals()
       loadData(true)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error ao salvar configuração:', err)
-      setFormError(err?.message || 'Falha ao salvar configuração.')
+      setFormError(err instanceof Error ? err.message : 'Falha ao salvar configuração.')
     } finally {
       setIsMutating(false)
     }
@@ -278,16 +278,16 @@ export function AdminSystemTab() {
     setIsMutating(true)
     setFormError(null)
     try {
-      const { error: delErr } = await (supabase.rpc as any)('admin_delete_system_config', {
+      const { error: delErr } = await supabase.rpc('admin_delete_system_config', {
         p_key: selectedConfig.key,
       })
       if (delErr) throw new Error(delErr.message)
 
       closeModals()
       loadData(true)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error ao excluir chave:', err)
-      setFormError(err?.message || 'Falha ao excluir chave do sistema.')
+      setFormError(err instanceof Error ? err.message : 'Falha ao excluir chave do sistema.')
     } finally {
       setIsMutating(false)
     }
@@ -298,16 +298,16 @@ export function AdminSystemTab() {
     setIsMutating(true)
     setFormError(null)
     try {
-      const { error: archErr } = await (supabase.rpc as any)('admin_delete_workspace', {
+      const { error: archErr } = await supabase.rpc('admin_delete_workspace', {
         p_id: selectedWorkspace.id,
       })
       if (archErr) throw new Error(archErr.message)
 
       closeModals()
       loadData(true)
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error('Error ao arquivar workspace:', err)
-      setFormError(err?.message || 'Falha ao arquivar workspace.')
+      setFormError(err instanceof Error ? err.message : 'Falha ao arquivar workspace.')
     } finally {
       setIsMutating(false)
     }
@@ -436,7 +436,7 @@ export function AdminSystemTab() {
           <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px' }}>
             <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', fontSize: '11px' }}>Modo de Execução</span>
             <span style={{ fontFamily: 'monospace', color: 'var(--cm-foreground)', fontWeight: 500, display: 'inline-block', marginTop: '4px' }}>
-              {(import.meta as any).env?.MODE || 'production'}
+              {(import.meta.env as Record<string, string | undefined>)?.MODE || 'production'}
             </span>
           </div>
           <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px' }}>
@@ -923,7 +923,7 @@ export function AdminSystemTab() {
       {isConfigModalOpen && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div
-            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+            style={{ position: 'absolute', inset: 0, background: 'var(--cm-overlay)', backdropFilter: 'blur(4px)' }}
             onClick={closeModals}
           />
           <div
@@ -1031,7 +1031,7 @@ export function AdminSystemTab() {
       {isDeleteConfigModalOpen && selectedConfig && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div
-            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+            style={{ position: 'absolute', inset: 0, background: 'var(--cm-overlay)', backdropFilter: 'blur(4px)' }}
             onClick={closeModals}
           />
           <div
@@ -1089,7 +1089,7 @@ export function AdminSystemTab() {
       {isArchiveWorkspaceModalOpen && selectedWorkspace && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div
-            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+            style={{ position: 'absolute', inset: 0, background: 'var(--cm-overlay)', backdropFilter: 'blur(4px)' }}
             onClick={closeModals}
           />
           <div

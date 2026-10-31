@@ -1,0 +1,37 @@
+{
+  "name": "dsh-profile-web",
+  "private": true,
+  "dsh": {
+    "profile": {
+      "bundles": [
+        "@deepseek-ai/dsh-base",
+        "@deepseek-ai/dsh-web-app",
+        "@deepseek-ai/dsh-experimental-agent-team-web-profile",
+        "@deepseek-ai/dsh-experimental-agent-team-profile",
+        "dshmarket",
+        "@changfenhuang/dsh-genui",
+        "@michengai/dsh-automation",
+        "dsh-vercel-mcp",
+        "dsh-preview-plugin",
+        "@deepseek-ai/dsh-experimental-voice-input-bundle",
+        "@deepseek-ai/dsh-experimental-plugin-market-bundle",
+        "@deepseek-ai/dsh-experimental-auto-review",
+        "@xmanrui/dsh-im"
+      ],
+      "patchReload": "live"
+    }
+  },
+  "dependencies": {
+    "@deepseek-ai/dsh-base": "workspace:*",
+    "@deepseek-ai/dsh-web-app": "workspace:*",
+    "@xmanrui/dsh-im": "^5.6.0",
+    "@changfenhuang/dsh-genui": "0.14.0",
+    "@michengai/dsh-automation": "0.1.66",
+    "dsh-preview-plugin": "github:RaulLazaro/dsh-preview-plugin",
+    "dsh-vercel-mcp": "github:zhengjy01/dsh-vercel-mcp",
+    "dshmarket": "^1.66.45"
+  },
+  "scripts": {
+    "postinstall": "node ../../../../copymonster-launch/scripts/apply-dsh-im-rebrand.mjs && node ../../../../copymonster-launch/scripts/apply-dshmarket-rebrand.mjs && node ../../../../copymonster-launch/scripts/apply-dsh-plugins-rebrand.mjs"
+  }
+}

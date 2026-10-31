@@ -1,0 +1,123 @@
+ui-onboarding:
+  welcomeNoticeVersion: 2026-08-13.1
+llm-pi-ai:
+  providers:
+    freellm:
+      displayName: Free-llm
+      apiKeyEnv: FREELLM_API_KEY
+      api: openai-completions
+      baseURL: https://api.fortunadigital.me/v1
+      models:
+        - id: gemma-4-31b
+          name: Gemma 4 31B
+        - id: gemini-3.5-flash
+          name: Gemini 3.5 Flash
+        - id: gemini-3.6-flash
+          name: Gemini 3.6 Flash
+        - id: nemotron-3-ultra
+          name: Nemotron 3 Ultra
+        - id: nemotron-3-super
+          name: Nemotron 3 Super
+        - id: nemotron-3-nano-30b
+          name: Nemotron 3 Nano 30B
+    agentrouter:
+      displayName: AgentRouter
+      apiKeyEnv: AGENTROUTER_API_KEY
+      api: openai-completions
+      baseURL: https://agentrouter.org/v1
+      models:
+        - id: deepseek-v4-flash
+          name: DeepSeek V4 Flash
+        - id: claude-opus-5
+          name: Opus 5
+        - id: glm-5.3
+          name: GLM 5.3
+        - id: gpt-5.6-sol
+          name: GPT 5.6 Sol
+        - id: kimi-k3
+          name: Kimi k3
+        - id: gpt-6-astra
+          name: GPT 6 Astra
+        - id: claude-opus-4-8
+          name: Opus 4.9
+    openrouter:
+      baseURL: https://openrouter.ai/api/v1
+      models:
+        - id: nvidia/nemotron-3-ultra-550b-a55b:free
+          name: Nemotron 3 Ultra 550B
+        - id: nvidia/nemotron-3-super-120b-a12b:free
+          name: Nemotron 3 Super 120B
+        - id: nvidia/nemotron-3.5-lightning:free
+          name: Nemotron 3.5 Lightning
+        - id: nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free
+          name: Nemotron 3 Nano Omni
+        - id: cohere/north-mini-code:free
+          name: North Mini Code
+        - id: poolside/laguna-s-2.1:free
+          name: Laguna S 2.1
+        - id: google/gemma-4-26b-a4b-it:free
+          name: Gemma 4 26B a4b it
+        - id: google/gemma-4-31b-it:free
+          name: Gemma 4 31B
+        - id: openrouter/free
+          name: Free Models Openrouter
+      apiKeyEnv: OPENROUTER_API_KEY
+    nvidia:
+      apiKeyEnv: NVIDIA_API_KEY
+      baseURL: https://integrate.api.nvidia.com/v1
+      models:
+        - id: nvidia/nemotron-3-ultra-550b-a55b
+          name: Nemotron 3 Ultra 550B
+        - id: nvidia/nemotron-3-super-120b-a12b
+          name: Nemotron 3 Super 120B
+    bai:
+      displayName: B.AI
+      apiKeyEnv: BAI_API_KEY
+      api: openai-completions
+      baseURL: https://api.b.ai/v1/chat/completions
+      models:
+        - id: mimo-v2.5
+          name: MIMO V2.5
+        - id: qwen3.8-flash
+          name: QWEN 3.8 Flash
+    apx:
+      displayName: Apmix
+      apiKeyEnv: APX_API_KEY
+      api: openai-completions
+      baseURL: https://api.apmix.ai/v1
+      models:
+        - id: claude-sonnet-4-6-free
+          name: Claude Sonnet 4.6 free
+    tokenharbor:
+      displayName: Harbor
+      apiKeyEnv: TOKENHARBOR_API_KEY
+      api: openai-completions
+      baseURL: https://tokenharbor.ai//v1
+      models:
+        - id: deepseek-v4.1-flash:free
+          name: DeepSeek V4.1 Flash
+        - id: mimo-v2.6-flash:free
+          name: MiMo V2.6 Flash
+        - id: claude-haiku-5.5:free
+          name: Claude Haiku 5.5 free
+ui-theme:
+  preference: dark
+  fontSize: 16
+agent-presets:
+  default: cordis
+agent-default-model:
+  provider: tokenharbor
+  model: deepseek-v4.1-flash:free
+permission:
+  defaultPreset: danger-full-access
+dsh-mail:
+  defaultProvider: resend
+  providers:
+    resend:
+      resendBaseURL: https://api.resend.com
+dsh-better-sidebar:
+  viewersEnabled:
+    markdown: false
+  titleBarScheme: auto
+  titleBarPresetId: dsh-desktop
+  titleBarCompat: false

@@ -203,7 +203,7 @@
   align-items: center;
   justify-content: center;
   padding: var(--cm-padding-section);
-  background: rgba(0, 0, 0, 0.65);
+  background: var(--cm-overlay);
   backdrop-filter: blur(4px);
 }
 .cm-specs-panel {
@@ -215,7 +215,7 @@
   border: 1px solid var(--cm-border);
   border-radius: var(--cm-radius-lg);
   padding: 20px;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+  box-shadow: var(--cm-shadow);
   color: var(--cm-foreground);
 }
 .cm-specs-header {
@@ -350,7 +350,7 @@
   color: var(--cm-primary);
 }
 .cm-billing-banner-badge--amber {
-  color: #d8ae5f;
+  color: var(--cm-primary);
 }
 .cm-billing-banner-badge--green {
   color: var(--cm-success);

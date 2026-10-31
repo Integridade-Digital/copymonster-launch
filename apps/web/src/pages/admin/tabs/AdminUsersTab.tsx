@@ -61,7 +61,7 @@ export function AdminUsersTab() {
   const [modalFeedback, setModalFeedback] = useState<{ type: 'error' | 'success'; message: string } | null>(null)
 
   useEffect(() => {
-    supabase.auth.getUser().then(({ data }: any) => {
+    supabase.auth.getUser().then(({ data }: { data: { user: { id: string } | null } | null }) => {
       if (data?.user) {
         setCurrentUserId(data.user.id)
       }
@@ -101,7 +101,7 @@ export function AdminUsersTab() {
 
   const loadKPIs = useCallback(async () => {
     try {
-      const { data, error } = await (supabase.rpc as any)('get_admin_users_kpis')
+      const { data, error } = await supabase.rpc('get_admin_users_kpis', {})
       if (error) throw error
       if (data) {
         const raw = Array.isArray(data) ? data[0] : data
@@ -141,11 +141,11 @@ export function AdminUsersTab() {
         params.p_tenant_id = selectedTenant
       }
 
-      const { data, error: rpcError } = await (supabase.rpc as any)('get_admin_users', params)
+      const { data, error: rpcError } = await supabase.rpc('get_admin_users', params)
 
       if (rpcError) throw rpcError
 
-      const list: AdminUserRow[] = (data || []).map((row: any) => ({
+      const list: AdminUserRow[] = (data || []).map((row: Record<string, unknown>) => ({
         user_id: row.user_id,
         email: row.email,
         full_name: row.full_name,
@@ -255,7 +255,7 @@ export function AdminUsersTab() {
     setModalFeedback(null)
 
     try {
-      const { error: rpcError } = await (supabase.rpc as any)('admin_update_user_role', {
+      const { error: rpcError } = await supabase.rpc('admin_update_user_role', {
         p_membership_id: activeActionUser.membership_id,
         p_new_role: selectedNewRole,
       })
@@ -284,7 +284,7 @@ export function AdminUsersTab() {
     const nextStatus = activeActionUser.user_status === 'suspended' ? 'active' : 'suspended'
 
     try {
-      const { error: rpcError } = await (supabase.rpc as any)('admin_toggle_user_status', {
+      const { error: rpcError } = await supabase.rpc('admin_toggle_user_status', {
         p_user_id: activeActionUser.user_id,
         p_new_status: nextStatus,
       })
@@ -730,7 +730,7 @@ export function AdminUsersTab() {
       {activeModalType === 'role' && activeActionUser && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div
-            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+            style={{ position: 'absolute', inset: 0, background: 'var(--cm-overlay)', backdropFilter: 'blur(4px)' }}
             onClick={closeModal}
           />
           <div
@@ -853,7 +853,7 @@ export function AdminUsersTab() {
       {activeModalType === 'status' && activeActionUser && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div
-            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+            style={{ position: 'absolute', inset: 0, background: 'var(--cm-overlay)', backdropFilter: 'blur(4px)' }}
             onClick={closeModal}
           />
           <div
@@ -964,7 +964,7 @@ export function AdminUsersTab() {
       {activeModalType === 'reset_password' && activeActionUser && (
         <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div
-            style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)' }}
+            style={{ position: 'absolute', inset: 0, background: 'var(--cm-overlay)', backdropFilter: 'blur(4px)' }}
             onClick={closeModal}
           />
           <div

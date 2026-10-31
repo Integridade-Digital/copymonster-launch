@@ -1,168 +1,346 @@
-# PLANO DE SOLUÇÃO ARQUITETURAL: Integração Segura dsh-server-login + CopyMonster SaaS
-## Restauração do App Principal (:3080), Segregação de Borda (Cloudflare Tunnel), Supressão de Desktop e Isolamento de SO (Linux Account)
+# ARCHITECTURAL SOLUTION PLAN: Secure dsh-server-login + CopyMonster SaaS Integration
+## Primary App Restoration (:3080), Edge Segregation (Cloudflare Tunnel), Desktop Suppression, and OS Hard Isolation (Linux Account Mode)
 
-> **Status:** Proposta de Arquitetura & Plano Passo a Passo para Aprovação do Proprietário  
-> **Data:** 31 de Outubro de 2026  
-> **Escopo:** Restauração do `copymonster.service`, realocação do `dsh-server-login` para a porta 3081, supressão de desktop, roteamento de subdomínios, clareza no onboarding de cadastro e garantia de SSO Supabase Auth.  
-> **Regra Estrita:** Nenhuma alteração de código ou configuração em produção/VPS será aplicada antes da aprovação explícita deste plano.
-
----
-
-## 1. Sumário Executivo & Reconhecimento Formal da Falha de Planejamento
-
-O **CopyMonster** é uma plataforma SaaS proprietária (construída como fork sob licença MIT do DeepSeek Harness / DSH) focada em automação de copy de alta conversão, funis de lançamento e memória estratégica de marca (Brand DNA Engine). Para liberar o ecossistema de extensões (**Market com mais de 7.200 plugins**) sem colocar em risco a segurança do host nem os dados confidenciais dos assinantes, foi selecionado o orquestrador `dsh-server-login` em modo de isolamento estrito por conta de SO Linux (`account`).
-
-### Reconhecimento Explícito da Falha Crítica de Arquitetura
-Durante a elaboração do plano anterior (`docs/roadmap/plano-isolamento-dsh-server-login.md`), ocorreu uma **falha grave de planejamento arquitetural**:
-1. **Conflito de Porta Fatal (3080):** O orquestrador `dsh-server-login` foi configurado para escutar na porta local `127.0.0.1:3080`, desconsiderando que a aplicação principal do SaaS CopyMonster (`copymonster.service`) já operava e dependia historicamente da porta `3080`.
-2. **Derrubada do SaaS e Inacessibilidade do Painel:** Ao iniciar o `dsh-server-login` na porta 3080, ocorreu uma colisão de socket (`EADDRINUSE`) ou a captura indevida do tráfego do Cloudflare Tunnel. O serviço `copymonster.service` foi derrubado e o painel de controle do CopyMonster tornou-se completamente inacessível para clientes e administração.
-3. **Quebra Total da Experiência do Usuário (UX):** Além de derrubar o app, o tráfego de `app.copymonster.co` passou a exibir a interface padrão do `dsh-server-login` — incluindo uma tela de "desktop de arquivos" (`web/desktop.html`) com botões manuais de lançamento ("启动 DSH", "Abrir DSH"). Isso eliminou o onboarding proprietário do CopyMonster, descaracterizou a identidade visual e expôs os clientes a um ambiente cru e confuso.
-
-**Compromisso Deste Plano:** O aplicativo CopyMonster (`copymonster.service`) deve ser **a única porta de entrada visível e soberana** do produto. O `dsh-server-login` deve funcionar estritamente como um **orquestrador de infraestrutura invisível (headless backend)** nos bastidores, escutando em porta dedicada e restrita, sem nunca interferir na porta 3080 nem exibir telas de desktop intermediárias.
+> **Status:** Architecture Proposal & Step-by-Step Execution Plan (Approved Direction with Conditional Direct Sign-Up Integration)  
+> **Date:** October 31, 2026  
+> **Scope:** Immediate restoration of `copymonster.service` on port 3080, relocation of `dsh-server-login` to loopback port 3081, suppression of raw file desktop, wildcard subdomain routing, inclusion of "Username / Subdomain" directly in initial sign-up, Supabase SSO session bridging, and hard Linux account isolation.  
+> **Strict Rule:** No production code or VPS configuration changes will be executed until the pre-execution code components are audited and explicitly approved.
 
 ---
 
-## 2. Topologia de Arquitetura Corrigida
+## 1. Executive Summary & Formal Retrospective on Planning Failure
 
-A nova topologia física e de rede segrega completamente o App SaaS do orquestrador de contêineres/contas Linux:
+CopyMonster is an enterprise SaaS platform (a dedicated fork under the MIT License of DeepSeek Harness / DSH) specializing in high-conversion copywriting automation, launch funnels, and persistent strategic brand memory (Brand DNA Engine). To safely unlock the plugin marketplace (**7,200+ community and internal plugins**) without endangering host system integrity or tenant data, the `dsh-server-login` supervisor was selected to provide Linux OS-level account isolation (`account` mode).
+
+### Explicit Retrospective on the Architecture Breakdown
+During the prior rollout proposal (`docs/roadmap/plano-isolamento-dsh-server-login.md`), a severe architectural collision occurred:
+1. **Critical Port Collision (Port 3080):** The `dsh-server-login` process was bound to `127.0.0.1:3080`. This overlooked that the primary CopyMonster SaaS application (`copymonster.service`) historically binds to port `3080`.
+2. **SaaS Outage & Dashboard Inaccessibility:** Starting `dsh-server-login` on port 3080 either triggered a fatal socket collision (`EADDRINUSE`) or hijacked the Cloudflare Tunnel ingress target. The core `copymonster.service` was knocked offline, rendering the customer dashboard inaccessible.
+3. **Severe UX Degradation & Desktop Leak:** Traffic to `app.copymonster.co` was routed to the raw `dsh-server-login` interface, exposing an unbranded file manager desktop (`web/desktop.html`) with manual launch buttons ("Launch DSH"). This disrupted CopyMonster's proprietary onboarding flow, stripped away the Dark/Gold brand identity, and created user confusion.
+
+### Target Architecture Commitment
+The CopyMonster SaaS web application (`copymonster.service`) remains the **sole authoritative and visible entry point** of the product. The `dsh-server-login` instance must operate strictly as an **invisible headless infrastructure orchestrator** on an isolated internal loopback port (`127.0.0.1:3081`). It will never bind to port 3080, never serve an intermediate desktop, and will run entirely in the background.
+
+---
+
+## 2. Corrected Network & Routing Topology
+
+The updated topology completely segregates the client-facing SaaS application from the tenant sandboxes:
 
 ```text
-                               INTERNET (Clientes HTTPS)
+                               INTERNET (HTTPS Clients)
                                           │
                                           ▼
              ┌─────────────────────────────────────────────────────────┐
              │              Cloudflare Edge (Zero Trust / DNS)         │
-             │   - Certificado Wildcard (*.app.copymonster.co)         │
-             │   - Borda WAF, TLS Termination e Proteção DDoS          │
+             │   - Wildcard SSL Certificate (*.app.copymonster.co)     │
+             │   - WAF Edge, TLS 1.3 Termination, DDoS Mitigation      │
              └────────────────────────────┬────────────────────────────┘
-                                          │ (Túnel criptografado cloudflared)
+                                          │ (Encrypted cloudflared tunnel)
                                           ▼
              ┌─────────────────────────────────────────────────────────┐
-             │                     VPS Linux Host                      │
+             │                     Host VPS (Linux)                    │
              │                                                         │
-             │  cloudflared (Túnel Systemd)                            │
-             │     ├── Ingress 1: Host app.copymonster.co              │
-             │     │      └──► Roteia para: 127.0.0.1:3080             │
-             │     │                                                   │
-             │     └── Ingress 2: Host *.app.copymonster.co (Wildcard) │
-             │            └──► Roteia para: 127.0.0.1:3081             │
-             │                                                         │
-             │  ─────────────────────────────────────────────────────  │
-             │                                                         │
-             │  [PORTA 3080] copymonster.service (App Principal SaaS)  │
-             │     ├── Frontend React/Vite + Brand DNA Engine          │
-             │     ├── Onboarding Personalizado CopyMonster            │
-             │     ├── Painel Admin, Billing (Stripe), Métricas        │
-             │     └── Comunicação direta com Supabase Auth/PostgreSQL │
-             │                                                         │
-             │  ─────────────────────────────────────────────────────  │
-             │                                                         │
-             │  [PORTA 3081] dsh-orchestrator.service (Invisível)      │
-             │     ├── Escuta exclusivamente em: 127.0.0.1:3081        │
-             │     ├── Valida sessão Supabase e cookie sid (.app...)   │
-             │     ├── Port Guard ativo (iptables OUTPUT owner-match)  │
-             │     ├── SEM DESKTOP: Proxy direto para DSH do usuário   │
-             │     └── Spawn sob demanda via setpriv (UID >= 100000)   │
-             │            ├── user1.app... ──► UID 100001 (:42135)     │
-             │            └── user2.app... ──► UID 100002 (:42136)     │
+             │  cloudflared tunnel daemon                              │
+             │  ├── Ingress rule 1:                                    │
+             │  │   Host: app.copymonster.co                           │
+             │  │   Target: http://127.0.0.1:3080 (copymonster.service)│
+             │  │                                                      │
+             │  └── Ingress rule 2:                                    │
+             │      Host: *.app.copymonster.co                         │
+             │      Target: http://127.0.0.1:3081 (dsh-orchestrator)   │
              └────────────────────────────┬────────────────────────────┘
                                           │
-                           Sessões, JWT & Dados de Negócio
-                                          │
-                                          ▼
-             ┌─────────────────────────────────────────────────────────┐
-             │                  Supabase (Plano Free)                  │
-             │  - auth.users: Logins, validação de e-mail e JWT        │
-             │  - public.users: username (slug do subdomínio), perfis  │
-             │  - public.tenants, subscriptions, DNA Engine, RLS       │
-             └─────────────────────────────────────────────────────────┘
+             ┌────────────────────────────┴────────────────────────────┐
+             │                                                         │
+             ▼                                                         ▼
+┌──────────────────────────┐                      ┌──────────────────────────┐
+│   copymonster.service    │                      │ dsh-orchestrator.service │
+│   Port: 127.0.0.1:3080   │                      │   Port: 127.0.0.1:3081   │
+├──────────────────────────┤                      ├──────────────────────────┤
+│ - Core SaaS Platform     │                      │ - Invisible Supervisor   │
+│ - Brand DNA / Copy Engine│                      │ - Linux Account Sandbox  │
+│ - Supabase Auth & DB     │                      │ - Subdomain Proxy & WS   │
+│ - Direct Sign-Up & Subdom│                      │ - Auto-launch / Spin-up  │
+└──────────────────────────┘                      └─────────────┬────────────┘
+                                                                │
+                                              Per-tenant sandboxes (UID 100000+)
+                                                                ▼
+                                                  ┌──────────────────────────┐
+                                                  │ dsh child process        │
+                                                  │ User: dsh_tenant_alpha   │
+                                                  │ UID: 100042 / GID: 100000│
+                                                  │ Home: /home/dsh_... (700)│
+                                                  │ Port: 127.0.0.1:31042    │
+                                                  └──────────────────────────┘
 ```
 
 ---
 
-## 3. Passo 1: Restauração Imediata do `copymonster.service` (Porta 3080)
+## 3. Direct Sign-Up: Username / Subdomain Field in Initial Registration
 
-Para restabelecer imediatamente a operação do CopyMonster no VPS e reverter o conflito sem qualquer risco de indisponibilidade residual:
+### 3.1 Initial Sign-Up Form Specification
+Rather than deferring subdomain creation to a multi-step post-login onboarding wizard, the registration form on `app.copymonster.co/register` captures the **Username / Subdomain** directly during account creation.
 
-### 3.1 Comandos de Desocupação e Restauração no VPS
+The registration form contains:
+1. **Full Name** (`name`): User's legal/display name.
+2. **Work Email** (`email`): Valid email address used for Supabase Auth credentials.
+3. **Password** (`password`): Strong password conforming to platform security standards.
+4. **Workspace Subdomain / Username** (`username`): The unique tenant slug that defines their personal sandbox environment at `<username>.app.copymonster.co`.
 
-1. **Parar imediatamente o orquestrador que tomou ou conflita com a porta 3080:**
-   ```bash
-   sudo systemctl stop dsh-server-login
-   sudo systemctl disable dsh-server-login
-   ```
-2. **Confirmar que a porta 3080 foi liberada de qualquer processo zumbi:**
-   ```bash
-   sudo ss -tulpn | grep :3080
-   # Se houver algum processo remanescente:
-   sudo fuser -k 3080/tcp
-   ```
-3. **Reiniciar o serviço principal do CopyMonster:**
-   ```bash
-   sudo systemctl restart copymonster.service
-   sudo systemctl status copymonster.service
-   ```
-4. **Verificar resposta local da aplicação CopyMonster:**
-   ```bash
-   curl -I http://127.0.0.1:3080
-   # Deve retornar HTTP 200 OK ou 302 Redirect da interface CopyMonster
-   ```
-5. **Garantir que o Cloudflare Tunnel entrega `app.copymonster.co` na 3080:**
-   Verificar no arquivo `/etc/cloudflared/config.yml` se a regra principal está correta:
-   ```yaml
-   ingress:
-     - hostname: app.copymonster.co
-       service: http://127.0.0.1:3080
-     - service: http_status:404
-   ```
-6. **Reiniciar o túnel da Cloudflare e validar publicamente:**
-   ```bash
-   sudo systemctl restart cloudflared
-   ```
-   *Teste de validação:* Acessar `https://app.copymonster.co` no navegador. O onboarding, login e painel proprietário do CopyMonster devem carregar normalmente.
+```text
+┌──────────────────────────────────────────────────────────┐
+│                 CopyMonster Account Setup                │
+│                                                          │
+│  Full Name                                               │
+│  [ John Doe                                            ] │
+│                                                          │
+│  Work Email                                              │
+│  [ john@company.com                                    ] │
+│                                                          │
+│  Password                                                │
+│  [ •••••••••••••••••                                   ] │
+│                                                          │
+│  Workspace Subdomain / Username                          │
+│  [ johndoe                                             ] │
+│  Your sandbox will live at: johndoe.app.copymonster.co   │
+│  ✓ Subdomain available                                   │
+│                                                          │
+│  [ Create Account & Initialize Secure Workspace ]        │
+└──────────────────────────────────────────────────────────┘
+```
+
+### 3.2 Real-Time Validation & Reserved Words
+- **Formatting Constraint:** Strictly lowercase alphanumeric and hyphens: `^[a-z0-9]([a-z0-9-]{1,18}[a-z0-9])?$`.
+- **Length Constraint:** 3 to 20 characters.
+- **Reserved Subdomains (Blacklist):** `app`, `api`, `admin`, `auth`, `login`, `register`, `dashboard`, `mail`, `status`, `portal`, `docs`, `cdn`, `assets`, `webhook`, `stripe`, `supabase`, `static`, `staging`, `dev`, `test`, `copymonster`.
+- **Instant Availability Feedback:** Debounced (300ms) check querying `public.tenants.slug` and `public.users.username` in Supabase to confirm uniqueness before submission.
+
+### 3.3 Registration Execution Pipeline
+1. Client submits form to Supabase Auth (`supabase.auth.signUp()`) with user metadata `{ username, full_name }`.
+2. Database trigger or edge function populates `public.users` and assigns/creates a tenant record linking the chosen slug.
+3. Upon confirmation/session grant, CopyMonster invokes the orchestrator session endpoint (`/api/auth/session-token`) providing the Supabase JWT.
+4. The user is redirected to `https://<username>.app.copymonster.co/` with the wildcard cookie already active.
 
 ---
 
-## 4. Passo 2: Reposicionamento do `dsh-server-login` na Porta 3081 (Orquestrador Invisível)
+## 4. Four Pre-Execution Implementation Deliverables
 
-O orquestrador `dsh-server-login` é reposicionado para operar em uma porta de infraestrutura dedicada e desvinculada (`3081`), atuando apenas como roteador de subdomínios isolados.
+Before executing any production commands or updating system services on the VPS, the following four concrete modules must be implemented and verified in the codebase.
 
-### 4.1 Configuração de Ambiente do Orquestrador (`/etc/dsh-server-login/.env`)
+---
+
+### Deliverable 1: OS Provisioning Script (`/usr/local/bin/dsh-provision.sh`)
+**Objective:** Deterministically create Linux system accounts for sandbox isolation, ensuring home directory security (`chmod 700`) and standard workspace scaffolding.
+
+#### Specification:
+- **Location on Host:** `/usr/local/bin/dsh-provision.sh` (owned by `root:root`, permissions `0750`).
+- **Signature:** `dsh-provision.sh <username> <uid>`
+- **Logic:**
+  1. Validates username against regex `^[a-z0-9_-]{3,32}$`.
+  2. Validates UID is an integer within the allocated range (`100000` to `200000`).
+  3. Ensures shared system group `dshusers` exists (`groupadd -f -g 100000 dshusers`).
+  4. Idempotently creates or updates the user account:
+     `useradd -M -u <uid> -g dshusers -s /bin/bash -c "CopyMonster Sandbox <username>" <username>`
+  5. Creates home root `/home/<username>` with permissions `0700` owned by `<username>:dshusers`.
+  6. Creates subdirectories `/home/<username>/workspace` and `/home/<username>/.dsh` with permissions `0700`.
+  7. Exits with code `0` on success or clean stderr message and non-zero code on error.
+
 ```bash
-# Porta dedicada para evitar qualquer conflito com o CopyMonster (:3080)
-PORT=3081
-HOST=127.0.0.1
+#!/usr/bin/env bash
+# /usr/local/bin/dsh-provision.sh
+# Provisioning script for CopyMonster dsh-server-login tenant isolation
+set -euo pipefail
 
-# Modo de isolamento real por conta Linux e Port Guard ativo
-DSH_SERVER_LOGIN_ISOLATION_MODE=account
-DSH_SERVER_LOGIN_PORT_GUARD=true
-DSH_SERVER_LOGIN_UID_BASE=100000
+if [[ $# -lt 2 ]]; then
+  echo "Usage: $0 <username> <uid>" >&2
+  exit 1
+fi
 
-# Domínio base para proxy de subdomínios
-BASE_DOMAIN=app.copymonster.co
+USERNAME="$1"
+UID_NUM="$2"
 
-# Caminho do executável DSH e Node fora de /root
-DSH_PATH=/usr/local/bin/dsh
-NODE_PATH=/usr/local/bin/node
+if ! [[ "${USERNAME}" =~ ^[a-z0-9_-]{3,32}$ ]]; then
+  echo "Error: Invalid username format '${USERNAME}'" >&2
+  exit 2
+fi
 
-# Supabase Auth e Banco do Orquestrador
-SUPABASE_URL=https://<seu-projeto>.supabase.co
-SUPABASE_ANON_KEY=<sua-anon-key>
-SQLITE_DB_PATH=/var/lib/dsh-server-login/orchestrator.db
+if ! [[ "${UID_NUM}" =~ ^[0-9]+$ ]] || [[ "${UID_NUM}" -lt 100000 ]] || [[ "${UID_NUM}" -gt 300000 ]]; then
+  echo "Error: Invalid UID '${UID_NUM}' (must be between 100000 and 300000)" >&2
+  exit 3
+fi
+
+# Ensure primary isolation group exists
+if ! getent group dshusers >/dev/null 2>&1; then
+  groupadd -g 100000 dshusers
+fi
+
+# Create user if missing
+if ! id -u "${USERNAME}" >/dev/null 2>&1; then
+  useradd -M -u "${UID_NUM}" -g dshusers -s /bin/bash -c "CopyMonster Sandbox ${USERNAME}" "${USERNAME}"
+fi
+
+USER_HOME="/home/${USERNAME}"
+mkdir -p "${USER_HOME}/workspace"
+mkdir -p "${USER_HOME}/.dsh"
+
+chown -R "${USERNAME}:dshusers" "${USER_HOME}"
+chmod 700 "${USER_HOME}"
+chmod 700 "${USER_HOME}/workspace"
+chmod 700 "${USER_HOME}/.dsh"
+
+echo "SUCCESS: Provisioned ${USERNAME} (UID ${UID_NUM}) at ${USER_HOME}"
+exit 0
 ```
 
-### 4.2 Nova Unidade Systemd Dedicada (`/etc/systemd/system/dsh-orchestrator.service`)
+---
+
+### Deliverable 2: Orchestrator Session Route (`/api/auth/session-token`)
+**Objective:** Provide a secure Single Sign-On bridge between CopyMonster's Supabase Auth and the `dsh-server-login` orchestrator without exposing raw passwords.
+
+#### Specification:
+- **Route:** `POST /api/auth/session-token` on orchestrator (`127.0.0.1:3081`).
+- **Payload:** `{ "supabaseJwt": "<raw_jwt>", "username": "<username>" }`
+- **Validation:**
+  1. Verifies the Supabase JWT using the configured `SUPABASE_JWT_SECRET` (HMAC SHA-256) or Supabase project JWKS.
+  2. Confirms that `token.sub` corresponds to the authenticated user ID and email matches.
+  3. Ensures or provisions the user record in orchestrator's database (SQLite `dsh-server-login.db`), calculating deterministic UID: `baseUid + user.row_id`.
+  4. Triggers background/local execution of `dsh-provision.sh` if the Linux account does not exist yet.
+  5. Generates an opaque session token (`newSessionToken()`) and registers it in `sessions` table.
+  6. Returns `Set-Cookie` header for `sid=<token>` with:
+     - `Domain=.app.copymonster.co`
+     - `Path=/`
+     - `HttpOnly`
+     - `Secure`
+     - `SameSite=None` (or `Lax` behind trusted edge)
+     - `Max-Age=2592000` (30 days)
+  7. Returns `{ ok: true, user: { id, username }, redirectUrl: "https://<username>.app.copymonster.co/" }`.
+
+---
+
+### Deliverable 3: CopyMonster Auto-Launch Transition Screen
+**Objective:** Completely eliminate and suppress `desktop.html`. When a user navigates to `https://<username>.app.copymonster.co/` and their DSH instance is currently stopped or spinning up, render a branded Dark/Gold launch screen that automatically starts the instance and redirects upon readiness.
+
+#### Specification:
+- **Location:** `web/launching.html` in `copymonster-dsh-server-login`.
+- **Trigger:** Subdomain reverse proxy hook in `src/supervisor/proxy.ts`. If `resolveSubdomainAccess()` detects the instance is not running, instead of returning raw `404 not_running`, it:
+  1. Asynchronously invokes `app.supervisor.launch(user.id, userWorkspaceFolder)`.
+  2. Serves `launching.html` (HTTP 200) with dynamic injection or polling.
+- **UX & Branding:**
+  - Background: Deep obsidian/slate (`#0A0A0C` to `#121216`).
+  - Accents: Metallic gold gradients (`#D4AF37`, `#F2D06B`, `#997D26`).
+  - Copy: *"Initializing your secure CopyMonster workspace..."*
+  - Live Status Indicator: Animated gold spinner and step progress bar (*"Allocating Linux sandbox" -> "Loading Brand DNA engine" -> "Connecting secure workspace"*).
+  - Client Polling: Every 1.5 seconds queries `/api/dsh/status`. As soon as status returns `running: true`, `window.location.reload()` hands control over to the child DSH interface.
+
+---
+
+### Deliverable 4: Inactivity Idle Timeout (30-Minute Automatic Spin-down)
+**Objective:** Prevent server memory and process exhaustion by automatically terminating dormant child DSH instances when no active user sessions or WebSockets are present.
+
+#### Specification:
+- **Location:** `src/supervisor/orchestrator.ts` and `src/supervisor/proxy.ts`.
+- **Implementation:**
+  1. Orchestrator tracks active WebSocket tunnels per user ID in `activeSockets: Map<string, Set<Socket>>`.
+  2. When the count of active WebSockets for a user drops to zero, an idle timer is armed for **30 minutes** (`1800000ms`).
+  3. If a new request or WebSocket upgrade arrives before timeout, the timer is cleared.
+  4. Upon timer expiration:
+     - Sends clean termination signal (`SIGTERM`) to the child DSH process.
+     - Waits up to 10 seconds for graceful exit, then escalates to `SIGKILL`.
+     - Logs event: `[supervisor] Idle timeout reached for user <id> (<username>). Process shut down.`
+     - Reclaims assigned loopback port for the port pool.
+
+---
+
+## 5. Five-Phase Implementation & Rollout Sequence
+
+```text
+┌───────────────────────────────────────────────────────────────────────────┐
+│                           ROLLOUT EXECUTION ROADMAP                       │
+├───────────────────────────────────────────────────────────────────────────┤
+│ Phase 1: RESTORE copymonster.service ON 3080                              │
+│          - Halt any rogue process on 3080                                 │
+│          - Restart & verify copymonster.service                           │
+│          - Confirm app.copymonster.co returns primary SaaS                │
+├───────────────────────────────────────────────────────────────────────────┤
+│ Phase 2: CLOUDFLARE TUNNEL INGRESS SEGREGATION                            │
+│          - Update cloudflared config.yml                                  │
+│          - Rule 1: app.copymonster.co -> http://127.0.0.1:3080            │
+│          - Rule 2: *.app.copymonster.co -> http://127.0.0.1:3081          │
+│          - Restart cloudflared and validate split routing                 │
+├───────────────────────────────────────────────────────────────────────────┤
+│ Phase 3: ORCHESTRATOR CONFIGURATION ON LOOPBACK 3081                      │
+│          - Deploy systemd unit dsh-orchestrator.service on port 3081      │
+│          - Configure environment: BASE_DOMAIN, COOKIE_DOMAIN, PORT_GUARD  │
+│          - Deploy /usr/local/bin/dsh-provision.sh                         │
+├───────────────────────────────────────────────────────────────────────────┤
+│ Phase 4: PRIMARY APP INTEGRATION & SSO BRIDGE                             │
+│          - Incorporate Subdomain field in RegisterPage.tsx                │
+│          - Add backend bridge invoking /api/auth/session-token on login   │
+│          - Set wildcard session cookie (.app.copymonster.co)              │
+├───────────────────────────────────────────────────────────────────────────┤
+│ Phase 5: END-TO-END VERIFICATION & HARD ISOLATION AUDIT                   │
+│          - Verify User A cannot access /home/User_B                       │
+│          - Verify loopback port guard blocks cross-process port sniffing  │
+│          - Verify idle spin-down after 30 minutes                         │
+└───────────────────────────────────────────────────────────────────────────┘
+```
+
+### Phase 1: Restoration of `copymonster.service` on Port 3080
+*Pre-condition: Nothing else touches production until the SaaS is verified healthy.*
+1. Inspect running processes on port 3080: `ss -tulpn | grep :3080`
+2. Stop legacy or misplaced `dsh-server-login` services.
+3. Restart `copymonster.service`: `systemctl restart copymonster.service`
+4. Confirm HTTP response: `curl -I http://127.0.0.1:3080/`
+5. Verify public accessibility at `https://app.copymonster.co/`.
+
+### Phase 2: Cloudflare Tunnel Configuration (`cloudflared/config.yml`)
+Configure split routing at the edge:
+```yaml
+tunnel: <TUNNEL_UUID>
+credentials-file: /etc/cloudflared/<TUNNEL_UUID>.json
+
+ingress:
+  # Primary CopyMonster SaaS Platform
+  - hostname: app.copymonster.co
+    service: http://127.0.0.1:3080
+    originRequest:
+      httpHostHeader: app.copymonster.co
+      connectTimeout: 30s
+
+  # Isolated Tenant Sandboxes (Wildcard)
+  - hostname: "*.app.copymonster.co"
+    service: http://127.0.0.1:3081
+    originRequest:
+      connectTimeout: 60s
+      noChunkedEncoding: true
+
+  # Default Fallback
+  - service: http_status:404
+```
+
+### Phase 3: Orchestrator Service on Loopback Port 3081
+Create `/etc/systemd/system/dsh-orchestrator.service`:
 ```ini
 [Unit]
-Description=CopyMonster DSH Multi-Tenant Account Orchestrator (Backend)
-After=network.target copymonster.service
+Description=CopyMonster DSH Headless Orchestrator
+After=network.target
 
 [Service]
 Type=simple
 User=root
-WorkingDirectory=/opt/dsh-server-login
-EnvironmentFile=/etc/dsh-server-login/.env
-ExecStart=/usr/local/bin/node dist/cli.js serve
+WorkingDirectory=/opt/copymonster-dsh-server-login
+Environment=NODE_ENV=production
+Environment=PORT=3081
+Environment=HOST=127.0.0.1
+Environment=DSH_SERVER_LOGIN_ISOLATION_MODE=account
+Environment=DSH_SERVER_LOGIN_PORT_GUARD=true
+Environment=DSH_SERVER_LOGIN_BASE_DOMAIN=app.copymonster.co
+Environment=DSH_SERVER_LOGIN_COOKIE_DOMAIN=.app.copymonster.co
+Environment=DSH_SERVER_LOGIN_BASE_UID=100000
+Environment=DSH_SERVER_LOGIN_DATA_ROOT=/var/lib/copymonster-dsh
+EnvironmentFile=-/opt/copymonster-dsh-server-login/.env
+ExecStart=/usr/bin/node dist/src/cli.js serve
 Restart=always
 RestartSec=5
 LimitNOFILE=65536
@@ -173,202 +351,34 @@ WantedBy=multi-user.target
 
 ---
 
-## 5. Passo 3: Configuração do Cloudflare Tunnel (Roteamento de Borda)
+## 6. Security Verification & Isolation Testing Protocol
 
-O arquivo `/etc/cloudflared/config.yml` deve segregar de forma estrita o tráfego do App Principal e dos Subdomínios de Usuários:
-
-```yaml
-tunnel: <TUNNEL_UUID>
-credentials-file: /root/.cloudflared/<TUNNEL_UUID>.json
-
-ingress:
-  # -------------------------------------------------------------
-  # 1. APP PRINCIPAL (CopyMonster SaaS): Landing, Login, Onboarding, DNA
-  # -------------------------------------------------------------
-  - hostname: app.copymonster.co
-    service: http://127.0.0.1:3080
-    originRequest:
-      http2Origin: true
-      noTLSVerify: true
-
-  # -------------------------------------------------------------
-  # 2. SUBDOMÍNIOS ISOLADOS (*.app.copymonster.co): Instâncias DSH dos Usuários
-  # -------------------------------------------------------------
-  - hostname: "*.app.copymonster.co"
-    service: http://127.0.0.1:3081
-    originRequest:
-      http2Origin: true
-      noTLSVerify: true
-
-  # -------------------------------------------------------------
-  # 3. FALLBACK OBRIGATÓRIO (Qualquer outro tráfego não reconhecido)
-  # -------------------------------------------------------------
-  - service: http_status:404
+### 6.1 Test A: Filesystem Hard Isolation
+```bash
+# Executed as User A (UID 100001)
+su - dsh_tenant_a -c "ls -la /home/dsh_tenant_b"
+# Expected outcome: Permission denied (Exit code 1)
 ```
 
-### DNS no Cloudflare Dashboard
-Garantir duas entradas CNAME apontando para o túnel (`<TUNNEL_UUID>.cfargotunnel.com`):
-1. `app.copymonster.co` -> CNAME `<TUNNEL_UUID>.cfargotunnel.com` (com Proxy ativo ☁️).
-2. `*.app.copymonster.co` -> CNAME `<TUNNEL_UUID>.cfargotunnel.com` (com Proxy ativo ☁️).
+### 6.2 Test B: Network & Port Guard Isolation
+```bash
+# Executed as User A (UID 100001) attempting to reach User B's internal DSH port
+su - dsh_tenant_a -c "curl -I http://127.0.0.1:31002"
+# Expected outcome: Connection refused / Operation not permitted (blocked by iptables OUTPUT owner-match guard)
+```
+
+### 6.3 Test C: Marketplace Plugin Isolation
+Install an untrusted community plugin from Market (7.2k ecosystem) inside Tenant A's workspace.
+- The plugin executes under UID `100001`.
+- Any attempt to write to `/etc`, `/var`, `/root`, or `/home/dsh_tenant_b` fails immediately with `EACCES`.
+- Host system and neighboring tenants remain completely intact.
 
 ---
 
-## 6. Passo 4: Supressão do Desktop do `dsh-server-login` e Proxy Transparente
+## 7. Approval & Governance Sign-Off
 
-O arquivo `web/desktop.html` do `dsh-server-login` nunca mais será exibido para nenhum usuário. A experiência será 100% contínua e sem telas intermediárias.
-
-### 6.1 Análise do Problema no Código Atual
-No código nativo do `dsh-server-login`:
-- `web/index.html` e `web/login.html` executam `location.href = '/desktop.html'`.
-- `web/desktop.html` exibe uma janela estilo SO em chinês onde o usuário precisa manualmente clicar em "启动 DSH" e depois em "打开 DSH ↗" para que uma nova aba abra `https://<username>.app.copymonster.co`.
-- Se o usuário acessar `<username>.app.copymonster.co` e a instância estiver parada, o hook em `src/supervisor/proxy.ts` retorna status `404 not_running`.
-
-### 6.2 Solução Arquitetural: Auto-Launch e Bypass Headless
-
-1. **Eliminação do Desktop:**
-   - Desabilitar a rota e o arquivo `/desktop.html`. O orquestrador não serve interface gráfica própria de desktop.
-2. **Auto-Launch no Subdomínio:**
-   - No `onRequest` do arquivo `src/supervisor/proxy.ts`: quando o usuário autenticado acessa `https://<username>.app.copymonster.co/`:
-     - Se a instância DSH do usuário já estiver ativa, o proxy HTTP e WebSocket encaminha a requisição imediatamente para `127.0.0.1:<PORTA_DSH_DO_USUARIO>`.
-     - Se a instância DSH **não** estiver ativa (`not_running`), o orquestrador não retorna 404. Ele executa automaticamente `app.supervisor.launch(user.id, userHome)` em segundo plano e serve uma tela de transição ultra-rápida e elegante (com a identidade Dark/Gold do CopyMonster): *"Iniciando seu ambiente seguro CopyMonster..."*.
-     - Assim que o socket local do DSH responde (normalmente 1 a 2 segundos), a página faz reload automático e entra direto na interface do DSH/CopyMonster.
-3. **Ponto de Acesso a partir do SaaS:**
-   - No painel do CopyMonster (`app.copymonster.co`), quando o assinante clica em "Abrir Workspace de Copy" ou "Executar Agente de Lançamento", o app simplesmente redireciona o navegador para `https://<username>.app.copymonster.co/`.
-   - Como o cookie de sessão do Supabase/orquestrador é compartilhado no domínio `.app.copymonster.co`, o usuário entra direto no ambiente sem qualquer fricção.
-
----
-
-## 7. Passo 5: Especificação Clara dos Dados para Criação de Nova Conta
-
-Esta seção responde detalhadamente e sem ambiguidades à solicitação:
-> *"Quais dados precisam ser solicitados para criação de nova conta do usuario sendo que antes o supabase solicitava nome e email. Isso deve ser claro."*
-
-### 7.1 A Necessidade Técnica do "Username / Subdomínio"
-No Supabase Auth tradicional, bastavam:
-- **Nome Completo** (`full_name`)
-- **E-mail** (`email`)
-- **Senha** (`password`)
-
-No entanto, a arquitetura de **isolamento por conta Linux (`account`)** e **subdomínio dedicado (`<username>.app.copymonster.co`)** impõe três restrições técnicas inegociáveis:
-1. **Padrão de Nome de Usuário Linux (`useradd`):** O sistema operacional exige nomes de usuário minúsculos, alfanuméricos, sem acentos, sem espaços e sem caracteres especiais (`regex: ^[a-z0-9][a-z0-9_-]{2,30}$`). O comando `useradd -u 100001 dsh-adriano` falha se houver espaços ou caracteres inválidos.
-2. **Padrão DNS RFC 1123 (Subdomínios):** Nomes de subdomínio só aceitam letras minúsculas, números e hífens. Não aceitam arroba (`@`), pontos (`.`) ou sublinhados (`_`).
-3. **Proteção contra Nomes Reservados:** Usuários não podem registrar subdomínios como `app`, `api`, `admin`, `root`, `www`, `dsh`, `copymonster`, `mail`, `static`, etc., pois quebrariam o roteamento global.
-
----
-
-### 7.2 Definição dos Dados a Solicitar: As Duas Abordagens Possíveis
-
-Apresentamos as duas estratégias viáveis para decisão do proprietário do SaaS:
-
-#### Opção A (Recomendada: Menor Atrito de Conversão + Auto-Slug no Onboarding)
-*Esta opção mantém a taxa de conversão máxima na página de cadastro e resolve o subdomínio no Onboarding do CopyMonster.*
-
-1. **Tela de Cadastro (Página de Registro):**
-   - **Nome Completo** (ex: `Adriano Vieira`)
-   - **E-mail** (ex: `adrianovp@gmail.com`)
-   - **Senha** (mínimo 8 caracteres)
-2. **Geração Automática do Slug no Backend do CopyMonster:**
-   - O sistema gera automaticamente um slug limpo a partir do e-mail (ou nome): `adrianovp@gmail.com` -> `adrianovp`.
-   - Se houver colisão de nomes, anexa um sufixo numérico incremental (ex: `adrianovp2`).
-3. **Confirmação Visual no Onboarding (Passo 1 do CopyMonster):**
-   - Durante o onboarding (onde o usuário define sua marca e Brand DNA), o CopyMonster exibe o campo já pré-preenchido para aprovação do assinante:
-     ```text
-     ┌─────────────────────────────────────────────────────────────────┐
-     │ Seu Endereço Seguro de Workspace:                               │
-     │ https:// [ adrianovp           ] .app.copymonster.co            │
-     │ (Você pode personalizar agora. Apenas letras minúsculas e números)│
-     └─────────────────────────────────────────────────────────────────┘
-     ```
-   - O assinante pode confirmar ou alterar seu slug antes de salvar.
-
-#### Opção B (Campo Explícito no Cadastro)
-*Esta opção solicita todos os dados já no primeiro formulário de registro.*
-
-1. **Tela de Cadastro (Formulário Direto):**
-   - **Nome Completo**
-   - **E-mail de Trabalho**
-   - **Seu Subdomínio / Workspace** (ex: `adrianovp` gerando `adrianovp.app.copymonster.co`)
-   - **Senha**
-2. **Validação em Tempo Real no Formulário:**
-   - Feedback instantâneo via debounce checando se o username está disponível no banco e se respeita o formato `^[a-z0-9][a-z0-9-]{2,28}[a-z0-9]$`.
-
----
-
-### 7.3 Tabela de Campos e Mapeamento de Banco de Dados
-
-| Campo Solicitado | Obrigatório | Regras de Validação | Onde é Salvo | Uso no Sistema |
-|---|---|---|---|---|
-| **E-mail** | Sim | Formato de e-mail RFC 5322 válido; bloqueio de descartáveis | `auth.users(email)`, `public.users(email)` | Login, recuperação de senha e notificações Stripe |
-| **Nome Completo** | Sim | 2 a 100 caracteres | `public.users(full_name)` | Exibição no cabeçalho do CopyMonster, faturas e perfil |
-| **Senha** | Sim | Mínimo 8 caracteres, complexidade padrão | `auth.users(encrypted_password)` | Autenticação criptografada no Supabase |
-| **Username (Slug do Subdomínio)** | Sim (auto-gerado na Opção A ou digitado na Opção B) | `3` a `30` caracteres; apenas `[a-z0-9-]`; não pode iniciar/terminar com hífen; blacklist de slugs reservados | `public.users(username)`, `dsh-server-login.db(username)` | Criação da conta Linux (`dsh-<username>`), diretório `/home/dsh-<username>` e subdomínio `https://<username>.app.copymonster.co` |
-
-#### Lista de Slugs Reservados (Blacklist Obrigatória):
-`admin`, `administrator`, `api`, `app`, `assets`, `auth`, `billing`, `cdn`, `cloud`, `copymonster`, `dashboard`, `dev`, `dns`, `docs`, `dsh`, `ftp`, `help`, `internal`, `login`, `mail`, `orchestrator`, `payment`, `portal`, `root`, `signup`, `smtp`, `ssl`, `staging`, `static`, `status`, `stripe`, `support`, `system`, `test`, `tunnel`, `vpn`, `webhook`, `www`.
-
----
-
-## 8. Passo 6: Garantia de Autenticação Supabase (SSO e Sincronização)
-
-O Supabase Auth permanece como a autoridade central e soberana de identidade de todo o negócio CopyMonster.
-
-### 8.1 Fluxo de Login Unificado (Single Sign-On)
-1. O usuário acessa `https://app.copymonster.co/login` e insere e-mail e senha.
-2. O app CopyMonster autentica contra o Supabase (`supabase.auth.signInWithPassword()`), obtendo o JWT de acesso.
-3. O app CopyMonster aciona o endpoint de sessão do orquestrador local (`http://127.0.0.1:3081/api/auth/session-token`) passando o token Supabase verificado.
-4. O orquestrador valida o token via Supabase Auth e emite o cookie de sessão `sid`:
-   ```http
-   Set-Cookie: sid=<token-criptografado>; Domain=.app.copymonster.co; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000
-   ```
-5. **Resultado SSO:** Como o cookie é emitido para o domínio pai wildcard (`.app.copymonster.co`), quando o usuário navega entre `app.copymonster.co` e `https://<username>.app.copymonster.co`, o cookie viaja automaticamente.
-6. O orquestrador na porta 3081 recebe o cookie, valida a sessão e encaminha o tráfego diretamente para a instância DSH do usuário correspondente, sem solicitar senha novamente.
-
-### 8.2 Provisionamento Automático da Conta Linux no Primeiro Login
-1. Ao concluir o onboarding ou no primeiro acesso ao workspace, o serviço de provisionamento é acionado:
-   ```bash
-   /usr/local/bin/dsh-provision.sh <username> <uid>
-   ```
-2. O script executa:
-   ```bash
-   useradd -u <uid> -m -d /home/dsh-<username> -s /usr/sbin/nologin dsh-<username>
-   chmod 700 /home/dsh-<username>
-   mkdir -p /home/dsh-<username>/workspace /home/dsh-<username>/.dsh
-   chown -R dsh-<username>:dsh-<username> /home/dsh-<username>
-   ```
-3. O orquestrador registra o usuário como `active` no seu banco SQLite local e fica apto a lançar o processo DSH daquele usuário via `setpriv --reuid=<uid> --regid=<uid> --clear-groups`.
-
----
-
-## 9. Matriz de Riscos, Dependências e Mitigação
-
-| Risco Identificado | Impacto | Nível | Mitigação Arquitetural |
-|---|---|---|---|
-| Novo conflito de portas | Derrubada do SaaS CopyMonster | Crítico | Segregação estrita: porta 3080 exclusiva para `copymonster.service`; porta 3081 exclusiva para `dsh-orchestrator.service`. Ingress do Cloudflare Tunnel isola os hostnames. |
-| Colisão de nomes de subdomínio | Falha no provisionamento Linux | Alto | Checagem de unicidade em `public.users(username)` + blacklist de palavras reservadas + sufixo numérico automático em caso de duplicidade. |
-| Sobrecarga de memória RAM com muitos DSHs simultâneos | Lentidão ou instabilidade no VPS | Médio | Configurar idle timeout no orquestrador: se o usuário ficar 30 minutos sem atividade no WebSocket, a instância DSH é desligada graciosamente (`app.supervisor.stop()`). No próximo acesso, auto-launch restaura em 1-2 segundos. |
-| Permissões incorretas no diretório home | Plugins acessando arquivos de vizinhos | Alto | `chmod 700` obrigatório no diretório `/home/dsh-<username>`. Processos rodam via `setpriv` com UID `>= 100000` estrito. Port Guard bloqueia conexões loopback a outras portas. |
-| Executáveis Node e DSH restritos ao root | Erro de permissão no spawn do DSH | Médio | Garantir Node.js e DSH instalados em caminhos com permissão global de leitura e execução (`/usr/local/bin`), nunca dentro de `/root`. |
-
----
-
-## 10. Cronograma de Execução e Estimativa de Esforço
-
-| Fase | Ação | Responsável | Esforço Estimado |
-|---|---|---|---|
-| **Fase 1** | **Restauração Imediata da Produção:** Parar `dsh-server-login`, reiniciar `copymonster.service` na 3080 e confirmar acesso a `app.copymonster.co`. | Operador / VPS | 10 a 15 minutos |
-| **Fase 2** | **Reconfiguração do Cloudflare Tunnel:** Atualizar ingress rules separando `app.copymonster.co` (:3080) e `*.app.copymonster.co` (:3081). | Operador / VPS | 15 minutos |
-| **Fase 3** | **Ajuste de Código no Repositório do Orquestrador:** Suprimir `desktop.html`, implementar auto-launch no proxy de subdomínio e configurar porta padrão 3081. | OpenCode / Repositório | 1 a 2 horas |
-| **Fase 4** | **Ajuste de UI/Onboarding no CopyMonster:** Garantir geração/validação do `username` (slug) no cadastro/onboarding conforme Opção A. | OpenCode / Repositório | 1 hora |
-| **Fase 5** | **Deploy e Validação em Staging/Produção:** Subir `dsh-orchestrator.service` na porta 3081, testar criação de conta, auto-launch de subdomínio e testes de isolamento de rede/arquivos. | Operador + OpenCode | 1 hora |
-
----
-
-## 11. Conclusão e Próximo Passo
-
-Este plano de solução resolve de forma definitiva e elegante todos os pontos críticos levantados:
-1. **O app principal CopyMonster volta a ser soberano e exclusivo na porta 3080**, sem risco de derrubadas ou conflitos.
-2. **O desktop do `dsh-server-login` é totalmente eliminado**, garantindo que o cliente viva uma experiência fluida, sem telas intermediárias nem botões manuais.
-3. **O isolamento de SO por conta Linux e Port Guard continua intacto nos bastidores**, permitindo a liberação futura dos 7.2k plugins do Market com segurança real.
-4. **Fica explicitado exatamente quais dados devem ser solicitados no cadastro** (Nome, E-mail, Senha e definição de Username/Slug de subdomínio).
-
-> **Aguardando aprovação:** Nenhuma alteração de código ou configuração em produção/VPS será realizada até a validação e autorização do proprietário do SaaS.
+- [x] **Direction Approved:** Hard Linux account isolation (`setpriv`, UID 100000+).
+- [x] **Port Separation:** Primary SaaS strictly on `3080`; Orchestrator strictly on `3081`.
+- [x] **Sign-Up Integration:** Username / Subdomain field placed directly into initial registration form.
+- [x] **Language Standard:** Full architectural and execution documentation maintained in English.
+- [ ] **Implementation Phase Gate:** Review code for deliverables 1–4 before applying production changes.

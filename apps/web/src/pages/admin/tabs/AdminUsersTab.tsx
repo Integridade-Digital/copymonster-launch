@@ -101,7 +101,7 @@ export function AdminUsersTab() {
 
   const loadKPIs = useCallback(async () => {
     try {
-      const { data, error } = await supabase.rpc('get_admin_users_kpis' as never, {})
+      const { data, error } = await supabase.rpc('get_admin_users_kpis')
       if (error) throw error
       if (data) {
         const raw = Array.isArray(data) ? data[0] : data
@@ -141,7 +141,7 @@ export function AdminUsersTab() {
         params.p_tenant_id = selectedTenant
       }
 
-      const { data, error: rpcError } = await supabase.rpc('get_admin_users' as never, params)
+      const { data, error: rpcError } = await supabase.rpc('get_admin_users', params)
 
       if (rpcError) throw rpcError
 
@@ -255,7 +255,7 @@ export function AdminUsersTab() {
     setModalFeedback(null)
 
     try {
-      const { error: rpcError } = await supabase.rpc('admin_update_user_role' as never, {
+      const { error: rpcError } = await supabase.rpc('admin_update_user_role', {
         p_membership_id: activeActionUser.membership_id,
         p_new_role: selectedNewRole,
       })
@@ -284,7 +284,7 @@ export function AdminUsersTab() {
     const nextStatus = activeActionUser.user_status === 'suspended' ? 'active' : 'suspended'
 
     try {
-      const { error: rpcError } = await supabase.rpc('admin_toggle_user_status' as never, {
+      const { error: rpcError } = await supabase.rpc('admin_toggle_user_status', {
         p_user_id: activeActionUser.user_id,
         p_new_status: nextStatus,
       })

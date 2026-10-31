@@ -272,6 +272,46 @@ export interface Database {
         Args: { p_mapping_id: string; p_new_name: string };
         Returns: PositioningMappingRow;
       };
+      get_admin_users_kpis: {
+        Args: Record<string, never>;
+        Returns: { total_users: number; total_owners: number; total_admins: number; total_members: number; total_suspended: number }[];
+      };
+      get_admin_users: {
+        Args: { p_limit: number; p_offset: number; p_search?: string; p_role?: string; p_status?: string; p_tenant_id?: string };
+        Returns: { user_id: string; email: string; full_name: string | null; membership_id: string | null; tenant_id: string | null; tenant_name: string | null; tenant_slug: string | null; role: string | null; user_status: string; created_at: string; total_count?: number }[];
+      };
+      admin_update_user_role: {
+        Args: { p_membership_id: string; p_new_role: 'owner' | 'admin' | 'member' };
+        Returns: boolean;
+      };
+      admin_toggle_user_status: {
+        Args: { p_user_id: string; p_new_status: 'active' | 'suspended' };
+        Returns: boolean;
+      };
+      get_admin_system_config: {
+        Args: Record<string, never>;
+        Returns: { key: string; value: unknown; description: string | null; is_secret: boolean; updated_at: string; updated_by: string | null; updated_by_email: string | null }[];
+      };
+      get_admin_workspaces: {
+        Args: Record<string, never>;
+        Returns: { id: string; workspace_id: string; title: string; relative_path: string; tenant_id: string; tenant_name: string; user_id: string; user_email: string | null; created_at: string; updated_at: string }[];
+      };
+      get_admin_storage_paths: {
+        Args: Record<string, never>;
+        Returns: { paths: { workspaces_root: string; uploads_root: string; logs_root: string }; workspaces: Array<{ id: string; workspace_id: string; title: string; relative_path: string; full_path: string; tenant_id: string; tenant_name: string; created_at: string }> };
+      };
+      admin_upsert_system_config: {
+        Args: { p_key: string; p_value: unknown; p_description: string | null; p_is_secret: boolean };
+        Returns: boolean;
+      };
+      admin_delete_system_config: {
+        Args: { p_key: string };
+        Returns: boolean;
+      };
+      admin_delete_workspace: {
+        Args: { p_id: string };
+        Returns: boolean;
+      };
     };
     Enums: Record<string, never>;
     CompositeTypes: Record<string, never>;

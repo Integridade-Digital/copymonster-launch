@@ -89,21 +89,21 @@ export function AdminSystemTab() {
     setError(null)
     try {
       const [configsRes, workspacesRes, storageRes] = await Promise.all([
-        supabase.rpc('get_admin_system_config' as never),
-        supabase.rpc('get_admin_workspaces' as never),
-        supabase.rpc('get_admin_storage_paths' as never),
+        supabase.rpc('get_admin_system_config'),
+        supabase.rpc('get_admin_workspaces'),
+        supabase.rpc('get_admin_storage_paths'),
       ])
 
       if (configsRes.error) throw new Error(configsRes.error.message)
       if (workspacesRes.error) throw new Error(workspacesRes.error.message)
       if (!storageRes.error && storageRes.data) {
-        setStorageData(storageRes.data as unknown as StoragePathsData)
+        setStorageData(storageRes.data)
       } else if (storageRes.error) {
         console.warn('get_admin_storage_paths ainda não disponível ou erro:', storageRes.error.message)
       }
 
-      setConfigs(configsRes.data as unknown as SystemConfigItem[] || [])
-      setWorkspaces(workspacesRes.data as unknown as WorkspaceItem[] || [])
+      setConfigs(configsRes.data || [])
+      setWorkspaces(workspacesRes.data || [])
     } catch (err: unknown) {
       console.error('Error ao carregar configurações do sistema:', err)
       setError(err instanceof Error ? err.message : 'Falha ao buscar configurações do sistema e workspaces.')
@@ -219,7 +219,7 @@ export function AdminSystemTab() {
     }
 
     try {
-      const { error: saveErr } = await supabase.rpc('admin_upsert_system_config' as never, {
+      const { error: saveErr } = await supabase.rpc('admin_upsert_system_config', {
         p_key: item.key,
         p_value: nextValue,
         p_description: item.description,
@@ -255,7 +255,7 @@ export function AdminSystemTab() {
 
     setIsMutating(true)
     try {
-      const { error: saveErr } = await supabase.rpc('admin_upsert_system_config' as never, {
+      const { error: saveErr } = await supabase.rpc('admin_upsert_system_config', {
         p_key: key,
         p_value: parsedValue,
         p_description: formDescription.trim() || null,
@@ -278,7 +278,7 @@ export function AdminSystemTab() {
     setIsMutating(true)
     setFormError(null)
     try {
-      const { error: delErr } = await supabase.rpc('admin_delete_system_config' as never, {
+      const { error: delErr } = await supabase.rpc('admin_delete_system_config', {
         p_key: selectedConfig.key,
       })
       if (delErr) throw new Error(delErr.message)
@@ -298,7 +298,7 @@ export function AdminSystemTab() {
     setIsMutating(true)
     setFormError(null)
     try {
-      const { error: archErr } = await supabase.rpc('admin_delete_workspace' as never, {
+      const { error: archErr } = await supabase.rpc('admin_delete_workspace', {
         p_id: selectedWorkspace.id,
       })
       if (archErr) throw new Error(archErr.message)

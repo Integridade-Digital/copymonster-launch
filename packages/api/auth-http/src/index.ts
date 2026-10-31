@@ -35,6 +35,12 @@ export { handleCheckout, handlePortal, handleWebhook, readRawBody, verifyStripeS
 export { handleHealthz, HEALTHZ_PATH } from './health.ts'
 export { handleLlmTest, LLM_TEST_PATH, type LlmTestResult } from './llm-test.ts'
 export { SESSION_TOKEN_PATH, handleSessionToken } from './session-token.ts'
+export {
+  SESSION_MAX_AGE_SECONDS,
+  signSessionCookie,
+  verifySessionCookie,
+  type SignedSession,
+} from './session-token.ts'
 
 /** Stable Cordis plugin name. */
 export const name = 'auth-http'

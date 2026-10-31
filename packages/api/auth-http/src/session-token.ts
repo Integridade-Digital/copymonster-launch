@@ -1,5 +1,5 @@
 /**
- * SSO session token exchange: validates a Supabase JWT and issues a session cookie.
+ * SSO session token exchange: validates a Supabase JWT and issues a signed session cookie.
  *
  * POST /api/auth/session-token
  * - Authorization: Bearer <supabase-jwt>
@@ -9,14 +9,17 @@
  * caller's own JWT, never a username supplied in the request body.
  *
  * Validation order:
- * 1. `SUPABASE_JWT_SECRET` must be configured; otherwise the route fails closed with 500.
- * 2. HS256 tokens are verified locally (signature, `aud=authenticated`, `exp`).
- *    Asymmetric tokens are verified by Supabase at `/auth/v1/user`, which is the
- *    authoritative check for algorithms that do not use the shared secret.
+ * 1. `SESSION_SECRET` must be configured; otherwise the route fails closed with 500.
+ * 2. When `SUPABASE_JWT_SECRET` is configured, HS256 tokens are also verified
+ *    locally (signature, `aud=authenticated`, `exp`). Tokens are always verified
+ *    by Supabase at `/auth/v1/user`, which remains the authoritative check for
+ *    asymmetric algorithms and for HS256 when no local secret is configured.
  * 3. The local `sub` must match the user returned by `/auth/v1/user`.
  * 4. `get_my_profile()` must resolve a tenant slug owned by that same `sub`.
  * 5. The local user row is keyed by `supabase_sub`, so one Supabase identity can
  *    never claim another identity's username or workspace directory.
+ * 6. The issued cookie carries an HMAC-SHA256 signature over its payload so the
+ *    orchestrator can reject forged or tampered session cookies.
  * @module @deepseek-ai/dsh-api-auth-http/session-token
  */
 
@@ -25,17 +28,29 @@ import type { Context } from '@deepseek-ai/cordis'
 import { DatabaseSync } from 'node:sqlite'
 import { mkdir, open } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
+import { createHmac, timingSafeEqual } from 'node:crypto'
 import { bearerToken } from './bearer-token.ts'
 import { SESSION_COOKIE_NAME } from '@deepseek-ai/dsh-constants'
 import { decodeJwt, decodeProtectedHeader, jwtVerify, type JWTPayload } from 'jose'
 
 export const SESSION_TOKEN_PATH = '/api/auth/session-token'
 
+/** Lifetime of a signed session cookie, matching the cookie `Max-Age`. */
+export const SESSION_MAX_AGE_SECONDS = 2592000
+
 interface SessionTokenResponse {
   success: boolean
   error?: string
   supabase_sub?: string
   username?: string
+}
+
+/** Claims carried inside a signed session cookie. */
+export interface SignedSession {
+  userId: number
+  supabaseSub: string
+  username: string
+  issuedAt: number
 }
 
 interface SupabaseUserResponse {
@@ -76,18 +91,89 @@ function getConfig() {
     SUPABASE_URL: baseUrl,
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
     SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET,
+    SESSION_SECRET: process.env.SESSION_SECRET,
     COOKIE_DOMAIN: process.env.SESSION_COOKIE_DOMAIN ?? '.app.copymonster.co',
     COOKIE_SECURE: process.env.SESSION_COOKIE_SECURE !== 'false',
     DB_PATH: process.env.LOCAL_USER_DB_PATH ?? '/var/lib/copymonster/users.db',
   }
 }
 
-function requireJwtSecret(): string {
-  const secret = process.env.SUPABASE_JWT_SECRET
-  if (secret === undefined || secret === '') {
-    throw new Error('SUPABASE_JWT_SECRET is required but not set in environment')
+function requireSessionSecret(): string {
+  const secret = process.env.SESSION_SECRET
+  if (secret === undefined || secret.length < 32) {
+    throw new Error('SESSION_SECRET must be set to at least 32 characters')
   }
   return secret
+}
+
+function hmac(payload: string, secret: string): Buffer {
+  return createHmac('sha256', secret).update(payload).digest()
+}
+
+/**
+ * Sign the session payload into a tamper-evident cookie value.
+ *
+ * The value is `<base64url(payload)>.<base64url(HMAC-SHA256)>`. The orchestrator
+ * must verify it with {@link verifySessionCookie} using the same `SESSION_SECRET`
+ * before trusting `username` or `supabaseSub`.
+ * @param session - identity claims to sign.
+ * @param secret - `SESSION_SECRET` shared with the cookie consumer.
+ * @returns the signed cookie value.
+ */
+export function signSessionCookie(session: SignedSession, secret: string): string {
+  const payload = Buffer.from(JSON.stringify({
+    u: session.userId,
+    s: session.supabaseSub,
+    n: session.username,
+    iat: session.issuedAt,
+  })).toString('base64url')
+  return `${payload}.${hmac(payload, secret).toString('base64url')}`
+}
+
+/**
+ * Verify and decode a signed session cookie value.
+ *
+ * Rejects malformed values, MAC mismatches, unknown payload fields, and cookies
+ * older than {@link SESSION_MAX_AGE_SECONDS}. Comparison uses `timingSafeEqual`.
+ * @param value - raw cookie value from the request.
+ * @param secret - `SESSION_SECRET` shared with the signer.
+ * @param now - clock override in epoch seconds, for tests.
+ * @returns the trusted session claims, or `null` when verification fails.
+ */
+export function verifySessionCookie(
+  value: string,
+  secret: string,
+  now: number = Math.floor(Date.now() / 1000),
+): SignedSession | null {
+  const separator = value.lastIndexOf('.')
+  if (separator <= 0 || separator === value.length - 1) return null
+
+  const payload = value.slice(0, separator)
+  const provided = Buffer.from(value.slice(separator + 1), 'base64url')
+  const expected = hmac(payload, secret)
+  if (provided.length !== expected.length || !timingSafeEqual(provided, expected)) return null
+
+  let decoded: unknown
+  try {
+    decoded = JSON.parse(Buffer.from(payload, 'base64url').toString('utf8'))
+  } catch {
+    return null
+  }
+
+  if (typeof decoded !== 'object' || decoded === null) return null
+  const record = decoded as Record<string, unknown>
+  const userId = record.u
+  const supabaseSub = record.s
+  const username = record.n
+  const issuedAt = record.iat
+
+  if (typeof userId !== 'number' || !Number.isSafeInteger(userId)) return null
+  if (typeof supabaseSub !== 'string' || supabaseSub === '') return null
+  if (typeof username !== 'string' || username === '') return null
+  if (typeof issuedAt !== 'number' || !Number.isSafeInteger(issuedAt)) return null
+  if (issuedAt > now || now - issuedAt > SESSION_MAX_AGE_SECONDS) return null
+
+  return { userId, supabaseSub, username, issuedAt }
 }
 
 async function getDatabase(): Promise<DatabaseSync> {
@@ -133,16 +219,17 @@ function hasAuthenticatedAudience(payload: JWTPayload): boolean {
 /**
  * Verify a Supabase token locally when it is HS256 and decode its claims otherwise.
  *
- * HS256 tokens are verified against `SUPABASE_JWT_SECRET` with audience and issuer
- * checks, and `jose` enforces expiration. Asymmetric tokens are not verified here:
- * the Supabase `/auth/v1/user` response is their authoritative validation, so this
- * function only decodes claims to enforce `aud` and require `sub`.
+ * HS256 tokens are verified against `SUPABASE_JWT_SECRET` when that secret is
+ * configured, with audience and issuer checks, and `jose` enforces expiration.
+ * When the secret is absent, or for asymmetric algorithms, only the claims are
+ * decoded here: the Supabase `/auth/v1/user` response is the authoritative
+ * signature and expiration check, so this function enforces `aud` and `sub`.
  * @param token - raw bearer token.
- * @param secret - configured `SUPABASE_JWT_SECRET`.
+ * @param secret - configured `SUPABASE_JWT_SECRET`, or undefined when absent.
  * @param supabaseUrl - normalized Supabase project URL.
  * @returns the verified payload, or `null` when validation fails.
  */
-async function verifyToken(token: string, secret: string, supabaseUrl: string): Promise<JWTPayload | null> {
+async function verifyToken(token: string, secret: string | undefined, supabaseUrl: string): Promise<JWTPayload | null> {
   let algorithm: string
   try {
     algorithm = decodeProtectedHeader(token).alg ?? ''
@@ -151,7 +238,7 @@ async function verifyToken(token: string, secret: string, supabaseUrl: string): 
   }
 
   try {
-    if (algorithm === 'HS256') {
+    if (algorithm === 'HS256' && secret !== undefined && secret !== '') {
       const { payload } = await jwtVerify(token, new TextEncoder().encode(secret), {
         algorithms: ['HS256'],
         audience: 'authenticated',
@@ -259,16 +346,16 @@ async function upsertLocalUser(username: string, supabaseSub: string, email: str
   }
 }
 
-function setSessionCookie(res: ServerResponse, sessionId: string): void {
+function setSessionCookie(res: ServerResponse, signedValue: string): void {
   const config = getConfig()
   const cookieParts = [
-    `${SESSION_COOKIE_NAME}=${sessionId}`,
+    `${SESSION_COOKIE_NAME}=${signedValue}`,
     'Path=/',
     `Domain=${config.COOKIE_DOMAIN}`,
     'HttpOnly',
     'SameSite=Lax',
     config.COOKIE_SECURE ? 'Secure' : '',
-    'Max-Age=2592000',
+    `Max-Age=${SESSION_MAX_AGE_SECONDS}`,
   ].filter(Boolean).join('; ')
 
   res.setHeader('Set-Cookie', cookieParts)
@@ -280,13 +367,14 @@ function sendJson(res: ServerResponse, status: number, body: SessionTokenRespons
 }
 
 /**
- * Handle `POST /api/auth/session-token`: exchange a Supabase JWT for a local session cookie.
+ * Handle `POST /api/auth/session-token`: exchange a Supabase JWT for a signed session cookie.
  *
- * Fails closed when `SUPABASE_JWT_SECRET` is missing, rejects identity mismatches,
- * and resolves the destination username only from `get_my_profile().tenant.slug`.
+ * Fails closed when `SESSION_SECRET` is missing or too short, rejects identity
+ * mismatches, and resolves the destination username only from
+ * `get_my_profile().tenant.slug`.
  * @param _ctx - plugin Context; the route needs no service dependency.
  * @param req - incoming HTTP request carrying the bearer token.
- * @param res - response to write with the session cookie or an error body.
+ * @param res - response to write with the signed session cookie or an error body.
  * @returns a promise that settles after the response ends.
  */
 export async function handleSessionToken(_ctx: Context, req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -301,9 +389,9 @@ export async function handleSessionToken(_ctx: Context, req: IncomingMessage, re
     return
   }
 
-  let secret: string
+  let sessionSecret: string
   try {
-    secret = requireJwtSecret()
+    sessionSecret = requireSessionSecret()
   } catch {
     sendJson(res, 500, { success: false, error: 'server-misconfigured' })
     return
@@ -315,7 +403,7 @@ export async function handleSessionToken(_ctx: Context, req: IncomingMessage, re
     return
   }
 
-  const payload = await verifyToken(token, secret, config.SUPABASE_URL)
+  const payload = await verifyToken(token, config.SUPABASE_JWT_SECRET, config.SUPABASE_URL)
   if (!payload || !payload.sub) {
     sendJson(res, 401, { success: false, error: 'invalid-or-expired-token' })
     return
@@ -362,8 +450,13 @@ export async function handleSessionToken(_ctx: Context, req: IncomingMessage, re
     throw error
   }
 
-  const sessionId = `${localUser.id}:${supabaseUser.id}:${Date.now()}`
-  setSessionCookie(res, sessionId)
+  const signed = signSessionCookie({
+    userId: localUser.id,
+    supabaseSub: supabaseUser.id,
+    username,
+    issuedAt: Math.floor(Date.now() / 1000),
+  }, sessionSecret)
+  setSessionCookie(res, signed)
   sendJson(res, 200, { success: true, supabase_sub: supabaseUser.id, username })
 }
 

@@ -13,13 +13,20 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Context } from '@deepseek-ai/cordis'
-import { handleSessionToken, clearDatabaseForTesting } from '../src/session-token.ts'
+import {
+  handleSessionToken,
+  clearDatabaseForTesting,
+  signSessionCookie,
+  verifySessionCookie,
+  SESSION_MAX_AGE_SECONDS,
+} from '../src/session-token.ts'
 import { SESSION_COOKIE_NAME } from '@deepseek-ai/dsh-constants'
 import { SignJWT, generateKeyPair } from 'jose'
 
 const SUPABASE_URL = 'https://test.supabase.co'
 const SUPABASE_ANON_KEY = 'test-anon-key'
 const SUPABASE_JWT_SECRET = 'test-jwt-secret-at-least-32-chars-long'
+const SESSION_SECRET = 'test-session-secret-at-least-32-chars'
 
 interface MockUser {
   id: string
@@ -112,6 +119,7 @@ describe('POST /api/auth/session-token security tests', () => {
     vi.stubEnv('SUPABASE_URL', SUPABASE_URL)
     vi.stubEnv('SUPABASE_ANON_KEY', SUPABASE_ANON_KEY)
     vi.stubEnv('SUPABASE_JWT_SECRET', SUPABASE_JWT_SECRET)
+    vi.stubEnv('SESSION_SECRET', SESSION_SECRET)
     vi.stubEnv('SESSION_COOKIE_DOMAIN', '.app.copymonster.co')
     vi.stubEnv('SESSION_COOKIE_SECURE', 'false')
     vi.stubEnv('LOCAL_USER_DB_PATH', ':memory:')
@@ -126,8 +134,8 @@ describe('POST /api/auth/session-token security tests', () => {
     vi.restoreAllMocks()
   })
 
-  it('returns 500 when SUPABASE_JWT_SECRET is not configured', async () => {
-    vi.stubEnv('SUPABASE_JWT_SECRET', '')
+  it('returns 500 when SESSION_SECRET is not configured', async () => {
+    vi.stubEnv('SESSION_SECRET', '')
     const fetchSpy = vi.spyOn(global, 'fetch')
 
     const req = createMockReq('POST', { authorization: 'Bearer any-token' })
@@ -140,6 +148,32 @@ describe('POST /api/auth/session-token security tests', () => {
     expect(body.success).toBe(false)
     expect(body.error).toBe('server-misconfigured')
     expect(fetchSpy).not.toHaveBeenCalled()
+  })
+
+  it('returns 500 when SESSION_SECRET is too short', async () => {
+    vi.stubEnv('SESSION_SECRET', 'short')
+    const req = createMockReq('POST', { authorization: 'Bearer any-token' })
+    const res = createMockRes()
+
+    await handleSessionToken(ctx, req, res)
+
+    expect(res._status).toBe(500)
+    const body = JSON.parse(res._body)
+    expect(body.error).toBe('server-misconfigured')
+  })
+
+  it('accepts HS256 via Supabase when SUPABASE_JWT_SECRET is not configured', async () => {
+    vi.stubEnv('SUPABASE_JWT_SECRET', '')
+    const user: MockUser = { id: 'supabase-user-id-optional', email: 'optional@example.com' }
+    const jwt = await createValidJWT(user)
+    mockSupabase(user, { user: { id: user.id }, tenant: { slug: 'optional' } })
+
+    const res = createMockRes()
+    await handleSessionToken(ctx, createMockReq('POST', { authorization: `Bearer ${jwt}` }), res)
+
+    expect(res._status).toBe(200)
+    const body = JSON.parse(res._body)
+    expect(body.username).toBe('optional')
   })
 
   it('returns 401 for a JWT signed with the wrong secret', async () => {
@@ -276,13 +310,68 @@ describe('POST /api/auth/session-token security tests', () => {
     expect(body.supabase_sub).toBe(user.id)
     expect(body.username).toBe('canonical')
 
-    const setCookie = res.getHeader('set-cookie')
+    const setCookie = res.getHeader('set-cookie') ?? ''
     expect(setCookie).toBeDefined()
     expect(setCookie).toContain(`${SESSION_COOKIE_NAME}=`)
     expect(setCookie).toContain('Domain=.app.copymonster.co')
     expect(setCookie).toContain('HttpOnly')
     expect(setCookie).toContain('SameSite=Lax')
-    expect(setCookie).toContain('Max-Age=2592000')
+    expect(setCookie).toContain(`Max-Age=${SESSION_MAX_AGE_SECONDS}`)
+
+    const cookieValue = setCookie.split(';')[0]?.slice(`${SESSION_COOKIE_NAME}=`.length) ?? ''
+    expect(cookieValue).toContain('.')
+    const verified = verifySessionCookie(cookieValue, SESSION_SECRET)
+    expect(verified).not.toBeNull()
+    expect(verified?.supabaseSub).toBe(user.id)
+    expect(verified?.username).toBe('canonical')
+  })
+
+  it('rejects a forged cookie whose payload MAC does not match', async () => {
+    const user: MockUser = { id: 'supabase-user-id-1', email: 'user1@example.com' }
+    const jwt = await createValidJWT(user)
+    mockSupabase(user, { user: { id: user.id }, tenant: { slug: 'canonical' } })
+    const res = createMockRes()
+    await handleSessionToken(ctx, createMockReq('POST', { authorization: `Bearer ${jwt}` }), res)
+
+    const setCookie = res.getHeader('set-cookie') ?? ''
+    const original = setCookie.split(';')[0]?.slice(`${SESSION_COOKIE_NAME}=`.length) ?? ''
+    const [payload, mac] = original.split('.')
+    const forgedPayload = Buffer.from(JSON.stringify({
+      u: 1,
+      s: 'supabase-user-id-1',
+      n: 'victim',
+      iat: Math.floor(Date.now() / 1000),
+    })).toString('base64url')
+
+    expect(verifySessionCookie(`${forgedPayload}.${mac}`, SESSION_SECRET)).toBeNull()
+    expect(verifySessionCookie(`${payload}.${mac}`, SESSION_SECRET)).not.toBeNull()
+  })
+
+  it('rejects a cookie signed with a different secret', async () => {
+    const value = signSessionCookie(
+      { userId: 1, supabaseSub: 'sub', username: 'user', issuedAt: Math.floor(Date.now() / 1000) },
+      'another-secret-at-least-32-characters',
+    )
+
+    expect(verifySessionCookie(value, SESSION_SECRET)).toBeNull()
+  })
+
+  it('rejects an expired signed cookie', async () => {
+    const now = Math.floor(Date.now() / 1000)
+    const value = signSessionCookie(
+      { userId: 1, supabaseSub: 'sub', username: 'user', issuedAt: now - SESSION_MAX_AGE_SECONDS - 1 },
+      SESSION_SECRET,
+    )
+
+    expect(verifySessionCookie(value, SESSION_SECRET, now)).toBeNull()
+  })
+
+  it('rejects malformed signed cookie values', () => {
+    expect(verifySessionCookie('', SESSION_SECRET)).toBeNull()
+    expect(verifySessionCookie('no-separator', SESSION_SECRET)).toBeNull()
+    expect(verifySessionCookie('payload.', SESSION_SECRET)).toBeNull()
+    expect(verifySessionCookie('.mac', SESSION_SECRET)).toBeNull()
+    expect(verifySessionCookie('bm90LWpzb24=.AAAA', SESSION_SECRET)).toBeNull()
   })
 
   it('binds each Supabase sub to its own local user on repeat login', async () => {

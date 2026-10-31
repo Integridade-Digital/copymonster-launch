@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { SettingsProvider } from '../src/index.ts'
 import SettingsController from '../src/index.ts'
+
+interface MockSettingsProvider {
+  writable: boolean
+  documentPath: string
+  describe: () => Array<{ ns: string; writable: boolean; schema: unknown; layers: unknown[] }>
+  write?: (ns: string, value: unknown) => Promise<{ ns: string; writable: boolean; value: unknown }>
+}
 
 describe('Settings & Credentials RBAC isolation', () => {
   it('permite que administradores listem e alterem configurações', async () => {
@@ -15,7 +21,7 @@ describe('Settings & Credentials RBAC isolation', () => {
       ],
       write: () => Promise.resolve({ ns: 'llm-pi-ai', writable: true, value: {} }),
     }
-    ctx.provide<SettingsProvider>('settings', mockProvider)
+    ctx.provide<MockSettingsProvider>('settings', mockProvider)
     await ctx.plugin(SettingsController)
 
     ctx.provide('authIdentity', {
@@ -41,7 +47,7 @@ describe('Settings & Credentials RBAC isolation', () => {
       ],
       write: () => Promise.resolve({ ns: 'llm-pi-ai', writable: true, value: {} }),
     }
-    ctx.provide<SettingsProvider>('settings', mockProvider)
+    ctx.provide<MockSettingsProvider>('settings', mockProvider)
     await ctx.plugin(SettingsController)
 
     ctx.provide('authIdentity', {
@@ -66,7 +72,7 @@ describe('Settings & Credentials RBAC isolation', () => {
         { ns: 'llm-pi-ai', writable: true, schema: {}, layers: [] },
       ],
     }
-    ctx.provide<SettingsProvider>('settings', mockProvider)
+    ctx.provide<MockSettingsProvider>('settings', mockProvider)
     await ctx.plugin(SettingsController)
 
     ctx.provide('authIdentity', {
@@ -96,7 +102,7 @@ describe('Settings & Credentials RBAC isolation', () => {
         { ns: 'llm-pi-ai', writable: true, schema: {}, layers: [] },
       ],
     }
-    ctx.provide<SettingsProvider>('settings', mockProvider)
+    ctx.provide<MockSettingsProvider>('settings', mockProvider)
     await ctx.plugin(SettingsController)
 
     const described = ctx.settingsController.describe()

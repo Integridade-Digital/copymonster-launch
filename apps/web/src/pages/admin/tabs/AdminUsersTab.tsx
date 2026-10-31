@@ -123,14 +123,14 @@ export function AdminUsersTab() {
     setError(null)
     try {
       const offset = (currentPage - 1) * pageSize
-      const params = {
+      const params: Record<string, unknown> = {
         p_limit: pageSize,
         p_offset: offset,
-        p_search: debouncedSearch || undefined,
-        p_role: selectedRole || undefined,
-        p_status: selectedStatus || undefined,
-        p_tenant_id: selectedTenant || undefined,
       }
+      if (debouncedSearch) params.p_search = debouncedSearch
+      if (selectedRole) params.p_role = selectedRole
+      if (selectedStatus) params.p_status = selectedStatus
+      if (selectedTenant) params.p_tenant_id = selectedTenant
 
       const { data, error: rpcError } = await supabase.rpc('get_admin_users', params)
 
@@ -162,7 +162,7 @@ export function AdminUsersTab() {
       }))
 
       setUsers(list)
-      const count = data && data.length > 0 && 'total_count' in data[0] ? Number(data[0].total_count ?? 0) : 0
+      const count = data && data.length > 0 && data[0] && 'total_count' in data[0] && data[0].total_count !== undefined ? Number(data[0].total_count) : 0
       setTotalCount(count)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)

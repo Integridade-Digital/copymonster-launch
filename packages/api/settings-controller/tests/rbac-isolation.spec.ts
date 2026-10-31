@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
-import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
+import { SettingsProvider } from '../src/index.ts'
 import SettingsController from '../src/index.ts'
 
 describe('Settings & Credentials RBAC isolation', () => {
@@ -15,7 +15,7 @@ describe('Settings & Credentials RBAC isolation', () => {
       ],
       write: () => Promise.resolve({ ns: 'llm-pi-ai', writable: true, value: {} }),
     }
-    ctx.provide('settings', mockProvider as any)
+    ctx.provide<SettingsProvider>('settings', mockProvider)
     await ctx.plugin(SettingsController)
 
     ctx.provide('authIdentity', {
@@ -41,7 +41,7 @@ describe('Settings & Credentials RBAC isolation', () => {
       ],
       write: () => Promise.resolve({ ns: 'llm-pi-ai', writable: true, value: {} }),
     }
-    ctx.provide('settings', mockProvider as any)
+    ctx.provide<SettingsProvider>('settings', mockProvider)
     await ctx.plugin(SettingsController)
 
     ctx.provide('authIdentity', {
@@ -66,7 +66,7 @@ describe('Settings & Credentials RBAC isolation', () => {
         { ns: 'llm-pi-ai', writable: true, schema: {}, layers: [] },
       ],
     }
-    ctx.provide('settings', mockProvider as any)
+    ctx.provide<SettingsProvider>('settings', mockProvider)
     await ctx.plugin(SettingsController)
 
     ctx.provide('authIdentity', {
@@ -96,7 +96,7 @@ describe('Settings & Credentials RBAC isolation', () => {
         { ns: 'llm-pi-ai', writable: true, schema: {}, layers: [] },
       ],
     }
-    ctx.provide('settings', mockProvider as any)
+    ctx.provide<SettingsProvider>('settings', mockProvider)
     await ctx.plugin(SettingsController)
 
     const described = ctx.settingsController.describe()

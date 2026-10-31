@@ -123,29 +123,32 @@ export function AdminUsersTab() {
     setError(null)
     try {
       const offset = (currentPage - 1) * pageSize
-      const params: Record<string, unknown> = {
+      const params = {
         p_limit: pageSize,
         p_offset: offset,
-      }
-
-      if (debouncedSearch) {
-        params.p_search = debouncedSearch
-      }
-      if (selectedRole) {
-        params.p_role = selectedRole
-      }
-      if (selectedStatus) {
-        params.p_status = selectedStatus
-      }
-      if (selectedTenant) {
-        params.p_tenant_id = selectedTenant
+        p_search: debouncedSearch || undefined,
+        p_role: selectedRole || undefined,
+        p_status: selectedStatus || undefined,
+        p_tenant_id: selectedTenant || undefined,
       }
 
       const { data, error: rpcError } = await supabase.rpc('get_admin_users', params)
 
       if (rpcError) throw rpcError
 
-      const list: AdminUserRow[] = (data || []).map((row: Record<string, unknown>) => ({
+      const list: AdminUserRow[] = (data || []).map((row: {
+        user_id: string
+        email: string
+        full_name: string | null
+        membership_id: string | null
+        tenant_id: string | null
+        tenant_name: string | null
+        tenant_slug: string | null
+        role: string | null
+        user_status: string
+        created_at: string
+        total_count?: number
+      }) => ({
         user_id: row.user_id,
         email: row.email,
         full_name: row.full_name,
@@ -159,7 +162,7 @@ export function AdminUsersTab() {
       }))
 
       setUsers(list)
-      const count = data && data.length > 0 ? Number(data[0].total_count ?? 0) : 0
+      const count = data && data.length > 0 && 'total_count' in data[0] ? Number(data[0].total_count ?? 0) : 0
       setTotalCount(count)
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)

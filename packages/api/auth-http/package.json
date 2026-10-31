@@ -38,7 +38,8 @@
     "@deepseek-ai/dsh-api-auth-context": "workspace:*",
     "@deepseek-ai/dsh-constants": "workspace:*",
     "@deepseek-ai/dsh-host-webserver": "workspace:*",
-    "@deepseek-ai/dsh-supabase-client": "workspace:*"
+    "@deepseek-ai/dsh-supabase-client": "workspace:*",
+    "jose": "^6.2.3"
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "*",

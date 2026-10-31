@@ -1411,6 +1411,9 @@ importers:
       '@deepseek-ai/dsh-supabase-client':
         specifier: workspace:*
         version: link:../../server/supabase-client
+      jose:
+        specifier: ^6.2.3
+        version: 6.2.3
     devDependencies:
       '@deepseek-ai/cordis':
         specifier: workspace:^

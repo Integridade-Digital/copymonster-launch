@@ -28,11 +28,13 @@ import { handleCheckout, handlePortal, handleWebhook } from './billing.ts'
 import { HEALTHZ_PATH, handleHealthz } from './health.ts'
 import { LLM_TEST_PATH, handleLlmTest } from './llm-test.ts'
 import { AUTOMATION_RPC_CHANNEL, guardAutomationModel } from './automation-model-guard.ts'
+import { SESSION_TOKEN_PATH, handleSessionToken } from './session-token.ts'
 
 export type { AuthErrorResponse, AuthIdentityResponse } from './types.ts'
 export { handleCheckout, handlePortal, handleWebhook, readRawBody, verifyStripeSignature } from './billing.ts'
 export { handleHealthz, HEALTHZ_PATH } from './health.ts'
 export { handleLlmTest, LLM_TEST_PATH, type LlmTestResult } from './llm-test.ts'
+export { SESSION_TOKEN_PATH, handleSessionToken } from './session-token.ts'
 
 /** Stable Cordis plugin name. */
 export const name = 'auth-http'
@@ -168,6 +170,12 @@ export function apply(ctx: Context): void {
     path: BILLING_WEBHOOK_PATH,
     handler: (req: IncomingMessage, res: ServerResponse) => { handleWebhook(ctx, req, res) },
   }), `auth-http: ${BILLING_WEBHOOK_PATH}`)
+
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: SESSION_TOKEN_PATH,
+    handler: (req: IncomingMessage, res: ServerResponse) => handleSessionToken(ctx, req, res),
+  }), `auth-http: ${SESSION_TOKEN_PATH}`)
 
   ctx.effect(
     () => ctx.connection.rpc.guard(AUTOMATION_RPC_CHANNEL, (request, endpoint, payload) =>

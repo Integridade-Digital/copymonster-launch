@@ -123,7 +123,14 @@ export function AdminUsersTab() {
     setError(null)
     try {
       const offset = (currentPage - 1) * pageSize
-      const params: Record<string, unknown> = {
+      const params: {
+        p_limit: number
+        p_offset: number
+        p_search?: string
+        p_role?: string
+        p_status?: string
+        p_tenant_id?: string
+      } = {
         p_limit: pageSize,
         p_offset: offset,
       }

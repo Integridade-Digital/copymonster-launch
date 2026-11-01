@@ -134,8 +134,8 @@ body {
 .auth-logo {
   display: block;
   margin: 0 auto 1rem auto;
-  max-width: 180px;
-  width: auto;
+  max-width: 240px;
+  width: 100%;
   height: auto;
 }
 
@@ -153,7 +153,7 @@ body {
 
 .cm-auth-title {
   margin: 0;
-  font-size: 1.5rem;
+  font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.015em;
   color: var(--cm-auth-text);

@@ -345,6 +345,27 @@ function HostBootUnavailable() {
  * sidebar.footer.action (FooterActionsRoot), seguindo o padrão Settings (estado local + overlay).
  */
 function AuthenticatedWorkspace() {
+  const [loginNotice, setLoginNotice] = React.useState(() => {
+    try {
+      const notice = sessionStorage.getItem('cm_onboarding_username_required') === '1'
+        ? 'Your account does not have a workspace username yet. Complete onboarding to set one.'
+        : sessionStorage.getItem('cm_isolated_session_failed') === '1'
+          ? 'Your workspace session could not be prepared. Please try signing in again or contact support.'
+          : null
+      return notice
+    } catch { return null }
+  })
+
+  React.useEffect(() => {
+    if (loginNotice === null) return
+    try {
+      sessionStorage.removeItem('cm_onboarding_username_required')
+      sessionStorage.removeItem('cm_isolated_session_failed')
+    } catch {}
+    const timeout = window.setTimeout(() => setLoginNotice(null), 10000)
+    return () => window.clearTimeout(timeout)
+  }, [loginNotice])
+
   React.useEffect(() => {
     if (typeof window === 'undefined') return
     const path = window.location.pathname
@@ -383,6 +404,12 @@ function AuthenticatedWorkspace() {
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%', overflow: 'hidden' }}>
+      {loginNotice !== null && (
+        <div className="cm-auth-alert" role="status" style={{ position: 'absolute', zIndex: 10000, top: 16, left: '50%', transform: 'translateX(-50%)', maxWidth: 'min(600px, calc(100% - 32px))' }}>
+          {loginNotice}
+          <button type="button" onClick={() => setLoginNotice(null)} aria-label="Dismiss" style={{ marginLeft: 12 }}>×</button>
+        </div>
+      )}
       <WebAppErrorBoundary>
         <React.Suspense fallback={<WorkspaceBootProgress />}>
           <LazyWebApp />

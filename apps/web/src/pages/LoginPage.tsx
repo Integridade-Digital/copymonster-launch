@@ -29,8 +29,25 @@ export function LoginPage() {
       const tenantSlug = profile?.tenant?.slug
 
       if (tenantSlug) {
-        window.location.href = 'https://' + tenantSlug + '.copymonster.co/'
+        const { data: sessionData } = await supabaseClient.auth.getSession()
+        const accessToken = sessionData.session?.access_token
+        if (!accessToken) throw new Error('Could not establish an authenticated session.')
+
+        // The host exchanges this Supabase JWT for its signed, parent-domain
+        // cookie before we cross to the isolated tenant subdomain.
+        const sessionResponse = await fetch('/api/auth/session-token', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${accessToken}` },
+          credentials: 'same-origin',
+        })
+        if (!sessionResponse.ok) {
+          try { sessionStorage.setItem('cm_isolated_session_failed', '1') } catch {}
+          navigate('/')
+          return
+        }
+        window.location.href = `https://${tenantSlug}.copymonster.co/`
       } else {
+        try { sessionStorage.setItem('cm_onboarding_username_required', '1') } catch {}
         navigate('/')
       }
     } catch (err: unknown) {

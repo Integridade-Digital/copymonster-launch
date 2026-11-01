@@ -11,6 +11,7 @@ export function RegisterPage() {
 
   const [formData, setFormData] = useState({
     fullName: '',
+    username: '',
     email: '',
     whatsapp: '',
     password: '',
@@ -23,6 +24,7 @@ export function RegisterPage() {
   const [isResending, setIsResending] = useState(false)
   const [cooldown, setCooldown] = useState(0)
   const [resendFeedback, setResendFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
+  const [slugAvailability, setSlugAvailability] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'error'>('idle')
 
   // Signup always opens dark, regardless of the stored or system preference.
   useEffect(() => {
@@ -31,16 +33,54 @@ export function RegisterPage() {
   }, [])
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value })
+    const { name, value } = e.target
+    setFormData(current => ({ ...current, [name]: name === 'username' ? value.toLowerCase() : value }))
+    if (name === 'username') setSlugAvailability('idle')
     setError(null)
   }
+
+  useEffect(() => {
+    const slug = formData.username.trim()
+    if (!slug) {
+      setSlugAvailability('idle')
+      return
+    }
+    const slugRegex = /^[a-z0-9][a-z0-9-]{2,28}[a-z0-9]$/
+    if (!slugRegex.test(slug)) {
+      setSlugAvailability('invalid')
+      return
+    }
+
+    let cancelled = false
+    setSlugAvailability('checking')
+    const timeout = setTimeout(async () => {
+      try {
+        const { data, error: rpcError } = await supabaseClient.rpc('is_tenant_slug_available', { p_slug: slug })
+        if (rpcError) throw rpcError
+        if (!cancelled) setSlugAvailability(data ? 'available' : 'taken')
+      } catch {
+        if (!cancelled) setSlugAvailability('error')
+      }
+    }, 300)
+
+    return () => {
+      cancelled = true
+      clearTimeout(timeout)
+    }
+  }, [formData.username])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
 
-    if (!formData.fullName || !formData.email || !formData.whatsapp || !formData.password) {
+    if (!formData.fullName || !formData.username || !formData.email || !formData.whatsapp || !formData.password) {
       setError('Please fill in all required fields')
+      return
+    }
+
+    const slugRegex = /^[a-z0-9][a-z0-9-]{2,28}[a-z0-9]$/
+    if (!slugRegex.test(formData.username) || slugAvailability !== 'available') {
+      setError(slugAvailability === 'taken' ? 'This username is already in use.' : 'Enter an available username using 4–30 lowercase letters, numbers, or hyphens.')
       return
     }
 
@@ -68,6 +108,7 @@ export function RegisterPage() {
         formData.password,
         formData.fullName,
         formData.whatsapp,
+        formData.username,
       )
 
       if (signUpError) throw signUpError
@@ -175,6 +216,25 @@ export function RegisterPage() {
           </div>
 
           <div className="cm-auth-field">
+            <label htmlFor="username" className="cm-auth-label">Username / Workspace URL</label>
+            <input
+              id="username" name="username" type="text" required autoComplete="username"
+              minLength={4} maxLength={30} pattern="[a-z0-9][a-z0-9-]{2,28}[a-z0-9]"
+              value={formData.username} onChange={handleChange}
+              className="cm-auth-input" placeholder="your-workspace"
+              aria-describedby="username-status"
+            />
+            <span id="username-status" className="cm-auth-hint" aria-live="polite">
+              {slugAvailability === 'checking' && 'Checking availability…'}
+              {slugAvailability === 'available' && `Available: ${formData.username}.copymonster.co`}
+              {slugAvailability === 'taken' && 'This username is already in use.'}
+              {slugAvailability === 'invalid' && 'Use 4–30 lowercase letters, numbers, or hyphens; start and end with a letter or number.'}
+              {slugAvailability === 'error' && 'Could not verify availability. Please try again.'}
+              {slugAvailability === 'idle' && 'Your workspace will be at username.copymonster.co.'}
+            </span>
+          </div>
+
+          <div className="cm-auth-field">
             <label htmlFor="email" className="cm-auth-label">Email</label>
             <input
               id="email" name="email" type="email" autoComplete="email" required
@@ -212,7 +272,7 @@ export function RegisterPage() {
             />
           </div>
 
-          <button type="submit" disabled={isLoading} className="cm-auth-button">
+          <button type="submit" disabled={isLoading || slugAvailability !== 'available'} className="cm-auth-button">
             {isLoading ? 'Creating account…' : 'Create account'}
           </button>
 

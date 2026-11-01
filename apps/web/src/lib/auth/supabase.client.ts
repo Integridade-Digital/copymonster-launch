@@ -244,6 +244,10 @@ export interface Database {
         Args: Record<string, never>;
         Returns: MyProfileResult;
       };
+      is_tenant_slug_available: {
+        Args: { p_slug: string };
+        Returns: boolean;
+      };
       list_my_positioning_mappings: {
         Args: Record<string, never>;
         Returns: PositioningMappingRow[];
@@ -374,7 +378,7 @@ export interface AuthContextType {
   authError?: Error | null;
   retryAuth?: () => Promise<void>;
   signIn: (email: string, password: string) => Promise<{ error: Error | null }>;
-  signUp: (email: string, password: string, fullName: string, whatsapp: string) => Promise<{ error: Error | null }>;
+  signUp: (email: string, password: string, fullName: string, whatsapp: string, username: string) => Promise<{ error: Error | null }>
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<{ error: Error | null }>;
   updateUser: (data: Partial<AuthUser>) => Promise<{ error: Error | null }>;

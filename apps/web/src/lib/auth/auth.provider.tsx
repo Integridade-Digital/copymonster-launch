@@ -161,12 +161,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     password: string,
     fullName: string,
     whatsapp: string,
+    username: string,
   ): Promise<{ error: Error | null }> => {
     try {
       const { error } = await supabaseClient.auth.signUp({
         email,
         password,
-        options: { data: { full_name: fullName, whatsapp } },
+        options: { data: { full_name: fullName, whatsapp, username } },
       });
       if (error) throw error;
       return { error: null };

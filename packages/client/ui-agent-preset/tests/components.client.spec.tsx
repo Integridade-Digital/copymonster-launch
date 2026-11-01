@@ -107,11 +107,11 @@ describe('the new-session chip', () => {
 
     fireEvent.click(screen.getByRole('button'))
     expect(screen.getAllByRole('menuitem')).toHaveLength(enabled ? 5 : 3)
-    expect(screen.getByRole('menuitem', { name: /^Standard mode/ })).toBeTruthy()
+    expect(screen.getByRole('menuitem', { name: new RegExp(`^${en.presetStandardName}`) })).toBeTruthy()
     expect(screen.getByRole('menuitem', { name: /^mine/ })).toBeTruthy()
-    expect(screen.queryByRole('menuitem', { name: /^PTC mode/ }) !== null).toBe(enabled)
-    expect(screen.queryByRole('menuitem', { name: /^Minimal mode/ }) !== null).toBe(enabled)
-    fireEvent.click(screen.getByRole('menuitem', { name: /^Creator mode/ }))
+    expect(screen.queryByRole('menuitem', { name: new RegExp(`^${en.presetPtcName}`) }) !== null).toBe(enabled)
+    expect(screen.queryByRole('menuitem', { name: new RegExp(`^${en.presetMinimalName}`) }) !== null).toBe(enabled)
+    fireEvent.click(screen.getByRole('menuitem', { name: new RegExp(`^${en.presetCordisName}`) }))
     expect(actions.select).toHaveBeenCalledWith('cordis')
   })
 

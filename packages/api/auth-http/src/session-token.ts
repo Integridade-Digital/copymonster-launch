@@ -92,7 +92,7 @@ function getConfig() {
     SUPABASE_ANON_KEY: process.env.SUPABASE_ANON_KEY,
     SUPABASE_JWT_SECRET: process.env.SUPABASE_JWT_SECRET,
     SESSION_SECRET: process.env.SESSION_SECRET,
-    COOKIE_DOMAIN: process.env.SESSION_COOKIE_DOMAIN ?? '.app.copymonster.co',
+    COOKIE_DOMAIN: process.env.SESSION_COOKIE_DOMAIN ?? '.copymonster.co',
     COOKIE_SECURE: process.env.SESSION_COOKIE_SECURE !== 'false',
     DB_PATH: process.env.LOCAL_USER_DB_PATH ?? '/var/lib/copymonster/users.db',
   }

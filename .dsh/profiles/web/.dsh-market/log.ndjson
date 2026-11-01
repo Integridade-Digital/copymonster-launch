@@ -7,3 +7,17 @@
 {"at":"2026-10-27T00:37:38.278Z","level":"info","event":"find-compatible","detail":"dsh-better-sidebar: host=0.1.6-alpha.2, after=0.19.0 → 0.19.1"}
 {"at":"2026-10-28T19:00:34.518Z","level":"info","event":"region","detail":"download region set to china"}
 {"at":"2026-10-28T19:00:36.743Z","level":"info","event":"region","detail":"download region set to global"}
+{"at":"2026-11-01T18:46:09.721Z","level":"info","event":"update-start","detail":"@xmanrui/dsh-im -> @xmanrui/dsh-im@5.9.1 (profile web)"}
+{"at":"2026-11-01T18:46:36.872Z","level":"info","event":"install","detail":"removed 5 quarantined dir(s) from node_modules/.ignored: @changfenhuang/dsh-genui, @michengai/dsh-automation, dsh-preview-plugin, …"}
+{"at":"2026-11-01T18:47:48.789Z","level":"info","event":"channel","detail":"release channel set to beta"}
+{"at":"2026-11-01T18:47:51.574Z","level":"info","event":"channel","detail":"release channel set to dev"}
+{"at":"2026-11-01T18:47:54.235Z","level":"info","event":"update-rollback","detail":"@xmanrui/dsh-im: restored npm build v5.7.0"}
+{"at":"2026-11-01T18:47:54.235Z","level":"error","event":"update","detail":"@xmanrui/dsh-im: trial validation failed — @deepseek-ai/dsh-experimental-agent-team-web-profile: bundle package is not installed — the profile will fail to boot; previous build restored"}
+{"at":"2026-11-01T18:47:54.243Z","level":"error","event":"update","detail":"@xmanrui/dsh-im -> @xmanrui/dsh-im@5.9.1 exit=0 err=… Exact-version exemption: not active.dsh: it stays installed but profile startup denies it until you grant an exemption for those exact versions."}
+{"at":"2026-11-01T18:47:54.980Z","level":"info","event":"update-start","detail":"@changfenhuang/dsh-genui -> @changfenhuang/dsh-genui@0.15.0 (profile web)"}
+{"at":"2026-11-01T18:48:55.460Z","level":"info","event":"update-rollback","detail":"@changfenhuang/dsh-genui: restored npm build v0.14.0"}
+{"at":"2026-11-01T18:48:55.462Z","level":"error","event":"update","detail":"@changfenhuang/dsh-genui: trial validation failed — @deepseek-ai/dsh-experimental-agent-team-web-profile: bundle package is not installed — the profile will fail to boot; previous build restored"}
+{"at":"2026-11-01T18:48:55.473Z","level":"error","event":"update","detail":"@changfenhuang/dsh-genui -> @changfenhuang/dsh-genui@0.15.0 exit=0 err=… Exact-version exemption: not active.dsh: it stays installed but profile startup denies it until you grant an exemption for those exact versions."}
+{"at":"2026-11-01T18:48:56.193Z","level":"info","event":"update-start","detail":"@michengai/dsh-automation -> @michengai/dsh-automation@1.0.13 (profile web)"}
+{"at":"2026-11-01T18:49:29.671Z","level":"error","event":"update","detail":"@michengai/dsh-automation: trial validation failed — @deepseek-ai/dsh-experimental-agent-team-web-profile: bundle package is not installed — the profile will fail to boot; could not restore previous files: … Pick a compatible version; to install this exact one anyway, grant the host's exact-version exemption for it first (plugin manager, or dsh's allow-version) and retry"}
+{"at":"2026-11-01T18:49:29.681Z","level":"error","event":"update","detail":"@michengai/dsh-automation -> @michengai/dsh-automation@1.0.13 exit=0 err=…33,\"hostname\":\"mail.integridadedigital.com.br\",\"pid\":1433649,\"level\":\"debug\",\"name\":\"pnpm\",\"msg\":\"updating workspace state\"}{\"time\":1793558966652,\"hostname\":\"mail.integridadedigital.com.br\",\"pid\":1433649,\"level\":\"debug\",\"name\":\"pnpm:execution-time\",\"startedAt\":1793558937888,\"endedAt\":1793558966652}"}

@@ -362,6 +362,8 @@ export interface AuthUser {
   whatsapp?: string;
   avatarUrl?: string;
   tenantId?: string;
+  /** Slug público do tenant, usado para abrir o subdomínio isolado. */
+  tenantSlug?: string;
   role?: 'owner' | 'admin' | 'member' | 'anonymous';
   /**
    * Platform-operator flag from `users.metadata.is_admin` (`get_my_profile`).
@@ -432,7 +434,7 @@ export async function getUserFullProfile(userId: string): Promise<AuthUser | nul
       ...full_name === null || full_name === '' ? {} : { fullName: full_name },
       ...whatsapp === null || whatsapp === '' ? {} : { whatsapp },
       ...avatar_url === null || avatar_url === '' ? {} : { avatarUrl: avatar_url },
-      ...data.tenant === null ? {} : { tenantId: data.tenant.id },
+      ...data.tenant === null ? {} : { tenantId: data.tenant.id, tenantSlug: data.tenant.slug },
       role: resolvedRole,
       isAdmin: data.is_admin === true,
     };

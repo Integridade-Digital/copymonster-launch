@@ -21,6 +21,8 @@ export type AgentPresetSettingsKey =
   | 'presetMinimalDescription'
   | 'presetCordisName'
   | 'presetCordisDescription'
+  | 'presetBrandPositioningName'
+  | 'presetBrandPositioningDescription'
   | 'inUse'
   | 'noDescription'
   | 'brokenBadge'
@@ -60,6 +62,9 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   presetCordisDescription:
     'Customize CopyMonster through conversation. Let the agent write plugins that add features or UI, or combine tools and prompts to create your own mode.',
 
+  presetBrandPositioningName: 'Brand Positioning Monster',
+  presetBrandPositioningDescription:
+    'Guided brand positioning mapping agent',
   inUse: 'New task default',
 
   noDescription: 'No description.',
@@ -101,6 +106,9 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   presetCordisName: '创造模式',
   presetCordisDescription: '用对话定制 CopyMonster：让 Agent 编写插件，添加新功能或界面；也能组合工具和提示词，创建自己的模式。',
 
+  presetBrandPositioningName: '品牌定位 Monster',
+  presetBrandPositioningDescription:
+    '引导式品牌定位映射智能体',
   inUse: '新任务默认',
 
   noDescription: '暂无描述。',
@@ -145,6 +153,9 @@ export const ja = {
   'presetMinimalDescription': 'エージェントはターミナルと画像読み取りを使用し、コンテキスト圧縮にも対応します。基本的な性能のテストや比較に役立ちます。',
   'presetCordisName': 'クリエイターモード',
   'presetCordisDescription': '会話を通じて CopyMonster をカスタマイズします。機能や UI を追加するプラグインをエージェントに書かせたり、ツールとプロンプトを組み合わせて独自のモードを作成したりできます。',
+  presetBrandPositioningName: 'ブランドポジショニング Monster',
+  presetBrandPositioningDescription:
+    'ガイド付きブランドポジショニング策定エージェント',
   'inUse': '新しいタスクの既定',
   'noDescription': '説明はありません。',
   'brokenBadge': '読み込みに失敗',
@@ -185,6 +196,9 @@ export const es = {
   presetCordisDescription:
     'Personaliza CopyMonster a través de la conversación. Deje que el agente escriba complementos que agreguen funciones o interfaz de usuario, o combine herramientas e indicaciones para crear su propio modo.',
 
+  presetBrandPositioningName: 'Monster de posicionamiento de marca',
+  presetBrandPositioningDescription:
+    'Agente guiado de mapeo de posicionamiento de marca',
   inUse: 'Nueva tarea predeterminada',
 
   noDescription: 'Sin descripción.',
@@ -230,6 +244,9 @@ export const fr = {
   presetCordisDescription:
     "Personnalisez CopyMonster via la conversation. Laissez l'agent écrire des plugins qui ajoutent des fonctionnalités ou une interface utilisateur, ou combinez des outils et des invites pour créer votre propre mode.",
 
+  presetBrandPositioningName: 'Monster de positionnement de marque',
+  presetBrandPositioningDescription:
+    'Agent guidé de cartographie du positionnement de marque',
   inUse: 'Nouvelle tâche par défaut',
 
   noDescription: 'Aucune description.',
@@ -275,6 +292,9 @@ export const de = {
   presetCordisDescription:
     'Passen Sie CopyMonster durch Gespräche an. Lassen Sie den Agenten Plugins schreiben, die Funktionen oder Benutzeroberflächen hinzufügen, oder kombinieren Sie Tools und Eingabeaufforderungen, um Ihren eigenen Modus zu erstellen.',
 
+  presetBrandPositioningName: 'Brand-Positioning-Monster',
+  presetBrandPositioningDescription:
+    'Geführter Agent zur Markenpositionierung',
   inUse: 'Neuer Aufgabenstandard',
 
   noDescription: 'Keine Beschreibung.',
@@ -320,6 +340,9 @@ export const ru = {
   presetCordisDescription:
     'Настройте CopyMonster через разговор. Позвольте агенту писать плагины, которые добавляют функции или пользовательский интерфейс, или комбинируйте инструменты и подсказки для создания собственного режима.',
 
+  presetBrandPositioningName: 'Монстр позиционирования бренда',
+  presetBrandPositioningDescription:
+    'Агент пошагового картирования позиционирования бренда',
   inUse: 'Новая задача по умолчанию',
 
   noDescription: 'Нет описания.',
@@ -365,6 +388,9 @@ export const pt = {
   presetCordisDescription:
     'Personalize CopyMonster por meio de conversa. Deixe o agente escrever plug-ins que adicionem recursos ou UI, ou combine ferramentas e prompts para criar seu próprio modo.',
 
+  presetBrandPositioningName: 'Monster de Posicionamento de Marca',
+  presetBrandPositioningDescription:
+    'Agente guiado de mapeamento de posicionamento de marca',
   inUse: 'Novo padrão de tarefa',
 
   noDescription: 'Nenhuma descrição.',

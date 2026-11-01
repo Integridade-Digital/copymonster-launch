@@ -1,6 +1,11 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth, formatAuthError, supabaseClient } from '../lib/auth'
+import {
+  orchestratorSessionEndpoint,
+  readOrchestratorRedirect,
+  WorkspaceSessionError,
+} from '../lib/auth/orchestrator-sso'
 
 /** Existing user login. */
 export function LoginPage() {
@@ -33,25 +38,30 @@ export function LoginPage() {
         const accessToken = sessionData.session?.access_token
         if (!accessToken) throw new Error('Could not establish an authenticated session.')
 
-        // The host exchanges this Supabase JWT for its signed, parent-domain
-        // cookie before we cross to the isolated tenant subdomain.
-        const sessionResponse = await fetch('/api/auth/session-token', {
+        // The orchestrator exchanges this Supabase JWT for its signed,
+        // parent-domain cookie and returns the tenant subdomain to open.
+        const sessionResponse = await fetch(orchestratorSessionEndpoint(tenantSlug), {
           method: 'POST',
-          headers: { Authorization: `Bearer ${accessToken}` },
-          credentials: 'same-origin',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ supabaseJwt: accessToken }),
+          credentials: 'include',
         })
         if (!sessionResponse.ok) {
-          try { sessionStorage.setItem('cm_isolated_session_failed', '1') } catch {}
-          navigate('/')
-          return
+          throw new WorkspaceSessionError('Your workspace session could not be prepared. Please try again or contact support.')
         }
-        window.location.href = `https://${tenantSlug}.copymonster.co/`
+        const redirectUrl = readOrchestratorRedirect(await sessionResponse.json())
+        if (redirectUrl === null) {
+          throw new WorkspaceSessionError('Your workspace session could not be prepared. Please try again or contact support.')
+        }
+        window.location.href = redirectUrl
       } else {
         try { sessionStorage.setItem('cm_onboarding_username_required', '1') } catch {}
         navigate('/')
       }
     } catch (err: unknown) {
-      setError(formatAuthError(err, 'Invalid email or password. Please try again.'))
+      setError(err instanceof WorkspaceSessionError
+        ? err.message
+        : formatAuthError(err, 'Invalid email or password. Please try again.'))
     } finally {
       setIsLoading(false)
     }

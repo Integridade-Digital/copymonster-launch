@@ -1,0 +1,37 @@
+--- a/src/supervisor/proxy.ts	2026-11-01 21:40:51.525233943 +0100
++++ b/src/supervisor/proxy.ts	2026-11-01 21:40:51.611232881 +0100
+@@ -223,6 +223,9 @@
+
+   // Per-user subdomain: HTTP (intercept before normal routing).
+   app.addHook('onRequest', async (request, reply) => {
++    // The SSO exchange is an orchestrator route, not tenant traffic: a caller
++    // without a session cookie must reach it before the proxy's auth check.
++    if ((request.raw.url ?? '').split('?')[0] === '/api/auth/session-token') return
+     const access = await resolveSubdomainAccess(app, clientHost(request.headers), request.headers.cookie)
+     if (access === null) return
+     if ('error' in access) {
+--- a/src/web/routes/auth.ts	2026-11-01 21:40:51.528233906 +0100
++++ b/src/web/routes/auth.ts	2026-11-01 21:40:51.612232869 +0100
+@@ -154,6 +154,22 @@
+ }
+
+ export const authRoutes: FastifyPluginAsync = async (app) => {
++  // The browser login page runs on the main app origin and calls this route on
++  // the tenant subdomain. Both are same-site (one registrable domain), so the
++  // session cookie travels, but the browser still requires CORS for the fetch.
++  app.addHook('onRequest', async (request, reply) => {
++    if ((request.raw.url ?? '').split('?')[0] !== '/api/auth/session-token') return
++    const origin = request.headers.origin
++    if (origin !== `https://app.${app.config.baseDomain}`) return
++    reply.header('access-control-allow-origin', origin)
++    reply.header('access-control-allow-credentials', 'true')
++    reply.header('access-control-allow-headers', 'content-type')
++    reply.header('access-control-allow-methods', 'POST, OPTIONS')
++    reply.header('vary', 'origin')
++  })
++
++  app.options('/api/auth/session-token', async (_request, reply) => reply.code(204).send())
++
+   app.post(
+     '/api/auth/session-token',
+     { schema: sessionTokenSchema, config: { rateLimit: { max: 20, timeWindow: '1 minute' } } },

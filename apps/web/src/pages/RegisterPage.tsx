@@ -25,6 +25,7 @@ export function RegisterPage() {
   const [cooldown, setCooldown] = useState(0)
   const [resendFeedback, setResendFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [slugAvailability, setSlugAvailability] = useState<'idle' | 'checking' | 'available' | 'taken' | 'invalid' | 'error'>('idle')
+  const [acceptedTerms, setAcceptedTerms] = useState(false)
 
   // Signup always opens dark, regardless of the stored or system preference.
   useEffect(() => {
@@ -97,6 +98,11 @@ export function RegisterPage() {
     const whatsappRegex = /^\+[1-9]\d{9,14}$/
     if (!whatsappRegex.test(formData.whatsapp)) {
       setError('WhatsApp must be in international format (e.g. +1234567890)')
+      return
+    }
+
+    if (!acceptedTerms) {
+      setError('You must accept the Terms of Service, AI Policy, and Privacy Policy to create an account.')
       return
     }
 
@@ -268,12 +274,27 @@ export function RegisterPage() {
             />
           </div>
 
-          <button type="submit" disabled={isLoading || slugAvailability !== 'available'} className="cm-auth-button">
+          <label className="auth-legal-checkbox">
+            <input
+              type="checkbox"
+              checked={acceptedTerms}
+              onChange={e => setAcceptedTerms(e.target.checked)}
+              required
+            />
+            <span>
+              I agree to the{' '}
+              <a href="https://copymonster.co/terms/" target="_blank" rel="noopener noreferrer">Terms of Service</a>,{' '}
+              <a href="https://copymonster.co/ai-policy/" target="_blank" rel="noopener noreferrer">AI Policy</a>, and{' '}
+              <a href="https://copymonster.co/privacy/" target="_blank" rel="noopener noreferrer">Privacy Policy</a>.
+            </span>
+          </label>
+
+          <button type="submit" disabled={isLoading || slugAvailability !== 'available' || !acceptedTerms} className="cm-auth-button">
             {isLoading ? 'Creating account…' : 'Create account'}
           </button>
 
           <p className="cm-auth-footer">
-            By creating an account, you agree to the Terms of Service.
+            By creating an account, you agree to the Terms of Service, AI Policy, and Privacy Policy.
           </p>
         </form>
       </div>

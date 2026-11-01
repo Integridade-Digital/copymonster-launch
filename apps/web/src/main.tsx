@@ -13,6 +13,7 @@ import { BrowserRouter, Route, Routes } from 'react-router-dom'
 import type { applyIndexInjections } from '@deepseek-ai/dsh-client-web'
 import { AppWrapper, supabaseClient, useAuth, getUserFullProfile } from './lib/auth'
 import { ensureDshBrowserSession, resolveHostBoot } from './lib/auth/host-boot'
+import { resolveTenantRedirect } from './lib/auth/subdomain-guard'
 import { ProtectedRoute, PublicRoute } from './lib/auth/protected-route'
 import { isPlatformAdmin } from './lib/auth/platform-admin'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
@@ -345,6 +346,21 @@ function HostBootUnavailable() {
  * sidebar.footer.action (FooterActionsRoot), seguindo o padrão Settings (estado local + overlay).
  */
 function AuthenticatedWorkspace() {
+  const { user } = useAuth()
+  const tenantRedirect = React.useMemo(
+    () => resolveTenantRedirect({
+      host: window.location.host,
+      pathname: window.location.pathname,
+      ...user?.tenantSlug === undefined ? {} : { tenantSlug: user.tenantSlug },
+    }),
+    [user?.tenantSlug],
+  )
+
+  React.useEffect(() => {
+    if (tenantRedirect === null) return
+    window.location.replace(tenantRedirect)
+  }, [tenantRedirect])
+
   const [loginNotice, setLoginNotice] = React.useState(() => {
     try {
       const notice = sessionStorage.getItem('cm_onboarding_username_required') === '1'
@@ -399,6 +415,7 @@ function AuthenticatedWorkspace() {
     ensureDshBrowserSession()
   }, [hostBoot])
 
+  if (tenantRedirect !== null) return <WorkspaceBootProgress />
   if (hostBoot === 'unavailable') return <HostBootUnavailable />
   if (hostBoot === 'exchange') return <WorkspaceBootProgress />
 

@@ -428,7 +428,7 @@ export function AdminSystemTab() {
             <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Ambiente & Servidor</h3>
           </div>
           <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 500, background: 'var(--cm-background)', color: 'var(--cm-muted-foreground)', border: '1px solid var(--cm-border)' }}>
-            DSH Web Frontend
+            CopyMonster Web Frontend
           </span>
         </div>
 

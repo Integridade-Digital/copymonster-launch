@@ -104,25 +104,6 @@ function selectionOf(state: ModelDirectoryState, id: string): ModelSelection | u
 /** Dictionary namespace owned by this plugin. */
 const NS = 'model'
 
-/**
- * Whether the published browser session is a platform operator or admin.
- * Fail-closed: a missing session or non-admin flag hides both entries,
- * so regular creators do not see or switch models.
- */
-function isPlatformAdminSession(): boolean {
-  const session = (globalThis as {
-    __DSH_AUTH__?: {
-      accessToken?: string
-      isPlatformAdmin?: boolean
-      isAdmin?: boolean
-      role?: string
-    }
-  }).__DSH_AUTH__
-  if (session?.accessToken === undefined) return false
-  return session.isAdmin === true || session.role === 'owner' || session.role === 'admin'
-}
-
-
 /** Required services: the contribution registry, the seat's slot registry, locale, and the service's own faces. */
 export const inject = ['commandUi', 'locale', 'sessions', 'slots', 'remote', 'remote.session']
 
@@ -151,7 +132,7 @@ export function apply(ctx: ClientContext): void {
       label: () => t('command.label'),
       description: () => t('command.description'),
       icon: IconDataOutline16,
-      available: session => isPlatformAdminSession() && sessions.subagentAddress(session.sessionId) === undefined,
+      available: session => sessions.subagentAddress(session.sessionId) === undefined,
       ui: {
         kind: 'popupSelect',
         searchMode: 'fuzzy-label',
@@ -189,15 +170,15 @@ export function apply(ctx: ClientContext): void {
   ctx.inject(['slots', 'modelDirectories'], (scope: ClientContext) => {
     const models = scope.modelDirectories
     const sessions = scope.sessions
-    scope.effect(() => {
-      const register = (): (() => void) => scope.slots.inject(
+    scope.effect(
+      () => scope.slots.inject(
         'conversation.input.model',
         () => scope.slots.register({
           name: 'conversation.input.model',
           locale: NS,
           children: { 'conversation.input.model.label': { kind: 'single', scope: 'session' } },
           inject: (sessionId): ModelSelectInjected => {
-            const available = isPlatformAdminSession() && sessions.subagentAddress(sessionId) === undefined
+            const available = sessions.subagentAddress(sessionId) === undefined
             const directory = available ? models.directoryFor(sessionId) : undefined
             return {
               available,
@@ -214,19 +195,8 @@ export function apply(ctx: ClientContext): void {
             }
           },
         }, ModelSelect),
-      )
-
-      let dispose = register()
-      const browser = (globalThis as { readonly window?: Window }).window
-      const refreshAuth = (): void => {
-        dispose()
-        dispose = register()
-      }
-      browser?.addEventListener('copymonster:auth', refreshAuth)
-      return () => {
-        browser?.removeEventListener('copymonster:auth', refreshAuth)
-        dispose()
-      }
-    }, 'ui-model-selection: auth-aware composer seat')
+      ),
+      'ui-model-selection: composer seat',
+    )
   })
 }

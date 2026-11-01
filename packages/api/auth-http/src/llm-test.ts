@@ -105,8 +105,8 @@ function resolveTarget(ctx: Context, route: string): ProbeTarget | undefined {
 }
 
 /**
- * Handle `POST /api/admin/llm/test`: authenticate an admin/owner bearer token,
- * resolve the route's key from the vault, and probe `GET {baseURL}/models`.
+ * Handle `POST /api/admin/llm/test`: authenticate a platform-operator bearer
+ * token, resolve the route's key from the vault, and probe `GET {baseURL}/models`.
  * @param ctx - plugin Context carrying `auth`, `settings`, and `credentials`.
  * @param req - the incoming request.
  * @param res - the response to write.
@@ -123,7 +123,7 @@ export async function handleLlmTest(ctx: Context, req: IncomingMessage, res: Ser
     sendJson(res, 401, { error: 'unauthorized' })
     return
   }
-  if (identity.role !== 'admin' && identity.role !== 'owner') {
+  if (identity.isAdmin !== true) {
     sendJson(res, 403, { error: 'forbidden' })
     return
   }

@@ -32,9 +32,6 @@ afterEach(() => { vi.unstubAllGlobals() })
 
 async function bench(mock = RemoteMock.create().load(remoteDefaultResponses), services: object = {}) {
   onTestFinished(() => { mock.assertNoUnmatched() })
-  const carrier = globalThis as { __DSH_AUTH__?: { isAdmin?: boolean } }
-  carrier.__DSH_AUTH__ = { isAdmin: true }
-  onTestFinished(() => { delete carrier.__DSH_AUTH__ })
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   const locale = new LocaleRuntime(ctx)
@@ -119,16 +116,6 @@ describe('ui-settings-models apply', () => {
     ])
   })
 
-  it('registers no admin surface for a non-admin session', async () => {
-    const carrier = globalThis as { __DSH_AUTH__?: { isAdmin?: boolean } }
-    const b = await bench()
-    delete carrier.__DSH_AUTH__
-    declare(b.slots)
-    await b.ctx.plugin({ inject: [...inject], apply }).await()
-    expect(b.slots.entries('settings.section')).toHaveLength(0)
-    expect(b.slots.entries('settings.onboarding')).toHaveLength(0)
-  })
-
   it('registers the models nav entry for declarations before or after apply', async () => {
     const before = await bench()
     declare(before.slots)
@@ -142,6 +129,7 @@ describe('ui-settings-models apply', () => {
     // The nav label is a locale-following thunk; owners resolve at read time.
     expect(resolveSlotLabel(entry.options.label)).toBe('模型')
     const injected = (entry.inject as unknown as () => import('../src/client/ModelsSection.tsx').ModelsSectionInjected)()
+    expect(injected.canManage).toBe(true)
     expect(injected.t('nav')).toBe('模型')
     expect(injected.t('deleteTitle')).toBe('删除 {provider}？')
     expect(typeof injected.controller.load).toBe('function')

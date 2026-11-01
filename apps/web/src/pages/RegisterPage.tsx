@@ -246,9 +246,8 @@ export function RegisterPage() {
             <input
               id="whatsapp" name="whatsapp" type="tel" required
               value={formData.whatsapp} onChange={handleChange}
-              className="cm-auth-input" placeholder="+1234567890"
+              className="cm-auth-input" placeholder="+1234567890 (country code + number)"
             />
-            <span className="cm-auth-hint">Example: +1234567890 (country code + area code + number)</span>
           </div>
 
           <div className="cm-auth-field">
@@ -256,9 +255,8 @@ export function RegisterPage() {
             <input
               id="password" name="password" type="password" autoComplete="new-password" required
               value={formData.password} onChange={handleChange}
-              className="cm-auth-input" placeholder="••••••••"
+              className="cm-auth-input" placeholder="Minimum 8 characters, with 1 number and 1 letter."
             />
-            <span className="cm-auth-hint">Minimum 8 characters, with 1 number and 1 letter.</span>
           </div>
 
           <div className="cm-auth-field">
@@ -266,7 +264,7 @@ export function RegisterPage() {
             <input
               id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" required
               value={formData.confirmPassword} onChange={handleChange}
-              className="cm-auth-input" placeholder="••••••••"
+              className="cm-auth-input" placeholder="Confirm your password"
             />
           </div>
 

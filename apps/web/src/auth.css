@@ -104,7 +104,7 @@ body {
   box-sizing: border-box;
   align-items: center;
   justify-content: center;
-  padding: 2.5rem 1rem;
+  padding: 1.5rem 1rem;
   background: var(--cm-auth-bg);
   background-image: url('/auth-image.jpg');
   background-size: cover;
@@ -120,24 +120,26 @@ body {
   width: 100%;
   max-width: 480px;
   box-sizing: border-box;
-  padding: 2.5rem 2.25rem;
+  padding: 2rem 1.75rem;
   background: var(--cm-auth-card-bg);
   border: 1px solid var(--cm-auth-card-border);
   border-radius: 16px;
   box-shadow: var(--cm-auth-card-shadow);
   overflow-x: hidden;
+  max-height: 90vh;
+  overflow-y: auto;
 }
 
 .cm-auth-brand {
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
 }
 
 .auth-logo {
   display: block;
-  margin: 0 auto 1.5rem auto;
+  margin: 0 auto 1rem auto;
   max-width: 180px;
   width: auto;
   height: auto;
@@ -152,7 +154,7 @@ body {
 
 .cm-auth-header {
   text-align: center;
-  margin-bottom: 1.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .cm-auth-title {
@@ -184,7 +186,7 @@ body {
 .cm-auth-form {
   display: flex;
   flex-direction: column;
-  gap: 1.125rem;
+  gap: 0.875rem;
 }
 
 .cm-auth-field {

@@ -310,7 +310,8 @@ describe('POST /api/auth/session-token security tests', () => {
     expect(body.supabase_sub).toBe(user.id)
     expect(body.username).toBe('canonical')
 
-    const setCookie = res.getHeader('set-cookie') ?? ''
+    const setCookieRaw = res.getHeader('set-cookie')
+    const setCookie = (Array.isArray(setCookieRaw) ? setCookieRaw.join('; ') : String(setCookieRaw ?? ''))
     expect(setCookie).toBeDefined()
     expect(setCookie).toContain(`${SESSION_COOKIE_NAME}=`)
     expect(setCookie).toContain('Domain=.app.copymonster.co')
@@ -333,7 +334,8 @@ describe('POST /api/auth/session-token security tests', () => {
     const res = createMockRes()
     await handleSessionToken(ctx, createMockReq('POST', { authorization: `Bearer ${jwt}` }), res)
 
-    const setCookie = res.getHeader('set-cookie') ?? ''
+    const setCookieRaw = res.getHeader('set-cookie')
+    const setCookie = (Array.isArray(setCookieRaw) ? setCookieRaw.join('; ') : String(setCookieRaw ?? ''))
     const original = setCookie.split(';')[0]?.slice(`${SESSION_COOKIE_NAME}=`.length) ?? ''
     const [payload, mac] = original.split('.')
     const forgedPayload = Buffer.from(JSON.stringify({

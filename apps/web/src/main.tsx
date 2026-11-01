@@ -1,4 +1,5 @@
 import { t } from './locales'
+import { installShellLocaleBridge } from './locales/shell-bridge'
 import { FooterActionsRoot } from './components/layout/FooterActionsRoot'
 import { installDnaOnboarding } from './components/dna/installDnaOnboarding'
 import { installDnaSelection } from './components/dna/installDnaSelection'
@@ -24,6 +25,8 @@ import { BillingSuccessPage } from './pages/billing/BillingSuccessPage'
 import { BillingCancelPage } from './pages/billing/BillingCancelPage'
 import './cm-theme.css'
 import './auth.css'
+
+installShellLocaleBridge()
 
 interface DesktopBootGlobal {
   dshDesktopBoot?: {

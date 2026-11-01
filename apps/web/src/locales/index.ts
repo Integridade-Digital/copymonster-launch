@@ -1,6 +1,7 @@
 import { en } from './en'
 import { zh } from './zh'
 import { pt } from './pt'
+import { writeStoredLocale } from './shell-bridge'
 
 export type LocaleId = 'en' | 'zh' | 'pt'
 export type TranslationKey = keyof typeof en
@@ -8,8 +9,11 @@ export type TranslationKey = keyof typeof en
 export function getActiveLocale(): LocaleId {
   if (typeof window === 'undefined') return 'en'
   const stored = localStorage.getItem('dsh_locale') || localStorage.getItem('locale')
-  if (stored && (stored === 'zh' || stored.startsWith('zh'))) return 'zh'
-  if (stored && (stored === 'pt' || stored.startsWith('pt'))) return 'pt'
+  if (stored) {
+    if (stored === 'zh' || stored.startsWith('zh-')) return 'zh'
+    if (stored === 'pt' || stored.startsWith('pt-')) return 'pt'
+    return 'en'
+  }
   if (navigator.language && navigator.language.startsWith('zh')) return 'zh'
   if (navigator.language && navigator.language.startsWith('pt')) return 'pt'
   return 'en'
@@ -29,11 +33,7 @@ export function t(key: TranslationKey, params?: Record<string, string | number>)
 
 
 export function setActiveLocale(locale: LocaleId): void {
-  if (typeof window !== 'undefined') {
-    localStorage.setItem('dsh_locale', locale)
-    localStorage.setItem('locale', locale)
-    window.dispatchEvent(new Event('storage'))
-  }
+  writeStoredLocale(locale)
 }
 
 export { en, zh, pt }

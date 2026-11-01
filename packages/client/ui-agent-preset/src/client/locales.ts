@@ -145,11 +145,11 @@ export const ja = {
   'nav': 'エージェントプリセット',
   'setDefault': '新しいタスクの既定に設定',
   'view': '設定を表示',
-  'presetStandardName': '標準モード',
+  'presetStandardName': '標準 Monster',
   'presetStandardDescription': 'コード、ファイル、情報を扱います。検索、編集、ターミナルコマンドなどのツールを必要に応じて利用でき、ほとんどのタスクに適しています。',
-  'presetPtcName': 'PTC モード',
+  'presetPtcName': 'PTC Monster',
   'presetPtcDescription': '標準モードのすべての機能を含みます。ツールを一括で呼び出し、その結果を絞り込み、整理、重複排除、集計、要約するタスクに適しています。',
-  'presetMinimalName': '最小モード',
+  'presetMinimalName': '最小 Monster',
   'presetMinimalDescription': 'エージェントはターミナルと画像読み取りを使用し、コンテキスト圧縮にも対応します。基本的な性能のテストや比較に役立ちます。',
   'presetCordisName': 'クリエイターモード',
   'presetCordisDescription': '会話を通じて CopyMonster をカスタマイズします。機能や UI を追加するプラグインをエージェントに書かせたり、ツールとプロンプトを組み合わせて独自のモードを作成したりできます。',
@@ -183,13 +183,13 @@ export const es = {
   setDefault: 'Establecer como nueva tarea predeterminada',
   view: 'Ver configuración',
 
-  presetStandardName: 'Modo estándar',
+  presetStandardName: 'Monster estándar',
   presetStandardDescription:
     'Trabaje con código, archivos e información. Adecuado para la mayoría de las tareas, con búsqueda, edición, comandos de terminal y otras herramientas disponibles según sea necesario.',
-  presetPtcName: 'Modo PTC',
+  presetPtcName: 'Monster PTC',
   presetPtcDescription:
     'Incluye todas las capacidades del modo Estándar. Más adecuado para tareas que llaman a herramientas en lotes y luego filtran, organizan, deduplican, cuentan o resumen los resultados.',
-  presetMinimalName: 'modo mínimo',
+  presetMinimalName: 'Monster mínimo',
   presetMinimalDescription:
     'El agente utiliza un terminal y lectura de imágenes, con compactación de contexto. Útil para probar y comparar su rendimiento básico.',
   presetCordisName: 'Modo creador',
@@ -231,13 +231,13 @@ export const fr = {
   setDefault: 'Définir comme nouvelle tâche par défaut',
   view: 'Afficher la configuration',
 
-  presetStandardName: 'Mode standard',
+  presetStandardName: 'Monster standard',
   presetStandardDescription:
     'Travaillez avec du code, des fichiers et des informations. Convient à la plupart des tâches, avec recherche, édition, commandes de terminal et autres outils disponibles selon les besoins.',
-  presetPtcName: 'Mode PTC',
+  presetPtcName: 'Monster PTC',
   presetPtcDescription:
     'Inclut toutes les fonctionnalités du mode Standard. Mieux adapté aux tâches qui appellent des outils par lots, puis filtrent, organisent, dédupliquent, comptent ou résument les résultats.',
-  presetMinimalName: 'Mode minimal',
+  presetMinimalName: 'Monster minimal',
   presetMinimalDescription:
     "L'agent utilise un terminal et une lecture d'image, avec compactage du contexte. Utile pour tester et comparer ses performances de base.",
   presetCordisName: 'Mode Créateur',
@@ -279,13 +279,13 @@ export const de = {
   setDefault: 'Als Standard für neue Aufgabe festlegen',
   view: 'Konfiguration anzeigen',
 
-  presetStandardName: 'Standardmodus',
+  presetStandardName: 'Standard Monster',
   presetStandardDescription:
     'Arbeiten Sie mit Code, Dateien und Informationen. Geeignet für die meisten Aufgaben, da bei Bedarf Suche, Bearbeitung, Terminalbefehle und andere Tools verfügbar sind.',
-  presetPtcName: 'PTC-Modus',
+  presetPtcName: 'PTC Monster',
   presetPtcDescription:
     'Beinhaltet alle Funktionen des Standardmodus. Besser geeignet für Aufgaben, bei denen Tools stapelweise aufgerufen und die Ergebnisse dann gefiltert, organisiert, dedupliziert, gezählt oder zusammengefasst werden.',
-  presetMinimalName: 'Minimalmodus',
+  presetMinimalName: 'Minimal Monster',
   presetMinimalDescription:
     'Der Agent verwendet ein Terminal und das Lesen von Bildern mit Kontextkomprimierung. Nützlich zum Testen und Vergleichen der Grundleistung.',
   presetCordisName: 'Erstellermodus',
@@ -327,13 +327,13 @@ export const ru = {
   setDefault: 'Установить в качестве новой задачи по умолчанию',
   view: 'Посмотреть конфигурацию',
 
-  presetStandardName: 'Стандартный режим',
+  presetStandardName: 'Стандартный Monster',
   presetStandardDescription:
     'Работайте с кодом, файлами и информацией. Подходит для большинства задач, с поиском, редактированием, командами терминала и другими инструментами, доступными по мере необходимости.',
-  presetPtcName: 'Режим PTC',
+  presetPtcName: 'PTC Monster',
   presetPtcDescription:
     'Включает все возможности стандартного режима. Лучше подходит для задач, которые вызывают инструменты в пакетном режиме, а затем фильтруют, организуют, дедуплицируют, подсчитывают или суммируют результаты.',
-  presetMinimalName: 'Минимальный режим',
+  presetMinimalName: 'Минимальный Monster',
   presetMinimalDescription:
     'Агент использует терминал и чтение изображений со сжатием контекста. Полезно для тестирования и сравнения его базовой производительности.',
   presetCordisName: 'Режим автора',
@@ -370,18 +370,18 @@ export const pt = {
 
   seatHint: 'Escolha a predefinição de agente para sua nova tarefa',
   headerHint: 'A predefinição do agente escolhida quando esta tarefa foi iniciada',
-  nav: 'Predefinições de agente',
+  nav: 'Predefinições do agente',
 
   setDefault: 'Definir como nova tarefa padrão',
   view: 'Ver configuração',
 
-  presetStandardName: 'Modo padrão',
+  presetStandardName: 'Monster padrão',
   presetStandardDescription:
     'Trabalhe com código, arquivos e informações. Adequado para a maioria das tarefas, com pesquisa, edição, comandos de terminal e outras ferramentas disponíveis conforme necessário.',
-  presetPtcName: 'modo PTC',
+  presetPtcName: 'Monster PTC',
   presetPtcDescription:
     'Inclui todos os recursos do modo Padrão. Mais adequado para tarefas que chamam ferramentas em lotes e depois filtram, organizam, desduplicam, contam ou resumem os resultados.',
-  presetMinimalName: 'Modo mínimo',
+  presetMinimalName: 'Monster mínimo',
   presetMinimalDescription:
     'O agente utiliza terminal e leitura de imagens, com compactação de contexto. Útil para testar e comparar seu desempenho básico.',
   presetCordisName: 'Modo criador',
@@ -407,5 +407,6 @@ export const pt = {
   createPluginChecking: 'Verificando se o modo Criador está disponível',
   createPluginUnavailable: 'Temporariamente indisponível. Reabra este menu para tentar novamente',
   createPluginMissing: 'O modo criador não está incluído nesta configuração',
+
 
 } satisfies Record<keyof typeof en, string>

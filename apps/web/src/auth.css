@@ -51,6 +51,7 @@ body {
   margin: 0;
   padding: 0;
   overflow: hidden;
+  overflow-x: hidden;
   overscroll-behavior: none;
 }
 
@@ -105,6 +106,11 @@ body {
   justify-content: center;
   padding: 2.5rem 1rem;
   background: var(--cm-auth-bg);
+  background-image: url('/auth-image.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
   color: var(--cm-auth-text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   overflow-y: auto;
@@ -112,31 +118,29 @@ body {
 
 .cm-auth-card {
   width: 100%;
-  max-width: 27.5rem;
+  max-width: 480px;
   box-sizing: border-box;
   padding: 2.5rem 2.25rem;
   background: var(--cm-auth-card-bg);
   border: 1px solid var(--cm-auth-card-border);
   border-radius: 16px;
   box-shadow: var(--cm-auth-card-shadow);
+  overflow-x: hidden;
 }
 
 .cm-auth-brand {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 0.625rem;
   margin-bottom: 1.5rem;
 }
 
-.cm-auth-brand-logo {
-  width: 32px;
-  height: 32px;
-  object-fit: contain;
-}
-
-body[data-ds-dark-theme] .cm-auth-brand-logo {
-  filter: invert(1) brightness(1.2);
+.auth-logo {
+  display: block;
+  margin: 0 auto 1.5rem auto;
+  max-width: 180px;
+  width: auto;
+  height: auto;
 }
 
 .cm-auth-brand-title {

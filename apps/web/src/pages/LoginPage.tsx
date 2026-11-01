@@ -1,6 +1,6 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { useAuth, formatAuthError } from '../lib/auth'
+import { useAuth, formatAuthError, supabaseClient } from '../lib/auth'
 
 /** Existing user login. */
 export function LoginPage() {
@@ -24,7 +24,15 @@ export function LoginPage() {
     try {
       const { error: signInError } = await signIn(formData.email, formData.password)
       if (signInError) throw signInError
-      navigate('/')
+
+      const { data: profile } = await supabaseClient.rpc('get_my_profile')
+      const tenantSlug = profile?.tenant?.slug
+
+      if (tenantSlug) {
+        window.location.href = 'https://' + tenantSlug + '.copymonster.co/'
+      } else {
+        navigate('/')
+      }
     } catch (err: unknown) {
       setError(formatAuthError(err, 'Invalid email or password. Please try again.'))
     } finally {

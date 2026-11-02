@@ -30,8 +30,8 @@ export function ForgotPasswordPage() {
   }
 
   return (
-    <div className="cm-auth-page">
-      <div className="cm-auth-card">
+    <div className="cm-auth-page auth-bg auth-container">
+      <div className="cm-auth-card auth-card">
         <div className="cm-auth-brand">
           <img src="/logo backgroud white.png" alt="CopyMonster" className="auth-logo" />
         </div>

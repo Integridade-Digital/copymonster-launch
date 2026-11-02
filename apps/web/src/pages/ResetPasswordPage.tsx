@@ -77,11 +77,10 @@ export function ResetPasswordPage() {
   }
 
   return (
-    <div className="cm-auth-page">
-      <div className="cm-auth-card">
+    <div className="cm-auth-page auth-bg auth-container">
+      <div className="cm-auth-card auth-card">
         <div className="cm-auth-brand">
-          <img src="/favicon.svg" alt="CopyMonster" className="cm-auth-brand-logo" />
-          <span className="cm-auth-brand-title">CopyMonster</span>
+          <img src="/logo backgroud white.png" alt="CopyMonster" className="auth-logo" />
         </div>
 
         <div className="cm-auth-header">

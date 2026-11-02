@@ -2,8 +2,7 @@ import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth, formatAuthError, supabaseClient } from '../lib/auth'
 import {
-  orchestratorSessionEndpoint,
-  readOrchestratorRedirect,
+  exchangeOrchestratorSession,
   WorkspaceSessionError,
 } from '../lib/auth/orchestrator-sso'
 
@@ -38,21 +37,9 @@ export function LoginPage() {
         const accessToken = sessionData.session?.access_token
         if (!accessToken) throw new Error('Could not establish an authenticated session.')
 
-        // The orchestrator exchanges this Supabase JWT for its signed,
-        // parent-domain cookie and returns the tenant subdomain to open.
-        const sessionResponse = await fetch(orchestratorSessionEndpoint(tenantSlug), {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ supabaseJwt: accessToken }),
-          credentials: 'include',
-        })
-        if (!sessionResponse.ok) {
-          throw new WorkspaceSessionError('Your workspace session could not be prepared. Please try again or contact support.')
-        }
-        const redirectUrl = readOrchestratorRedirect(await sessionResponse.json())
-        if (redirectUrl === null) {
-          throw new WorkspaceSessionError('Your workspace session could not be prepared. Please try again or contact support.')
-        }
+        // Realiza a troca do JWT pelo cookie de sessão `sid` do orquestrador
+        // e redireciona o navegador para o subdomínio isolado do tenant.
+        const redirectUrl = await exchangeOrchestratorSession(tenantSlug, accessToken)
         window.location.href = redirectUrl
       } else {
         try { sessionStorage.setItem('cm_onboarding_username_required', '1') } catch {}

@@ -50,3 +50,43 @@ export function readOrchestratorRedirect(
   if (host !== baseDomain && !host.endsWith(`.${baseDomain}`)) return null;
   return url.toString();
 }
+
+/**
+ * Troca o token de acesso do Supabase pelo cookie de sessão do orquestrador
+ * e retorna a URL de redirecionamento para o subdomínio seguro.
+ * @param tenantSlug - Identificador do tenant.
+ * @param accessToken - JWT de acesso do Supabase.
+ * @param fetchFn - Função fetch a ser utilizada (permite injeção de dependência em testes).
+ * @param baseDomain - Domínio base dos subdomínios.
+ * @returns URL de destino validada.
+ */
+export async function exchangeOrchestratorSession(
+  tenantSlug: string,
+  accessToken: string,
+  fetchFn: typeof fetch = fetch,
+  baseDomain: string = TENANT_BASE_DOMAIN,
+): Promise<string> {
+  const endpoint = orchestratorSessionEndpoint(tenantSlug, baseDomain);
+  const response = await fetchFn(endpoint, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ supabaseJwt: accessToken, username: tenantSlug }),
+    credentials: 'include',
+  });
+
+  if (!response.ok) {
+    throw new WorkspaceSessionError(
+      'Your workspace session could not be prepared. Please try again or contact support.',
+    );
+  }
+
+  const data = await response.json();
+  const redirectUrl = readOrchestratorRedirect(data, baseDomain);
+  if (redirectUrl === null) {
+    throw new WorkspaceSessionError(
+      'Your workspace session could not be prepared. Please try again or contact support.',
+    );
+  }
+
+  return redirectUrl;
+}

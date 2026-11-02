@@ -15,6 +15,7 @@ import type { applyIndexInjections } from '@deepseek-ai/dsh-client-web'
 import { AppWrapper, supabaseClient, useAuth, getUserFullProfile } from './lib/auth'
 import { ensureDshBrowserSession, resolveHostBoot } from './lib/auth/host-boot'
 import { resolveTenantRedirect } from './lib/auth/subdomain-guard'
+import { exchangeOrchestratorSession } from './lib/auth/orchestrator-sso'
 import { ProtectedRoute, PublicRoute } from './lib/auth/protected-route'
 import { isPlatformAdmin } from './lib/auth/platform-admin'
 import { ForgotPasswordPage } from './pages/ForgotPasswordPage'
@@ -359,10 +360,36 @@ function AuthenticatedWorkspace() {
     [user?.tenantSlug],
   )
 
+  const [ssoState, setSsoState] = React.useState<{
+    status: 'idle' | 'exchanging' | 'failed'
+    error?: string
+  }>({
+    status: tenantRedirect !== null ? 'exchanging' : 'idle',
+  })
+
+  const performSsoExchange = React.useCallback(async (slug: string) => {
+    setSsoState({ status: 'exchanging' })
+    try {
+      const { data: sessionData } = await supabaseClient.auth.getSession()
+      const accessToken = sessionData.session?.access_token
+      if (!accessToken) {
+        throw new Error('Sessão Supabase ausente. Faça login novamente.')
+      }
+      const redirectUrl = await exchangeOrchestratorSession(slug, accessToken)
+      window.location.replace(redirectUrl)
+    } catch (err) {
+      console.error('Falha na troca de sessão do orquestrador:', err)
+      setSsoState({
+        status: 'failed',
+        error: err instanceof Error ? err.message : 'Falha ao sincronizar sua sessão com o workspace.',
+      })
+    }
+  }, [])
+
   React.useEffect(() => {
-    if (tenantRedirect === null) return
-    window.location.replace(tenantRedirect)
-  }, [tenantRedirect])
+    if (tenantRedirect === null || !user?.tenantSlug) return
+    void performSsoExchange(user.tenantSlug)
+  }, [tenantRedirect, user?.tenantSlug, performSsoExchange])
 
   const [loginNotice, setLoginNotice] = React.useState(() => {
     try {
@@ -418,7 +445,47 @@ function AuthenticatedWorkspace() {
     ensureDshBrowserSession()
   }, [hostBoot])
 
-  if (tenantRedirect !== null) return <WorkspaceBootProgress />
+  if (tenantRedirect !== null) {
+    if (ssoState.status === 'failed') {
+      return (
+        <div className="cm-auth-page">
+          <div className="cm-auth-card" style={{ maxWidth: '480px', textAlign: 'center' }}>
+            <h2 className="cm-auth-title" style={{ color: 'var(--cm-auth-error-text)' }}>
+              Erro ao acessar seu workspace
+            </h2>
+            <p className="cm-auth-subtitle" style={{ marginTop: '0.75rem' }}>
+              Não foi possível estabelecer sua sessão isolada no subdomínio.
+            </p>
+            <div className="cm-auth-alert cm-auth-alert--error" style={{ marginTop: '1rem', textAlign: 'left', wordBreak: 'break-word' }}>
+              {ssoState.error}
+            </div>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'center', marginTop: '1.25rem' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  if (user?.tenantSlug) void performSsoExchange(user.tenantSlug)
+                }}
+                className="cm-auth-button"
+              >
+                Tentar novamente
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  void supabaseClient.auth.signOut().then(() => { window.location.href = '/login' })
+                }}
+                className="cm-auth-button"
+                style={{ background: 'transparent', border: '1px solid var(--cm-border-color, #e2e8f0)', color: 'inherit' }}
+              >
+                Sair da conta
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+    return <WorkspaceBootProgress />
+  }
   if (hostBoot === 'unavailable') return <HostBootUnavailable />
   if (hostBoot === 'exchange') return <WorkspaceBootProgress />
 

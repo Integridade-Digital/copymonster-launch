@@ -71,7 +71,10 @@ const GROUPS = [{
 }]
 
 /** Boot the plugin over fake faces + a stateful fake host (current moves on selectModel). */
-async function bench(locale: 'zh' | 'en' = 'zh') {
+async function bench(locale: 'zh' | 'en' = 'zh', isAdmin = true) {
+  // Model selection registers only for a platform operator; the shell publishes
+  // `users.metadata.is_admin` into `__DSH_AUTH__`.
+  vi.stubGlobal('__DSH_AUTH__', { isAdmin })
   const ctx = new Context()
   let defaultSelection: ModelSelection = { provider: 'deepseek-official', model: 'deepseek-v4-flash' }
   let selected = defaultSelection
@@ -229,6 +232,29 @@ describe('ui-model-selection dual entry', () => {
     expect(b.seat().inject).toBeTypeOf('function')
     // Copy rides the standard locale seat.
     expect(b.seat().locale).toBe('model')
+  })
+
+  it('registers no model entry for a creator and follows a later admin grant', async () => {
+    const listeners = new Set<() => void>()
+    vi.stubGlobal('addEventListener', (name: string, fn: () => void) => {
+      if (name === 'copymonster:auth') listeners.add(fn)
+    })
+    vi.stubGlobal('removeEventListener', (name: string, fn: () => void) => {
+      if (name === 'copymonster:auth') listeners.delete(fn)
+    })
+    const b = await bench('zh', false)
+    expect(b.contribution()).toBeUndefined()
+    expect(b.seat()).toBeUndefined()
+
+    vi.stubGlobal('__DSH_AUTH__', { isAdmin: true })
+    for (const fn of listeners) fn()
+    expect(b.contribution().name).toBe('model')
+    expect(b.seat().inject).toBeTypeOf('function')
+
+    vi.stubGlobal('__DSH_AUTH__', { isAdmin: false })
+    for (const fn of listeners) fn()
+    expect(b.contribution()).toBeUndefined()
+    expect(b.seat()).toBeUndefined()
   })
 
   it.each(['zh', 'en'] as const)('shows names and providers without catalog descriptions (%s)', async (locale) => {

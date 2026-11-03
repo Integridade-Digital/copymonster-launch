@@ -30,8 +30,11 @@ afterEach(() => { vi.unstubAllGlobals() })
 // so browser-language detection never runs and a fresh LocaleRuntime opens on
 // FALLBACK_LOCALE (en); bench stages zh explicitly on the locale instead.
 
-async function bench(mock = RemoteMock.create().load(remoteDefaultResponses), services: object = {}) {
+async function bench(mock = RemoteMock.create().load(remoteDefaultResponses), services: object = {}, isAdmin = true) {
   onTestFinished(() => { mock.assertNoUnmatched() })
+  // Provider surfaces register only for a platform operator; the shell publishes
+  // `users.metadata.is_admin` into `__DSH_AUTH__`.
+  vi.stubGlobal('__DSH_AUTH__', { isAdmin })
   const ctx = new Context()
   await ctx.plugin(SlotRegistry).await()
   const locale = new LocaleRuntime(ctx)
@@ -67,6 +70,22 @@ function declare(slots: SlotRegistry): () => void {
     } as never,
     () => null,
   )
+}
+
+/**
+ * Capture the shell's auth-resolution listeners. This lane has no `window`, so
+ * the gate subscribes on `globalThis` when a test installs these stubs.
+ * @returns a `fire` helper that announces a republished session.
+ */
+function stubAuthEvent(): { fire: () => void } {
+  const listeners = new Set<() => void>()
+  vi.stubGlobal('addEventListener', (name: string, fn: () => void) => {
+    if (name === 'copymonster:auth') listeners.add(fn)
+  })
+  vi.stubGlobal('removeEventListener', (name: string, fn: () => void) => {
+    if (name === 'copymonster:auth') listeners.delete(fn)
+  })
+  return { fire: () => { for (const fn of listeners) fn() } }
 }
 
 describe('ui-settings-models apply', () => {
@@ -166,6 +185,27 @@ describe('ui-settings-models apply', () => {
     expect(after.slots.entries('settings.onboarding')).toHaveLength(2)
     // The self-inflicted ledger notifications hit the duplicate guard.
     expect(after.slots.entries('settings.section')).toHaveLength(1)
+  })
+
+  it('keeps provider surfaces unregistered for a creator and follows a later admin grant', async () => {
+    const auth = stubAuthEvent()
+    const b = await bench(undefined, {}, false)
+    declare(b.slots)
+    await b.ctx.plugin({ inject: [...inject], apply }).await()
+    // The testing notice is product copy for everyone; provider setup is not.
+    expect(b.slots.entries('settings.section')).toHaveLength(0)
+    expect(b.slots.entries('settings.onboarding').map(entry => entry.options.id)).toEqual(['welcome-notice'])
+
+    vi.stubGlobal('__DSH_AUTH__', { isAdmin: true })
+    auth.fire()
+    expect(b.slots.entries('settings.section').map(entry => entry.options.id)).toEqual(['models'])
+    expect(b.slots.entries('settings.onboarding').map(entry => entry.options.id))
+      .toEqual(['welcome-notice', 'deepseek-official'])
+
+    vi.stubGlobal('__DSH_AUTH__', { isAdmin: false })
+    auth.fire()
+    expect(b.slots.entries('settings.section')).toHaveLength(0)
+    expect(b.slots.entries('settings.onboarding').map(entry => entry.options.id)).toEqual(['welcome-notice'])
   })
 
   it('the label thunk follows the active locale without re-registration', async () => {

@@ -22,7 +22,7 @@ import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-session/client'
 import type { TranslateNS } from '@deepseek-ai/dsh-client-ui-slots'
-import { IconDataOutline16 } from '@deepseek-ai/dsh-client-ui-primitives'
+import { IconDataOutline16, whenPlatformAdmin } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { ModelDirectoryState } from './directory.ts'
 import { ModelDirectoryResolver } from './service.ts'
 import { orderModelProviders } from './provider-order.ts'
@@ -122,12 +122,16 @@ export function apply(ctx: ClientContext): void {
 
   ctx.plugin(ModelDirectoryResolver)
 
+  // Model selection is platform-operator territory: a creator talks to the key
+  // the admin configured, so neither entry below is registered for them. The
+  // gate re-evaluates whenever the shell republishes auth, because `is_admin`
+  // resolves after the first render.
   // Entry 1: the /model popupSelect over the shared directory.
   ctx.inject(['commandUi', 'modelDirectories'], (scope: ClientContext) => {
     const command = scope.get('commandUi') as CommandUiContract
     const models = scope.modelDirectories
     const sessions = scope.sessions
-    scope.effect(() => command.register({
+    scope.effect(() => whenPlatformAdmin(() => command.register({
       name: 'model',
       label: () => t('command.label'),
       description: () => t('command.description'),
@@ -163,7 +167,7 @@ export function apply(ctx: ClientContext): void {
           }
         },
       },
-    }), 'ui-model-selection: /model contribution')
+    })), 'ui-model-selection: /model contribution')
   })
 
   // Entry 2: the composer's named model seat over the SAME directory.
@@ -171,7 +175,7 @@ export function apply(ctx: ClientContext): void {
     const models = scope.modelDirectories
     const sessions = scope.sessions
     scope.effect(
-      () => scope.slots.inject(
+      () => whenPlatformAdmin(() => scope.slots.inject(
         'conversation.input.model',
         () => scope.slots.register({
           name: 'conversation.input.model',
@@ -195,7 +199,7 @@ export function apply(ctx: ClientContext): void {
             }
           },
         }, ModelSelect),
-      ),
+      )),
       'ui-model-selection: composer seat',
     )
   })

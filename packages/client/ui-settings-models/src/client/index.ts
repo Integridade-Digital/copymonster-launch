@@ -15,6 +15,7 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 // Type-only: pulls the ctx.remote merge and the forwarded-event key face
 // (settings/credentials invalidations ride the allowlist) into this program.
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
+import { isPlatformAdmin, whenPlatformAdmin } from '@deepseek-ai/dsh-client-ui-primitives'
 import { ModelsSection } from './ModelsSection.tsx'
 import type { ModelsSectionInjected } from './ModelsSection.tsx'
 import { DeepSeekOnboardingDialog } from './DeepSeekOnboardingDialog.tsx'
@@ -89,7 +90,7 @@ export function apply(ctx: ClientContext): void {
     operations,
     schema,
     t,
-    canManage: true,
+    canManage: isPlatformAdmin(),
   })
   const deepSeekOnboardingInjected = (): DeepSeekOnboardingInjected => ({
     controller,
@@ -126,10 +127,12 @@ export function apply(ctx: ClientContext): void {
     }
   }, 'ui-settings-models: pushed invalidations')
 
-  // The Models section and both onboarding dialogs are product surfaces for
-  // every creator: BYOK credentials belong to the creator, not to a platform
-  // operator. Admin-only provider operations stay behind their Host routes.
-  ctx.effect(() => {
+  // Provider topology is platform-operator territory: the admin configures the
+  // key every creator talks through, so the Models page and the credential
+  // onboarding step stay unregistered for a creator and the chat opens without
+  // a provider prompt. The gate re-evaluates whenever the shell republishes
+  // auth, because `is_admin` resolves after the first render.
+  ctx.effect(() => whenPlatformAdmin(() => {
     const disposers = [
       ctx.slots.inject('settings.section', () => ctx.slots.register({
         name: 'settings.section',
@@ -144,12 +147,6 @@ export function apply(ctx: ClientContext): void {
       }, ModelsSection)),
       ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
         name: 'settings.onboarding',
-        id: 'welcome-notice',
-        order: -100,
-        inject: welcomeInjected,
-      }, WelcomeNotice)),
-      ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
-        name: 'settings.onboarding',
         id: 'deepseek-official',
         order: 0,
         inject: deepSeekOnboardingInjected,
@@ -158,5 +155,13 @@ export function apply(ctx: ClientContext): void {
     return () => {
       for (const dispose of disposers) dispose()
     }
-  }, 'ui-settings-models: creator surfaces')
+  }), 'ui-settings-models: operator surfaces')
+
+  // The testing notice is product copy for every creator, not provider setup.
+  ctx.effect(() => ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
+    name: 'settings.onboarding',
+    id: 'welcome-notice',
+    order: -100,
+    inject: welcomeInjected,
+  }, WelcomeNotice)), 'ui-settings-models: welcome notice')
 }

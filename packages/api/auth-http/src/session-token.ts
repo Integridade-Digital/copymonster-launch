@@ -405,12 +405,14 @@ export async function handleSessionToken(_ctx: Context, req: IncomingMessage, re
 
   const payload = await verifyToken(token, config.SUPABASE_JWT_SECRET, config.SUPABASE_URL)
   if (!payload || !payload.sub) {
+    console.error('[session-token] verifyToken failed — alg check, sub:', payload?.sub, 'aud:', payload?.aud, 'exp:', payload?.exp)
     sendJson(res, 401, { success: false, error: 'invalid-or-expired-token' })
     return
   }
 
   const supabaseUser = await fetchSupabaseUser(token)
   if (!supabaseUser) {
+    console.error('[session-token] fetchSupabaseUser returned null — Supabase /auth/v1/user rejected the token')
     sendJson(res, 401, { success: false, error: 'invalid-or-expired-token' })
     return
   }

@@ -152,13 +152,21 @@ body.auth-bg,
   margin: 0 auto;
   box-sizing: border-box;
   padding: 32px;
-  background: rgba(38, 38, 36, 0.85);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  border: 1px solid #967d45;
+  background: #faf9f5;
+  border: 1px solid #dad9d4;
   border-radius: 16px;
-  box-shadow: var(--cm-auth-card-shadow);
+  box-shadow: 0 4px 24px -2px rgba(24, 22, 17, 0.12), 0 1px 6px rgba(24, 22, 17, 0.06);
   overflow-x: hidden;
+
+  /* Force light mode colors inside the card for contrast against the background image. */
+  --cm-auth-card-bg: #faf9f5;
+  --cm-auth-card-text: #181611;
+  --cm-auth-card-muted: #73726c;
+  --cm-auth-card-input-bg: #ffffff;
+  --cm-auth-card-input-border: #b4b2a7;
+  --cm-auth-card-input-border-hover: #967d45;
+  --cm-auth-card-placeholder: #b7b5a9;
+  --cm-auth-card-label: #73726c;
 }
 
 .cm-auth-brand {
@@ -194,13 +202,13 @@ body.auth-bg,
   font-size: 1.25rem;
   font-weight: 700;
   letter-spacing: -0.015em;
-  color: var(--cm-auth-text);
+  color: var(--cm-auth-card-text);
 }
 
 .cm-auth-subtitle {
   margin: 0.5rem 0 0;
   font-size: 0.875rem;
-  color: var(--cm-auth-muted);
+  color: var(--cm-auth-card-muted);
   line-height: 1.4;
 }
 
@@ -230,7 +238,7 @@ body.auth-bg,
 .cm-auth-label {
   font-size: 0.8125rem;
   font-weight: 500;
-  color: var(--cm-auth-text);
+  color: var(--cm-auth-card-label);
 }
 
 .cm-auth-input {
@@ -239,16 +247,16 @@ body.auth-bg,
   box-sizing: border-box;
   padding: 0 0.875rem;
   font-size: 0.9rem;
-  color: var(--cm-auth-text);
-  background: var(--cm-auth-input-bg);
-  border: 1px solid var(--cm-auth-input-border);
+  color: var(--cm-auth-card-text);
+  background: var(--cm-auth-card-input-bg);
+  border: 1px solid var(--cm-auth-card-input-border);
   border-radius: 8px;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .cm-auth-input:hover:not(:focus) {
-  border-color: var(--cm-auth-input-border-hover);
+  border-color: var(--cm-auth-card-input-border-hover);
 }
 
 .cm-auth-input:focus {
@@ -257,12 +265,12 @@ body.auth-bg,
 }
 
 .cm-auth-input::placeholder {
-  color: var(--cm-auth-caption);
+  color: var(--cm-auth-card-placeholder);
 }
 
 .cm-auth-hint {
   font-size: 0.75rem;
-  color: var(--cm-auth-caption);
+  color: var(--cm-auth-card-placeholder);
   line-height: 1.35;
 }
 
@@ -275,15 +283,15 @@ body.auth-bg,
 }
 
 .cm-auth-alert--error {
-  background: var(--cm-auth-error-bg);
-  color: var(--cm-auth-error-text);
-  border-color: var(--cm-auth-error-border);
+  background: color-mix(in srgb, #b63a3a 12%, transparent);
+  color: #b63a3a;
+  border-color: color-mix(in srgb, #b63a3a 28%, transparent);
 }
 
 .cm-auth-alert--success {
-  background: var(--cm-auth-success-bg);
-  color: var(--cm-auth-success-text);
-  border-color: var(--cm-auth-success-border);
+  background: color-mix(in srgb, #15803d 12%, transparent);
+  color: #15803d;
+  border-color: color-mix(in srgb, #15803d 28%, transparent);
 }
 
 .cm-auth-button {
@@ -295,8 +303,8 @@ body.auth-bg,
   padding: 0 1.25rem;
   font-size: 0.9rem;
   font-weight: 600;
-  color: var(--cm-primary-foreground);
-  background: var(--cm-auth-primary);
+  color: #ffffff;
+  background: #967d45;
   border: none;
   border-radius: 20px;
   cursor: pointer;
@@ -304,11 +312,11 @@ body.auth-bg,
 }
 
 .cm-auth-button:hover:not(:disabled) {
-  background: var(--cm-auth-primary-hover);
+  background: color-mix(in srgb, #967d45 85%, white);
 }
 
 .cm-auth-button:active:not(:disabled) {
-  background: var(--cm-auth-primary-active);
+  background: color-mix(in srgb, #967d45 85%, black);
   transform: scale(0.99);
 }
 
@@ -327,7 +335,7 @@ body.auth-bg,
   margin-top: 0.5rem;
   text-align: center;
   font-size: 0.8125rem;
-  color: var(--cm-auth-caption);
+  color: var(--cm-auth-card-muted);
   line-height: 1.4;
 }
 
@@ -338,7 +346,7 @@ body.auth-bg,
   margin-bottom: 0.5rem;
   font-size: 0.8125rem;
   line-height: 1.4;
-  color: var(--cm-auth-muted);
+  color: var(--cm-auth-card-muted);
 }
 
 .auth-legal-checkbox input[type="checkbox"] {
@@ -346,11 +354,11 @@ body.auth-bg,
   flex-shrink: 0;
   width: 1rem;
   height: 1rem;
-  accent-color: var(--cm-auth-primary);
+  accent-color: #967d45;
 }
 
 .auth-legal-checkbox a {
-  color: var(--cm-auth-primary);
+  color: #967d45;
   text-decoration: underline;
 }
 

@@ -286,13 +286,17 @@ async function fetchSupabaseUser(token: string): Promise<SupabaseUserResponse['u
       return null
     }
 
-    const data: SupabaseUserResponse = await response.json()
-    if (data.error || !data.user) {
-      console.error('[session-token] fetchSupabaseUser resposta sem usuário:', data)
+    const data = await response.json()
+
+    // Supabase /auth/v1/user returns the user directly, not wrapped in { user: ... }
+    const user = data.user ?? data
+
+    if (!user || typeof user.id !== 'string') {
+      console.error('[session-token] fetchSupabaseUser resposta sem usuário válido:', data)
       return null
     }
 
-    return data.user
+    return user
   } catch (err) {
     console.error('[session-token] fetchSupabaseUser erro de rede ou conexão:', err)
     return null

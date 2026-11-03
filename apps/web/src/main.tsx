@@ -370,10 +370,17 @@ function AuthenticatedWorkspace() {
   const performSsoExchange = React.useCallback(async (slug: string) => {
     setSsoState({ status: 'exchanging' })
     try {
-      const { data: sessionData } = await supabaseClient.auth.getSession()
-      const accessToken = sessionData.session?.access_token
+      // Força a renovação do token Supabase para nunca enviar JWT expirado
+      let accessToken: string | undefined
+      const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession()
+      if (!refreshError && refreshData.session?.access_token) {
+        accessToken = refreshData.session.access_token
+      } else {
+        const { data: sessionData } = await supabaseClient.auth.getSession()
+        accessToken = sessionData.session?.access_token
+      }
       if (!accessToken) {
-        throw new Error('Sessão Supabase ausente. Faça login novamente.')
+        throw new Error('Sessão Supabase ausente ou expirada. Faça login novamente.')
       }
       const redirectUrl = await exchangeOrchestratorSession(slug, accessToken)
       window.location.replace(redirectUrl)

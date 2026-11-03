@@ -200,7 +200,7 @@ exit 0
 
 #### Specification:
 - **Route:** `POST /api/auth/session-token` on orchestrator (`127.0.0.1:3081`).
-- **Payload:** `{ "supabaseJwt": "<raw_jwt>", "username": "<username>" }`
+- **Headers:** `Authorization: Bearer <accessToken>`
 - **Validation:**
   1. Verifies the Supabase JWT using the configured `SUPABASE_JWT_SECRET` (HMAC SHA-256) or Supabase project JWKS.
   2. Confirms that `token.sub` corresponds to the authenticated user ID and email matches.

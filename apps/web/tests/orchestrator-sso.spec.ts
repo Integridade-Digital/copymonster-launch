@@ -49,8 +49,7 @@ describe('exchangeOrchestratorSession', () => {
       'https://acme.copymonster.co/api/auth/session-token',
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ supabaseJwt: 'supabase-mock-jwt', username: 'acme' }),
+        headers: { authorization: 'Bearer supabase-mock-jwt' },
         credentials: 'include',
       },
     )

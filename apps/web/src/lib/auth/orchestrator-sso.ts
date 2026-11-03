@@ -69,8 +69,7 @@ export async function exchangeOrchestratorSession(
   const endpoint = orchestratorSessionEndpoint(tenantSlug, baseDomain);
   const response = await fetchFn(endpoint, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ supabaseJwt: accessToken, username: tenantSlug }),
+    headers: { authorization: `Bearer ${accessToken}` },
     credentials: 'include',
   });
 

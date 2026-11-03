@@ -33,9 +33,12 @@ export function LoginPage() {
       const tenantSlug = profile?.tenant?.slug
 
       if (tenantSlug) {
-        const { data: sessionData } = await supabaseClient.auth.getSession()
-        const accessToken = sessionData.session?.access_token
-        if (!accessToken) throw new Error('Could not establish an authenticated session.')
+        // Force a fresh session refresh to avoid sending an expired JWT to the orchestrator
+        const { data: refreshData, error: refreshError } = await supabaseClient.auth.refreshSession()
+        if (refreshError || !refreshData.session) {
+          throw new Error('Session expired. Please sign in again.')
+        }
+        const accessToken = refreshData.session.access_token
 
         // Realiza a troca do JWT pelo cookie de sessão `sid` do orquestrador
         // e redireciona o navegador para o subdomínio isolado do tenant.

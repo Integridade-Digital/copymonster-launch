@@ -22,20 +22,24 @@
         "@deepseek-ai/dsh-personalized-recommendations",
         "@deepseek-ai/dsh-experimental-tool-worktree",
         "@deepseek-ai/dsh-experimental-cot-translation-bundle",
-        "@deepseek-ai/dsh-experimental-session-titles-bundle"
+        "@deepseek-ai/dsh-experimental-session-titles-bundle",
+        "@deepseek-ai/dsh-copymonster"
       ],
       "patchReload": "live"
     }
   },
   "dependencies": {
-    "@deepseek-ai/dsh-base": "workspace:*",
-    "@deepseek-ai/dsh-web-app": "workspace:*",
-    "@xmanrui/dsh-im": "^5.6.0",
     "@changfenhuang/dsh-genui": "0.14.0",
+    "@deepseek-ai/dsh-base": "workspace:*",
+    "@deepseek-ai/dsh-copymonster": "file:/root/copymonster-launch/packages/bundle/copymonster",
+    "@deepseek-ai/dsh-experimental-agent-team-profile": "file:/root/copymonster-launch/packages/experimental/agent-team-profile",
+    "@deepseek-ai/dsh-web-app": "workspace:*",
     "@michengai/dsh-automation": "0.1.66",
+    "@xmanrui/dsh-im": "^5.6.0",
+    "agent-team-web-profile": "file:/root/copymonster-launch/packages/experimental/agent-team-web-profile",
     "dsh-preview-plugin": "github:RaulLazaro/dsh-preview-plugin",
     "dsh-vercel-mcp": "github:zhengjy01/dsh-vercel-mcp",
-    "dshmarket": "^1.66.45"
+    "dshmarket": "^1.73.1"
   },
   "scripts": {
     "postinstall": "node ../../../../copymonster-launch/scripts/apply-dsh-im-rebrand.mjs && node ../../../../copymonster-launch/scripts/apply-dshmarket-rebrand.mjs && node ../../../../copymonster-launch/scripts/apply-dsh-plugins-rebrand.mjs"

@@ -6,7 +6,6 @@
       "bundles": [
         "@deepseek-ai/dsh-base",
         "@deepseek-ai/dsh-web-app",
-        "@deepseek-ai/dsh-experimental-agent-team-web-profile",
         "@deepseek-ai/dsh-experimental-agent-team-profile",
         "dshmarket",
         "@changfenhuang/dsh-genui",
@@ -36,7 +35,6 @@
     "@deepseek-ai/dsh-web-app": "workspace:*",
     "@michengai/dsh-automation": "0.1.66",
     "@xmanrui/dsh-im": "^5.6.0",
-    "agent-team-web-profile": "file:/root/copymonster-launch/packages/experimental/agent-team-web-profile",
     "dsh-preview-plugin": "github:RaulLazaro/dsh-preview-plugin",
     "dsh-vercel-mcp": "github:zhengjy01/dsh-vercel-mcp",
     "dshmarket": "^1.73.1"

@@ -125,15 +125,6 @@ export interface AuditLogQueryRequest {
   readonly offset?: number
 }
 
-/** Payload for recording an audit entry. */
-export interface AuditLogRecordRequest {
-  readonly action: string
-  readonly resourceType?: string
-  readonly resourceId?: string
-  readonly oldValue?: JsonValue | null
-  readonly newValue?: JsonValue | null
-}
-
 /** Request payload for recording incremental token consumption. */
 export interface TokenUsageRecordRequest {
   readonly tokens: number

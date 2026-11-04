@@ -25,7 +25,6 @@ import { z } from 'zod'
 import { CredentialsController } from './credentials.ts'
 import type {
   AuditLogQueryRequest,
-  AuditLogRecordRequest,
   AuditLogView,
   SettingsDocumentOpenValue,
   TenantAdminView,
@@ -384,33 +383,6 @@ export class SettingsController extends TypertRemoteService {
       userAgent: row.user_agent,
       createdAt: row.created_at,
     }))
-  }
-
-  /**
-   * Record an action into the audit trail.
-   * @param request - the audit log entry to record
-   * @returns confirmation with the recorded log id
-   */
-  @RemoteScope('auth', 'recordAuditLog')
-  async recordAuditLog(request: AuditLogRecordRequest): Promise<{ recorded: true; id: string }> {
-    const identity = getAuthIdentity(this.ctx)
-    if (identity === undefined) {
-      throw new RemoteError('settings/unauthorized', 'Autenticação necessária para registrar auditoria.', {})
-    }
-
-    const { data, error } = await requireUserClient(this.ctx).rpc('record_my_audit_log', {
-      p_action: request.action,
-      p_resource_type: request.resourceType ?? null,
-      p_resource_id: request.resourceId ?? null,
-      p_old_value: request.oldValue ?? null,
-      p_new_value: request.newValue ?? null,
-    })
-
-    if (error !== null) {
-      throw new RemoteError('gateway/internal', `Erro ao gravar log de auditoria: ${error.message}`, {})
-    }
-
-    return { recorded: true, id: data }
   }
 
   /**

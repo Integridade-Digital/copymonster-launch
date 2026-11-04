@@ -72,7 +72,6 @@ vi.mock('@deepseek-ai/dsh-supabase-client', () => {
     if (fn === 'get_my_tenant_metrics') {
       return Promise.resolve({ data: { tenant: mockTenants[0], plan: mockPlan }, error: null })
     }
-    if (fn === 'record_my_audit_log') return Promise.resolve({ data: 'log_new_001', error: null })
     return Promise.resolve({ data: null, error: null })
   }
   return {
@@ -193,25 +192,10 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
     })
   })
 
-  it('permite gravar log de auditoria via recordAuditLog', async () => {
+  it('does not expose a client-driven audit write', async () => {
     const ctx = new Context()
-
-    ctx.provide('authIdentity', {
-      userId: 'usr_member',
-      tenantId: 'ten_001',
-      role: 'member',
-    })
-    ctx.provide('authToken', 'token-member')
-
     await ctx.plugin(SettingsController)
-
-    const result = await ctx.settingsController.recordAuditLog({
-      action: 'WORKSPACE_CREATE',
-      resourceType: 'WORKSPACE',
-      resourceId: 'ws_001',
-    })
-    expect(result.recorded).toBe(true)
-    expect(result.id).toBe('log_new_001')
+    expect('recordAuditLog' in ctx.settingsController).toBe(false)
   })
 
   it('rejeita chamadas sem autenticação em endpoints administrativos', async () => {

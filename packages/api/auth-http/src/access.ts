@@ -34,7 +34,6 @@ const MEMBER_DENIED: ReadonlySet<string> = new Set([
   'settings/update',
   'settings/replace',
   'settings/mutate',
-  'settings/recordAuditLog',
   'settings/recordTokenUsage',
   'credentials/set',
   'credentials/unset',

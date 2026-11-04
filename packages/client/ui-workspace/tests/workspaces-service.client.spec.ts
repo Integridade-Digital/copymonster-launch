@@ -12,7 +12,7 @@ import { RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import type { RemoteResult } from '@deepseek-ai/dsh-api-remotes/client'
 import { SessionId } from '@deepseek-ai/dsh-session/types'
 import { LayoutController } from '@deepseek-ai/dsh-client-ui-layout/client'
-import type { MainPanelId } from '@deepseek-ai/dsh-client-ui-layout/client'
+import type { MainPanelId, PanelInfo } from '@deepseek-ai/dsh-client-ui-layout/client'
 import { DirectoryBrowseError, UiWorkspaceService } from '../src/client/navigation.ts'
 
 const sid = (id: string): SessionId => SessionId(id)
@@ -74,8 +74,7 @@ function sessionState(
     ids: summaries.map(item => item.id),
     byId: Object.fromEntries(summaries.map(item => [item.id, item])),
     phase,
-    subagentsByParent: {},
-    jobsBySession: {},
+    projectionsBySession: {},
   }
 }
 
@@ -87,6 +86,7 @@ function workspaceState(
   return {
     items,
     archivedSessionIds,
+    pinnedSessionIds: [],
     phase,
     state: phase === 'ready' ? 'idle' : 'loading',
     error: null,
@@ -132,7 +132,7 @@ class FakeSessions implements ISessions {
   readonly fork = vi.fn<ISessions['fork']>(async () => sid('forked'))
   readonly delete = vi.fn<ISessions['delete']>(async () => {})
   readonly retained: RetainedSession[] = []
-  readonly refreshSubagents = vi.fn<ISessions['refreshSubagents']>(() => Promise.resolve())
+  declare readonly refreshProjections: ISessions['refreshProjections']
   readonly retain = vi.fn<ISessions['retain']>((target) => {
     const release = vi.fn<() => void>()
     const sessionId = typeof target === 'string' ? target : target.childSessionId
@@ -151,7 +151,6 @@ class FakeSessions implements ISessions {
   declare readonly using: ISessions['using']
   declare readonly retainInfo: ISessions['retainInfo']
   declare readonly searchResultLimit: ISessions['searchResultLimit']
-  declare readonly setSubagentCatalogOpen: ISessions['setSubagentCatalogOpen']
   declare readonly refresh: ISessions['refresh']
   declare readonly search: ISessions['search']
   declare readonly scope: ISessions['scope']
@@ -265,7 +264,7 @@ function bench(options: BenchOptions = {}) {
     selectPanel: vi.fn(), retainMainPanels: vi.fn(),
     setSidebar: vi.fn(), toggleSidebar: vi.fn(), setViewportWidth: vi.fn(),
     setRightbar: vi.fn(), openRightbar: vi.fn(), closeRightbar: vi.fn(),
-  }, () => true)
+  }, () => true, new MutableSource<PanelInfo>({ activePanelId: null }))
   const selectPanel = vi.spyOn(layout, 'selectPanel')
   ctx.provide('layout', layout)
   ctx.effect(() => () => { layout.dispose() })
@@ -288,7 +287,6 @@ describe('UiWorkspaceService', () => {
     b.uiWorkspace.openSession(sid('target'))
     expect(b.selectPanel).toHaveBeenCalledWith(null)
     expect(b.sessions.retain).toHaveBeenCalledWith(sid('target'), { source: 'mainView' })
-    expect(b.sessions.refreshSubagents).toHaveBeenCalledWith(sid('target'))
   })
 
   it('keeps the current panel when retaining the target fails', () => {
@@ -538,10 +536,6 @@ describe('UiWorkspaceService', () => {
     })
 
     expect(b.sessions.retain).toHaveBeenCalledExactlyOnceWith(address, { source: 'mainView' })
-    expect(b.sessions.refreshSubagents.mock.calls).toEqual([
-      [address.parentSessionId],
-      [address.childSessionId],
-    ])
   })
 
   it('persists a catalog-resolved address after string subagent navigation', () => {

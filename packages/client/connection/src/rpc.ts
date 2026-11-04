@@ -223,7 +223,6 @@ export interface HostConnectionRpc {
   ): () => Promise<void>
 }
 
-/** Host `ctx.connection` members consumed by transport-independent adapters. */
 /** Answer of one {@link ConnectionPrincipalResolver}. */
 export type ConnectionPrincipalResolution =
   | { readonly principal: Principal }
@@ -250,6 +249,7 @@ export interface HostConnectionPrincipals {
   register(resolver: ConnectionPrincipalResolver): () => void
 }
 
+/** Host `ctx.connection` members consumed by transport-independent adapters. */
 export interface HostConnectionHandle {
   /** Generic RPC channel registry. */
   readonly rpc: HostConnectionRpc

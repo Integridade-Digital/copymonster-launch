@@ -207,6 +207,22 @@ interface RemoteStreamHandle<Out, In> extends AsyncIterable<Out> {
 interface PrincipalMap {
   /** The local user who owns this Host. */
   owner: { readonly kind: 'owner' }
+  /**
+   * A browser caller whose identity the deployment handshake verified. It
+   * carries no credential: the connection layer fixes it before dispatch, so
+   * a request cannot widen its own role.
+   */
+  user: {
+    readonly kind: 'user'
+    /** Supabase `auth.users` identity. */
+    readonly userId: string
+    /** Tenant the caller acts within. */
+    readonly tenantId: string
+    /** Role held inside {@link tenantId}. */
+    readonly role: 'owner' | 'admin' | 'member' | 'anonymous'
+    /** Platform-operator flag; absent reads as false. */
+    readonly isAdmin: boolean
+  }
 }
 ```
 

@@ -164,7 +164,18 @@ export const sessionTenantMap = new WeakMap<Session, {
   positioningMappingId?: string
 }>()
 
+/** One cached plan read, keyed by the caller token that authorized it. */
+interface SessionPlanEntry {
+  expiresAt: number
+  maxSessions: number | undefined
+}
+
+/** How long a plan read is reused before asking Supabase again. */
+const SESSION_PLAN_TTL_MS = 60_000
+
 export class SessionCommandController {
+  private readonly planLimits = new Map<string, SessionPlanEntry>()
+
   /**
    * @param ctx - Host context carrying Agent, model, attachment, title, and Workspace services.
    * @param agents - sole owner of create, resume, Agent composition, and Session-local model selection.
@@ -189,6 +200,7 @@ export class SessionCommandController {
     // The quota gate already fails closed on an inactive subscription
     // (`subscription_inactive:<status>`), so no separate tenant read is needed.
     await this.assertTenantQuota(identity, 'session.create', token)
+    await this.assertSessionCountQuota(identity, token)
     if (request.workspaceId !== undefined && request.cwd !== undefined) {
       throw new RemoteError('gateway/bad-request', 'session.create accepts workspaceId or cwd, not both', {})
     }
@@ -780,6 +792,60 @@ export class SessionCommandController {
     }
     agent.cancel({ kind: 'user' }, { keepInbox: true })
     return { accepted: true }
+  }
+
+  /**
+   * Read the caller tenant's session ceiling from its plan.
+   *
+   * `get_my_tenant_metrics()` derives the tenant from `auth.uid()`, so the
+   * caller's own token is enough. The read is cached briefly because it runs on
+   * every session creation.
+   * @param token - bearer token of the caller.
+   * @returns the ceiling, or undefined when the plan sets none (unlimited).
+   */
+  private async maxSessions(token: string): Promise<number | undefined> {
+    const now = Date.now()
+    const cached = this.planLimits.get(token)
+    if (cached !== undefined && now < cached.expiresAt) return cached.maxSessions
+
+    let maxSessions: number | undefined
+    try {
+      const { data, error } = await createUserClient(token).rpc('get_my_tenant_metrics', {})
+      if (error === null && data !== null) {
+        const limit = data.plan?.max_sessions
+        // A null or non-positive ceiling means the plan is unlimited.
+        if (typeof limit === 'number' && limit > 0) maxSessions = limit
+      }
+    } catch {
+      // An unreadable plan must not block creation; the ceiling is advisory.
+    }
+
+    if (this.planLimits.size > 1_000) this.planLimits.clear()
+    this.planLimits.set(token, { expiresAt: now + SESSION_PLAN_TTL_MS, maxSessions })
+    return maxSessions
+  }
+
+  /**
+   * Refuse a new Session once the tenant reached its plan ceiling.
+   *
+   * Archived Sessions do not count: the ceiling bounds active work, not the
+   * history a tenant keeps.
+   * @param identity - authenticated caller; platform admins bypass the ceiling.
+   * @param token - bearer token of the caller, when the call carries one.
+   */
+  private async assertSessionCountQuota(identity: UserIdentity, token?: string): Promise<void> {
+    if (identity.isAdmin === true) return
+    if (token === undefined || token === '') return
+    const limit = await this.maxSessions(token)
+    if (limit === undefined) return
+    const archived = new Set(this.ctx.workspaceRegistry.archivedSessionIds)
+    const used = this.ctx.sessions.list().filter(session => !archived.has(session.id)).length
+    if (used < limit) return
+    throw new RemoteError(
+      'session/quota-exceeded',
+      `Session limit reached (${used}/${limit}). Archive a session or upgrade the plan.`,
+      { reason: 'session_limit', message: `Session limit reached (${used}/${limit}).` },
+    )
   }
 
   /**

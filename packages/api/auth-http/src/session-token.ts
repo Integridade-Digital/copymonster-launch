@@ -43,6 +43,12 @@ interface SessionTokenResponse {
   error?: string
   supabase_sub?: string
   username?: string
+  /**
+   * Plan slug the tenant subscribes to, so the orchestrator can size the
+   * tenant's resource scope. Absent when the plan read fails; the orchestrator
+   * then keeps the previous value rather than downgrading the tenant.
+   */
+  plan_slug?: string
 }
 
 /** Claims carried inside a signed session cookie. */
@@ -333,6 +339,41 @@ async function fetchProfile(token: string): Promise<SupabaseProfile | null> {
   }
 }
 
+/**
+ * Read the caller tenant's plan slug with the caller's own token.
+ *
+ * `get_my_tenant_metrics()` derives the tenant from `auth.uid()`, so this needs
+ * no service-role key. A failed read returns undefined: the exchange must not
+ * fail because the plan is temporarily unreadable.
+ * @param token - the caller's Supabase access token.
+ * @returns the plan slug, or undefined when unavailable.
+ */
+async function fetchPlanSlug(token: string): Promise<string | undefined> {
+  const config = getConfig()
+  const anonKey = config.SUPABASE_ANON_KEY
+  if (anonKey === undefined || anonKey === '') return undefined
+  try {
+    const response = await fetch(`${config.SUPABASE_URL}/rest/v1/rpc/get_my_tenant_metrics`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'apikey': anonKey,
+        'content-type': 'application/json',
+      },
+      body: '{}',
+    })
+    if (!response.ok) return undefined
+    const body: unknown = await response.json()
+    if (body === null || typeof body !== 'object') return undefined
+    const plan = (body as Record<string, unknown>).plan
+    if (plan === null || typeof plan !== 'object') return undefined
+    const slug = (plan as Record<string, unknown>).slug
+    return typeof slug === 'string' && /^[a-z0-9-]{1,32}$/.test(slug) ? slug : undefined
+  } catch {
+    return undefined
+  }
+}
+
 function normalizeUsername(value: string): string {
   return value.toLowerCase().replace(/[^a-z0-9-]/g, '')
 }
@@ -485,7 +526,13 @@ export async function handleSessionToken(_ctx: Context, req: IncomingMessage, re
     issuedAt: Math.floor(Date.now() / 1000),
   }, sessionSecret)
   setSessionCookie(res, signed)
-  sendJson(res, 200, { success: true, supabase_sub: supabaseUser.id, username })
+  const planSlug = await fetchPlanSlug(token)
+  sendJson(res, 200, {
+    success: true,
+    supabase_sub: supabaseUser.id,
+    username,
+    ...(planSlug === undefined ? {} : { plan_slug: planSlug }),
+  })
 }
 
 /**

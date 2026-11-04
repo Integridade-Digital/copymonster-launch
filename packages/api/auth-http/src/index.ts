@@ -29,6 +29,8 @@ import { HEALTHZ_PATH, handleHealthz } from './health.ts'
 import { LLM_TEST_PATH, handleLlmTest } from './llm-test.ts'
 import { AUTOMATION_RPC_CHANNEL, guardAutomationModel } from './automation-model-guard.ts'
 import { SESSION_TOKEN_PATH, handleSessionToken } from './session-token.ts'
+import { clientKey, createRateLimiter, type RateLimiter } from './rate-limit.ts'
+import z from '@deepseek-ai/schemastery'
 
 export type { AuthErrorResponse, AuthIdentityResponse } from './types.ts'
 export { handleCheckout, handlePortal, handleWebhook, readRawBody, verifyStripeSignature } from './billing.ts'
@@ -44,6 +46,53 @@ export {
 
 /** Stable Cordis plugin name. */
 export const name = 'auth-http'
+
+/** Per-route request budget for the public auth and billing surface. */
+export interface Config {
+  /**
+   * Fixed window applied to each public route. Behind Cloudflare every request
+   * shares the tunnel address, so the limiter keys on the forwarded client
+   * address instead.
+   */
+  rateLimit: {
+    /** Window length in milliseconds. */
+    windowMs: number
+    /** Requests allowed per window, per client. */
+    max: number
+  }
+}
+
+/** Validated plugin configuration. */
+export const Config: z<Config> = z.object({
+  rateLimit: z.object({
+    windowMs: z.number().min(1_000).default(60_000),
+    max: z.number().min(1).default(30),
+  }).default({ windowMs: 60_000, max: 30 }),
+})
+
+/**
+ * Wrap one route handler with its own rate-limit budget.
+ * @param handler - route handler to protect.
+ * @param limiter - limiter dedicated to this route.
+ * @returns the guarded handler.
+ */
+function rateLimited(
+  handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>,
+  limiter: RateLimiter,
+): (req: IncomingMessage, res: ServerResponse) => void {
+  return (req, res) => {
+    const decision = limiter.check(clientKey(req))
+    if (!decision.allowed) {
+      res.writeHead(429, {
+        'content-type': 'application/json; charset=utf-8',
+        'retry-after': String(decision.retryAfterSeconds),
+      })
+      res.end(JSON.stringify({ error: 'rate_limited' }))
+      return
+    }
+    void handler(req, res)
+  }
+}
 
 /** Services required before the routes can be registered. */
 export const inject = ['webServer', 'auth', 'connection']
@@ -134,11 +183,16 @@ function handleEnter(ctx: Context, req: IncomingMessage, res: ServerResponse): v
  * Register the CopyMonster HTTP auth and billing routes on the composing webserver.
  * @param ctx - plugin Context carrying `webServer`, `auth`, and `connection`.
  */
-export function apply(ctx: Context): void {
+export function apply(ctx: Context, config: Config): void {
+  const limiter = (): RateLimiter => createRateLimiter(config.rateLimit)
+  const sessionTokenLimiter = limiter()
+  const billingLimiter = limiter()
+  const meLimiter = limiter()
+  const llmTestLimiter = limiter()
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: ME_PATH,
-    handler: (req: IncomingMessage, res: ServerResponse) => handleMe(ctx, req, res),
+    handler: rateLimited((req: IncomingMessage, res: ServerResponse) => handleMe(ctx, req, res), meLimiter),
   }), `auth-http: ${ME_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
@@ -156,31 +210,31 @@ export function apply(ctx: Context): void {
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: LLM_TEST_PATH,
-    handler: (req: IncomingMessage, res: ServerResponse) => handleLlmTest(ctx, req, res),
+    handler: rateLimited((req: IncomingMessage, res: ServerResponse) => handleLlmTest(ctx, req, res), llmTestLimiter),
   }), `auth-http: ${LLM_TEST_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: BILLING_CHECKOUT_PATH,
-    handler: (req: IncomingMessage, res: ServerResponse) => { handleCheckout(ctx, req, res) },
+    handler: rateLimited((req: IncomingMessage, res: ServerResponse) => { handleCheckout(ctx, req, res) }, billingLimiter),
   }), `auth-http: ${BILLING_CHECKOUT_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: BILLING_PORTAL_PATH,
-    handler: (req: IncomingMessage, res: ServerResponse) => { handlePortal(ctx, req, res) },
+    handler: rateLimited((req: IncomingMessage, res: ServerResponse) => { handlePortal(ctx, req, res) }, billingLimiter),
   }), `auth-http: ${BILLING_PORTAL_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: BILLING_WEBHOOK_PATH,
-    handler: (req: IncomingMessage, res: ServerResponse) => { handleWebhook(ctx, req, res) },
+    handler: rateLimited((req: IncomingMessage, res: ServerResponse) => { handleWebhook(ctx, req, res) }, billingLimiter),
   }), `auth-http: ${BILLING_WEBHOOK_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: SESSION_TOKEN_PATH,
-    handler: (req: IncomingMessage, res: ServerResponse) => handleSessionToken(ctx, req, res),
+    handler: rateLimited((req: IncomingMessage, res: ServerResponse) => handleSessionToken(ctx, req, res), sessionTokenLimiter),
   }), `auth-http: ${SESSION_TOKEN_PATH}`)
 
   ctx.effect(

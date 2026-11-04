@@ -12,6 +12,7 @@ import type { CredentialInfo } from '@deepseek-ai/dsh-credentials/types'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { z } from 'zod'
 import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
+import { callerIsAdmin, getAuthIdentity } from './authz.ts'
 
 /**
  * Fan-out bound on one remote `describe` batch. A settings page asks about the
@@ -67,18 +68,6 @@ declare module '@deepseek-ai/cordis' {
  * guard, and the refusal mapping. Secret values cross in one direction only —
  * no method here returns one.
  */
-/**
- * Safely extracts the authenticated user identity from the Context without
- * triggering the Cordis Proxy 'without inject' trap when authIdentity is absent.
- */
-function getAuthIdentity(ctx: Context): UserIdentity | undefined {
-  if (Reflect.has(ctx, 'authIdentity')) {
-    return (ctx as unknown as { authIdentity?: UserIdentity }).authIdentity
-  }
-  return undefined
-}
-
-/** Service providing access to stored credentials and their metadata. */
 export class CredentialsController extends TypertRemoteService {
   /** @param ctx - Host context where a credential provider may be mounted. */
   constructor(ctx: Context) {
@@ -120,8 +109,7 @@ export class CredentialsController extends TypertRemoteService {
    */
   @Remote
   async set(ref: string, value: string): Promise<void> {
-    const identity = getAuthIdentity(this.ctx)
-    if (identity !== undefined && identity.isAdmin !== true) {
+    if (!callerIsAdmin(this.ctx)) {
       throw new RemoteError('credential/forbidden', 'Apenas administradores podem configurar credenciais e chaves de API.', { ref })
     }
     const request = parseRequest('credentials.set', setRequestSchema, { ref, value })
@@ -137,8 +125,7 @@ export class CredentialsController extends TypertRemoteService {
    */
   @Remote
   async unset(ref: string): Promise<void> {
-    const identity = getAuthIdentity(this.ctx)
-    if (identity !== undefined && identity.isAdmin !== true) {
+    if (!callerIsAdmin(this.ctx)) {
       throw new RemoteError('credential/forbidden', 'Apenas administradores podem remover credenciais e chaves de API.', { ref })
     }
     const request = parseRequest('credentials.unset', unsetRequestSchema, { ref })

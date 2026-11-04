@@ -283,6 +283,29 @@ declare module '@deepseek-ai/cordis' {
   }
 }
 
+/**
+ * Refuse a Remote caller that is not a platform operator.
+ *
+ * Installing, updating, or removing a bundle runs package-manager code and
+ * loads the result into the Host. A browser Peer whose principal is a tenant
+ * member is refused; a local owner Peer, a tenant admin, a platform operator,
+ * and an in-process call (the agent tool or a rollback) stay allowed.
+ * @param ctx - Host context the operation is running under.
+ * @throws RemoteError `plugin-manager/forbidden` for a non-operator Remote caller.
+ */
+export function assertPlatformAdmin(ctx: Context): void {
+  const principal = ctx.invocation?.peer.principal
+  if (principal === undefined) return
+  if (principal.kind === 'owner') return
+  if (principal.kind === 'user'
+    && (principal.role === 'owner' || principal.role === 'admin' || principal.isAdmin)) return
+  throw new RemoteError(
+    'plugin-manager/forbidden',
+    'Apenas administradores da plataforma podem instalar, atualizar ou remover plugins.',
+    {},
+  )
+}
+
 /** Manage profile files and apply their declared reload lifecycle. */
 export class PluginManager extends TypertRemoteService {
   static inject = ['loader', 'profileContext']
@@ -676,6 +699,7 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   async updateBundle(name: string, version: string, options?: UpdateBundleOptions): Promise<PluginUpdateResult> {
+    assertPlatformAdmin(this.ctx)
     const requestId = options?.requestId
     const announce = (step: PluginUpdateStep): void => {
       if (requestId !== undefined) this.ownerContext.emit('plugin-manager/update-state', { requestId, step })
@@ -834,6 +858,7 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   installBundle(spec: string, options?: InstallBundleOptions): Promise<ChangeResult> {
+    assertPlatformAdmin(this.ctx)
     const requestId = options?.requestId
     const control: InstallControl = { abort: new AbortController(), phase: 'installing', result: Promise.resolve(null) }
     const stopped = (): boolean => control.abort.signal.aborted || this.abort.signal.aborted
@@ -998,6 +1023,7 @@ export class PluginManager extends TypertRemoteService {
    */
   @Remote
   removeBundle(name: string): Promise<ChangeResult> {
+    assertPlatformAdmin(this.ctx)
     return this.change(async (result) => {
       const installed = await this.configure(async () => {
         const bundle = (await this.listBundles()).find(item => item.name === name)

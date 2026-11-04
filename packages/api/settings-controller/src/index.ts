@@ -10,8 +10,7 @@
 import { Context } from '@deepseek-ai/cordis'
 // Type-only: resolves the `agentPresets` Context augmentation this controller reads.
 import type {} from '@deepseek-ai/dsh-agent-preset-registry'
-// Type-only: resolves the `authIdentity` Context augmentation this controller reads.
-import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
+import { callerIsAdmin, getAuthIdentity } from './authz.ts'
 import {
   openNativeTextFile,
 } from '@deepseek-ai/dsh-native-command'
@@ -82,17 +81,6 @@ declare module '@deepseek-ai/cordis' {
 }
 
 /**
- * Safely extracts the authenticated user identity from the Context without
- * triggering the Cordis Proxy 'without inject' trap when authIdentity is absent.
- */
-function getAuthIdentity(ctx: Context): UserIdentity | undefined {
-  if (Reflect.has(ctx, 'authIdentity')) {
-    return (ctx as unknown as { authIdentity?: UserIdentity }).authIdentity
-  }
-  return undefined
-}
-
-/**
  * Resolve the caller-scoped Supabase client for this Remote method.
  *
  * Every privileged read and write goes through an RPC that derives the tenant
@@ -124,8 +112,7 @@ function isProtectedNamespace(ns: string): boolean {
  * @throws RemoteError `settings/forbidden` for a non-administrative caller.
  */
 function assertAdminRole(ctx: Context, action: string, ns: string): void {
-  const identity = getAuthIdentity(ctx)
-  if (identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin' && identity.isAdmin !== true) {
+  if (!callerIsAdmin(ctx)) {
     throw new RemoteError('settings/forbidden', `Apenas administradores podem ${action}.`, { ns })
   }
 }

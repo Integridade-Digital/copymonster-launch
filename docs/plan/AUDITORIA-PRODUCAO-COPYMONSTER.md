@@ -384,15 +384,34 @@ Todas com `REVOKE ... FROM PUBLIC, anon` e `GRANT EXECUTE ... TO authenticated`.
 
 **Pendente (fora do P0-4):** `check_tenant_quota` continua executável por `anon` — drift de ACL anterior a esta migração, a corrigir com `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated` e `GRANT ... TO service_role`.
 
-### Fase 2 — Capacidade e quotas (~2–3 dias)
+### Fase 2 — Capacidade e quotas — 🟡 EM CURSO
 
-1. Criar cgroups por tenant (`systemd-run --scope -p MemoryMax=… -p CPUQuota=…`) no `LocalSpawner`, com valores por plano.
-2. Aplicar `max_workspaces` e `max_sessions` no caminho de criação (RPC `check_tenant_quota` estendido ou verificação no `workspace-controller`).
-3. Aplicar `storage_gb` (XFS project quotas ou verificação periódica + bloqueio).
-4. Limpeza automática de logs de sessão antigos e de perfis órfãos.
-5. Alerta em 80 % de disco; plano de crescimento (mais disco ou segundo nó).
+**Feito (2026-11-04):**
 
-**Esforço:** 2–3 dias. **Risco:** médio.
+1. **Quotas de recursos por tenant** — `LocalSpawner.spawnAsUser` passa a poder arrancar o filho dentro de um scope transiente do systemd (`systemd-run --scope --collect --uid/--gid -p MemoryMax -p CPUQuota -p TasksMax`), substituindo o prefixo `setpriv` quando há limite configurado. Config: `DSH_SERVER_LOGIN_MEMORY_MAX`, `DSH_SERVER_LOGIN_CPU_QUOTA`, `DSH_SERVER_LOGIN_TASKS_MAX`, validados no arranque (sintaxe systemd) e **desligados por omissão**. Validado na máquina: `memory.max` = 256 M e execução como uid 100010.
+2. **Guard de disco** — `scripts/disk-guard.mjs` + `dsh-disk-guard.timer` (diário, 04:15). Reporta uso, uso por tenant, poda logs de sessão com mais de 30 dias e sinaliza raízes inativas. Sai com 1 acima de 90 %, o que marca a unidade como `failed` — o único alarme disponível sem stack de monitorização. Instalado e a correr; o host está a 93 %, por isso a unidade está em `failed` de propósito.
+3. **`max_workspaces`** — `WorkspaceCommands.provision` recusa a criação acima do teto do plano, lido por `get_my_tenant_metrics()` com o token do chamador e cacheado 60 s. Código de erro novo: `workspace/quota-exceeded`.
+
+**Por fazer:**
+
+- **Valores por plano nas quotas de recursos.** O orquestrador não conhece o plano: `get_my_tenant_metrics()` exige um JWT de utilizador e a chave service_role já não existe no orquestrador. Opções: (a) o app principal envia o plano no exchange SSO e o orquestrador guarda-o na tabela `users`; (b) o orquestrador expõe um endpoint interno autenticado. Recomendado (a). Até lá, os limites são globais e configuráveis por env.
+- **`max_sessions`.** Falta definir se conta sessões ativas ou arquivadas; a contagem vive no `session-controller` e precisa do mesmo cache de plano.
+- **`storage_gb`.** O guard reporta o uso por tenant, mas o bloqueio exige comparar com o plano (mesmo problema de propagação) e uma decisão sobre o que fazer ao exceder (recusar escrita vs só alertar).
+
+**Plano de crescimento do disco (medido):**
+
+| Consumidor | Tamanho | Ação |
+|---|---|---|
+| `/root/.local/share/opencode` | 11 GB | cache de ferramenta; limpar periodicamente |
+| `/root/.local/share/pnpm` | 9.6 GB | `pnpm store prune` |
+| `/var/lib/containerd` + `/var/lib/docker` | 23 GB | outros projetos; fora do âmbito |
+| `/root/copymonster-launch/node_modules` | 5.1 GB | regenerável |
+| `/tmp` (compile cache + backups) | 6 GB | limpeza manual |
+| tenants (`/var/lib/dsh-server-login`) | 0.75 GB | cresce com o uso |
+
+O CopyMonster ocupa ~7 GB; o resto é tooling partilhado e outros projetos. Antes de acrescentar disco ou um segundo nó, vale limpar caches (~20 GB recuperáveis).
+
+**Esforço restante:** 1–2 dias. **Risco:** médio.
 
 ### Fase 3 — Operação contínua (~2 dias)
 

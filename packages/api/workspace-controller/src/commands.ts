@@ -19,6 +19,8 @@ import {
   WorkspaceUnknownSessionError,
 } from '@deepseek-ai/dsh-workspace'
 import { RemoteError, remoteErrorOf } from '@deepseek-ai/dsh-typert-protocol'
+import { createUserClient } from '@deepseek-ai/dsh-supabase-client'
+import { readAuthToken } from './auth-identity.ts'
 import { workspaceView } from './feed.ts'
 import type {
   WorkspaceArchiveSessionRequest,
@@ -47,12 +49,70 @@ const INITIAL_WORKSPACE_TITLE = 'Meu Workspace'
 /** Title an older build derived from the initial Workspace's directory name. */
 const INITIAL_WORKSPACE_LEGACY_TITLE = 'default'
 
+/** One cached plan-limit read, keyed by the caller token that authorized it. */
+interface PlanLimitEntry {
+  expiresAt: number
+  maxWorkspaces: number | undefined
+}
+
+/** How long a plan-limit read is reused before asking Supabase again. */
+const PLAN_LIMIT_TTL_MS = 60_000
+
 /** Implements Workspace mutations against the authoritative registry. */
 export class WorkspaceCommands {
   private operationTail = Promise.resolve()
+  private readonly planLimits = new Map<string, PlanLimitEntry>()
 
   /** @param ctx - Host context containing the Workspace registry. */
   constructor(private readonly ctx: Context) {}
+
+  /**
+   * Read the caller tenant's workspace ceiling from its plan.
+   *
+   * `get_my_tenant_metrics()` derives the tenant from `auth.uid()`, so the
+   * caller's own token is enough. The read is cached briefly because it runs on
+   * every Workspace creation.
+   * @param token - bearer token of the caller.
+   * @returns the ceiling, or undefined when the plan sets none (unlimited).
+   */
+  private async maxWorkspaces(token: string): Promise<number | undefined> {
+    const now = Date.now()
+    const cached = this.planLimits.get(token)
+    if (cached !== undefined && now < cached.expiresAt) return cached.maxWorkspaces
+
+    let maxWorkspaces: number | undefined
+    try {
+      const { data, error } = await createUserClient(token).rpc('get_my_tenant_metrics', {})
+      if (error === null && data !== null) {
+        const limit = data.plan?.max_workspaces
+        // A null or non-positive ceiling means the plan is unlimited.
+        if (typeof limit === 'number' && limit > 0) maxWorkspaces = limit
+      }
+    } catch {
+      // An unreadable plan must not block creation; the quota is advisory here.
+    }
+
+    if (this.planLimits.size > 1_000) this.planLimits.clear()
+    this.planLimits.set(token, { expiresAt: now + PLAN_LIMIT_TTL_MS, maxWorkspaces })
+    return maxWorkspaces
+  }
+
+  /**
+   * Refuse a new Workspace once the tenant reached its plan ceiling.
+   * @param token - bearer token of the caller, when the call carries one.
+   */
+  private async assertWorkspaceQuota(token: string | undefined): Promise<void> {
+    if (token === undefined || token === '') return
+    const limit = await this.maxWorkspaces(token)
+    if (limit === undefined) return
+    const used = this.ctx.workspaceRegistry.list().length
+    if (used < limit) return
+    throw new RemoteError(
+      'workspace/quota-exceeded',
+      `Workspace limit reached (${used}/${limit}). Upgrade the plan to add another.`,
+      { used, limit },
+    )
+  }
 
   /**
    * Create or resolve one Workspace over an existing directory.
@@ -94,6 +154,7 @@ export class WorkspaceCommands {
         }
         return { workspace: workspaceView(existing), created: false }
       }
+      await this.assertWorkspaceQuota(readAuthToken(this.ctx))
       const workspace = await this.ctx.workspaceRegistry.create(targetPath, options.title)
       return { workspace: workspaceView(workspace), created: true }
     } catch (error) {

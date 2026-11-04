@@ -39,6 +39,8 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     'workspace/forbidden': { readonly workspaceId: WorkspaceId }
     /** Authentication required to perform operation. */
     'workspace/unauthorized': Record<string, never>
+    /** The tenant already holds as many Workspaces as its plan allows. */
+    'workspace/quota-exceeded': { readonly used: number; readonly limit: number }
     /**
      * The Session still has running work — its own turn, a subagent, a
      * background job, or an active schedule — so archiving was refused

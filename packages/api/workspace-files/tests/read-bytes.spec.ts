@@ -143,10 +143,9 @@ describe('workspaceFiles.readBytes — the gates it shares with read', () => {
     expect((await failureOf(endpoint().readBytes(harness.scope, '', { range: {} }, signal()))).code).toBe('gateway/bad-request')
   })
 
-  it('reads a bounded byte window outside the workspace', async () => {
+  it('refuses a byte window outside the workspace', async () => {
     await writeFile(join(harness.outside, 'sample.bin'), RAMP)
-    const result = await endpoint().readBytes(harness.scope, join(harness.outside, 'sample.bin'), { range: { offset: 2, length: 4 } }, signal())
-    expect(result.data).toEqual(RAMP.subarray(2, 6))
-    expect(result).toMatchObject({ offset: 2, eof: false })
+    const failure = await failureOf(endpoint().readBytes(harness.scope, join(harness.outside, 'sample.bin'), { range: { offset: 2, length: 4 } }, signal()))
+    expect(failure.code).toBe('workspace-file/outside-workspace')
   })
 })

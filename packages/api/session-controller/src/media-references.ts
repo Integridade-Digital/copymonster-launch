@@ -1,9 +1,11 @@
 /**
  * Authenticated GET/HEAD /api/file reads bounded file responses through
- * the composed filesystem provider. Paths and MIME types do not restrict access;
- * the connection service authenticates requests before this handler. A request
- * without the current `v` version is redirected, uncached, to the versioned URL,
- * whose response is cacheable indefinitely.
+ * the composed filesystem provider. The connection service authenticates
+ * requests before this handler, and every read is confined to the process's
+ * sandbox root: a browser admitted to this Host cannot turn the route into a
+ * reader for the rest of the machine. A request without the current `v` version
+ * is redirected, uncached, to the versioned URL, whose response is cacheable
+ * indefinitely.
  * @module @deepseek-ai/dsh-api-session-controller/media-references
  */
 
@@ -11,6 +13,7 @@ import { isAbsolute } from 'node:path'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-connection'
 import type {} from '@deepseek-ai/dsh-attachment'
+import type {} from '@deepseek-ai/dsh-sandbox-policy'
 import { FsError, type FileSystem } from '@deepseek-ai/dsh-fs'
 import mime from 'mime-types'
 
@@ -23,7 +26,7 @@ const NO_STORE = { ...BASE_HEADERS, 'Cache-Control': 'private, no-store' }
 // A versioned URL names one file version, so its response never changes.
 const VERSIONED = { ...BASE_HEADERS, 'Cache-Control': 'private, max-age=31536000, immutable' }
 
-async function serveFile(request: Request, fs: FileSystem, maxBytes: number): Promise<Response> {
+async function serveFile(request: Request, fs: FileSystem, sandboxRoot: string, maxBytes: number): Promise<Response> {
   const fail = (status: number, text: string): Response =>
     new Response(request.method === 'HEAD' ? null : text, { status, headers: NO_STORE })
   const params = new URL(request.url).searchParams
@@ -31,7 +34,9 @@ async function serveFile(request: Request, fs: FileSystem, maxBytes: number): Pr
   if (path === null || path.length === 0) return fail(400, 'missing path')
   if (path.includes('\0') || !isAbsolute(path)) return fail(400, 'absolute path required')
   try {
+    const sandbox = await fs.resolve(sandboxRoot, { signal: request.signal })
     const target = await fs.resolve(path, { signal: request.signal })
+    if (!fs.contains(sandbox, target)) return fail(403, 'outside sandbox')
     const info = await fs.stat(target, request.signal)
     if (info === undefined) return fail(404, 'not found')
     if (info.type !== 'file') return fail(403, 'not a regular file')
@@ -68,17 +73,19 @@ async function serveFile(request: Request, fs: FileSystem, maxBytes: number): Pr
 
 /**
  * File-display contribution. The connection service supplies authentication;
- * `ctx.fs` supplies the execution world's paths, reads, and access policy.
+ * `ctx.fs` supplies the execution world's paths and reads; `ctx.sandboxPolicy`
+ * supplies the root every read is confined to.
  */
 export const SessionMediaReferences = {
-  inject: ['connection', 'fs', 'attachments'],
+  inject: ['connection', 'fs', 'attachments', 'sandboxPolicy'],
   apply(ctx: Context): void {
     const maxBytes = ctx.attachments.imageLimits.maxImageBytes
+    const sandboxRoot = ctx.sandboxPolicy.workspaceRoot
     ctx.effect(() => ctx.connection.fetch.register({
       path: '/api/file',
       methods: ['GET', 'HEAD'],
       requestBody: 'buffered',
-      fetch: request => serveFile(request, ctx.fs, maxBytes),
+      fetch: request => serveFile(request, ctx.fs, sandboxRoot, maxBytes),
     }), 'session-controller: /api/file')
   },
 }

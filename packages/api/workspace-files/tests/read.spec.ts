@@ -126,26 +126,23 @@ describe('workspaceFiles.read — the line window', () => {
 })
 
 describe('workspaceFiles.read — read access and file kinds', () => {
-  it('reads an absolute path outside the workspace without mutating it', async () => {
+  it('refuses an absolute path outside the workspace', async () => {
     await writeFile(join(outside, 'notes.txt'), 'outside\nread only\n', 'utf8')
-    const write = vi.spyOn(harness.ctx.fs, 'writeText')
-    const edit = vi.spyOn(harness.ctx.fs, 'editText')
-    const result = await endpoint().read(harness.scope, join(outside, 'notes.txt'), {}, signal())
-    expect(result).toMatchObject({ text: 'outside\nread only', lines: 2, eof: true })
-    expect(write).not.toHaveBeenCalled()
-    expect(edit).not.toHaveBeenCalled()
+    const failure = await failureOf(endpoint().read(harness.scope, join(outside, 'notes.txt'), {}, signal()))
+    expect(failure.code).toBe('workspace-file/outside-workspace')
   })
 
-  it('resolves a relative file outside the workspace on the Host', async () => {
+  it('refuses a relative path that resolves outside the workspace', async () => {
     await writeFile(join(outside, 'notes.txt'), 'outside', 'utf8')
-    expect(await endpoint().read(harness.scope, '../outside/notes.txt', {}, signal())).toMatchObject({ text: 'outside', eof: true })
+    const failure = await failureOf(endpoint().read(harness.scope, '../outside/notes.txt', {}, signal()))
+    expect(failure.code).toBe('workspace-file/outside-workspace')
   })
 
-  it('preserves a filesystem provider refusal for an outside file', async () => {
-    await writeFile(join(outside, 'notes.txt'), 'outside', 'utf8')
+  it('preserves a filesystem provider refusal for a workspace file', async () => {
+    await writeFile(join(workspace, 'notes.txt'), 'inside', 'utf8')
     const refusal = new FsError('backend denied read', 'FS_SANDBOX_DENIED')
     vi.spyOn(harness.ctx.fs, 'streamText').mockRejectedValue(refusal)
-    await expect(endpoint().read(harness.scope, join(outside, 'notes.txt'), {}, signal())).rejects.toBe(refusal)
+    await expect(endpoint().read(harness.scope, 'notes.txt', {}, signal())).rejects.toBe(refusal)
   })
 
   it('rejects a symlink that points out of the workspace — the case a prefix test cannot see', async () => {

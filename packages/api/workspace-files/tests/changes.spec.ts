@@ -383,23 +383,24 @@ describe('workspaceFiles.changes — backends and access', () => {
     expect(watch).not.toHaveBeenCalled()
   })
 
-  it('allows an outside file under the same read authority', async () => {
+  it('watches an outside file while content reads refuse it', async () => {
     const path = join(harness.outside, 'allowed.txt')
     await writeFile(path, 'outside contents')
     const service = harness.endpoint()
-    const current = await service.stat(harness.scope, path, new AbortController().signal)
+    const target = await harness.ctx.fs.resolve(path)
+    const info = await harness.ctx.fs.stat(target)
+    if (info === undefined) throw new Error('expected the outside file to exist')
     const stream = open(service, path)
     await ready(stream)
-    expect(watch.mock.calls[0]![0]).toEqual(await harness.ctx.fs.resolve(path))
+    expect(watch.mock.calls[0]![0]).toEqual(target)
     const pending = stream.next()
     await observe(path, present('outdated'))
     await expect(pending).resolves.toEqual({
       done: false,
-      value: { kind: 'change', change: { absolutePath: current.absolutePath, version: current.version } },
+      value: { kind: 'change', change: { absolutePath: harness.ctx.fs.processPath(target), version: info.version } },
     })
-    await expect(service.read(harness.scope, path, {}, stream.controller.signal)).resolves.toMatchObject({
-      text: 'outside contents', eof: true,
-    })
+    expect((await failureOf(service.read(harness.scope, path, {}, stream.controller.signal))).code)
+      .toBe('workspace-file/outside-workspace')
   })
 
   it('rejects and closes an outside target when a later stat finds a directory', async () => {
@@ -445,11 +446,13 @@ describe('workspaceFiles.changes — backends and access', () => {
     mark('renaming')
     await rename(staging, path)
     mark('reading-stat')
-    const current = await service.stat(harness.scope, path, stream.controller.signal)
+    const target = await harness.ctx.fs.resolve(path)
+    const info = await harness.ctx.fs.stat(target)
+    if (info === undefined) throw new Error('expected the created outside file to exist')
     mark('waiting-change')
     await expect(pending).resolves.toEqual({
       done: false,
-      value: { kind: 'change', change: { absolutePath: current.absolutePath, version: current.version } },
+      value: { kind: 'change', change: { absolutePath: harness.ctx.fs.processPath(target), version: info.version } },
     })
     mark('closing')
     await stream.close()

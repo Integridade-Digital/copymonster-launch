@@ -131,15 +131,16 @@ describe('change comparison route', () => {
 })
 
 describe('changed files native open route', () => {
-  it('opens a listed file inside or outside the workspace with its verified Host path', async () => {
-    const { cwd, open, opener, outside } = await fixture()
+  it('opens a listed file inside the workspace and refuses one outside it', async () => {
+    const { cwd, open, opener } = await fixture()
     expect(changedFileUrl(SessionId('owner'), 9, 0)).toBe('api/changes.open?sessionId=owner&seq=9&index=0')
     const response = await open()
     expect(response.status).toBe(204)
     expect(response.headers.get('cache-control')).toBe('no-store')
     expect(opener).toHaveBeenLastCalledWith({ path: await realpath(join(cwd, 'src', 'lib', 'a.ts')) }, expect.any(AbortSignal))
-    expect((await open('?sessionId=owner&seq=9&index=2')).status).toBe(204)
-    expect(opener.mock.lastCall?.[0].path).toBe(await realpath(outside))
+    const calls = opener.mock.calls.length
+    expect((await open('?sessionId=owner&seq=9&index=2')).status).toBe(404)
+    expect(opener.mock.calls.length).toBe(calls)
   })
 
   it.each(['', '?seq=9', '?sessionId=owner', '?sessionId=owner&seq=9', '?sessionId=owner&seq=9&index=-1', '?sessionId=owner&seq=9&index=1.5', '?sessionId=owner&seq=x'])(

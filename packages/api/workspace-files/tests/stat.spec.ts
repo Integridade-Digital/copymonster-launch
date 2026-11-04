@@ -61,7 +61,7 @@ describe('workspaceFiles.stat', () => {
     expect(result).toEqual({ absolutePath: result.absolutePath, version: 'v-sizeless' })
   })
 
-  it('accepts outside files and refuses symlinks, directories, missing and empty paths', async () => {
+  it('refuses outside files and symlinks, directories, missing and empty paths', async () => {
     await writeFile(join(harness.outside, 'secret.txt'), 'no', 'utf8')
     await symlink(join(harness.outside, 'secret.txt'), join(harness.workspace, 'link.txt'))
     await mkdir(join(harness.workspace, 'src'))
@@ -71,7 +71,7 @@ describe('workspaceFiles.stat', () => {
       details: { kind: 'symlink' },
     })
     expect((await failureOf(endpoint.stat(harness.scope, 'src', signal()))).details).toMatchObject({ kind: 'directory' })
-    expect(await endpoint.stat(harness.scope, join(harness.outside, 'secret.txt'), signal())).toMatchObject({ bytes: 2 })
+    expect((await failureOf(endpoint.stat(harness.scope, join(harness.outside, 'secret.txt'), signal()))).code).toBe('workspace-file/outside-workspace')
     expect((await failureOf(endpoint.stat(harness.scope, 'nope.txt', signal()))).code).toBe('workspace-file/not-found')
     expect((await failureOf(endpoint.stat(harness.scope, '', signal()))).code).toBe('gateway/bad-request')
   })

@@ -3,12 +3,12 @@
  * listings, and the filesystem-observation change feed, exposed as
  * `workspaceFiles`.
  *
- * File reads follow the composed filesystem's read access, including paths
- * outside the workspace. The selected Session header supplies the base for
- * relative paths, with the sandbox policy root as its no-cwd fallback, not a
- * read-containment restriction. Directory listings and change observations
- * remain workspace-scoped. File-kind checks and configured read caps apply to
- * every preview; this service exposes no mutations.
+ * File reads are confined to the Session workspace. The selected Session header
+ * supplies the base for relative paths, with the sandbox policy root as its
+ * no-cwd fallback, and every read resolves against that root before content
+ * crosses the wire. Directory listings and change observations remain
+ * workspace-scoped. File-kind checks and configured read caps apply to every
+ * preview; this service exposes no mutations.
  *
  * A page is cut from `streamText`, which decodes and rejects non-UTF-8 as it
  * goes, so the file is read only up to the first character past the page and
@@ -225,7 +225,7 @@ export class WorkspaceFiles extends TypertRemoteService {
   /**
    * Read one page of lines from a UTF-8 file readable by the filesystem backend.
    * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
-   * @param path - absolute path or path relative to the workspace root; files outside it are allowed.
+   * @param path - absolute path or path relative to the workspace root; files outside it are refused.
    * @param range - the line window; omitted fields take the page defaults.
    * @param signal - caller cancellation.
    * @returns the page, the file's version at the stat before it, and whether it reaches the last line.
@@ -249,7 +249,7 @@ export class WorkspaceFiles extends TypertRemoteService {
   /**
    * Read a complete regular file or one byte range without text decoding.
    * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
-   * @param path - target path, absolute or workspace-relative; relative to the base file's directory when provided.
+   * @param path - target path, absolute or workspace-relative, confined to the workspace; relative to the base file when provided.
    * @param options - optional base file and range; without a range the complete-file cap applies.
    * @param signal - caller cancellation.
    * @returns native bytes with the file's version and size at the preceding stat, byte offset, and EOF marker.
@@ -283,7 +283,7 @@ export class WorkspaceFiles extends TypertRemoteService {
   /**
    * Report one regular file's identity, version, and size without its content.
    * @param workspaceFileScope - header-derived workspace root for the Session identity on the wire.
-   * @param path - absolute path or path relative to the workspace root; files outside it are allowed.
+   * @param path - absolute path or path relative to the workspace root; files outside it are refused.
    * @param signal - caller cancellation.
    * @returns the file's absolute path, current version, and byte size.
    */
@@ -418,11 +418,11 @@ export class WorkspaceFiles extends TypertRemoteService {
     path: string,
     signal: AbortSignal,
   ): Promise<{ target: FsTarget; info: FsInfo }> {
-    const { workspaceRoot, entry } = await this.inspect(workspaceFileScope, path, signal)
+    const { root, workspaceRoot, entry } = await this.inspect(workspaceFileScope, path, signal)
     if (entry.type !== 'file') {
       throw new RemoteError('workspace-file/not-regular-file', `"${path}" is a ${entry.type}`, { path, kind: entry.type })
     }
-    const target = await this.ctx.fs.resolve(path, { cwd: workspaceRoot, signal })
+    const target = await this.confine(root, workspaceRoot, path, signal)
     const info = await this.ctx.fs.stat(target, signal)
     if (info === undefined) {
       throw new RemoteError('workspace-file/not-found', `no entry at "${path}"`, { path })

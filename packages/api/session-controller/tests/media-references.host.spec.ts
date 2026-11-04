@@ -41,6 +41,7 @@ describe('SessionMediaReferences /api/file', () => {
       },
     } as never)
     ctx.provide('attachments', { imageLimits: { maxImageBytes: maxBytes } } as never)
+    ctx.provide('sandboxPolicy', { workspaceRoot: root } as never)
     await ctx.plugin(LocalFileSystem, { cwd: root }).await()
     await ctx.plugin(SessionMediaReferences).await()
     const raw = (url: string, init?: RequestInit) => {
@@ -194,16 +195,19 @@ describe('SessionMediaReferences /api/file', () => {
     expect((await route.call(join(root, 'frames.png'))).status).toBe(403)
   })
 
-  it('reads files and symlink targets outside the default cwd without a workspace registry', async () => {
+  it('refuses files and symlink targets outside the sandbox root', async () => {
     const route = await mount()
     const outside = await mkdtemp(join(tmpdir(), 'dsh-media-outside-'))
     try {
       const path = join(outside, 'image.png')
       await writeFile(path, PNG_BYTES)
-      expect(await responseBytes(await route.call(path))).toEqual(PNG_BYTES)
+      expect((await route.call(path)).status).toBe(403)
       const link = join(root, 'linked.png')
       await symlink(path, link)
-      expect(await responseBytes(await route.call(link))).toEqual(PNG_BYTES)
+      expect((await route.call(link)).status).toBe(403)
+      if (process.platform === 'linux') {
+        expect((await route.call('/proc/self/environ')).status).toBe(403)
+      }
     } finally {
       await rm(outside, { recursive: true, force: true })
     }

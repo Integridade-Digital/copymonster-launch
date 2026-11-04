@@ -131,7 +131,7 @@ describe('Presented workspace file native open route', () => {
     expect(opener).not.toHaveBeenCalled()
   })
 
-  it('opens external regular files through absolute and relative paths but refuses final symlinks', async () => {
+  it('refuses external regular files through absolute and relative paths and final symlinks', async () => {
     const { root, cwd, file, open, opener } = await fixture()
     const outside = join(root, 'outside.txt')
     await writeFile(outside, 'outside')
@@ -142,8 +142,8 @@ describe('Presented workspace file native open route', () => {
     expect(opener).not.toHaveBeenCalled()
     for (const path of ['../outside.txt', outside]) {
       file.path = path
-      expect((await open()).status).toBe(204)
-      expect(opener.mock.lastCall?.[0].path).toBe(await realpath(outside))
+      expect((await open()).status).toBe(404)
+      expect(opener).not.toHaveBeenCalled()
     }
   })
 

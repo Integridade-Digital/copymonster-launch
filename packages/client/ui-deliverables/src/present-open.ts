@@ -63,7 +63,8 @@ function coordinate(value: string | null): number | undefined {
 function failureStatus(error: unknown): number {
   const remote = remoteErrorOf(error)
   const missing = remote?.code === 'session/not-found' || remote?.code === 'workspace-file/not-found'
-    || remote?.code === 'workspace-file/not-regular-file' || error instanceof Error && 'code' in error
+    || remote?.code === 'workspace-file/not-regular-file' || remote?.code === 'workspace-file/outside-workspace'
+    || error instanceof Error && 'code' in error
     && (error.code === 'SESSION_QUERY_SESSION_NOT_FOUND' || error.code === 'SESSION_QUERY_EVENT_NOT_FOUND'
       || error.code === 'ENOENT' || error.code === 'ENOTDIR')
   return missing ? 404 : 500

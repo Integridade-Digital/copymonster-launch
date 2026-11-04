@@ -6,14 +6,17 @@ const address = 'dsh-resource://plan/session/call'
 const event = { type: 'tool/call', seq: 1, data: { callId: 'call', name: 'exit_plan_mode', arguments: '{"plan":"# Saved plan"}' } }
 const entry = { type: 'event', event }
 
-function setup(records: unknown[], hasMore = false) {
+function setup(records: unknown[], hasMore = false, authToken: () => string | undefined = () => 'test-token') {
   const closed = vi.fn()
   const follow = vi.fn(async function* () {
     try { yield { type: 'snapshot', cursor: 100, records, hasMore } }
     finally { closed() }
   })
   const page = vi.fn(async () => ({ ok: true, value: { records: [entry], hasMore: false } }))
-  const provider = planResourceProvider({ follow, page } as unknown as Parameters<typeof planResourceProvider>[0])
+  const provider = planResourceProvider(
+    { follow, page } as unknown as Parameters<typeof planResourceProvider>[0],
+    authToken,
+  )
   return { provider, follow, page, closed }
 }
 
@@ -41,9 +44,14 @@ describe('plan history resource', () => {
     const address = `dsh-resource://plan/subagent/parent/child/${mode}/call`
     const session = { kind: 'subagent', parentSessionId: 'parent', childSessionId: 'child', mode }
     expect(await read(b.provider, address)).toMatchObject([{ ok: true, value: { title: 'Saved plan' } }])
-    expect(b.follow).toHaveBeenCalledWith({ address: session }, expect.any(AbortSignal))
+    expect(b.follow).toHaveBeenCalledWith({ address: session, authToken: 'test-token' }, expect.any(AbortSignal))
     expect(b.page).toHaveBeenCalledWith({ address: session, throughSeq: 100, beforeSeq: 80 }, expect.any(AbortSignal))
     expect(b.closed).toHaveBeenCalledOnce()
+  })
+  it('omits the token when the page publishes none', async () => {
+    const b = setup([entry], false, () => undefined)
+    await read(b.provider)
+    expect(b.follow).toHaveBeenCalledWith({ address: { kind: 'session', sessionId: 'session' } }, expect.any(AbortSignal))
   })
   it('reports missing plans and invalid saved addresses', async () => {
     const b = setup([])

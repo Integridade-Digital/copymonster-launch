@@ -32,9 +32,13 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
  * Generated Remote streams can throw carrier failures; the provider reports failed
  * reads as resource failure frames and preserves Remote error codes.
  * @param remote - Existing Session history API.
+ * @param authToken - Reads the bearer token the Host requires on `session.follow`.
  * @returns a provider whose reads stop after finding the exact invocation.
  */
-export function planResourceProvider(remote: Pick<Context['remote']['session'], 'follow' | 'page'>): ResourceProvider<'plan'> {
+export function planResourceProvider(
+  remote: Pick<Context['remote']['session'], 'follow' | 'page'>,
+  authToken: () => string | undefined,
+): ResourceProvider<'plan'> {
   return {
     protocol: 'plan',
     async *open(address, { signal }): AsyncIterable<RemoteResult<SubmittedPlan>> {
@@ -46,10 +50,14 @@ export function planResourceProvider(remote: Pick<Context['remote']['session'], 
         return
       }
       const sessionAddress = target.session
+      const token = authToken()
       try {
         // The snapshot supplies the page API's fixed log cut. Breaking closes the follow stream.
         let snapshot: Extract<SessionFollowFrame, { type: 'snapshot' }> | undefined
-        for await (const frame of remote.follow({ address: sessionAddress }, signal)) {
+        for await (const frame of remote.follow({
+          address: sessionAddress,
+          ...(token === undefined ? {} : { authToken: token }),
+        }, signal)) {
           if (frame.type === 'snapshot') { snapshot = frame; break }
         }
         if (aborted()) return

@@ -636,12 +636,12 @@ export class SessionController extends TypertRemoteService {
    * `@RemoteScope` cannot carry this verb yet: the Typert generator discards
    * `mode` for a `context` invocation, so a scoped stream is emitted as a unary
    * method and breaks the Client contract. This verb therefore stays a direct
-   * stream and resolves the caller's identity itself from the same bearer token
-   * a scoped verb carries, refusing a call the Host cannot attribute to a
-   * confined root. Migrate to `@RemoteScope('auth', 'follow')` once the
-   * generator supports a stream and a context together.
+   * stream and requires the bearer token a scoped verb carries, rejecting a
+   * call without one and confining every read to the caller's sandbox root.
+   * Migrate to `@RemoteScope('auth', 'follow')` once the generator supports a
+   * stream and a context together.
    *
-   * @param request - durable address, last committed sequence, and bearer token.
+   * @param request - durable address, last committed sequence, and required bearer token.
    * @param signal - cancellation owned by the Remote stream carrier.
    * @returns a complete opening snapshot followed by gap-free durable event
    *   frames and optional cursorless assistant-stream frames.
@@ -649,18 +649,18 @@ export class SessionController extends TypertRemoteService {
   @Remote({ mode: 'stream' })
   async *follow(request: SessionFollowRequest, signal: AbortSignal): AsyncIterable<SessionFollowFrame> {
     signal.throwIfAborted()
-    let sandboxRoot: string | undefined
-    if (request.authToken !== undefined) {
-      const auth = this.ctx.get('auth')
-      if (auth === undefined) {
-        throw new RemoteError('session/unauthorized', 'session follow requires the auth service.', {})
-      }
-      const identity = await auth.resolveIdentity(request.authToken)
-      if (identity === undefined) {
-        throw new RemoteError('session/unauthorized', 'session follow requires an authenticated caller identity.', {})
-      }
-      sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    if (request.authToken === undefined) {
+      throw new RemoteError('session/unauthorized', 'session follow requires an authToken', {})
     }
+    const auth = this.ctx.get('auth')
+    if (auth === undefined) {
+      throw new RemoteError('session/unauthorized', 'session follow requires the auth service.', {})
+    }
+    const identity = await auth.resolveIdentity(request.authToken)
+    if (identity === undefined) {
+      throw new RemoteError('session/unauthorized', 'session follow requires an authenticated caller identity.', {})
+    }
+    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
     yield* this.history.follow(request, signal, sandboxRoot)
   }
 

@@ -43,6 +43,7 @@ function providePreview(ctx: Context) {
   ctx.provide('sidebarRightTabs', { register: registerType })
   ctx.provide('sidebarRight', { openResourceIn, openResource, mounted })
   ctx.provide('remote.session', {})
+  ctx.provide('typert', { contexts: { getClient: () => undefined } } as never)
   return { events, removeResources, removeType, registerType, openResourceIn, openResource, mounted, subagentAddress, chat, binding }
 }
 
@@ -144,7 +145,7 @@ describe('ui-plan browser apply', () => {
   })
 
   it('declares every service it binds', () => {
-    expect(inject).toEqual(['slots', 'remote', 'remote.commands', 'remote.session', 'sessions', 'locale', 'uiConversation', 'resources', 'sidebarRight', 'sidebarRightTabs'])
+    expect(inject).toEqual(['slots', 'remote', 'remote.commands', 'remote.session', 'sessions', 'typert', 'locale', 'uiConversation', 'resources', 'sidebarRight', 'sidebarRightTabs'])
   })
 
   it('node-half apply is an intentional no-op', () => {

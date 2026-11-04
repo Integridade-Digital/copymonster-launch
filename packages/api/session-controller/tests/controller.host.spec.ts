@@ -122,6 +122,7 @@ describe('SessionController facade', () => {
     const abort = new AbortController()
     const iterator = controller.follow({
       address: { kind: 'session', sessionId },
+      authToken: 'test-token',
     }, abort.signal)[Symbol.asyncIterator]()
     await expect(iterator.next()).resolves.toMatchObject({
       done: false,
@@ -168,6 +169,7 @@ describe('SessionController facade', () => {
       const abort = new AbortController()
       const iterator = controller.follow({
         address: { kind: 'session', sessionId },
+        authToken: 'test-token',
       }, abort.signal)[Symbol.asyncIterator]()
 
       await expect(iterator.next()).resolves.toMatchObject({ value: { type: 'snapshot' } })
@@ -220,6 +222,7 @@ describe('SessionController facade', () => {
     })
     const iterator = controller.follow({
       address: { kind: 'session', sessionId },
+      authToken: 'test-token',
     }, new AbortController().signal)[Symbol.asyncIterator]()
 
     await expect(iterator.next()).resolves.toMatchObject({ value: { type: 'snapshot' } })

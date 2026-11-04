@@ -529,7 +529,10 @@ export interface SessionFollowRequest extends Pick<SessionPageRequest, 'maxMessa
   readonly address: SessionAddress
   /** Include process-local assistant presentation frames for the Web client. */
   readonly assistantStream?: true
-  /** Bearer token the Host re-verifies before reading data. */
+  /**
+   * Bearer token the Host requires before reading data. Optional on the wire so
+   * an in-process caller can omit it, but the Host refuses the call.
+   */
   readonly authToken?: string
 }
 

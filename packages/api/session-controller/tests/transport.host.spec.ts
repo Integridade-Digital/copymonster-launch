@@ -88,7 +88,7 @@ describe('SessionHistoryController', () => {
     session.append('turn/start', { turn: 1 })
     const abort = new AbortController()
     const iterator = transport.follow(
-      { address: { kind: 'session', sessionId: session.id } },
+      { address: { kind: 'session', sessionId: session.id }, authToken: 'test-token' },
       abort.signal,
     )[Symbol.asyncIterator]()
 
@@ -123,7 +123,7 @@ describe('SessionHistoryController', () => {
     await owner.await()
     const session = ctx.sessions.create(SessionId('controller-unload'), { meta: { cwd: '/workspace' } })
     const iterator = transport.follow(
-      { address: { kind: 'session', sessionId: session.id } },
+      { address: { kind: 'session', sessionId: session.id }, authToken: 'test-token' },
       new AbortController().signal,
     )[Symbol.asyncIterator]()
 
@@ -146,6 +146,7 @@ describe('SessionHistoryController', () => {
     const abort = new AbortController()
     const iterator = transport.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
     }, abort.signal)[Symbol.asyncIterator]()
 
     expect(await iterator.next()).toMatchObject({
@@ -187,7 +188,7 @@ describe('SessionHistoryController', () => {
       inspect: () => inspected.promise,
     }) as never)
     const abort = new AbortController()
-    const iterator = transport.follow({ address: { kind: 'session', sessionId } }, abort.signal)
+    const iterator = transport.follow({ address: { kind: 'session', sessionId }, authToken: 'test-token' }, abort.signal)
       [Symbol.asyncIterator]()
     const opening = iterator.next()
 
@@ -222,7 +223,7 @@ describe('SessionHistoryController', () => {
     ctx.provide('sessionQuery', { observeSession: () => observed.promise } as never)
     const transport = new SessionHistoryController(ctx, vi.fn())
     const abort = new AbortController()
-    const iterator = transport.follow({ address: { kind: 'session', sessionId } }, abort.signal)
+    const iterator = transport.follow({ address: { kind: 'session', sessionId }, authToken: 'test-token' }, abort.signal)
       [Symbol.asyncIterator]()
     const opening = iterator.next()
 
@@ -279,7 +280,7 @@ describe('SessionHistoryController', () => {
     const seed = [event('fixture/start', SessionSeq(0))]
     cold(ctx, header, seed)
     const abort = new AbortController()
-    const iterator = transport.follow({ address: { kind: 'session', sessionId } }, abort.signal)
+    const iterator = transport.follow({ address: { kind: 'session', sessionId }, authToken: 'test-token' }, abort.signal)
       [Symbol.asyncIterator]()
 
     await expect(iterator.next()).resolves.toMatchObject({ done: false, value: { type: 'snapshot', cursor: 0 } })
@@ -324,6 +325,7 @@ describe('SessionHistoryController', () => {
     cold(replay.ctx, replayHeader, [event('fixture/start', SessionSeq(0)), event('fixture/gap', SessionSeq(2))])
     const replayed = replay.transport.follow({
       address: { kind: 'session', sessionId: replayId },
+      authToken: 'test-token',
     }, signal())[Symbol.asyncIterator]()
     await expect(replayed.next()).rejects.toMatchObject({ code: 'SESSION_QUERY_CORRUPT_SESSION' })
 
@@ -333,6 +335,7 @@ describe('SessionHistoryController', () => {
     live.ctx.provide('agents', { get: () => ({ id: session.id }) } as never)
     const followed = live.transport.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
     }, signal())[Symbol.asyncIterator]()
     await expect(followed.next()).resolves.toMatchObject({ done: false, value: { type: 'snapshot', cursor: 0 } })
     const skipped = event('fixture/skipped', SessionSeq(1))
@@ -350,6 +353,7 @@ describe('SessionHistoryController', () => {
     const abort = new AbortController()
     const iterator = transport.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
     }, abort.signal)[Symbol.asyncIterator]()
     await expect(iterator.next()).resolves.toMatchObject({ done: false, value: { type: 'snapshot', cursor: -1 } })
     await expect(transport.page({
@@ -382,7 +386,7 @@ describe('SessionHistoryController', () => {
     } as never)
     const history = new SessionHistoryController(ctx, vi.fn())
     const abort = new AbortController()
-    const iterator = history.follow({ address: { kind: 'session', sessionId } }, abort.signal)
+    const iterator = history.follow({ address: { kind: 'session', sessionId }, authToken: 'test-token' }, abort.signal)
       [Symbol.asyncIterator]()
 
     await expect(iterator.next()).resolves.toMatchObject({
@@ -413,7 +417,7 @@ describe('SessionHistoryController', () => {
       observeSession: () => Promise.resolve(source),
     } as never)
     const history = new SessionHistoryController(ctx, () => { throw new Error('activation failed') })
-    const iterator = history.follow({ address: { kind: 'session', sessionId } }, signal())
+    const iterator = history.follow({ address: { kind: 'session', sessionId }, authToken: 'test-token' }, signal())
       [Symbol.asyncIterator]()
 
     await expect(iterator.next()).resolves.toMatchObject({ value: { type: 'snapshot' } })
@@ -537,7 +541,7 @@ describe('SessionHistoryController', () => {
       address: { kind: 'session', sessionId: corruptId }, throughSeq: 1,
     }, signal())).rejects.toMatchObject({ code: 'SESSION_QUERY_CORRUPT_SESSION' })
     for (const maxMessages of [0, 0.5]) {
-      const iterator = transport.follow({ address, maxMessages }, signal())[Symbol.asyncIterator]()
+      const iterator = transport.follow({ address, authToken: 'test-token', maxMessages }, signal())[Symbol.asyncIterator]()
       await expect(iterator.next()).rejects.toMatchObject({ code: 'gateway/bad-request' })
     }
     for (const turnWindow of [
@@ -547,7 +551,7 @@ describe('SessionHistoryController', () => {
       { minMessages: 50, minTurns: 0 },
       { minMessages: 50, minTurns: 1.5 },
     ]) {
-      const iterator = transport.follow({ address, turnWindow }, signal())[Symbol.asyncIterator]()
+      const iterator = transport.follow({ address, authToken: 'test-token', turnWindow }, signal())[Symbol.asyncIterator]()
       await expect(iterator.next()).rejects.toMatchObject({ code: 'gateway/bad-request' })
     }
   })

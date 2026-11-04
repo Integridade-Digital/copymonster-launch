@@ -79,6 +79,7 @@ async function openFollow(
 ): Promise<AsyncIterable<SessionFollowFrame>> {
   const iterator = history.follow({
     address: { kind: 'session', sessionId },
+    authToken: 'test-token',
   }, signal)[Symbol.asyncIterator]()
   await expect(iterator.next()).resolves.toMatchObject({
     done: false,
@@ -111,6 +112,7 @@ describe('Session history raw journal', () => {
     const abort = new AbortController()
     const iterator = history.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
       assistantStream: true,
     }, abort.signal)[Symbol.asyncIterator]()
 
@@ -139,6 +141,7 @@ describe('Session history raw journal', () => {
     const abort = new AbortController()
     const iterator = history.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
       assistantStream: true,
     }, abort.signal)[Symbol.asyncIterator]()
     const opening = iterator.next()
@@ -199,6 +202,7 @@ describe('Session history raw journal', () => {
     const abort = new AbortController()
     const iterator = history.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
       assistantStream: true,
     }, abort.signal)[Symbol.asyncIterator]()
 
@@ -269,6 +273,7 @@ describe('Session history raw journal', () => {
     const abort = new AbortController()
     const iterator = history.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
       assistantStream: true,
     }, abort.signal)[Symbol.asyncIterator]()
 
@@ -331,6 +336,7 @@ describe('Session history raw journal', () => {
     const abort = new AbortController()
     const iterator = history.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
       assistantStream: true,
     }, abort.signal)[Symbol.asyncIterator]()
 
@@ -371,6 +377,7 @@ describe('Session history raw journal', () => {
     const abort = new AbortController()
     const iterator = history.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
       assistantStream: true,
     }, abort.signal)[Symbol.asyncIterator]()
 
@@ -404,11 +411,13 @@ describe('Session history raw journal', () => {
     const firstAbort = new AbortController()
     const firstIterator = history.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
       assistantStream: true,
     }, firstAbort.signal)[Symbol.asyncIterator]()
     const secondAbort = new AbortController()
     const secondIterator = history.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
       assistantStream: true,
     }, secondAbort.signal)[Symbol.asyncIterator]()
     try {
@@ -435,6 +444,7 @@ describe('Session history raw journal', () => {
     const abort = new AbortController()
     const iterator = history.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
       assistantStream: true,
     }, abort.signal)[Symbol.asyncIterator]()
 
@@ -460,6 +470,7 @@ describe('Session history raw journal', () => {
     const abort = new AbortController()
     const iterator = history.follow({
       address: { kind: 'session', sessionId: target.id },
+      authToken: 'test-token',
       assistantStream: true,
     }, abort.signal)[Symbol.asyncIterator]()
     try {
@@ -501,6 +512,7 @@ describe('Session history raw journal', () => {
     const abort = new AbortController()
     const iterator = history.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
       assistantStream: true,
     }, abort.signal)[Symbol.asyncIterator]()
 
@@ -559,6 +571,7 @@ describe('Session history raw journal', () => {
     const abort = new AbortController()
     const iterator = history.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
       assistantStream: true,
     }, abort.signal)[Symbol.asyncIterator]()
 
@@ -617,6 +630,7 @@ describe('Session history raw journal', () => {
     const abort = new AbortController()
     const iterator = history.follow({
       address: { kind: 'session', sessionId: session.id },
+      authToken: 'test-token',
     }, abort.signal)[Symbol.asyncIterator]()
     const opening = await iterator.next()
     expect(opening.value).not.toHaveProperty('assistantStream')
@@ -803,6 +817,7 @@ describe('Session history raw journal', () => {
       const abort = new AbortController()
       const stream = remote.follow({
         address: { kind: 'session', sessionId: session.id },
+        authToken: 'test-token',
         maxMessages: 500,
         turnWindow: { minMessages, minTurns: 2 },
       }, abort.signal)[Symbol.asyncIterator]()

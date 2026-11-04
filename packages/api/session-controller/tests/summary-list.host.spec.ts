@@ -42,7 +42,10 @@ async function opening(
   sessionId: SessionId,
 ): Promise<Extract<SessionFollowFrame, { type: 'snapshot' }>> {
   const abort = new AbortController()
-  const iterator = (await remote(ctx)).follow({ address: { kind: 'session', sessionId } }, abort.signal)[Symbol.asyncIterator]()
+  const iterator = (await remote(ctx)).follow({
+    address: { kind: 'session', sessionId },
+    authToken: 'test-token',
+  }, abort.signal)[Symbol.asyncIterator]()
   const first = await iterator.next()
   abort.abort()
   await iterator.return?.()

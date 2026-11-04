@@ -49,7 +49,7 @@ export interface PlanChipInjected {
 }
 
 /** Services for plan controls, Conversation projection, and resource navigation. */
-export const inject = ['slots', 'remote', 'remote.commands', 'remote.session', 'sessions', 'locale', 'uiConversation', 'resources', 'sidebarRight', 'sidebarRightTabs']
+export const inject = ['slots', 'remote', 'remote.commands', 'remote.session', 'sessions', 'typert', 'locale', 'uiConversation', 'resources', 'sidebarRight', 'sidebarRightTabs']
 
 /**
  * Register plan controls, permanent Chat cards, and sidebar document reading.
@@ -61,7 +61,10 @@ export function apply(ctx: ClientContext): void {
   const previewId = '@deepseek-ai/dsh-client-ui-plan'
   const t = ctx.locale.bind(NS)
   ctx.effect(() => ctx.uiConversation.events.register(planDefinition), 'ui-plan: conversation definition')
-  ctx.effect(() => ctx.resources.register(planResourceProvider(ctx.remote.session)), 'ui-plan: resources')
+  ctx.effect(() => ctx.resources.register(planResourceProvider(ctx.remote.session, () => {
+    const identity = ctx.typert.contexts.getClient('auth')?.identity(ctx)
+    return typeof identity === 'string' ? identity : undefined
+  })), 'ui-plan: resources')
   ctx.effect(() => ctx.sidebarRightTabs.register({
     id: previewId, kind: 'plan', patterns: ['dsh-resource://plan/**', 'dsh-resource://plan-review/**'], priority: 'builtin',
     canOpen: address => parsePlanAddress(address) !== undefined || isReviewPreviewAddress(address),

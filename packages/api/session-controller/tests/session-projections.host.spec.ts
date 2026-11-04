@@ -71,6 +71,7 @@ async function opening(
   const abort = new AbortController()
   const iterator = remote.follow({
     address: { kind: 'session', sessionId },
+    authToken: 'test-token',
     ...(maxMessages === undefined ? {} : { maxMessages }),
   }, abort.signal)[Symbol.asyncIterator]()
   const first = await iterator.next()

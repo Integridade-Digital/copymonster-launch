@@ -230,6 +230,8 @@ setpriv --reuid=100010 --regid=100010 --clear-groups head -c 16 /var/lib/dsh-ser
 | P0-4 | `SUPABASE_SERVICE_ROLE_KEY` injetada no env de cada DSH de tenant | Bypass total de RLS a partir do próprio tenant | `/proc/<pid>/environ` do funel contém a chave |
 | P0-5 | Disco a 92 % sem quotas por tenant | Um tenant enche o disco e derruba todos os serviços | `df -h /` → 66G/72G |
 
+**Estado após a Fase 0 (2026-11-04):** P0-1 e P0-2 **fechados** (verificados com `setpriv`). P0-3 **mitigado, não durável** — reverte no próximo `initUserRoot`; requer a Fase 1. P0-4 e P0-5 **abertos** (Fase 1 e Fase 2).
+
 ### P1 — Corrigir antes do go-live comercial
 
 | # | Risco | Impacto |
@@ -262,18 +264,40 @@ setpriv --reuid=100010 --regid=100010 --clear-groups head -c 16 /var/lib/dsh-ser
 
 ## 4. Plano de ação
 
-### Fase 0 — Contenção imediata (hoje, ~1 h)
+### Fase 0 — Contenção imediata — ✅ EXECUTADA em 2026-11-04
 
 Objetivo: fechar as fugas P0 sem alterar código.
 
-1. `chmod 700 /root` (ou mover o projeto para `/opt` com `0750`).
-2. `chmod 600 /root/copymonster-launch/.env`.
-3. `chmod 600 /var/lib/dsh-server-login/server-login.db*` e `chmod 750 /var/lib/dsh-server-login`.
-4. `chmod 700` nas homes dos tenants (`/var/lib/dsh-server-login/users/*/home`).
-5. Verificar com `setpriv --reuid=100010 ... cat` que os quatro acessos passam a `Permission denied`.
-6. Confirmar que nenhum tenant fica quebrado (o DSH corre como o próprio UID; `0700` na home é suficiente).
+**Duas instruções do plano original foram ajustadas após teste, porque quebravam os tenants:**
 
-**Esforço:** 1 h. **Risco de regressão:** baixo (validar um arranque de tenant por subdomínio).
+| Instrução original | Resultado do teste | Aplicado |
+|---|---|---|
+| `chmod 700 /root` | O binário dos tenants é `/usr/local/bin/dsh` → `/root/copymonster-launch/apps/cli/lib/bin.js`. Com `/root` 0700, `setpriv --reuid=100010 dsh --version` falha no module loader: **nenhum tenant novo arrancaria**. | `chmod 711 /root` (traversal sem listagem) |
+| `chmod 750 /var/lib/dsh-server-login` | As homes dos tenants vivem dentro desta árvore. Com 0750, `setpriv --reuid=100010 ls .../home/` devolve `Permission denied`: **todos os tenants quebrariam**. | `chmod 711 /var/lib/dsh-server-login` |
+
+**Aplicado:**
+
+1. `chmod 600` em `.env`, `.env.systemd`, `.env.local`, `apps/web/.env`, `backups/*.tar.gz`, `server-login.db` (+`-wal`/`-shm`), `secret.key`.
+2. `chmod 711` em `/root`, `/var/lib/dsh-server-login` e `/var/lib/dsh-server-login/users`.
+3. `chmod 700` nas homes dos tenants (`users/*/home`).
+
+**Validação (uid 100010, o tenant `campaign`):**
+
+| Controlo | Resultado |
+|---|---|
+| Ler `/root/copymonster-launch/.env` | `Permission denied` ✅ |
+| Ler `/var/lib/dsh-server-login/server-login.db` | `Permission denied` ✅ |
+| Ler `secret.key` e o backup `.tar.gz` | `Permission denied` ✅ |
+| Listar a home do tenant `funel` | `Permission denied` ✅ |
+| Aceder à própria home | OK ✅ |
+| Executar `dsh --version` | `0.2.1-rc.3` ✅ |
+| Resolver `profiles/web/node_modules` (symlink para `/root`) | OK ✅ |
+| 3 tenants em execução (funel, campaign, testads) | HTTP 200 nas portas 35081/42193/44035 ✅ |
+| Erros `EACCES` no orquestrador após a alteração | 0 ✅ |
+
+**Limitação importante — a proteção das homes não é durável.** `LocalUserFs.initUserRoot` repõe `chmod 0755` na home (`src/fs/local-user-fs.ts:197`) e `LocalSpawner.spawnAsUser` repõe `0755` no data root e em `users` (`src/supervisor/orchestrator.ts:332-334`). O próximo login ou auto-launch de um tenant desfaz o `0700`. Os modos `0600` dos ficheiros de segredos **são** duráveis. Até à Fase 1, a mitigação durável exige um timer que reaplique o `chmod`, ou a alteração de código abaixo.
+
+**Esforço real:** 30 min. **Risco de regressão:** nenhum observado.
 
 ### Fase 1 — Isolamento de dados no código (~1–2 dias)
 
@@ -333,7 +357,10 @@ Objetivo: fechar as fugas P0 sem alterar código.
 
 Só autorizar produção quando **todos** forem verdadeiros:
 
-- [ ] P0-1 a P0-5 fechados e verificados com `setpriv` (Fase 0 + 1 + 2).
+- [x] P0-1 e P0-2 fechados e verificados com `setpriv` (Fase 0).
+- [ ] P0-3 fechado de forma durável (Fase 1: `initUserRoot` não pode repor `0755`).
+- [ ] P0-4 fechado (Fase 1: retirar `SUPABASE_SERVICE_ROLE_KEY` do ambiente do tenant).
+- [ ] P0-5 fechado (Fase 2: quotas por tenant e disco abaixo de 70 %).
 - [ ] Um tenant não consegue ler a home, a base, o `.env` nem os segredos de outro.
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` ausente do `/proc/<pid>/environ` de qualquer DSH de tenant.
 - [ ] Disco abaixo de 70 % e quota por tenant ativa.

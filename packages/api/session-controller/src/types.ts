@@ -193,8 +193,14 @@ declare module '@deepseek-ai/dsh-typert-protocol' {
     /** The quota check could not answer and the gate failed closed. */
     'session/quota-check-failed': { readonly operation?: string }
     'session/provider-credentials-unavailable': Record<string, never>
-    'session/provider-models-unavailable': { readonly provider: string }
-    'session/model-unavailable': { readonly provider: string; readonly model: string }
+    /** The provider route serves no model; the route name stays server-side. */
+    'session/provider-models-unavailable': Record<string, never>
+    /**
+     * The selected model cannot serve the request. The provider name stays out
+     * of the wire: a creator never chooses one, and naming it would expose the
+     * platform's topology.
+     */
+    'session/model-unavailable': { readonly model: string }
     /** The call carried no authenticated caller identity. */
     'session/unauthorized': {}
     'session/cwd-outside-sandbox': { readonly requestedCwd: string }

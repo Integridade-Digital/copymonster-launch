@@ -306,8 +306,8 @@ export class SessionCommandController {
         if (remoteErrorOf(error) !== undefined) throw error
         throw new RemoteError(
           'session/model-unavailable',
-          error instanceof Error ? error.message : String(error),
-          { provider: request.provider, model: request.model },
+          'Model unavailable. Please try again or contact support.',
+          { model: request.model },
         )
       }
     })
@@ -592,8 +592,8 @@ export class SessionCommandController {
     if (selection !== undefined && !await modelAvailable(this.ctx, selection)) {
       throw new RemoteError(
         'session/model-unavailable',
-        `no adapter serves provider "${selection.provider}"; select a model for this session`,
-        { provider: selection.provider, model: selection.model },
+        'Model unavailable. Please try again or contact support.',
+        { model: selection.model },
       )
     }
     const admission = resolvePromptFileReceipts(
@@ -644,8 +644,8 @@ export class SessionCommandController {
 
   private async requireModel(selection: Pick<AgentModelSelection, 'provider' | 'model'>): Promise<void> {
     if (!await modelAvailable(this.ctx, selection)) {
-      throw new RemoteError('session/model-unavailable', 'Select an available model before sending a message.',
-        { provider: selection.provider, model: selection.model })
+      throw new RemoteError('session/model-unavailable', 'Model unavailable. Please try again or contact support.',
+        { model: selection.model })
     }
   }
 

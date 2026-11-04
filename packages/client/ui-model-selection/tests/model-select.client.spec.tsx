@@ -300,7 +300,7 @@ describe('ModelSelect reasoning effort', () => {
     const select = vi.fn(async () => {
       const error = sessionInUse
         ? new RemoteError('session/writer-held', 'writer held', { sessionId: SessionId('owned') })
-        : new RemoteError('session/model-unavailable', 'session already contains images', { provider: 'deepseek-official', model: 'deepseek-v4-pro' })
+        : new RemoteError('session/model-unavailable', 'session already contains images', { model: 'deepseek-v4-pro' })
       directory.set(state({ groups, status: 'error', error: 'unrelated catalog refresh' }))
       return { ok: false as const, error }
     })

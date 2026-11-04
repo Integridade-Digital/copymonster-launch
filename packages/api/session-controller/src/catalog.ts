@@ -90,10 +90,12 @@ export async function modelAvailable(ctx: Context, selection: ModelSelection): P
   if (!ctx.llm.listProviders().some(provider => provider.id === selection.provider)) return false
   let models: readonly LlmModelInfo[]
   try { models = await ctx.llm.listModels(selection.provider) }
-  catch (error) {
+  catch {
+    // The provider's own message names the route and its endpoint; the caller
+    // gets the stable unavailable copy instead.
     throw new RemoteError('session/model-unavailable',
-      error instanceof Error ? error.message : String(error),
-      { provider: selection.provider, model: selection.model })
+      'Model unavailable. Please try again or contact support.',
+      { model: selection.model })
   }
   return models.some(model => model.id === selection.model)
 }

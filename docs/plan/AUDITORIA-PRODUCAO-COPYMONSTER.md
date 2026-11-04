@@ -230,7 +230,7 @@ setpriv --reuid=100010 --regid=100010 --clear-groups head -c 16 /var/lib/dsh-ser
 | P0-4 | `SUPABASE_SERVICE_ROLE_KEY` injetada no env de cada DSH de tenant | Bypass total de RLS a partir do próprio tenant | `/proc/<pid>/environ` do funel contém a chave |
 | P0-5 | Disco a 92 % sem quotas por tenant | Um tenant enche o disco e derruba todos os serviços | `df -h /` → 66G/72G |
 
-**Estado após a Fase 0 (2026-11-04):** P0-1 e P0-2 **fechados** (verificados com `setpriv`). P0-3 **mitigado, não durável** — reverte no próximo `initUserRoot`; requer a Fase 1. P0-4 e P0-5 **abertos** (Fase 1 e Fase 2).
+**Estado após a Fase 1 (2026-11-04):** P0-1 e P0-2 **fechados** (verificados com `setpriv`). P0-3 **fechado e durável** — `initUserRoot` e `spawnAsUser` mantêm `0700` e a ordem dos `chmod` foi corrigida. P0-4 **aberto** — o tenant depende da chave para arrancar a API e fechar isso exige a migração descrita na Fase 1. P0-5 **aberto** (Fase 2).
 
 ### P1 — Corrigir antes do go-live comercial
 
@@ -299,16 +299,45 @@ Objetivo: fechar as fugas P0 sem alterar código.
 
 **Esforço real:** 30 min. **Risco de regressão:** nenhum observado.
 
-### Fase 1 — Isolamento de dados no código (~1–2 dias)
+### Fase 1 — Isolamento de dados no código — 🟡 P0-3 concluído, P0-4 bloqueado
 
-1. `initUserRoot`: trocar `chmodSync(homeRoot(root), 0o755)` por `0o700` e alinhar o docstring do módulo de isolamento.
-2. Remover `SUPABASE_SERVICE_ROLE_KEY` da allowlist `ALLOWED_ENV` em `src/supervisor/spawn.ts`.
-   - O tenant não precisa dela: as operações privilegiadas passam pelo app principal ou por rotas do orquestrador.
-   - Onde for indispensável, expor um endpoint interno autenticado em vez da chave.
-3. Rever os restantes segredos injetados (`STRIPE_*`) e decidir entre (a) manter no tenant `main` ou (b) fazer proxy do checkout para o app principal. Recomendado: (b) a médio prazo.
-4. Testes: um teste de isolamento que tenta ler a home de outro tenant e espera `EACCES`.
+**P0-3 (durabilidade das permissões) — ✅ CONCLUÍDO em 2026-11-04**
 
-**Esforço:** 1–2 dias. **Risco:** médio (toca no arranque de todos os tenants; exige teste com 2 tenants reais).
+- `initUserRoot` passa a deixar o user root, a home e o workspace em `0700` (antes `0755`).
+- `spawnAsUser` passa a deixar o data root e `users` em `0711`, e o user root em `0700`.
+- **Bug encontrado durante a validação:** em `spawnAsUser` os `chmod` corriam *antes* de `grantUserRootPermissions`, que faz `chmod -R u+rwX,go+rX` e reabria tudo a `0755` em cada spawn. A ordem foi invertida; sem isto a Fase 0 revertia a cada arranque.
+- Verificado com um spawn real do tenant `campaign`: o processo arranca, serve HTTP 200 e os três diretórios ficam `0700`; o uid do tenant `funel` recebe `Permission denied` nos três.
+
+**P0-4 (`SUPABASE_SERVICE_ROLE_KEY` no tenant) — ❌ NÃO CONCLUÍDO, requer migração de base de dados**
+
+A instrução era remover a chave da allowlist. A verificação mostrou que **o tenant depende dela para arrancar a sua API**, e que fechar a dependência exige uma migração SQL que não pode ser aplicada a partir deste ambiente (sem ligação Postgres e sem token da Management API).
+
+Cadeia de dependência confirmada:
+
+| Plugin (carregado em todo tenant) | Uso da chave |
+|---|---|
+| `@deepseek-ai/dsh-supabase-client` | **lança no import** se a chave faltar: `supabase-client: SUPABASE_SERVICE_ROLE_KEY is required` |
+| `dsh-api-auth-context` (bundle copymonster) | `auth.getUser`, leitura de `tenants` e `users` |
+| `dsh-api-auth-http` (bundle copymonster) | billing (checkout, portal, webhook) e health |
+| `dsh-api-session-controller` (bundle web-app) | `check_tenant_quota` |
+| `dsh-api-settings-controller` (bundle web-app) | `increment_tenant_token_usage`, métricas de tenant |
+
+As duas RPCs de quota são `service_role`-only por decisão explícita: `029_revoke_authenticated_token_increment.sql` revoga `increment_tenant_token_usage` de `authenticated`, e `032` concede `check_tenant_quota` apenas a `service_role`. Não existe alternativa acessível a `authenticated`.
+
+Remover a chave hoje desativaria os quatro plugins no tenant: sem `ctx.auth`, sem API de sessões, sem billing e sem quota — o workspace deixa de carregar.
+
+**Caminho para fechar o P0-4 (estimativa 1–2 dias, requer acesso à base):**
+
+1. Migração: `check_my_tenant_quota()` e `increment_my_tenant_token_usage(p_tokens)` como `SECURITY DEFINER`, derivando o tenant de `auth.uid()` e ignorando qualquer id vindo do cliente; `GRANT EXECUTE … TO authenticated`.
+2. `auth-context`: trocar o cliente admin por `get_my_profile()` com o token do chamador (a função já é `SECURITY DEFINER` e devolve utilizador, tenant, role e `is_admin`).
+3. `session-controller` e `settings-controller`: cliente anon com o JWT do chamador, a chamar as novas RPCs.
+4. `supabase-client`: deixar de lançar no import; expor o cliente admin como opcional, para o tenant poder arrancar sem a chave.
+5. `billing`: mover checkout/portal/webhook para o app principal (Fase 5) e remover as rotas do tenant.
+6. Só então retirar `SUPABASE_SERVICE_ROLE_KEY` de `ALLOWED_ENV`.
+
+**`STRIPE_*`:** mantidos no DSH `main` do tenant (necessários para o checkout no subdomínio). O proxy para o app principal fica na Fase 5.
+
+**Esforço restante:** 1–2 dias. **Risco:** médio-alto (mexe em autenticação, quota e billing).
 
 ### Fase 2 — Capacidade e quotas (~2–3 dias)
 
@@ -358,8 +387,8 @@ Objetivo: fechar as fugas P0 sem alterar código.
 Só autorizar produção quando **todos** forem verdadeiros:
 
 - [x] P0-1 e P0-2 fechados e verificados com `setpriv` (Fase 0).
-- [ ] P0-3 fechado de forma durável (Fase 1: `initUserRoot` não pode repor `0755`).
-- [ ] P0-4 fechado (Fase 1: retirar `SUPABASE_SERVICE_ROLE_KEY` do ambiente do tenant).
+- [x] P0-3 fechado de forma durável (`initUserRoot` e `spawnAsUser` mantêm `0700`).
+- [ ] P0-4 fechado (exige a migração de quota por `auth.uid()` e o refactor descritos na Fase 1).
 - [ ] P0-5 fechado (Fase 2: quotas por tenant e disco abaixo de 70 %).
 - [ ] Um tenant não consegue ler a home, a base, o `.env` nem os segredos de outro.
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` ausente do `/proc/<pid>/environ` de qualquer DSH de tenant.

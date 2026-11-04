@@ -230,7 +230,7 @@ setpriv --reuid=100010 --regid=100010 --clear-groups head -c 16 /var/lib/dsh-ser
 | P0-4 | `SUPABASE_SERVICE_ROLE_KEY` injetada no env de cada DSH de tenant | Bypass total de RLS a partir do próprio tenant | `/proc/<pid>/environ` do funel contém a chave |
 | P0-5 | Disco a 92 % sem quotas por tenant | Um tenant enche o disco e derruba todos os serviços | `df -h /` → 66G/72G |
 
-**Estado após a Fase 1 (2026-11-04):** P0-1 e P0-2 **fechados** (verificados com `setpriv`). P0-3 **fechado e durável** — `initUserRoot` e `spawnAsUser` mantêm `0700` e a ordem dos `chmod` foi corrigida. P0-4 **aberto** — o tenant depende da chave para arrancar a API e fechar isso exige a migração descrita na Fase 1. P0-5 **aberto** (Fase 2).
+**Estado após a Fase 1b (2026-11-04):** P0-1 e P0-2 **fechados** (verificados com `setpriv`). P0-3 **fechado e durável** — `initUserRoot` e `spawnAsUser` mantêm `0700` e a ordem dos `chmod` foi corrigida. P0-4 **fechado** — migração `044` aplicada e validada, código em produção e a chave removida do ambiente do tenant e do orquestrador. P0-5 **aberto** (Fase 2).
 
 ### P1 — Corrigir antes do go-live comercial
 
@@ -372,15 +372,17 @@ Todas com `REVOKE ... FROM PUBLIC, anon` e `GRANT EXECUTE ... TO authenticated`.
 
 **Verificação:** `build:artifacts` 8/8, typecheck do host 0 erros, 126 testes verdes nos pacotes tocados e nenhuma falha nova no `session-controller` (208 vs 215 pré-existentes).
 
-**Plano de aplicação (por esta ordem, com autorização):**
+**Aplicação — ✅ CONCLUÍDA em 2026-11-04:**
 
-1. Aplicar `044_tenant_scoped_rpcs.sql` no Supabase (SQL editor ou `supabase db push`).
-2. Validar cada RPC com um JWT de utilizador comum: `check_my_tenant_quota`, `get_my_tenant_metrics`, `increment_my_tenant_token_usage`.
-3. Confirmar que `anon` recebe `permission denied` nas 10 funções.
-4. Merge do branch e deploy do app principal + orquestrador.
-5. Relançar um tenant e verificar: workspace carrega, quota bloqueia no limite, consumo é gravado, checkout funciona.
-6. Só depois remover `SUPABASE_SERVICE_ROLE_KEY` de `/etc/dsh-server-login.env`.
-7. Rollback: repor a chave no env do orquestrador e reiniciar (as funções antigas continuam a existir).
+1. `044_tenant_scoped_rpcs.sql` aplicada; as 10 funções aparecem no schema cache do PostgREST.
+2. Validação com JWT do utilizador `campaign`: `check_my_tenant_quota` → `200`, `get_my_tenant_metrics` → `200` (tenant + plano), `increment_my_tenant_token_usage` → `204`.
+3. `anon` nas 10 funções → `401 permission denied for function`.
+4. Merge em `master` e deploy: `build:artifacts` 8/8, `npm run build` do orquestrador, restart dos dois serviços.
+5. Tenant `campaign` arrancado pelo caminho real de spawn: `HTTP 200`, zero erros de RPC nos logs.
+6. `SUPABASE_SERVICE_ROLE_KEY` removida de `/etc/dsh-server-login.env` (backup em `.bak-p04`) e do ambiente dos filhos; orquestrador reiniciado e tenant revalidado.
+7. Rollback disponível: `cp /etc/dsh-server-login.env.bak-p04 /etc/dsh-server-login.env` e reiniciar (as funções antigas continuam vivas).
+
+**Pendente (fora do P0-4):** `check_tenant_quota` continua executável por `anon` — drift de ACL anterior a esta migração, a corrigir com `REVOKE EXECUTE ... FROM PUBLIC, anon, authenticated` e `GRANT ... TO service_role`.
 
 ### Fase 2 — Capacidade e quotas (~2–3 dias)
 
@@ -431,7 +433,7 @@ Só autorizar produção quando **todos** forem verdadeiros:
 
 - [x] P0-1 e P0-2 fechados e verificados com `setpriv` (Fase 0).
 - [x] P0-3 fechado de forma durável (`initUserRoot` e `spawnAsUser` mantêm `0700`).
-- [ ] P0-4 fechado (exige a migração de quota por `auth.uid()` e o refactor descritos na Fase 1).
+- [x] P0-4 fechado (migração `044` aplicada e validada; chave fora do tenant e do orquestrador).
 - [ ] P0-5 fechado (Fase 2: quotas por tenant e disco abaixo de 70 %).
 - [ ] Um tenant não consegue ler a home, a base, o `.env` nem os segredos de outro.
 - [ ] `SUPABASE_SERVICE_ROLE_KEY` ausente do `/proc/<pid>/environ` de qualquer DSH de tenant.

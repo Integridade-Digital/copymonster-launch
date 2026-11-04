@@ -7,10 +7,61 @@
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import crypto from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
-import { supabaseAdminClient, type Database } from '@deepseek-ai/dsh-supabase-client'
+import { hasSupabaseAdminClient, supabaseAdminClient, type Database } from '@deepseek-ai/dsh-supabase-client'
 import { BEARER_PREFIX } from '@deepseek-ai/dsh-constants'
 
 const STRIPE_API_BASE = 'https://api.stripe.com/v1'
+
+/**
+ * Main app that owns the service-role key and the Stripe credentials.
+ *
+ * A tenant DSH holds neither, so its billing routes forward here instead of
+ * duplicating a privileged write path inside untrusted code.
+ */
+const MAIN_APP_URL = process.env.COPYMONSTER_MAIN_APP_URL ?? 'https://app.copymonster.co'
+
+/**
+ * Forward one billing request to the main app unchanged.
+ *
+ * The body is read as raw bytes so a Stripe signature still verifies upstream,
+ * and the caller's `Authorization` and `Stripe-Signature` headers travel with
+ * it. The main app re-validates the Supabase JWT itself.
+ * @param req - incoming billing request.
+ * @param res - response to write with the upstream status and body.
+ * @param path - billing route to forward to.
+ */
+async function forwardToMainApp(
+  req: IncomingMessage,
+  res: ServerResponse,
+  path: string,
+): Promise<void> {
+  const chunks: Buffer[] = []
+  for await (const chunk of req) chunks.push(Buffer.from(chunk))
+  const body = Buffer.concat(chunks)
+
+  const headers: Record<string, string> = {
+    'content-type': req.headers['content-type'] ?? 'application/json',
+  }
+  const authorization = req.headers.authorization
+  if (authorization !== undefined) headers.authorization = authorization
+  const signature = req.headers['stripe-signature']
+  if (typeof signature === 'string') headers['stripe-signature'] = signature
+
+  try {
+    const upstream = await fetch(`${MAIN_APP_URL}${path}`, {
+      method: req.method ?? 'POST',
+      headers,
+      body,
+    })
+    const text = await upstream.text()
+    res.writeHead(upstream.status, {
+      'content-type': upstream.headers.get('content-type') ?? 'application/json; charset=utf-8',
+    })
+    res.end(text)
+  } catch {
+    sendJson(res, 502, { error: 'billing_upstream_unavailable' })
+  }
+}
 
 /** Helper to extract bearer token from headers. */
 function bearerToken(header: string | string[] | undefined): string | undefined {
@@ -170,6 +221,10 @@ export function verifyStripeSignature(
  * Handle POST /api/billing/checkout: Create Stripe Checkout Session.
  */
 export async function handleCheckout(ctx: Context, req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (!hasSupabaseAdminClient()) {
+    await forwardToMainApp(req, res, '/api/billing/checkout')
+    return
+  }
   if (req.method !== 'POST') {
     sendJson(res, 405, { error: 'method_not_allowed' })
     return
@@ -269,6 +324,10 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
  * Handle POST /api/billing/portal: Create Stripe Customer Portal Session.
  */
 export async function handlePortal(ctx: Context, req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (!hasSupabaseAdminClient()) {
+    await forwardToMainApp(req, res, '/api/billing/portal')
+    return
+  }
   if (req.method !== 'POST') {
     sendJson(res, 405, { error: 'method_not_allowed' })
     return
@@ -345,6 +404,10 @@ function parseTimestampToIso(value: unknown): string | undefined {
 }
 
 export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: ServerResponse): Promise<void> {
+  if (!hasSupabaseAdminClient()) {
+    await forwardToMainApp(req, res, '/api/billing/webhook')
+    return
+  }
   if (req.method !== 'POST') {
     sendJson(res, 405, { error: 'method_not_allowed' })
     return

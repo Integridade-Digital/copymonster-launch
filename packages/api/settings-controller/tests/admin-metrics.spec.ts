@@ -65,54 +65,18 @@ const mockAuditLogs = [
 let rpcCalls: Array<{ fn: string; params: unknown }> = []
 
 vi.mock('@deepseek-ai/dsh-supabase-client', () => {
+  const rpc = (fn: string, params: unknown) => {
+    rpcCalls.push({ fn, params })
+    if (fn === 'admin_list_tenants') return Promise.resolve({ data: mockTenants, error: null })
+    if (fn === 'admin_list_audit_logs') return Promise.resolve({ data: mockAuditLogs, error: null })
+    if (fn === 'get_my_tenant_metrics') {
+      return Promise.resolve({ data: { tenant: mockTenants[0], plan: mockPlan }, error: null })
+    }
+    if (fn === 'record_my_audit_log') return Promise.resolve({ data: 'log_new_001', error: null })
+    return Promise.resolve({ data: null, error: null })
+  }
   return {
-    supabaseAdminClient: {
-      from: (table: string) => {
-        if (table === 'tenants') {
-          return {
-            select: () => ({
-              order: () => Promise.resolve({ data: mockTenants, error: null }),
-              eq: (_col: string, val: string) => ({
-                single: () => {
-                  const t = mockTenants.find(item => item.id === val)
-                  return Promise.resolve({ data: t ?? null, error: t ? null : new Error('Not found') })
-                },
-              }),
-            }),
-          }
-        }
-        if (table === 'plans') {
-          return {
-            select: () => ({
-              eq: (_col: string, _val: string) => ({
-                single: () => Promise.resolve({ data: mockPlan, error: null }),
-              }),
-            }),
-          }
-        }
-        if (table === 'audit_logs') {
-          return {
-            select: () => ({
-              order: () => ({
-                range: () => Promise.resolve({ data: mockAuditLogs, error: null }),
-              }),
-            }),
-            insert: (_items: unknown[]) => ({
-              select: () => ({
-                single: () => Promise.resolve({ data: { id: 'log_new_001' }, error: null }),
-              }),
-            }),
-          }
-        }
-        return {
-          select: () => Promise.resolve({ data: [], error: null }),
-        }
-      },
-      rpc: (fn: string, params: unknown) => {
-        rpcCalls.push({ fn, params })
-        return Promise.resolve({ data: null, error: null })
-      },
-    },
+    createUserClient: () => ({ rpc }),
   }
 })
 
@@ -129,6 +93,7 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
       tenantId: 'ten_001',
       role: 'admin',
     })
+    ctx.provide('authToken', 'token-admin')
 
     await ctx.plugin(SettingsController)
 
@@ -150,6 +115,7 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
       tenantId: 'ten_001',
       role: 'member',
     })
+    ctx.provide('authToken', 'token-member')
 
     await ctx.plugin(SettingsController)
 
@@ -170,6 +136,7 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
       tenantId: 'ten_001',
       role: 'member',
     })
+    ctx.provide('authToken', 'token-member')
 
     await ctx.plugin(SettingsController)
 
@@ -190,6 +157,7 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
       tenantId: 'ten_001',
       role: 'member',
     })
+    ctx.provide('authToken', 'token-member')
 
     await ctx.plugin(SettingsController)
 
@@ -206,6 +174,7 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
       tenantId: 'ten_001',
       role: 'member',
     })
+    ctx.provide('authToken', 'token-member')
 
     await ctx.plugin(SettingsController)
 
@@ -216,10 +185,10 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
 
     expect(rpcCalls).toHaveLength(1)
     expect(rpcCalls[0]).toEqual({
-      fn: 'increment_tenant_token_usage',
+      fn: 'increment_my_tenant_token_usage',
       params: {
-        p_tenant_id: 'ten_001',
         p_tokens: 1250,
+        p_tenant_id: null,
       },
     })
   })
@@ -232,6 +201,7 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
       tenantId: 'ten_001',
       role: 'member',
     })
+    ctx.provide('authToken', 'token-member')
 
     await ctx.plugin(SettingsController)
 

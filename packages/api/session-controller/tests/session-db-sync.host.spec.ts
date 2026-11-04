@@ -1,194 +1,129 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest'
-import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
 import {
   upsertSessionIndex,
   incrementSessionTokens,
   markSessionStatus,
 } from '../src/session-db-sync.ts'
 
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), createUserClient: vi.fn() }))
+
 vi.mock('@deepseek-ai/dsh-supabase-client', () => ({
-  supabaseAdminClient: {
-    rpc: vi.fn(),
-  },
+  createUserClient: mocks.createUserClient,
 }))
 
 describe('session-db-sync helpers', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    mocks.createUserClient.mockReturnValue({ rpc: mocks.rpc })
+    mocks.rpc.mockResolvedValue({ data: null, error: null })
   })
 
-  it('upsertSessionIndex invokes runtime_upsert_session_index with correct parameters', async () => {
-    const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null })
-    vi.mocked(supabaseAdminClient.rpc).mockImplementation(rpcMock as unknown as typeof supabaseAdminClient.rpc)
-
+  it('upsertSessionIndex writes through the caller-scoped RPC', async () => {
     upsertSessionIndex({
       sessionId: 'sess-001',
-      tenantId: 'd3b07384-d113-4ec6-a111-222233334444',
-      userId: 'e4c18495-e224-4fd7-b222-333344445555',
       title: 'Minha Sessão Nova',
       model: 'deepseek-chat',
       status: 'active',
+      token: 'token-1',
     })
 
     await new Promise(r => setTimeout(r, 20))
 
-    expect(rpcMock).toHaveBeenCalledTimes(1)
-    expect(rpcMock).toHaveBeenCalledWith('runtime_upsert_session_index', {
+    expect(mocks.createUserClient).toHaveBeenCalledWith('token-1')
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+    expect(mocks.rpc).toHaveBeenCalledWith('runtime_upsert_my_session_index', {
       p_session_id: 'sess-001',
-      p_tenant_id: 'd3b07384-d113-4ec6-a111-222233334444',
-      p_user_id: 'e4c18495-e224-4fd7-b222-333344445555',
       p_title: 'Minha Sessão Nova',
       p_model: 'deepseek-chat',
       p_status: 'active',
     })
   })
 
-  it('upsertSessionIndex allows updating existing session title/model without tenantId/userId', async () => {
-    const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null })
-    vi.mocked(supabaseAdminClient.rpc).mockImplementation(rpcMock as unknown as typeof supabaseAdminClient.rpc)
-
-    upsertSessionIndex({
-      sessionId: 'sess-001',
-      title: 'Título Atualizado',
-    })
+  it('sends the fallback title when the caller supplies none', async () => {
+    upsertSessionIndex({ sessionId: 'sess-004', status: 'active', token: 'token-1' })
 
     await new Promise(r => setTimeout(r, 20))
 
-    expect(rpcMock).toHaveBeenCalledTimes(1)
-    expect(rpcMock).toHaveBeenCalledWith('runtime_upsert_session_index', {
-      p_session_id: 'sess-001',
-      p_tenant_id: null,
-      p_user_id: null,
-      p_title: 'Título Atualizado',
-      p_model: null,
-      p_status: 'active',
-    })
-  })
-
-  it('sends a fallback title on an identity-scoped insert with no title', async () => {
-    const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null })
-    vi.mocked(supabaseAdminClient.rpc).mockImplementation(rpcMock as unknown as typeof supabaseAdminClient.rpc)
-
-    upsertSessionIndex({
-      sessionId: 'sess-004',
-      tenantId: 'd3b07384-d113-4ec6-a111-222233334444',
-      userId: 'e4c18495-e224-4fd7-b222-333344445555',
-      status: 'active',
-    })
-
-    await new Promise(r => setTimeout(r, 20))
-
-    expect(rpcMock).toHaveBeenCalledWith('runtime_upsert_session_index', {
+    expect(mocks.rpc).toHaveBeenCalledWith('runtime_upsert_my_session_index', {
       p_session_id: 'sess-004',
-      p_tenant_id: 'd3b07384-d113-4ec6-a111-222233334444',
-      p_user_id: 'e4c18495-e224-4fd7-b222-333344445555',
       p_title: 'Nova sessão',
       p_model: null,
       p_status: 'active',
     })
   })
 
-  it('replaces an empty title with the fallback on an identity-scoped insert', async () => {
-    const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null })
-    vi.mocked(supabaseAdminClient.rpc).mockImplementation(rpcMock as unknown as typeof supabaseAdminClient.rpc)
-
-    upsertSessionIndex({
-      sessionId: 'sess-006',
-      tenantId: 'd3b07384-d113-4ec6-a111-222233334444',
-      userId: 'e4c18495-e224-4fd7-b222-333344445555',
-      title: '',
-      status: 'active',
-    })
+  it('replaces an empty title with the fallback', async () => {
+    upsertSessionIndex({ sessionId: 'sess-006', title: '', status: 'active', token: 'token-1' })
 
     await new Promise(r => setTimeout(r, 20))
 
-    expect(rpcMock).toHaveBeenCalledWith('runtime_upsert_session_index', {
+    expect(mocks.rpc).toHaveBeenCalledWith('runtime_upsert_my_session_index', {
       p_session_id: 'sess-006',
-      p_tenant_id: 'd3b07384-d113-4ec6-a111-222233334444',
-      p_user_id: 'e4c18495-e224-4fd7-b222-333344445555',
       p_title: 'Nova sessão',
       p_model: null,
       p_status: 'active',
     })
   })
 
-  it('leaves p_title null on an update without identity so the RPC keeps the title', async () => {
-    const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null })
-    vi.mocked(supabaseAdminClient.rpc).mockImplementation(rpcMock as unknown as typeof supabaseAdminClient.rpc)
+  it('skips the write and warns once when no caller token is available', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
     upsertSessionIndex({ sessionId: 'sess-005', model: 'deepseek-chat' })
-
+    upsertSessionIndex({ sessionId: 'sess-006', model: 'deepseek-chat' })
     await new Promise(r => setTimeout(r, 20))
 
-    expect(rpcMock).toHaveBeenCalledWith('runtime_upsert_session_index', {
-      p_session_id: 'sess-005',
-      p_tenant_id: null,
-      p_user_id: null,
-      p_title: null,
-      p_model: 'deepseek-chat',
-      p_status: 'active',
-    })
+    expect(mocks.rpc).not.toHaveBeenCalled()
+    expect(warnSpy).toHaveBeenCalledTimes(1)
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[sessions_index] upsert skipped: no caller token available for the tenant DSH',
+    )
+    warnSpy.mockRestore()
   })
 
-  it('incrementSessionTokens invokes runtime_increment_session_tokens with positive rounded tokens', async () => {
-    const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null })
-    vi.mocked(supabaseAdminClient.rpc).mockImplementation(rpcMock as unknown as typeof supabaseAdminClient.rpc)
-
-    incrementSessionTokens('sess-002', 1234.6)
+  it('incrementSessionTokens rounds positive tokens and uses the caller RPC', async () => {
+    incrementSessionTokens('sess-002', 1234.6, 'token-1')
     await new Promise(r => setTimeout(r, 20))
 
-    expect(rpcMock).toHaveBeenCalledTimes(1)
-    expect(rpcMock).toHaveBeenCalledWith('runtime_increment_session_tokens', {
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+    expect(mocks.rpc).toHaveBeenCalledWith('runtime_increment_my_session_tokens', {
       p_session_id: 'sess-002',
       p_tokens: 1235,
     })
   })
 
   it('incrementSessionTokens ignores negative or zero tokens', async () => {
-    const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null })
-    vi.mocked(supabaseAdminClient.rpc).mockImplementation(rpcMock as unknown as typeof supabaseAdminClient.rpc)
-
-    incrementSessionTokens('sess-002', 0)
-    incrementSessionTokens('sess-002', -50)
+    incrementSessionTokens('sess-002', 0, 'token-1')
+    incrementSessionTokens('sess-002', -50, 'token-1')
     await new Promise(r => setTimeout(r, 20))
 
-    expect(rpcMock).not.toHaveBeenCalled()
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
 
-  it('markSessionStatus invokes runtime_mark_session_status with requested status', async () => {
-    const rpcMock = vi.fn().mockResolvedValue({ data: null, error: null })
-    vi.mocked(supabaseAdminClient.rpc).mockImplementation(rpcMock as unknown as typeof supabaseAdminClient.rpc)
-
-    markSessionStatus('sess-003', 'completed')
+  it('markSessionStatus uses the caller RPC with the requested status', async () => {
+    markSessionStatus('sess-003', 'completed', 'token-1')
     await new Promise(r => setTimeout(r, 20))
 
-    expect(rpcMock).toHaveBeenCalledTimes(1)
-    expect(rpcMock).toHaveBeenCalledWith('runtime_mark_session_status', {
+    expect(mocks.rpc).toHaveBeenCalledTimes(1)
+    expect(mocks.rpc).toHaveBeenCalledWith('runtime_mark_my_session_status', {
       p_session_id: 'sess-003',
       p_status: 'completed',
     })
   })
 
-  it('logs warning when RPC returns an error or rejects without throwing', async () => {
+  it('logs a warning when the RPC returns an error or rejects without throwing', async () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {})
 
-    // Case 1: RPC returns { error }
-    const rpcMockError = vi.fn().mockResolvedValue({ data: null, error: { message: 'db error' } })
-    vi.mocked(supabaseAdminClient.rpc).mockImplementation(rpcMockError as unknown as typeof supabaseAdminClient.rpc)
-
-    expect(() => upsertSessionIndex({ sessionId: 'sess-err' })).not.toThrow()
+    mocks.rpc.mockResolvedValue({ data: null, error: { message: 'db error' } })
+    expect(() => upsertSessionIndex({ sessionId: 'sess-err', token: 'token-1' })).not.toThrow()
     await new Promise(r => setTimeout(r, 20))
     expect(warnSpy).toHaveBeenCalledWith(
       '[sessions_index] failed to upsert session index',
       { message: 'db error' },
     )
 
-    // Case 2: RPC throws
-    const rpcMockThrow = vi.fn().mockRejectedValue(new Error('network error'))
-    vi.mocked(supabaseAdminClient.rpc).mockImplementation(rpcMockThrow as unknown as typeof supabaseAdminClient.rpc)
-
-    expect(() => incrementSessionTokens('sess-err', 100)).not.toThrow()
-    expect(() => markSessionStatus('sess-err', 'error')).not.toThrow()
+    mocks.rpc.mockRejectedValue(new Error('network error'))
+    expect(() => incrementSessionTokens('sess-err', 100, 'token-1')).not.toThrow()
+    expect(() => markSessionStatus('sess-err', 'error', 'token-1')).not.toThrow()
     await new Promise(r => setTimeout(r, 20))
 
     expect(warnSpy).toHaveBeenCalledWith(
@@ -199,7 +134,16 @@ describe('session-db-sync helpers', () => {
       '[sessions_index] failed to mark session status',
       expect.any(Error),
     )
-
     warnSpy.mockRestore()
+  })
+
+  it('never touches Supabase when the session id is empty', async () => {
+    upsertSessionIndex({ sessionId: '', token: 'token-1' })
+    incrementSessionTokens('', 10, 'token-1')
+    markSessionStatus('', 'completed', 'token-1')
+    await new Promise(r => setTimeout(r, 20))
+
+    expect(mocks.createUserClient).not.toHaveBeenCalled()
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
 })

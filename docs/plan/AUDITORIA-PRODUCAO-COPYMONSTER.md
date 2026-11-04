@@ -339,6 +339,49 @@ Remover a chave hoje desativaria os quatro plugins no tenant: sem `ctx.auth`, se
 
 **Esforço restante:** 1–2 dias. **Risco:** médio-alto (mexe em autenticação, quota e billing).
 
+### Fase 1b — correção do P0-4 preparada em branch (não aplicada)
+
+O branch `fix/p0-4-service-role-key` (nos dois repositórios) contém a migração e o refactor completos. **Nada foi aplicado no VPS nem na base de dados.**
+
+**Migração `supabase/migrations/043_tenant_scoped_rpcs.sql`** — 10 funções `SECURITY DEFINER` que derivam o tenant de `auth.uid()` e nunca aceitam um id de tenant do cliente:
+
+| Função | Substitui |
+|---|---|
+| `check_my_tenant_quota()` | `check_tenant_quota(p_tenant_id)` |
+| `increment_my_tenant_token_usage(p_tokens, p_tenant_id?)` | `increment_tenant_token_usage(...)` |
+| `get_my_tenant_metrics(p_tenant_id?)` | leitura de `tenants` + `plans` |
+| `admin_list_tenants()` | leitura cross-tenant do painel |
+| `runtime_upsert_my_session_index(...)` | `runtime_upsert_session_index(...)` |
+| `runtime_increment_my_session_tokens(...)` | `runtime_increment_session_tokens(...)` |
+| `runtime_mark_my_session_status(...)` | `runtime_mark_session_status(...)` |
+| `get_my_positioning_mapping(p_mapping_id)` | `get_positioning_mapping(...)` |
+| `record_my_audit_log(...)` | insert em `audit_logs` |
+| `admin_list_audit_logs(...)` | leitura cross-tenant de `audit_logs` |
+
+Todas com `REVOKE ... FROM PUBLIC, anon` e `GRANT EXECUTE ... TO authenticated`. As funções `service_role` existentes ficam intactas para o app principal e o orquestrador. O schema foi validado contra o PostgREST real (colunas de `tenants`, `plans`, `sessions_index`, `audit_logs`, `user_tenant_roles`, `positioning_mappings`) e não há colisão de nomes com as 51 RPCs existentes.
+
+**Refactor:**
+
+- `supabase-client`: o cliente admin passa a ser criado sob demanda (importar o módulo já não exige a chave) e ganha `createUserClient(token)` e `hasSupabaseAdminClient()`.
+- `auth-context`: resolve a identidade por `get_my_profile()` com o token do chamador; o Context filho passa a transportar `authToken`.
+- `session-controller`: quota, metering, índice de sessões e Brand DNA usam RPCs com escopo de chamador; o gate de subscrição redundante foi removido (a quota já o cobre).
+- `settings-controller`: tenants, métricas, auditoria e consumo passam pelas novas RPCs.
+- `auth-http`: o healthz usa o cliente anónimo; o billing encaminha para o app principal quando o processo não tem a chave.
+- `positioning-injection`: lê o DNA com `get_my_positioning_mapping()`.
+- `spawn.ts` (orquestrador): `SUPABASE_SERVICE_ROLE_KEY` removida da allowlist.
+
+**Verificação:** `build:artifacts` 8/8, typecheck do host 0 erros, 126 testes verdes nos pacotes tocados e nenhuma falha nova no `session-controller` (208 vs 215 pré-existentes).
+
+**Plano de aplicação (por esta ordem, com autorização):**
+
+1. Aplicar `043_tenant_scoped_rpcs.sql` no Supabase (SQL editor ou `supabase db push`).
+2. Validar cada RPC com um JWT de utilizador comum: `check_my_tenant_quota`, `get_my_tenant_metrics`, `increment_my_tenant_token_usage`.
+3. Confirmar que `anon` recebe `permission denied` nas 10 funções.
+4. Merge do branch e deploy do app principal + orquestrador.
+5. Relançar um tenant e verificar: workspace carrega, quota bloqueia no limite, consumo é gravado, checkout funciona.
+6. Só depois remover `SUPABASE_SERVICE_ROLE_KEY` de `/etc/dsh-server-login.env`.
+7. Rollback: repor a chave no env do orquestrador e reiniciar (as funções antigas continuam a existir).
+
 ### Fase 2 — Capacidade e quotas (~2–3 dias)
 
 1. Criar cgroups por tenant (`systemd-run --scope -p MemoryMax=… -p CPUQuota=…`) no `LocalSpawner`, com valores por plano.

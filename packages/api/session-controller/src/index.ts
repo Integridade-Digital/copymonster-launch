@@ -21,13 +21,13 @@ import {
   ApiSessionAgentController,
   type ApiSessionAgentResult,
 } from './agent.ts'
-import { requireAuthIdentity } from './auth-identity.ts'
+import { readAuthToken, requireAuthIdentity } from './auth-identity.ts'
 import { SessionCommandController, hasPromptContent } from './commands.ts'
 import type { QuotaGateMode, TenantQuotaCheck } from './commands.ts'
 import { sessionTenantMap } from './commands.ts'
 import { sanitizeProviderFailureMessage } from './provider-error.ts'
 import { incrementSessionTokens, markSessionStatus, upsertSessionIndex } from './session-db-sync.ts'
-import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
+import { createUserClient } from '@deepseek-ai/dsh-supabase-client'
 import { SessionControlController } from './control.ts'
 import { SessionHistoryController } from './history.ts'
 import { SessionFileReferences } from './file-references.ts'
@@ -240,7 +240,7 @@ export class SessionController extends TypertRemoteService {
     })
     ctx.on('session/disposed', (session) => {
       sessionTenantMap.delete(session)
-      markSessionStatus(session.id, 'completed')
+      markSessionStatus(session.id, 'completed', sessionTenantMap.get(session)?.authToken)
       ctx.emit('api-session/removed', session.id)
     })
     const publishAgentAvailability = ({ agent }: { agent: Agent }): undefined => {
@@ -283,19 +283,20 @@ export class SessionController extends TypertRemoteService {
         }
       }
       if (turnTokens > 0) {
-        void (async () => {
-          try {
-            await (supabaseAdminClient as unknown as {
-              rpc: (name: string, params: Record<string, unknown>) => Promise<{ error: unknown }>
-            }).rpc('increment_tenant_token_usage', {
-              p_tenant_id: tenantInfo.tenantId,
-              p_tokens: Math.round(turnTokens),
-            })
-          } catch (err) {
-            console.warn('[metering] failed to increment token usage', err)
-          }
-        })()
-        incrementSessionTokens(session.id, turnTokens)
+        const token = tenantInfo.authToken
+        if (token !== undefined && token !== '') {
+          void (async () => {
+            try {
+              const { error } = await createUserClient(token).rpc('increment_my_tenant_token_usage', {
+                p_tokens: Math.round(turnTokens),
+              })
+              if (error) console.warn('[metering] failed to increment token usage', error)
+            } catch (err) {
+              console.warn('[metering] failed to increment token usage', err)
+            }
+          })()
+        }
+        incrementSessionTokens(session.id, turnTokens, tenantInfo.authToken)
       }
       try {
         const agent = ctx.agents?.get(session.id)
@@ -304,6 +305,7 @@ export class SessionController extends TypertRemoteService {
           upsertSessionIndex({
             sessionId: session.id,
             model: modelUsed,
+            token: tenantInfo.authToken,
           })
         }
       } catch {
@@ -371,7 +373,7 @@ export class SessionController extends TypertRemoteService {
    */
   @RemoteScope('auth', 'create')
   create(request: SessionCreateRequest): Promise<SessionCreateValue> {
-    return this.commands.create(request, requireAuthIdentity(this.ctx))
+    return this.commands.create(request, requireAuthIdentity(this.ctx), readAuthToken(this.ctx))
   }
 
   /**
@@ -381,7 +383,7 @@ export class SessionController extends TypertRemoteService {
    */
   @RemoteScope('auth', 'selectPositioning')
   selectPositioning(request: SessionSelectPositioningRequest): Promise<SessionSelectPositioningValue> {
-    return this.commands.selectPositioning(request, requireAuthIdentity(this.ctx))
+    return this.commands.selectPositioning(request, requireAuthIdentity(this.ctx), readAuthToken(this.ctx))
   }
 
   /**
@@ -513,7 +515,7 @@ export class SessionController extends TypertRemoteService {
   rename(request: SessionRenameRequest): Promise<SessionRenameValue> {
     const identity = requireAuthIdentity(this.ctx)
     const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
-    return this.commands.rename(request, sandboxRoot)
+    return this.commands.rename(request, sandboxRoot, readAuthToken(this.ctx))
   }
 
   /**
@@ -582,7 +584,7 @@ export class SessionController extends TypertRemoteService {
       ...(clientTimeZone === undefined ? {} : { clientTimeZone }),
       ...(principal === undefined ? {} : { principal }),
     }
-    return this.commands.prompt(request, source, sandboxRoot, identity)
+    return this.commands.prompt(request, source, sandboxRoot, identity, readAuthToken(this.ctx))
   }
 
   /**

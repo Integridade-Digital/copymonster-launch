@@ -21,7 +21,7 @@ import type {
 } from '@deepseek-ai/dsh-settings/types'
 import { Remote, RemoteScope, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import type { JsonValue } from '@deepseek-ai/dsh-util-values'
-import { supabaseAdminClient, type Json } from '@deepseek-ai/dsh-supabase-client'
+import { createUserClient } from '@deepseek-ai/dsh-supabase-client'
 import { z } from 'zod'
 import { CredentialsController } from './credentials.ts'
 import type {
@@ -90,6 +90,25 @@ function getAuthIdentity(ctx: Context): UserIdentity | undefined {
     return (ctx as unknown as { authIdentity?: UserIdentity }).authIdentity
   }
   return undefined
+}
+
+/**
+ * Resolve the caller-scoped Supabase client for this Remote method.
+ *
+ * Every privileged read and write goes through an RPC that derives the tenant
+ * from `auth.uid()`, so the tenant DSH never holds the service-role key.
+ * @param ctx - Host context carrying the caller's bearer token.
+ * @returns a client that runs under the caller's row-level security.
+ * @throws RemoteError `settings/unauthorized` when the Context carries no token.
+ */
+function requireUserClient(ctx: Context): ReturnType<typeof createUserClient> {
+  const token = Reflect.has(ctx, 'authToken')
+    ? (ctx as unknown as { authToken?: string }).authToken
+    : undefined
+  if (token === undefined || token === '') {
+    throw new RemoteError('settings/unauthorized', 'Autenticação necessária.', {})
+  }
+  return createUserClient(token)
 }
 
 /** Protected namespaces that require administrative privileges (owner or admin). */
@@ -263,16 +282,13 @@ export class SettingsController extends TypertRemoteService {
   @RemoteScope('auth', 'listTenants')
   async listTenants(): Promise<TenantAdminView[]> {
     assertAdminOrOwnerAuth(this.ctx, 'listar tenants')
-    const { data, error } = await supabaseAdminClient
-      .from('tenants')
-      .select('id, name, slug, status, subscription_status, plan_id, trial_ends_at, trial_used, trial_tokens_used, current_period_tokens_used, created_at')
-      .order('created_at', { ascending: false })
+    const { data, error } = await requireUserClient(this.ctx).rpc('admin_list_tenants')
 
     if (error !== null) {
       throw new RemoteError('gateway/internal', `Erro ao listar tenants: ${error.message}`, {})
     }
 
-    return (data || []).map(t => ({
+    return (data ?? []).map(t => ({
       id: t.id,
       name: t.name,
       slug: t.slug,
@@ -308,39 +324,17 @@ export class SettingsController extends TypertRemoteService {
       targetTenantId = request.tenantId
     }
 
-    const { data: tenant, error: tenantErr } = await supabaseAdminClient
-      .from('tenants')
-      .select('id, subscription_status, plan_id, trial_ends_at, trial_used, trial_tokens_used, current_period_tokens_used')
-      .eq('id', targetTenantId)
-      .single()
+    const { data: metrics, error: tenantErr } = await requireUserClient(this.ctx)
+      .rpc('get_my_tenant_metrics', {
+        p_tenant_id: targetTenantId === identity.tenantId ? null : targetTenantId,
+      })
 
-    if (tenantErr !== null || tenant === null) {
+    if (tenantErr !== null || metrics === null) {
       throw new RemoteError('gateway/bad-request', `Tenant não encontrado: ${targetTenantId}`, {})
     }
 
-    let planData: TenantPlanDetails | null = null
-    if (tenant.plan_id) {
-      const { data: plan } = await supabaseAdminClient
-        .from('plans')
-        .select('id, name, slug, monthly_price_cents, annual_price_cents, token_limit_input, token_limit_output, max_workspaces, max_sessions, storage_gb, ai_tier')
-        .eq('id', tenant.plan_id)
-        .single()
-      if (plan) {
-        planData = {
-          id: plan.id,
-          name: plan.name,
-          slug: plan.slug,
-          monthly_price_cents: plan.monthly_price_cents ?? null,
-          annual_price_cents: plan.annual_price_cents ?? null,
-          token_limit_input: plan.token_limit_input ?? null,
-          token_limit_output: plan.token_limit_output ?? null,
-          max_workspaces: plan.max_workspaces ?? null,
-          max_sessions: plan.max_sessions ?? null,
-          storage_gb: plan.storage_gb ?? null,
-          ai_tier: plan.ai_tier ?? null,
-        }
-      }
-    }
+    const tenant = metrics.tenant
+    const planData: TenantPlanDetails | null = metrics.plan === null ? null : { ...metrics.plan }
 
     const trialEndsAt = tenant.trial_ends_at ? new Date(tenant.trial_ends_at) : null
     const now = new Date()
@@ -381,20 +375,12 @@ export class SettingsController extends TypertRemoteService {
     const limit = Math.min(request?.limit ?? 50, 100)
     const offset = request?.offset ?? 0
 
-    let query = supabaseAdminClient
-      .from('audit_logs')
-      .select('id, tenant_id, user_id, action, resource_type, resource_id, old_value, new_value, ip_address, user_agent, created_at')
-      .order('created_at', { ascending: false })
-      .range(offset, offset + limit - 1)
-
-    if (request?.tenantId) {
-      query = query.eq('tenant_id', request.tenantId)
-    }
-    if (request?.action) {
-      query = query.eq('action', request.action)
-    }
-
-    const { data, error } = await query
+    const { data, error } = await requireUserClient(this.ctx).rpc('admin_list_audit_logs', {
+      p_limit: limit,
+      p_offset: offset,
+      p_tenant_id: request?.tenantId ?? null,
+      p_action: request?.action ?? null,
+    })
     if (error !== null) {
       throw new RemoteError('gateway/internal', `Erro ao buscar logs de auditoria: ${error.message}`, {})
     }
@@ -406,8 +392,8 @@ export class SettingsController extends TypertRemoteService {
       action: row.action,
       resourceType: row.resource_type,
       resourceId: row.resource_id,
-      oldValue: (row.old_value ?? null) as unknown as JsonValue,
-      newValue: (row.new_value ?? null) as unknown as JsonValue,
+      oldValue: row.old_value ?? null,
+      newValue: row.new_value ?? null,
       ipAddress: row.ip_address,
       userAgent: row.user_agent,
       createdAt: row.created_at,
@@ -426,27 +412,19 @@ export class SettingsController extends TypertRemoteService {
       throw new RemoteError('settings/unauthorized', 'Autenticação necessária para registrar auditoria.', {})
     }
 
-    const { data, error } = await supabaseAdminClient
-      .from('audit_logs')
-      .insert([
-        {
-          tenant_id: identity.tenantId,
-          user_id: identity.userId,
-          action: request.action,
-          resource_type: request.resourceType ?? null,
-          resource_id: request.resourceId ?? null,
-          old_value: (request.oldValue ?? null) as unknown as Json,
-          new_value: (request.newValue ?? null) as unknown as Json,
-        },
-      ])
-      .select('id')
-      .single()
+    const { data, error } = await requireUserClient(this.ctx).rpc('record_my_audit_log', {
+      p_action: request.action,
+      p_resource_type: request.resourceType ?? null,
+      p_resource_id: request.resourceId ?? null,
+      p_old_value: request.oldValue ?? null,
+      p_new_value: request.newValue ?? null,
+    })
 
     if (error !== null) {
       throw new RemoteError('gateway/internal', `Erro ao gravar log de auditoria: ${error.message}`, {})
     }
 
-    return { recorded: true, id: data.id }
+    return { recorded: true, id: data }
   }
 
   /**
@@ -473,9 +451,9 @@ export class SettingsController extends TypertRemoteService {
       throw new RemoteError('gateway/bad-request', 'Quantidade de tokens deve ser um número positivo.', {})
     }
 
-    const { error } = await supabaseAdminClient.rpc('increment_tenant_token_usage', {
-      p_tenant_id: targetTenantId,
+    const { error } = await requireUserClient(this.ctx).rpc('increment_my_tenant_token_usage', {
       p_tokens: Math.round(request.tokens),
+      p_tenant_id: targetTenantId === identity.tenantId ? null : targetTenantId,
     })
 
     if (error !== null) {

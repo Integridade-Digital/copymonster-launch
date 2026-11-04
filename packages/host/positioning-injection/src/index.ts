@@ -45,15 +45,15 @@ const cache = new WeakMap<MappedSession, { mappingId: string; mapping: Positioni
  * no cache entry, so the next turn retries.
  * @param session - the Session the assembly belongs to.
  * @param mappingId - the positioning mapping the session carries.
- * @param userId - the session's user identity.
+ * @param token - bearer token of the session's user.
  * @returns the mapping row, or undefined when absent or unreadable.
  */
 async function loadAndCache(
   session: MappedSession,
   mappingId: string,
-  userId: string,
+  token: string | undefined,
 ): Promise<PositioningMappingRow | undefined> {
-  const mapping = await fetchPositioningMapping(mappingId, userId)
+  const mapping = await fetchPositioningMapping(mappingId, token)
   if (mapping !== undefined) cache.set(session, { mappingId, mapping })
   return mapping
 }
@@ -73,7 +73,7 @@ export function apply(ctx: Context): void {
     const cached = cache.get(session)
     const mapping = cached !== undefined && cached.mappingId === meta.positioningMappingId
       ? cached.mapping
-      : await loadAndCache(session, meta.positioningMappingId, meta.userId)
+      : await loadAndCache(session, meta.positioningMappingId, meta.authToken)
     if (mapping === undefined || mapping.status !== 'completed') return downstream
     return {
       ...downstream,

@@ -11,7 +11,7 @@
  */
 
 import { Context, Service } from '@deepseek-ai/cordis'
-import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
+import { createUserClient } from '@deepseek-ai/dsh-supabase-client'
 import type { AuthToken, UserIdentity, UserRole } from './types.ts'
 
 export type { AuthToken, UserIdentity, UserRole } from './types.ts'
@@ -25,6 +25,12 @@ declare module '@deepseek-ai/cordis' {
     auth: AuthService
     /** Set on the child Context returned by {@link AuthService.resolveContext}. */
     authIdentity?: UserIdentity
+    /**
+     * Bearer token the caller presented, set on the same child Context as
+     * {@link Context.authIdentity} so a scoped Remote method can build a
+     * caller-scoped Supabase client instead of borrowing the service role.
+     */
+    authToken?: AuthToken
   }
 }
 
@@ -66,23 +72,12 @@ function decodeJwtPayload(token: AuthToken): Record<string, unknown> | undefined
 }
 
 /**
- * Read a non-empty string claim from a JWT payload.
- * @param claims - decoded JWT payload.
- * @param key - claim name.
- * @returns the claim value, or `undefined` when absent, blank, or not a string.
- */
-function readStringClaim(claims: Record<string, unknown>, key: string): string | undefined {
-  const value = claims[key]
-  return typeof value === 'string' && value !== '' ? value : undefined
-}
-
-/**
- * Narrow the `user_role` claim to a role an identity may be issued with.
+ * Narrow a stored membership role to a role an identity may be issued with.
  *
  * `anonymous` is refused along with any value outside {@link UserRole}: a
  * caller whose only membership is anonymous has no tenant to act within, so it
  * resolves to no identity rather than a downgraded one.
- * @param claim - raw `user_role` claim value.
+ * @param claim - raw `role` value from `get_my_profile()`.
  * @returns the matching role, or `undefined` for `anonymous` and for any value
  *   outside the vocabulary.
  */
@@ -131,13 +126,12 @@ export class AuthService extends Service {
   /**
    * Resolve one bearer token to the caller identity.
    *
-   * The active tenant and role come from the `tenant_id` and `user_role` claims
-   * that the Supabase Custom Access Token Hook writes into the JWT, so the
-   * Custom Access Token Hook decides the membership and this service only
-   * confirms the tenant is still usable. A token that names no tenant, names no
-   * role, names the `anonymous` role, or names a tenant that is not `active`
-   * resolves to `undefined`: an authenticated user without a usable membership
-   * gets no identity rather than a downgraded one.
+   * The tenant, role and platform-operator flag come from `get_my_profile()`,
+   * read with the caller's own token, so this service needs no service-role
+   * key and cannot widen its own scope. A token whose profile names no tenant,
+   * names no role, names the `anonymous` role, or names a tenant that is not
+   * `active` resolves to `undefined`: an authenticated user without a usable
+   * membership gets no identity rather than a downgraded one.
    *
    * Hits the local in-memory LRU cache first to prevent repeated round-trips to Supabase.
    * @param token - Supabase-issued JWT presented by the caller.
@@ -160,55 +154,33 @@ export class AuthService extends Service {
       this.identityCache.delete(token)
     }
 
-    const { data: authData, error: authError } = await supabaseAdminClient.auth.getUser(token)
-    if (authError !== null || authData.user === null) return undefined
-    const user = authData.user
+    // `get_my_profile()` is SECURITY DEFINER and reads `auth.uid()`, so the
+    // caller's own token is enough. PostgREST validates the JWT before the
+    // function runs, so an invalid or expired token yields an error here.
+    const { data: profile, error } = await createUserClient(token).rpc('get_my_profile')
+    if (error !== null || profile === null) return undefined
 
-    const claims = decodeJwtPayload(token)
-    if (claims === undefined) return undefined
+    const tenant = profile.tenant
+    if (tenant === null || tenant.status !== 'active') return undefined
 
-    const claimTenantId = readStringClaim(claims, 'tenant_id')
-    if (claimTenantId === undefined) return undefined
-
-    const claimRole = readStringClaim(claims, 'user_role')
-    if (claimRole === undefined) return undefined
-    const role = toUserRole(claimRole)
+    const role = toUserRole(profile.role ?? '')
     if (role === undefined) return undefined
 
-    const { data: tenant, error: tenantError } = await supabaseAdminClient
-      .from('tenants')
-      .select('id')
-      .eq('id', claimTenantId)
-      .eq('status', 'active')
-      .maybeSingle()
-    if (tenantError !== null || tenant === null) return undefined
-
-    const { data: profile, error: profileError } = await supabaseAdminClient
-      .from('users')
-      .select('id, email, full_name, whatsapp, avatar_url, metadata')
-      .eq('id', user.id)
-      .single()
-    if (profileError !== null || profile === null) return undefined
-
-    const metadataFlag = typeof profile.metadata === 'object' && profile.metadata !== null
-      && !Array.isArray(profile.metadata)
-      ? (profile.metadata as Record<string, unknown>).is_admin
-      : undefined
-
     const identity: UserIdentity = {
-      userId: user.id,
-      tenantId: claimTenantId,
+      userId: profile.user.id,
+      tenantId: tenant.id,
       role,
-      email: profile.email ?? user.email ?? '',
-      ...metadataFlag === true ? { isAdmin: true } : {},
-      ...profile.full_name === null || profile.full_name === '' ? {} : { fullName: profile.full_name },
-      ...profile.whatsapp === null || profile.whatsapp === '' ? {} : { whatsapp: profile.whatsapp },
-      ...profile.avatar_url === null || profile.avatar_url === '' ? {} : { avatarUrl: profile.avatar_url },
+      email: profile.user.email ?? '',
+      ...profile.is_admin === true ? { isAdmin: true } : {},
+      ...profile.user.full_name === null || profile.user.full_name === '' ? {} : { fullName: profile.user.full_name },
+      ...profile.user.whatsapp === null || profile.user.whatsapp === '' ? {} : { whatsapp: profile.user.whatsapp },
+      ...profile.user.avatar_url === null || profile.user.avatar_url === '' ? {} : { avatarUrl: profile.user.avatar_url },
     }
 
     // Determine TTL: 60s, capped by JWT `exp` if present and smaller
+    const claims = decodeJwtPayload(token)
     let ttlMs = AuthService.CACHE_TTL_MS
-    if (typeof claims.exp === 'number') {
+    if (claims !== undefined && typeof claims.exp === 'number') {
       const expRemainingMs = claims.exp * 1000 - now
       if (expRemainingMs > 0 && expRemainingMs < ttlMs) {
         ttlMs = expRemainingMs
@@ -250,7 +222,7 @@ export class AuthService extends Service {
   async resolveContext(token: AuthToken): Promise<Context | undefined> {
     const identity = await this.resolveIdentity(token)
     if (identity === undefined) return undefined
-    return this.ctx.extend({ authIdentity: identity })
+    return this.ctx.extend({ authIdentity: identity, authToken: token })
   }
 }
 

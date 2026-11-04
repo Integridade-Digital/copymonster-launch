@@ -14,7 +14,7 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
-import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
+import { supabaseAnonClient } from '@deepseek-ai/dsh-supabase-client'
 
 /** Public path probed by the load balancer and Cloudflare. */
 export const HEALTHZ_PATH = '/api/healthz'
@@ -28,9 +28,14 @@ interface CatalogService {
   listModels(provider: string): Promise<readonly unknown[]>
 }
 
-/** Fail-closed Supabase reachability check via the service-role client. */
+/**
+ * Fail-closed Supabase reachability check.
+ *
+ * Uses the anonymous client: the probe only needs to prove PostgREST answers,
+ * and a tenant DSH holds no service-role key.
+ */
 async function pingSupabase(): Promise<void> {
-  const client = supabaseAdminClient as unknown as {
+  const client = supabaseAnonClient as unknown as {
     from(table: string): {
       select(columns: string, options: { count: 'exact'; head: true }): Promise<{ error: unknown }>
     }

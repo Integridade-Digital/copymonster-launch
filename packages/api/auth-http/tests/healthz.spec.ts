@@ -3,10 +3,10 @@ import type { Mock } from 'vitest'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import { Context } from '@deepseek-ai/cordis'
 import { handleHealthz } from '../src/health.ts'
-import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
+import { supabaseAnonClient } from '@deepseek-ai/dsh-supabase-client'
 
 vi.mock('@deepseek-ai/dsh-supabase-client', () => ({
-  supabaseAdminClient: {
+  supabaseAnonClient: {
     from: vi.fn(),
   },
 }))
@@ -38,7 +38,7 @@ function reqDouble(method: string): IncomingMessage {
 
 function ping(error: unknown): void {
   const select = vi.fn().mockResolvedValue({ data: null, count: 1, error })
-  ;(supabaseAdminClient.from as unknown as Mock).mockReturnValue({ select })
+  ;(supabaseAnonClient.from as unknown as Mock).mockReturnValue({ select })
 }
 
 function catalog(providers: readonly string[], models: readonly string[]): unknown {

@@ -100,6 +100,7 @@ describe('positioning injection', () => {
     sessionTenantMap.set(session, {
       tenantId: 'tenant-1',
       userId: 'user-1',
+      authToken: 'token-1',
       positioningMappingId: 'map-1',
     })
     const scope = await mintAgentScope(ctx, session)
@@ -127,6 +128,7 @@ describe('positioning injection', () => {
     sessionTenantMap.set(session, {
       tenantId: 'tenant-1',
       userId: 'user-1',
+      authToken: 'token-1',
       positioningMappingId: 'map-1',
     })
     const scope = await mintAgentScope(ctx, session)
@@ -142,6 +144,7 @@ describe('positioning injection', () => {
     sessionTenantMap.set(session, {
       tenantId: 'tenant-1',
       userId: 'user-1',
+      authToken: 'token-1',
       positioningMappingId: 'map-1',
     })
     const scope = await mintAgentScope(ctx, session)
@@ -157,6 +160,7 @@ describe('positioning injection', () => {
     sessionTenantMap.set(session, {
       tenantId: 'tenant-1',
       userId: 'user-1',
+      authToken: 'token-1',
       positioningMappingId: 'map-1',
     })
     const scope = await mintAgentScope(ctx, session)
@@ -173,6 +177,7 @@ describe('positioning injection', () => {
     sessionTenantMap.set(session, {
       tenantId: 'tenant-1',
       userId: 'user-1',
+      authToken: 'token-1',
       positioningMappingId: 'map-1',
     })
     const scope = await mintAgentScope(ctx, session)
@@ -182,10 +187,11 @@ describe('positioning injection', () => {
     sessionTenantMap.set(session, {
       tenantId: 'tenant-1',
       userId: 'user-1',
+      authToken: 'token-1',
       positioningMappingId: 'map-2',
     })
     await ctx.systemPrompt.assemble({ scope: scopeOf(scope.ctx)! })
     expect(fetchMock).toHaveBeenCalledTimes(2)
-    expect(fetchMock).toHaveBeenLastCalledWith('map-2', 'user-1')
+    expect(fetchMock).toHaveBeenLastCalledWith('map-2', 'token-1')
   })
 })

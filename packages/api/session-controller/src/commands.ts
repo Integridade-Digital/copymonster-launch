@@ -1,5 +1,5 @@
 import { upsertSessionIndex } from './session-db-sync.ts'
-import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
+import { createUserClient } from '@deepseek-ai/dsh-supabase-client'
 /** Session commands whose activation policy is explicit at each Remote method. */
 
 import { modelAvailable } from './catalog.ts'
@@ -85,16 +85,25 @@ export interface TenantQuotaResult {
   readonly remainingTokens: number
 }
 
-/** Injectable tenant quota check; the default reads `check_tenant_quota` via service_role. */
-export type TenantQuotaCheck = (tenantId: string) => Promise<TenantQuotaResult>
+/**
+ * Injectable tenant quota check; the default reads `check_my_tenant_quota` with
+ * the caller's own token.
+ */
+export type TenantQuotaCheck = (tenantId: string, token?: string) => Promise<TenantQuotaResult>
 
-/** Default quota check: `check_tenant_quota` through the service-role client. */
-async function fetchTenantQuota(tenantId: string): Promise<TenantQuotaResult> {
-  const client = supabaseAdminClient as unknown as {
-    rpc(name: string, args: Record<string, unknown>): Promise<{ data: unknown; error: unknown }>
+/**
+ * Default quota check: `check_my_tenant_quota` through a caller-scoped client.
+ *
+ * The RPC derives the tenant from `auth.uid()`, so the caller's token is what
+ * authorizes the read; the tenant id parameter stays for the injectable
+ * signature and for diagnostics only.
+ */
+async function fetchTenantQuota(_tenantId: string, token?: string): Promise<TenantQuotaResult> {
+  if (token === undefined || token === '') {
+    throw new Error('check_my_tenant_quota requires the caller bearer token')
   }
-  const { data, error } = await client.rpc('check_tenant_quota', { p_tenant_id: tenantId })
-  if (error !== null && error !== undefined) throw new Error(`check_tenant_quota failed: ${String(error)}`)
+  const { data, error } = await createUserClient(token).rpc('check_my_tenant_quota')
+  if (error !== null && error !== undefined) throw new Error(`check_my_tenant_quota failed: ${String(error)}`)
   const row = (Array.isArray(data) ? data[0] : data) as TenantQuotaRow | undefined
   return {
     allowed: row?.allowed === true,
@@ -141,8 +150,19 @@ function latestCompletedPrefixBoundary(events: readonly SessionEvent[]): Session
   return boundary
 }
 
-/** Implements Session business commands delegated by the Session Controller Remote service. */
-export const sessionTenantMap = new WeakMap<Session, { tenantId: string; userId: string; positioningMappingId?: string }>()
+/**
+ * Tenant, user and bearer token a Session was last prompted under.
+ *
+ * The token is kept so the metering callback that runs after the turn can
+ * record usage under the caller's own row-level security instead of the
+ * service role.
+ */
+export const sessionTenantMap = new WeakMap<Session, {
+  tenantId: string
+  userId: string
+  authToken?: string
+  positioningMappingId?: string
+}>()
 
 export class SessionCommandController {
   /**
@@ -162,35 +182,13 @@ export class SessionCommandController {
    * The caller's sandbox confines the working directory.
    * @param request - optional blank Session to reuse, location, and Agent preset.
    * @param identity - authenticated caller whose sandbox confines the working directory.
+   * @param token - bearer token that authorizes the quota read.
    * @returns the created or reused Session identity and its preset when configured.
    */
-  async create(request: SessionCreateRequest, identity: UserIdentity): Promise<SessionCreateValue> {
-    // Subscription gate: check tenant status before creating session
-    if (identity?.tenantId && identity.isAdmin !== true) {
-      try {
-        const { data: tenant, error: tenantErr } = await supabaseAdminClient
-          .from('tenants')
-          .select('subscription_status')
-          .eq('id', identity.tenantId)
-          .single()
-
-        if (!tenantErr && tenant?.subscription_status) {
-          const status = tenant.subscription_status
-          if (['trial_expired', 'canceled', 'past_due'].includes(status)) {
-            throw new RemoteError(
-              'session/subscription-inactive',
-              'Your subscription is inactive. Please upgrade.',
-              { message: 'Your subscription is inactive. Please upgrade.', subscriptionStatus: status },
-            )
-          }
-        }
-      } catch (error) {
-        if (error instanceof RemoteError) {
-          throw error
-        }
-      }
-    }
-    await this.assertTenantQuota(identity, 'session.create')
+  async create(request: SessionCreateRequest, identity: UserIdentity, token?: string): Promise<SessionCreateValue> {
+    // The quota gate already fails closed on an inactive subscription
+    // (`subscription_inactive:<status>`), so no separate tenant read is needed.
+    await this.assertTenantQuota(identity, 'session.create', token)
     if (request.workspaceId !== undefined && request.cwd !== undefined) {
       throw new RemoteError('gateway/bad-request', 'session.create accepts workspaceId or cwd, not both', {})
     }
@@ -236,19 +234,21 @@ export class SessionCommandController {
     // lands on the just-mapped DNA; the composer chip clears it in place.
     let positioningMappingId = request.positioningMappingId
     if (positioningMappingId === undefined && identity?.tenantId !== undefined) {
-      positioningMappingId = await this.defaultPositioningMappingId(identity.userId)
+      positioningMappingId = await this.defaultPositioningMappingId(identity.userId, token)
     }
     if (identity?.tenantId && typeof created.agent.session === 'object' && created.agent.session !== null) {
       sessionTenantMap.set(created.agent.session, {
         tenantId: identity.tenantId,
         userId: identity.userId,
+        ...(token === undefined ? {} : { authToken: token }),
         ...(positioningMappingId === undefined ? {} : { positioningMappingId }),
       })
       upsertSessionIndex({
         sessionId: String(sessionId),
-        tenantId: identity.tenantId,
-        userId: identity.userId,
+        title: undefined,
+        model: undefined,
         status: 'active',
+        token,
       })
     }
     if (workspace !== undefined) {
@@ -307,11 +307,13 @@ export class SessionCommandController {
    * the choice at the next prompt assembly.
    * @param request - Session identity and the mapping to carry; absent clears.
    * @param identity - authenticated caller the mapping must belong to.
+   * @param token - bearer token that scopes the mapping read to the caller.
    * @returns the applied choice.
    */
   async selectPositioning(
     request: SessionSelectPositioningRequest,
     identity: UserIdentity,
+    token?: string,
   ): Promise<SessionSelectPositioningValue> {
     const agent = await this.resolveAgent(request.sessionId)
     this.assertSessionInSandbox(
@@ -320,9 +322,11 @@ export class SessionCommandController {
     )
     let positioningMappingId: string | undefined
     if (request.positioningMappingId !== undefined) {
-      const { data, error } = await supabaseAdminClient.rpc('get_positioning_mapping', {
+      if (token === undefined || token === '') {
+        throw new RemoteError('session/unauthorized', 'selecting a mapping requires the caller token', {})
+      }
+      const { data, error } = await createUserClient(token).rpc('get_my_positioning_mapping', {
         p_mapping_id: request.positioningMappingId,
-        p_user_id: identity.userId,
       })
       const row = (data ?? [])[0]
       if (error !== null || row === undefined) {
@@ -345,6 +349,7 @@ export class SessionCommandController {
     sessionTenantMap.set(agent.session, {
       tenantId: previous?.tenantId ?? identity.tenantId,
       userId: previous?.userId ?? identity.userId,
+      ...(token === undefined ? {} : { authToken: token }),
       ...(positioningMappingId === undefined ? {} : { positioningMappingId }),
     })
     return {
@@ -357,11 +362,13 @@ export class SessionCommandController {
    * The caller's default completed positioning mapping, when one is marked.
    * An unreadable roster must not block session creation: DNA-free it is.
    * @param userId - the caller the default must belong to.
+   * @param token - bearer token that scopes the read to the caller.
    * @returns the default mapping id, or undefined when none is marked.
    */
-  private async defaultPositioningMappingId(userId: string): Promise<string | undefined> {
+  private async defaultPositioningMappingId(userId: string, token?: string): Promise<string | undefined> {
+    if (token === undefined || token === '') return undefined
     try {
-      const { data, error } = await supabaseAdminClient
+      const { data, error } = await createUserClient(token)
         .from('positioning_mappings')
         .select('id')
         .eq('user_id', userId)
@@ -381,9 +388,10 @@ export class SessionCommandController {
    * Normalize and append a user-owned Session title.
    * @param request - Session identity and proposed title.
    * @param sandboxRoot - confined root; when supplied, the Session's cwd must be inside it.
+   * @param token - bearer token that authorizes the index write.
    * @returns the accepted title and durable event sequence.
    */
-  async rename(request: SessionRenameRequest, sandboxRoot?: string): Promise<SessionRenameValue> {
+  async rename(request: SessionRenameRequest, sandboxRoot?: string, token?: string): Promise<SessionRenameValue> {
     const agent = await this.resolveAgent(request.sessionId)
     this.assertSessionInSandbox(agent.session, sandboxRoot)
     const titles = this.ctx.get('sessionTitle')
@@ -397,9 +405,8 @@ export class SessionCommandController {
         : undefined
       upsertSessionIndex({
         sessionId: String(request.sessionId),
-        tenantId: tenantInfo?.tenantId,
-        userId: tenantInfo?.userId,
         title: accepted.title,
+        token: token ?? tenantInfo?.authToken,
       })
       return { title: accepted.title, seq: accepted.eventSeq }
     } catch (error) {
@@ -542,6 +549,7 @@ export class SessionCommandController {
    * @param source - the `user-rpc` source recorded on the accepted message.
    * @param sandboxRoot - confined root; when supplied, the Session's cwd must be inside it.
    * @param identity - authenticated caller whose tenant quota gates the prompt.
+   * @param token - bearer token that authorizes the quota read and the metering write.
    * @returns acknowledgement that the Agent accepted the prompt.
    */
   async prompt(
@@ -549,6 +557,7 @@ export class SessionCommandController {
     source: MessageSource,
     sandboxRoot?: string,
     identity?: UserIdentity,
+    token?: string,
   ): Promise<SessionPromptValue> {
     const agent = await this.resolveAgent(request.sessionId)
     this.assertSessionInSandbox(agent.session, sandboxRoot)
@@ -559,13 +568,14 @@ export class SessionCommandController {
       sessionTenantMap.set(agent.session, {
         tenantId: identity.tenantId,
         userId: identity.userId,
+        ...(token === undefined ? {} : { authToken: token }),
         ...(previous?.positioningMappingId === undefined
           ? {}
           : { positioningMappingId: previous.positioningMappingId }),
       })
     }
     if (hasPromptRequest(agent, request.requestId)) return { accepted: true }
-    await this.assertTenantQuota(identity, 'session.prompt')
+    await this.assertTenantQuota(identity, 'session.prompt', token)
     const selection = agent.model.current()
     if (selection !== undefined && !await modelAvailable(this.ctx, selection)) {
       throw new RemoteError(
@@ -779,14 +789,19 @@ export class SessionCommandController {
    * from `users.metadata.is_admin` bypass the gate.
    * @param identity - authenticated caller; a missing tenant skips the gate.
    * @param operation - command name used in diagnostics.
+   * @param token - bearer token that authorizes the caller-scoped quota RPC.
    */
-  private async assertTenantQuota(identity: UserIdentity | undefined, operation: string): Promise<void> {
+  private async assertTenantQuota(
+    identity: UserIdentity | undefined,
+    operation: string,
+    token?: string,
+  ): Promise<void> {
     if (identity?.isAdmin === true) return
     if (identity?.tenantId === undefined || identity.tenantId === '') return
     const mode = this.resolveQuotaGateMode()
     let result: TenantQuotaResult
     try {
-      result = await (this.quotaCheck ?? fetchTenantQuota)(identity.tenantId)
+      result = await (this.quotaCheck ?? fetchTenantQuota)(identity.tenantId, token)
     } catch (error) {
       // `check_tenant_quota` is a wire boundary: any transport failure fails closed.
       void error

@@ -17,6 +17,7 @@ describe('settings Remote', () => {
     expect(controller.typertRemote.namespace).toBe('settings')
     expect(remoteMethods(controller).map(method => method.method)).toEqual([
       'describe', 'update', 'replace', 'mutate', 'openSettingsDocument',
+      'listTenants', 'getTenantMetrics', 'listAuditLogs', 'recordAuditLog', 'recordTokenUsage',
     ])
     expect(ctx.get('credentialsController')).toBeDefined()
   })

@@ -32,3 +32,16 @@ export function requireAuthIdentity(ctx: Context): UserIdentity {
   }
   return identity
 }
+
+/**
+ * Read the bearer token the caller presented, when the Context carries one.
+ *
+ * The auth service sets it beside the identity so a caller-scoped Supabase
+ * client can run the quota and metering RPCs under the caller's own row-level
+ * security instead of the service role.
+ * @param ctx - Host context the Remote method is running under.
+ * @returns the bearer token, or undefined when the Context carries none.
+ */
+export function readAuthToken(ctx: Context): string | undefined {
+  return 'authToken' in ctx ? ctx.authToken : undefined
+}

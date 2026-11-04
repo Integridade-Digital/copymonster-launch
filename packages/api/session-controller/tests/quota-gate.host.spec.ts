@@ -1,38 +1,33 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import type { Mock } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
 import type { Agent } from '@deepseek-ai/dsh-agent'
 import type { SessionRequestId } from '../src/types.ts'
 import type { MessageSource } from '@deepseek-ai/dsh-llm'
 import { SessionCommandController } from '../src/commands.ts'
-import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
+
+const mocks = vi.hoisted(() => ({ rpc: vi.fn(), createUserClient: vi.fn() }))
 
 vi.mock('@deepseek-ai/dsh-supabase-client', () => ({
-  supabaseAdminClient: {
-    from: vi.fn(),
-    rpc: vi.fn(),
-  },
+  createUserClient: mocks.createUserClient,
 }))
 
+const TOKEN = 'caller-token'
 const identity = { tenantId: 'tenant-123', userId: 'user-1' } as never
 const adminIdentity = { tenantId: 'tenant-123', userId: 'user-1', isAdmin: true } as never
 
 const USER_SOURCE: MessageSource = { kind: 'user', rpcId: 'req-1' as SessionRequestId }
 
-function activeSubscription(): void {
-  const single = vi.fn().mockResolvedValue({ data: { subscription_status: 'active' }, error: null })
-  const eq = vi.fn().mockReturnValue({ single })
-  const select = vi.fn().mockReturnValue({ eq })
-  ;(supabaseAdminClient.from as unknown as Mock).mockReturnValue({ select })
-}
-
 function quotaResponse(value: unknown, error: unknown = null): void {
-  ;(supabaseAdminClient.rpc as unknown as Mock).mockResolvedValue({ data: value, error })
+  mocks.rpc.mockResolvedValue({ data: value, error })
 }
 
-function agentsDouble(): Record<string, Mock> {
+function agentsDouble(): Record<string, unknown> {
   return {
+    createSession: vi.fn().mockResolvedValue({
+      agent: { id: 'sess-1' },
+      agentPreset: 'preset-default',
+    }),
     ensureSession: vi.fn().mockResolvedValue({ agentPreset: 'preset-default', session: 'sess-1' }),
     presetForSession: vi.fn().mockReturnValue('preset-default'),
   }
@@ -41,31 +36,40 @@ function agentsDouble(): Record<string, Mock> {
 describe('SessionCommandController quota gate', () => {
   beforeEach(() => {
     vi.clearAllMocks()
-    activeSubscription()
+    mocks.createUserClient.mockReturnValue({ rpc: mocks.rpc })
   })
 
   afterEach(() => {
     vi.unstubAllEnvs()
   })
 
-  it('blocks session creation when check_tenant_quota refuses (enforce)', async () => {
+  it('blocks session creation when check_my_tenant_quota refuses (enforce)', async () => {
     quotaResponse([{ allowed: false, reason: 'quota_exceeded', remaining_tokens: 0 }])
     const controller = new SessionCommandController(new Context(), agentsDouble() as never)
-    await expect(controller.create({} as never, identity)).rejects.toMatchObject({
+    await expect(controller.create({} as never, identity, TOKEN)).rejects.toMatchObject({
       code: 'session/quota-exceeded',
     })
     try {
-      await controller.create({} as never, identity)
+      await controller.create({} as never, identity, TOKEN)
     } catch (error) {
       expect(error).toBeInstanceOf(RemoteError)
       expect((error as RemoteError).message).toContain('Limite de tokens do plano atingido')
     }
   })
 
+  it('reads the quota through the caller-scoped RPC', async () => {
+    quotaResponse([{ allowed: true, reason: 'ok', remaining_tokens: 10 }])
+    const controller = new SessionCommandController(new Context(), agentsDouble() as never)
+    await controller.create({} as never, identity, TOKEN)
+
+    expect(mocks.createUserClient).toHaveBeenCalledWith(TOKEN)
+    expect(mocks.rpc).toHaveBeenCalledWith('check_my_tenant_quota')
+  })
+
   it('treats a trial_expired reason as a quota refusal', async () => {
     quotaResponse([{ allowed: false, reason: 'trial_expired', remaining_tokens: 0 }])
     const controller = new SessionCommandController(new Context(), agentsDouble() as never)
-    await expect(controller.create({} as never, identity)).rejects.toMatchObject({
+    await expect(controller.create({} as never, identity, TOKEN)).rejects.toMatchObject({
       code: 'session/quota-exceeded',
     })
   })
@@ -73,24 +77,32 @@ describe('SessionCommandController quota gate', () => {
   it('allows session creation when the quota check permits', async () => {
     quotaResponse([{ allowed: true, reason: 'ok', remaining_tokens: 159_698 }])
     const controller = new SessionCommandController(new Context(), agentsDouble() as never)
-    const result = await controller.create({} as never, identity)
+    const result = await controller.create({} as never, identity, TOKEN)
     expect(result.sessionId).toBeDefined()
   })
 
   it('lets platform admins create sessions without consulting the quota RPC', async () => {
     quotaResponse([{ allowed: false, reason: 'quota_exceeded', remaining_tokens: 0 }])
     const controller = new SessionCommandController(new Context(), agentsDouble() as never)
-    const result = await controller.create({} as never, adminIdentity)
+    const result = await controller.create({} as never, adminIdentity, TOKEN)
     expect(result.sessionId).toBeDefined()
-    expect(supabaseAdminClient.rpc).not.toHaveBeenCalled()
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
 
   it('fails closed when the quota RPC is unavailable (enforce)', async () => {
-    ;(supabaseAdminClient.rpc as unknown as Mock).mockRejectedValue(new Error('network down'))
+    mocks.rpc.mockRejectedValue(new Error('network down'))
+    const controller = new SessionCommandController(new Context(), agentsDouble() as never)
+    await expect(controller.create({} as never, identity, TOKEN)).rejects.toMatchObject({
+      code: 'session/quota-check-failed',
+    })
+  })
+
+  it('fails closed when the caller token is missing (enforce)', async () => {
     const controller = new SessionCommandController(new Context(), agentsDouble() as never)
     await expect(controller.create({} as never, identity)).rejects.toMatchObject({
       code: 'session/quota-check-failed',
     })
+    expect(mocks.rpc).not.toHaveBeenCalled()
   })
 
   it('only logs and proceeds in observe mode', async () => {
@@ -98,7 +110,7 @@ describe('SessionCommandController quota gate', () => {
     const ctx = new Context()
     const warn = vi.spyOn(ctx.logger, 'warn')
     const controller = new SessionCommandController(ctx, agentsDouble() as never, 'observe')
-    const result = await controller.create({} as never, identity)
+    const result = await controller.create({} as never, identity, TOKEN)
     expect(result.sessionId).toBeDefined()
     expect(warn).toHaveBeenCalled()
   })
@@ -107,7 +119,7 @@ describe('SessionCommandController quota gate', () => {
     vi.stubEnv('QUOTA_GATE_MODE', 'observe')
     quotaResponse([{ allowed: false, reason: 'quota_exceeded', remaining_tokens: 0 }])
     const controller = new SessionCommandController(new Context(), agentsDouble() as never)
-    const result = await controller.create({} as never, identity)
+    const result = await controller.create({} as never, identity, TOKEN)
     expect(result.sessionId).toBeDefined()
   })
 
@@ -125,6 +137,8 @@ describe('SessionCommandController quota gate', () => {
       requestId: 'req-1',
       mode: 'followup',
       content: [{ type: 'text', text: 'hello' }],
-    } as never, USER_SOURCE, identity)).rejects.toMatchObject({ code: 'session/quota-exceeded' })
+    } as never, USER_SOURCE, undefined, identity, TOKEN)).rejects.toMatchObject({
+      code: 'session/quota-exceeded',
+    })
   })
 })

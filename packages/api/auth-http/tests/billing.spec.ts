@@ -21,6 +21,9 @@ const mockSupabase = vi.hoisted(() => {
 
 vi.mock('@deepseek-ai/dsh-supabase-client', () => ({
   supabaseAdminClient: mockSupabase,
+  // The main app owns the service-role key, so its billing runs locally
+  // instead of forwarding to itself.
+  hasSupabaseAdminClient: () => true,
 }))
 
 // Helpers to create mock requests and responses

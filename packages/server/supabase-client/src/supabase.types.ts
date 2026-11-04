@@ -359,10 +359,166 @@ export interface Database {
         }
         Returns: PositioningMappingRow[]
       }
+      get_my_profile: {
+        Args: Record<string, never>
+        Returns: MyProfileResult | null
+      }
+      check_my_tenant_quota: {
+        Args: Record<string, never>
+        Returns: TenantQuotaRow[]
+      }
+      increment_my_tenant_token_usage: {
+        Args: { p_tokens: number; p_tenant_id?: string | null }
+        Returns: void
+      }
+      get_my_tenant_metrics: {
+        Args: { p_tenant_id?: string | null }
+        Returns: MyTenantMetrics | null
+      }
+      admin_list_tenants: {
+        Args: Record<string, never>
+        Returns: AdminTenantRow[]
+      }
+      runtime_upsert_my_session_index: {
+        Args: {
+          p_session_id: string
+          p_title?: string | null
+          p_model?: string | null
+          p_status?: string | null
+        }
+        Returns: void
+      }
+      runtime_increment_my_session_tokens: {
+        Args: { p_session_id: string; p_tokens: number }
+        Returns: void
+      }
+      runtime_mark_my_session_status: {
+        Args: { p_session_id: string; p_status: string }
+        Returns: void
+      }
+      get_my_positioning_mapping: {
+        Args: { p_mapping_id: string }
+        Returns: PositioningMappingRow[]
+      }
+      record_my_audit_log: {
+        Args: {
+          p_action: string
+          p_resource_type?: string | null
+          p_resource_id?: string | null
+          p_old_value?: Json | null
+          p_new_value?: Json | null
+        }
+        Returns: string
+      }
+      admin_list_audit_logs: {
+        Args: {
+          p_limit?: number
+          p_offset?: number
+          p_tenant_id?: string | null
+          p_action?: string | null
+        }
+        Returns: AuditLogRow[]
+      }
     }
     Enums: Record<string, never>
     CompositeTypes: Record<string, never>
   }
+}
+
+/** One row of `check_my_tenant_quota()`, per `supabase/migrations/043`. */
+export interface TenantQuotaRow {
+  allowed: boolean
+  reason: string
+  remaining_tokens: number
+}
+
+/** Result of `get_my_profile()`, per `supabase/migrations/040`. */
+export interface MyProfileResult {
+  user: {
+    id: string
+    email: string
+    full_name: string | null
+    avatar_url: string | null
+    whatsapp: string | null
+  }
+  tenant: {
+    id: string
+    name: string
+    slug: string
+    status: string
+  } | null
+  role: 'owner' | 'admin' | 'member' | 'anonymous' | null
+  is_admin: boolean
+}
+
+/** Tenant fields `get_my_tenant_metrics()` returns, per `supabase/migrations/043`. */
+export interface MyTenantMetrics {
+  tenant: {
+    id: string
+    name: string
+    slug: string
+    status: string
+    subscription_status: string | null
+    plan_id: string | null
+    trial_ends_at: string | null
+    trial_used: boolean | null
+    trial_tokens_used: number | null
+    current_period_tokens_used: number | null
+    stripe_customer_id: string | null
+    created_at: string
+  }
+  plan: {
+    id: string
+    name: string
+    slug: string
+    monthly_price_cents: number | null
+    annual_price_cents: number | null
+    token_limit_input: number | null
+    token_limit_output: number | null
+    max_workspaces: number | null
+    max_sessions: number | null
+    storage_gb: number | null
+    ai_tier: string | null
+  } | null
+}
+
+/** One row of `admin_list_tenants()`, per `supabase/migrations/043`. */
+export interface AdminTenantRow {
+  id: string
+  name: string
+  slug: string
+  status: 'active' | 'suspended' | 'deleted'
+  subscription_status: string | null
+  plan_id: string | null
+  trial_ends_at: string | null
+  trial_used: boolean | null
+  trial_tokens_used: number | null
+  current_period_tokens_used: number | null
+  created_at: string
+}
+
+/** JSON value as PostgREST returns it: no `undefined` members inside objects. */
+export type StrictJson =
+  | string
+  | number
+  | boolean
+  | null
+  | StrictJson[]
+  | { [key: string]: StrictJson }
+
+/** One row of `admin_list_audit_logs()`, per `supabase/migrations/043`. */
+export interface AuditLogRow {
+  id: string
+  tenant_id: string | null
+  user_id: string | null
+  action: string
+  resource_type: string | null
+  resource_id: string | null
+  old_value: StrictJson | null
+  new_value: StrictJson | null
+  ip_address: string | null
+  user_agent: string | null
+  created_at: string
 }
 
 /** Row of `public.positioning_mappings` returned by `get_positioning_mapping`, per `supabase/migrations/039`. */

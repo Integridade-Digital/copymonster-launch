@@ -69,6 +69,12 @@ export interface Config {
    * Empty disables the handshake, which is correct only for a local launch.
    */
   identityPublicKey: string
+  /**
+   * Socket addresses allowed to assert a client address through
+   * `cf-connecting-ip` or `x-forwarded-for`. Every other peer is keyed by its
+   * socket address, so a caller cannot choose its own rate-limit bucket.
+   */
+  trustedProxyAddresses: string[]
 }
 
 /** Validated plugin configuration. */
@@ -78,20 +84,52 @@ export const Config: z<Config> = z.object({
     max: z.number().min(1).default(30),
   }).default({ windowMs: 60_000, max: 30 }),
   identityPublicKey: z.string().default(''),
+  trustedProxyAddresses: z.array(z.string()).default(['127.0.0.1', '::1']),
 })
+
+/**
+ * Run one handler and contain its rejection.
+ *
+ * A rejected handler must not become an unhandled rejection that kills the
+ * process; answer 500 when the response is still open.
+ * @param handler - route handler to run.
+ * @param req - the incoming request.
+ * @param res - the response the handler owns.
+ * @param log - error sink.
+ */
+function settle(
+  handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>,
+  req: IncomingMessage,
+  res: ServerResponse,
+  log: (error: unknown) => void,
+): void {
+  void Promise.resolve(handler(req, res)).catch((error: unknown) => {
+    log(error)
+    if (res.headersSent) {
+      res.destroy()
+      return
+    }
+    res.writeHead(500, { 'content-type': 'application/json; charset=utf-8' })
+    res.end(JSON.stringify({ error: 'internal_error' }))
+  })
+}
 
 /**
  * Wrap one route handler with its own rate-limit budget.
  * @param handler - route handler to protect.
  * @param limiter - limiter dedicated to this route.
+ * @param trustedProxies - socket addresses allowed to assert a client address.
+ * @param log - error sink.
  * @returns the guarded handler.
  */
 function rateLimited(
   handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>,
   limiter: RateLimiter,
+  trustedProxies: readonly string[],
+  log: (error: unknown) => void,
 ): (req: IncomingMessage, res: ServerResponse) => void {
   return (req, res) => {
-    const decision = limiter.check(clientKey(req))
+    const decision = limiter.check(clientKey(req, trustedProxies))
     if (!decision.allowed) {
       res.writeHead(429, {
         'content-type': 'application/json; charset=utf-8',
@@ -100,7 +138,7 @@ function rateLimited(
       res.end(JSON.stringify({ error: 'rate_limited' }))
       return
     }
-    void handler(req, res)
+    settle(handler, req, res, log)
   }
 }
 
@@ -195,6 +233,30 @@ function handleEnter(ctx: Context, req: IncomingMessage, res: ServerResponse): v
  */
 export function apply(ctx: Context, config: Config): void {
   const limiter = (): RateLimiter => createRateLimiter(config.rateLimit)
+  const log = (error: unknown): void => { ctx.logger.error(error) }
+  /** Refuse an untrusted authority before the route authenticates its caller. */
+  const fence = (req: IncomingMessage, res: ServerResponse): boolean => {
+    const rejection = ctx.connection.trustRejection(req)
+    if (rejection === undefined) return true
+    res.writeHead(rejection)
+    res.end()
+    return false
+  }
+  const fenced = (
+    handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>,
+  ): ((req: IncomingMessage, res: ServerResponse) => void) =>
+    (req, res) => {
+      if (!fence(req, res)) return
+      settle(handler, req, res, log)
+    }
+  const limited = (
+    handler: (req: IncomingMessage, res: ServerResponse) => void | Promise<void>,
+    routeLimiter: RateLimiter,
+  ): ((req: IncomingMessage, res: ServerResponse) => void) =>
+    (req, res) => {
+      if (!fence(req, res)) return
+      rateLimited(handler, routeLimiter, config.trustedProxyAddresses, log)(req, res)
+    }
   const sessionTokenLimiter = limiter()
   const billingLimiter = limiter()
   const meLimiter = limiter()
@@ -202,49 +264,49 @@ export function apply(ctx: Context, config: Config): void {
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: ME_PATH,
-    handler: rateLimited((req: IncomingMessage, res: ServerResponse) => handleMe(ctx, req, res), meLimiter),
+    handler: limited((req: IncomingMessage, res: ServerResponse) => handleMe(ctx, req, res), meLimiter),
   }), `auth-http: ${ME_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: ENTER_PATH,
-    handler: (req: IncomingMessage, res: ServerResponse) => { handleEnter(ctx, req, res) },
+    handler: fenced((req: IncomingMessage, res: ServerResponse) => { handleEnter(ctx, req, res) }),
   }), `auth-http: ${ENTER_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: HEALTHZ_PATH,
-    handler: (req: IncomingMessage, res: ServerResponse) => handleHealthz(ctx, req, res),
+    handler: fenced((req: IncomingMessage, res: ServerResponse) => handleHealthz(ctx, req, res)),
   }), `auth-http: ${HEALTHZ_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: LLM_TEST_PATH,
-    handler: rateLimited((req: IncomingMessage, res: ServerResponse) => handleLlmTest(ctx, req, res), llmTestLimiter),
+    handler: limited((req: IncomingMessage, res: ServerResponse) => handleLlmTest(ctx, req, res), llmTestLimiter),
   }), `auth-http: ${LLM_TEST_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: BILLING_CHECKOUT_PATH,
-    handler: rateLimited((req: IncomingMessage, res: ServerResponse) => { handleCheckout(ctx, req, res) }, billingLimiter),
+    handler: limited((req: IncomingMessage, res: ServerResponse) => { handleCheckout(ctx, req, res) }, billingLimiter),
   }), `auth-http: ${BILLING_CHECKOUT_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: BILLING_PORTAL_PATH,
-    handler: rateLimited((req: IncomingMessage, res: ServerResponse) => { handlePortal(ctx, req, res) }, billingLimiter),
+    handler: limited((req: IncomingMessage, res: ServerResponse) => { handlePortal(ctx, req, res) }, billingLimiter),
   }), `auth-http: ${BILLING_PORTAL_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: BILLING_WEBHOOK_PATH,
-    handler: rateLimited((req: IncomingMessage, res: ServerResponse) => { handleWebhook(ctx, req, res) }, billingLimiter),
+    handler: limited((req: IncomingMessage, res: ServerResponse) => { handleWebhook(ctx, req, res) }, billingLimiter),
   }), `auth-http: ${BILLING_WEBHOOK_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',
     path: SESSION_TOKEN_PATH,
-    handler: rateLimited((req: IncomingMessage, res: ServerResponse) => handleSessionToken(ctx, req, res), sessionTokenLimiter),
+    handler: limited((req: IncomingMessage, res: ServerResponse) => handleSessionToken(ctx, req, res), sessionTokenLimiter),
   }), `auth-http: ${SESSION_TOKEN_PATH}`)
 
   ctx.effect(

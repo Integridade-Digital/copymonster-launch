@@ -37,13 +37,23 @@ describe('rate limiter', () => {
 })
 
 describe('clientKey', () => {
-  it('prefers the Cloudflare client address', () => {
-    expect(clientKey(request({ 'cf-connecting-ip': '203.0.113.9', 'x-forwarded-for': '198.51.100.1' })))
+  it('prefers the Cloudflare client address from a trusted proxy', () => {
+    expect(clientKey(request({ 'cf-connecting-ip': '203.0.113.9', 'x-forwarded-for': '198.51.100.1' }), ['10.0.0.1']))
       .toBe('203.0.113.9')
   })
 
-  it('falls back to the first forwarded address', () => {
-    expect(clientKey(request({ 'x-forwarded-for': '198.51.100.1, 10.0.0.2' }))).toBe('198.51.100.1')
+  it('falls back to the first forwarded address from a trusted proxy', () => {
+    expect(clientKey(request({ 'x-forwarded-for': '198.51.100.1, 10.0.0.2' }), ['10.0.0.1'])).toBe('198.51.100.1')
+  })
+
+  it('ignores a forwarding header from an untrusted socket', () => {
+    expect(clientKey(request({ 'cf-connecting-ip': '203.0.113.9' }, '198.51.100.7'), ['10.0.0.1']))
+      .toBe('198.51.100.7')
+  })
+
+  it('normalizes an IPv4-mapped IPv6 socket address', () => {
+    expect(clientKey(request({ 'x-forwarded-for': '203.0.113.9' }, '::ffff:10.0.0.1'), ['10.0.0.1']))
+      .toBe('203.0.113.9')
   })
 
   it('falls back to the socket address', () => {

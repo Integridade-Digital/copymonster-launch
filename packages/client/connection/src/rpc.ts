@@ -282,6 +282,15 @@ export interface HostConnectionHandle {
   requestRejection(request: ConnectionTrustRequest): ConnectionRequestRejection
 
   /**
+   * Apply only the Host/Origin fence, without requiring a browser credential.
+   * A route that authenticates its caller another way (bearer token, webhook
+   * signature) still refuses an untrusted authority through this check.
+   * @param request - request headers from the HTTP or upgrade request.
+   * @returns 403 when the authority is not trusted, else undefined.
+   */
+  trustRejection(request: ConnectionTrustRequest): ConnectionRequestRejection
+
+  /**
    * Admit an HTTP request against its signed browser or API credential and live Peer.
    * @param request - request headers from the HTTP or upgrade request.
    * @returns the credential's Peer, or the rejection status.

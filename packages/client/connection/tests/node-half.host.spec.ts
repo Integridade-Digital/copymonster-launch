@@ -244,6 +244,20 @@ describe('connection node half', () => {
     }
   })
 
+  it('applies only the Host/Origin fence in trustRejection', async () => {
+    const ctx = new Context()
+    provideBrowserCredentials(ctx)
+    const fiber = ctx.plugin({ inject: [...inject], apply }, { trustedHosts: ['app.example'] })
+    try {
+      await fiber.await()
+      const connection = ctx.get('connection') as HostConnectionHandle
+      expect(connection.trustRejection(fakeRequest({ host: 'app.example' }))).toBeUndefined()
+      expect(connection.trustRejection(fakeRequest({ host: 'other.example' }))).toBe(403)
+    } finally {
+      await fiber.dispose()
+    }
+  })
+
   it('accepts the bind address of a web carrier attached after Connection', async () => {
     const ctx = new Context()
     const routes: WebRoute[] = []

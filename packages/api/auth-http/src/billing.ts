@@ -21,6 +21,12 @@ const STRIPE_API_BASE = 'https://api.stripe.com/v1'
 const MAIN_APP_URL = process.env.COPYMONSTER_MAIN_APP_URL ?? 'https://app.copymonster.co'
 
 /**
+ * Browser-facing platform origin. Checkout and portal redirects always name
+ * this origin, never a caller-supplied URL or the request's Host header.
+ */
+const PUBLIC_APP_URL = process.env.COPYMONSTER_PUBLIC_URL ?? 'https://app.copymonster.co'
+
+/**
  * Forward one billing request to the main app unchanged.
  *
  * The body is read as raw bytes so a Stripe signature still verifies upstream,
@@ -77,16 +83,75 @@ function sendJson(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body))
 }
 
-/** Helper to read the raw body stream from an IncomingMessage. */
-export function readRawBody(req: IncomingMessage): Promise<Buffer> {
+/** Inclusive cap on one billing request body. */
+export const MAX_RAW_BODY_BYTES = 1024 * 1024
+
+/** A request body above {@link MAX_RAW_BODY_BYTES}. */
+export class PayloadTooLargeError extends Error {
+  /** @param limit - byte cap the body exceeded. */
+  constructor(readonly limit: number) {
+    super(`request body exceeds ${String(limit)} bytes`)
+    this.name = 'PayloadTooLargeError'
+  }
+}
+
+/**
+ * Read the raw body stream, refusing a body above the cap.
+ * @param req - incoming request.
+ * @param maxBytes - inclusive byte cap.
+ * @returns the complete body.
+ * @throws PayloadTooLargeError once the stream passes the cap.
+ */
+export function readRawBody(req: IncomingMessage, maxBytes = MAX_RAW_BODY_BYTES): Promise<Buffer> {
   return new Promise((resolve, reject) => {
     const chunks: Buffer[] = []
-    req.on('data', (chunk) => {
-      chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
-    })
-    req.on('end', () => resolve(Buffer.concat(chunks)))
-    req.on('error', reject)
+    let bytes = 0
+    const cleanup = (): void => {
+      req.off('data', onData)
+      req.off('end', onEnd)
+      req.off('error', onError)
+    }
+    const onData = (chunk: Buffer | string): void => {
+      const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)
+      bytes += buffer.byteLength
+      if (bytes > maxBytes) {
+        cleanup()
+        reject(new PayloadTooLargeError(maxBytes))
+        req.destroy()
+        return
+      }
+      chunks.push(buffer)
+    }
+    const onEnd = (): void => {
+      cleanup()
+      resolve(Buffer.concat(chunks))
+    }
+    const onError = (error: Error): void => {
+      cleanup()
+      reject(error)
+    }
+    req.on('data', onData)
+    req.on('end', onEnd)
+    req.on('error', onError)
   })
+}
+
+/**
+ * Read a billing body and answer 413 when it exceeds the cap.
+ * @param req - incoming request.
+ * @param res - response owned on refusal.
+ * @returns the body, or undefined after the refusal was written.
+ */
+async function readBoundedBody(req: IncomingMessage, res: ServerResponse): Promise<Buffer | undefined> {
+  try {
+    return await readRawBody(req)
+  } catch (error: unknown) {
+    if (error instanceof PayloadTooLargeError) {
+      sendJson(res, 413, { error: 'payload_too_large', limit: error.limit })
+      return undefined
+    }
+    throw error
+  }
 }
 
 /**
@@ -248,28 +313,37 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
     return
   }
 
-  const body = parseJsonObject(await readRawBody(req))
-  if (body === undefined) {
-    sendJson(res, 400, { error: 'invalid_json_body' })
-    return
-  }
-
-  const priceId = optionalString(body, 'priceId')
-  if (priceId === undefined) {
-    sendJson(res, 400, { error: 'missing_price_id' })
-    return
-  }
+  // The body is caller-supplied but no longer selects the price or the
+  // redirect targets; read it only to enforce the byte cap.
+  const raw = await readBoundedBody(req, res)
+  if (raw === undefined) return
 
   try {
     // 1. Check or create Stripe Customer
     const { data: tenant, error: tenantErr } = await supabaseAdminClient
       .from('tenants')
-      .select('id, stripe_customer_id, name')
+      .select('id, stripe_customer_id, name, plan_id')
       .eq('id', identity.tenantId)
       .single()
 
     if (tenantErr || !tenant) {
       sendJson(res, 404, { error: 'tenant_not_found' })
+      return
+    }
+
+    // 2. The price is the tenant's plan, never a client-supplied value.
+    if (!tenant.plan_id) {
+      sendJson(res, 400, { error: 'plan_not_billable' })
+      return
+    }
+    const { data: plan, error: planErr } = await supabaseAdminClient
+      .from('plans')
+      .select('stripe_price_id')
+      .eq('id', tenant.plan_id)
+      .single()
+    const priceId = planErr === null ? plan?.stripe_price_id : undefined
+    if (typeof priceId !== 'string' || priceId === '') {
+      sendJson(res, 400, { error: 'plan_not_billable' })
       return
     }
 
@@ -294,20 +368,16 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
         .eq('id', identity.tenantId)
     }
 
-    const host = req.headers.host || 'localhost:3000'
-    const protocol = req.headers['x-forwarded-proto'] || 'http'
-    const defaultSuccess = `${protocol}://${host}/billing/success?session_id={CHECKOUT_SESSION_ID}`
-    const defaultCancel = `${protocol}://${host}/billing/cancel`
-
-    // 2. Create Checkout Session
+    // 3. Create Checkout Session. Redirects always return to the platform
+    // origin, so a caller cannot turn checkout into an open redirect.
     const session = await callStripe('/checkout/sessions', {
       customer: customerId,
       mode: 'subscription',
       'payment_method_types[0]': 'card',
       'line_items[0][price]': priceId,
       'line_items[0][quantity]': 1,
-      success_url: optionalString(body, 'successUrl') ?? defaultSuccess,
-      cancel_url: optionalString(body, 'cancelUrl') ?? defaultCancel,
+      success_url: `${PUBLIC_APP_URL}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${PUBLIC_APP_URL}/billing/cancel`,
       'metadata[tenant_id]': identity.tenantId,
       'metadata[user_id]': identity.userId,
       'subscription_data[metadata][tenant_id]': identity.tenantId,
@@ -351,7 +421,8 @@ export async function handlePortal(ctx: Context, req: IncomingMessage, res: Serv
     return
   }
 
-  const body = parseJsonObject(await readRawBody(req)) ?? {}
+  const raw = await readBoundedBody(req, res)
+  if (raw === undefined) return
 
   try {
     const { data: tenant, error: tenantErr } = await supabaseAdminClient
@@ -365,13 +436,9 @@ export async function handlePortal(ctx: Context, req: IncomingMessage, res: Serv
       return
     }
 
-    const host = req.headers.host || 'localhost:3000'
-    const protocol = req.headers['x-forwarded-proto'] || 'http'
-    const defaultReturn = `${protocol}://${host}/settings/plans`
-
     const portal = await callStripe('/billing_portal/sessions', {
       customer: tenant.stripe_customer_id,
-      return_url: optionalString(body, 'returnUrl') ?? defaultReturn,
+      return_url: `${PUBLIC_APP_URL}/settings/plans`,
     }, stripeKey)
 
     sendJson(res, 200, { url: portal.url })
@@ -416,7 +483,8 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
   const sig = req.headers['stripe-signature']
   const webhookSecret = process.env.STRIPE_WEBHOOK_SECRET
 
-  const rawBody = await readRawBody(req)
+  const rawBody = await readBoundedBody(req, res)
+  if (rawBody === undefined) return
 
   if (!webhookSecret) {
     sendJson(res, 500, { error: 'stripe_webhook_secret_not_configured' })

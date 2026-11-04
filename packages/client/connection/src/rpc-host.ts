@@ -145,6 +145,11 @@ export class HostConnectionService extends Service implements HostConnectionHand
     return 'rejection' in admission ? admission.rejection : undefined
   }
 
+  /** Apply only the Host/Origin fence, leaving credential checks to the route. */
+  trustRejection(request: ConnectionTrustRequest): ConnectionRequestRejection {
+    return this.isTrusted(request) ? undefined : 403
+  }
+
   /**
    * Admit one request: a deployment resolver's verified identity outranks the
    * browser owner fallback, so a tenant browser never speaks as the local owner.

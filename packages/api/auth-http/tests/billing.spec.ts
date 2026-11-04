@@ -215,30 +215,38 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       expect(res.json()).toEqual({ error: 'stripe_secret_key_not_configured' })
     })
 
-    it('should reject invalid json body with 400', async () => {
+    it('rejects a tenant without a billable plan with 400', async () => {
       resolveIdentity.mockResolvedValue(identity())
+      mockSupabase.from.mockReturnValue({
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({
+          data: { id: 'tenant-1', stripe_customer_id: null, name: 'Tenant', plan_id: null },
+          error: null,
+        }),
+      })
       const req = createMockReq({
         method: 'POST',
         headers: { authorization: 'Bearer valid_token' },
-        body: 'invalid-json{',
+        body: JSON.stringify({ priceId: 'price_arbitrary' }),
       })
       const res = createMockRes()
       await handleCheckout(mockContext, req, res)
       expect(res.statusCode).toBe(400)
-      expect(res.json()).toEqual({ error: 'invalid_json_body' })
+      expect(res.json()).toEqual({ error: 'plan_not_billable' })
     })
 
-    it('should reject missing priceId with 400', async () => {
+    it('answers 413 for a body above the cap', async () => {
       resolveIdentity.mockResolvedValue(identity())
       const req = createMockReq({
         method: 'POST',
         headers: { authorization: 'Bearer valid_token' },
-        body: JSON.stringify({}),
+        body: Buffer.alloc(1024 * 1024 + 1, 0x61),
       })
       const res = createMockRes()
       await handleCheckout(mockContext, req, res)
-      expect(res.statusCode).toBe(400)
-      expect(res.json()).toEqual({ error: 'missing_price_id' })
+      expect(res.statusCode).toBe(413)
+      expect(res.json()).toEqual({ error: 'payload_too_large', limit: 1024 * 1024 })
     })
 
     it('should return 404 if tenant is not found in Supabase', async () => {
@@ -274,13 +282,18 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
         single: vi.fn().mockResolvedValue({
-          data: { id: 'tenant-123', stripe_customer_id: null, name: 'Monster Tenant' },
+          data: { id: 'tenant-123', stripe_customer_id: null, name: 'Monster Tenant', plan_id: 'plan-row-1' },
           error: null,
         }),
       }
       const mockTenantUpdate = {
         update: vi.fn().mockReturnThis(),
         eq: vi.fn().mockResolvedValue({ error: null }),
+      }
+      const mockPlanSelect = {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        single: vi.fn().mockResolvedValue({ data: { stripe_price_id: 'price_plan_pro' }, error: null }),
       }
 
       mockSupabase.from.mockImplementation((table: string) => {
@@ -292,6 +305,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
             update: mockTenantUpdate.update,
           }
         }
+        if (table === 'plans') return mockPlanSelect
         return {}
       })
 
@@ -345,19 +359,33 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       // Verify checkout session creation
       expect(fetchCalls[1]?.url).toContain('/checkout/sessions')
       expect(fetchCalls[1]?.body).toContain('customer=cus_created_123')
-      expect(fetchCalls[1]?.body).toContain('line_items%5B0%5D%5Bprice%5D=price_1SqRe4RiKNxooUH0tYyprM4P')
+      // The plan owns the price; the client-supplied price is ignored.
+      expect(fetchCalls[1]?.body).toContain('line_items%5B0%5D%5Bprice%5D=price_plan_pro')
+      expect(fetchCalls[1]?.body).not.toContain('price_1SqRe4RiKNxooUH0tYyprM4P')
+      // Redirects always name the platform origin, never the request Host.
+      expect(fetchCalls[1]?.body).toContain('success_url=https%3A%2F%2Fapp.copymonster.co%2Fbilling%2Fsuccess')
+      expect(fetchCalls[1]?.body).toContain('cancel_url=https%3A%2F%2Fapp.copymonster.co%2Fbilling%2Fcancel')
     })
 
     it('should reuse existing stripe_customer_id if already saved on tenant', async () => {
       resolveIdentity.mockResolvedValue(identity({ tenantId: 'tenant-123', userId: 'user-123' }))
 
-      mockSupabase.from.mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: { id: 'tenant-123', stripe_customer_id: 'cus_existing_999' },
-          error: null,
-        }),
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'plans') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            single: vi.fn().mockResolvedValue({ data: { stripe_price_id: 'price_pro_annual' }, error: null }),
+          }
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({
+            data: { id: 'tenant-123', stripe_customer_id: 'cus_existing_999', plan_id: 'plan-row-1' },
+            error: null,
+          }),
+        }
       })
 
       globalThis.fetch = vi.fn().mockImplementation(async (url: string) => {

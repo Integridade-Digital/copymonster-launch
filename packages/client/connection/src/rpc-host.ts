@@ -22,7 +22,9 @@ import type {
   ConnectionIndexResponse,
   ConnectionFetchRoute,
   ConnectionFetchHandler,
+  ConnectionPrincipalResolver,
   HostConnectionFetch,
+  HostConnectionPrincipals,
   ConnectionRpcEndpointMatcher,
   ConnectionRpcFailure,
   ConnectionRpcGuard,
@@ -77,6 +79,8 @@ export class HostConnectionService extends Service implements HostConnectionHand
   private readonly interceptors = new Map<string, ConnectionRpcInterceptor>()
   private readonly guards = new Map<string, ConnectionRpcGuard>()
   private readonly fetchRoutes = new Map<string, RegisteredFetchRoute>()
+  private readonly principalResolvers = new Set<ConnectionPrincipalResolver>()
+  private readonly principalPeers = new Map<string, Peer>()
 
   readonly allowsRemoteAuthorities: boolean
 
@@ -96,8 +100,13 @@ export class HostConnectionService extends Service implements HostConnectionHand
     this.browserPeer = new Peer(ctx, { principal: { kind: 'owner' } })
     ctx.effect(() => async () => {
       this.disposed = true
-      const peers = [this.browserPeer, ...Array.from(this.peers.values(), record => record.peer)]
+      const peers = [
+        this.browserPeer,
+        ...Array.from(this.peers.values(), record => record.peer),
+        ...this.principalPeers.values(),
+      ]
       this.peers.clear()
+      this.principalPeers.clear()
       await Promise.all(peers.map(peer => peer.dispose()))
     }, 'client-connection: Peer scopes')
     this.allowsRemoteAuthorities = trustedHosts.some(isRemoteAuthority)
@@ -122,16 +131,33 @@ export class HostConnectionService extends Service implements HostConnectionHand
     }
   }
 
+  /** Deployment identity resolvers scoped to the Context reading this service. */
+  get principals(): HostConnectionPrincipals {
+    const owner = this.ctx
+    return {
+      register: resolver => this.registerPrincipalResolver(owner, resolver),
+    }
+  }
+
   /** Apply the Host/Origin fence and require an authenticated live Peer. */
   requestRejection(request: ConnectionTrustRequest): ConnectionRequestRejection {
     const admission = this.admit(request)
     return 'rejection' in admission ? admission.rejection : undefined
   }
 
-  /** Browser requests share an owner Peer; API HTTP does not depend on an attached socket. */
+  /**
+   * Admit one request: a deployment resolver's verified identity outranks the
+   * browser owner fallback, so a tenant browser never speaks as the local owner.
+   */
   admit(request: ConnectionTrustRequest): PeerAdmission {
     if (!this.isTrusted(request)) return { rejection: 403 }
     if (this.disposed) return { rejection: 401 }
+    for (const resolver of this.principalResolvers) {
+      const resolution = resolver.resolve(request)
+      if (resolution === undefined) continue
+      if ('rejection' in resolution) return { rejection: resolution.rejection }
+      return { peer: this.peerForPrincipal(resolution.principal) }
+    }
     const secure = this.owner.get('webServer')?.protocol === 'https:'
     if (this.browserAuth.isAuthenticated(request, secure)) return { peer: this.browserPeer }
     const id = this.browserAuth.authenticateApi(request, secure)
@@ -219,9 +245,13 @@ export class HostConnectionService extends Service implements HostConnectionHand
         const pathname = new URL(request.url).pathname
         const route = this.fetchRoutes.get(pathname)
         if (route?.methods.has(request.method) === true) {
-          // Exact routes bypass Gateway access checks, so only the owner reaches them.
+          // Exact routes bypass Gateway access checks. They are read-only preview
+          // surfaces (file bytes, market detail), so a verified browser identity
+          // reaches them; every other principal kind stays refused.
           // oxlint-disable-next-line typescript/no-unnecessary-condition -- other packages merge non-owner kinds into PrincipalMap.
-          if (peer.principal.kind !== 'owner') return Promise.resolve(new Response('forbidden', { status: 403 }))
+          if (peer.principal.kind !== 'owner' && peer.principal.kind !== 'user') {
+            return Promise.resolve(new Response('forbidden', { status: 403 }))
+          }
           return route.fetch(request)
         }
         const endpoint = endpointFromPath(channel, pathname)
@@ -232,6 +262,26 @@ export class HostConnectionService extends Service implements HostConnectionHand
         return interceptor.fetchHandler.fetch(request, peer)
       },
     }
+  }
+
+  private registerPrincipalResolver(
+    owner: Context,
+    resolver: ConnectionPrincipalResolver,
+  ): () => Promise<void> {
+    return owner.effect(() => {
+      this.principalResolvers.add(resolver)
+      return () => { this.principalResolvers.delete(resolver) }
+    }, 'client-connection: principal resolver')
+  }
+
+  /** One Peer per distinct verified principal, retained for the connection lifetime. */
+  private peerForPrincipal(principal: Principal): Peer {
+    const key = JSON.stringify(principal)
+    const existing = this.principalPeers.get(key)
+    if (existing !== undefined) return existing
+    const peer = new Peer(this.ctx, { principal })
+    this.principalPeers.set(key, peer)
+    return peer
   }
 
   private registerFetchRoute(

@@ -29,6 +29,8 @@ import { HEALTHZ_PATH, handleHealthz } from './health.ts'
 import { LLM_TEST_PATH, handleLlmTest } from './llm-test.ts'
 import { AUTOMATION_RPC_CHANNEL, guardAutomationModel } from './automation-model-guard.ts'
 import { SESSION_TOKEN_PATH, handleSessionToken } from './session-token.ts'
+import { createIdentityResolver } from './identity.ts'
+import { createTenantPolicy } from './access.ts'
 import { clientKey, createRateLimiter, type RateLimiter } from './rate-limit.ts'
 import z from '@deepseek-ai/schemastery'
 
@@ -37,6 +39,8 @@ export { handleCheckout, handlePortal, handleWebhook, readRawBody, verifyStripeS
 export { handleHealthz, HEALTHZ_PATH } from './health.ts'
 export { handleLlmTest, LLM_TEST_PATH, type LlmTestResult } from './llm-test.ts'
 export { SESSION_TOKEN_PATH, handleSessionToken } from './session-token.ts'
+export { IDENTITY_HEADER, createIdentityResolver } from './identity.ts'
+export { createTenantPolicy } from './access.ts'
 export {
   SESSION_MAX_AGE_SECONDS,
   signSessionCookie,
@@ -60,6 +64,11 @@ export interface Config {
     /** Requests allowed per window, per client. */
     max: number
   }
+  /**
+   * Base64 SPKI Ed25519 public key the per-tenant proxy signs identities with.
+   * Empty disables the handshake, which is correct only for a local launch.
+   */
+  identityPublicKey: string
 }
 
 /** Validated plugin configuration. */
@@ -68,6 +77,7 @@ export const Config: z<Config> = z.object({
     windowMs: z.number().min(1_000).default(60_000),
     max: z.number().min(1).default(30),
   }).default({ windowMs: 60_000, max: 30 }),
+  identityPublicKey: z.string().default(''),
 })
 
 /**
@@ -95,7 +105,7 @@ function rateLimited(
 }
 
 /** Services required before the routes can be registered. */
-export const inject = ['webServer', 'auth', 'connection']
+export const inject = ['webServer', 'auth', 'connection', 'remoteAccess', 'typert']
 
 /** Path that reports the resolved caller identity. */
 const ME_PATH = '/api/auth/me'
@@ -242,4 +252,16 @@ export function apply(ctx: Context, config: Config): void {
       guardAutomationModel(ctx, request, endpoint, payload)),
     `auth-http: ${AUTOMATION_RPC_CHANNEL} model guard`,
   )
+
+  if (config.identityPublicKey !== '') {
+    const resolver = createIdentityResolver(config.identityPublicKey)
+    ctx.effect(
+      () => ctx.connection.principals.register(resolver),
+      'auth-http: signed identity handshake',
+    )
+    ctx.effect(
+      () => ctx.remoteAccess.registerPolicy('user', createTenantPolicy(ctx)),
+      'auth-http: tenant access policy',
+    )
+  }
 }

@@ -21,6 +21,12 @@
       "path": "../auth-context/tsconfig.host.json"
     },
     {
+      "path": "../remote-access/tsconfig.host.json"
+    },
+    {
+      "path": "../../typert/protocol"
+    },
+    {
       "path": "../../util/constants"
     }
   ]

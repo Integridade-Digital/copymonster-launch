@@ -47,6 +47,11 @@
     # node:http routes on ctx.webServer that report the caller identity.
     - id: auth-http
       name: '@deepseek-ai/dsh-api-auth-http'
+      config:
+        # Public half of the control plane's identity key. Present only in a
+        # tenant launched by the proxy; a local launch leaves it empty and keeps
+        # the owner principal.
+        identityPublicKey: !!js process.env.DSH_IDENTITY_PUBLIC_KEY ?? ''
 
     # Brand image routes served with the correct media type and revalidating
     # cache headers, so a replaced logo shows without changing its URL.

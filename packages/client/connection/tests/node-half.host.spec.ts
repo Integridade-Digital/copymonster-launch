@@ -212,6 +212,38 @@ describe('connection node half', () => {
     }
   })
 
+  it('admits the principal a registered resolver verifies and honours its refusal', async () => {
+    const ctx = new Context()
+    provideBrowserCredentials(ctx)
+    const fiber = ctx.plugin({ inject: [...inject], apply })
+    try {
+      await fiber.await()
+      const connection = ctx.get('connection') as HostConnectionHandle
+      const principal = {
+        kind: 'user' as const,
+        userId: 'user-1',
+        tenantId: 'tenant-1',
+        role: 'member' as const,
+        isAdmin: false,
+      }
+      const removePrincipal = connection.principals.register({ resolve: () => ({ principal }) })
+      const admitted = connection.admit(fakeRequest({ host: 'localhost' }))
+      if (!('peer' in admitted)) throw new Error('expected a peer')
+      expect(admitted.peer.principal).toEqual(principal)
+      expect(admitted.peer).not.toBe(connection.browserPeer)
+      await removePrincipal()
+
+      const removeDenial = connection.principals.register({ resolve: () => ({ rejection: 401 }) })
+      expect(connection.admit(fakeRequest({ host: 'localhost' }))).toEqual({ rejection: 401 })
+      await removeDenial()
+
+      const cookie = browserCookie(connection, 'localhost')
+      expect(connection.admit(fakeRequest({ host: 'localhost', cookie }))).toEqual({ peer: connection.browserPeer })
+    } finally {
+      await fiber.dispose()
+    }
+  })
+
   it('accepts the bind address of a web carrier attached after Connection', async () => {
     const ctx = new Context()
     const routes: WebRoute[] = []

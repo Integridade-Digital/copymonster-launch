@@ -49,6 +49,12 @@ interface SessionTokenResponse {
    * then keeps the previous value rather than downgrading the tenant.
    */
   plan_slug?: string
+  /** Tenant id the caller acts within, so the orchestrator can sign the browser identity. */
+  tenant_id?: string
+  /** Role inside the resolved tenant, so the orchestrator can sign the browser identity. */
+  role?: 'owner' | 'admin' | 'member'
+  /** Platform-operator flag, so the orchestrator can sign the browser identity. */
+  is_admin?: boolean
 }
 
 /** Claims carried inside a signed session cookie. */
@@ -76,8 +82,13 @@ interface SupabaseProfile {
     id?: string
   }
   tenant?: {
+    id?: string | null
     slug?: string | null
   } | null
+  /** Role inside the resolved tenant, as `get_my_profile()` reports it. */
+  role?: string | null
+  /** Platform-operator flag from `users.metadata.is_admin`. */
+  is_admin?: boolean | null
 }
 
 interface LocalUser {
@@ -527,10 +538,17 @@ export async function handleSessionToken(_ctx: Context, req: IncomingMessage, re
   }, sessionSecret)
   setSessionCookie(res, signed)
   const planSlug = await fetchPlanSlug(token)
+  const role = profile.role === 'owner' || profile.role === 'admin' || profile.role === 'member'
+    ? profile.role
+    : undefined
+  const tenantId = typeof profile.tenant?.id === 'string' && profile.tenant.id !== '' ? profile.tenant.id : undefined
   sendJson(res, 200, {
     success: true,
     supabase_sub: supabaseUser.id,
     username,
+    ...(tenantId === undefined ? {} : { tenant_id: tenantId }),
+    ...(role === undefined ? {} : { role }),
+    is_admin: profile.is_admin === true,
     ...(planSlug === undefined ? {} : { plan_slug: planSlug }),
   })
 }

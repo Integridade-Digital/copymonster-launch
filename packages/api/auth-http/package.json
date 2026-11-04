@@ -26,6 +26,8 @@
   "files": [
     "lib/index.js",
     "lib/billing.js",
+    "lib/identity.js",
+    "lib/access.js",
     "lib/types/**/*.d.ts",
     "lib/types/**/*.js"
   ],
@@ -43,13 +45,17 @@
   },
   "peerDependencies": {
     "@deepseek-ai/cordis": "*",
-    "@deepseek-ai/dsh-client-connection": "*"
+    "@deepseek-ai/dsh-client-connection": "*",
+    "@deepseek-ai/dsh-api-remote-access": "workspace:*",
+    "@deepseek-ai/dsh-typert-protocol": "workspace:*"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-client-connection": "workspace:^",
     "@types/node": "^22.0.0",
     "typescript": "^5.3.0",
-    "vitest": "^1.0.0"
+    "vitest": "^1.0.0",
+    "@deepseek-ai/dsh-api-remote-access": "workspace:*",
+    "@deepseek-ai/dsh-typert-protocol": "workspace:*"
   }
 }

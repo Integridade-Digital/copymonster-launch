@@ -224,11 +224,39 @@ export interface HostConnectionRpc {
 }
 
 /** Host `ctx.connection` members consumed by transport-independent adapters. */
+/** Answer of one {@link ConnectionPrincipalResolver}. */
+export type ConnectionPrincipalResolution =
+  | { readonly principal: Principal }
+  | { readonly rejection: 401 | 403 }
+  | undefined
+
+/** Deployment-supplied identity resolver consulted before the browser owner fallback. */
+export interface ConnectionPrincipalResolver {
+  /**
+   * Resolve the caller identity a trusted request carries.
+   * @param request - request headers from the HTTP or upgrade request.
+   * @returns the verified principal, a rejection status, or undefined to fall through.
+   */
+  resolve(request: ConnectionTrustRequest): ConnectionPrincipalResolution
+}
+
+/** Host registry for deployment identity resolvers. */
+export interface HostConnectionPrincipals {
+  /**
+   * Register one resolver for the caller's fiber.
+   * @param resolver - resolver consulted before the browser owner fallback.
+   * @returns disposer removing this resolver.
+   */
+  register(resolver: ConnectionPrincipalResolver): () => void
+}
+
 export interface HostConnectionHandle {
   /** Generic RPC channel registry. */
   readonly rpc: HostConnectionRpc
   /** Exact Fetch routes for streaming or browser-native responses. */
   readonly fetch: HostConnectionFetch
+  /** Deployment identity resolvers that outrank the browser owner fallback. */
+  readonly principals: HostConnectionPrincipals
   /** The owner Peer every authenticated browser connection shares. */
   readonly browserPeer: PeerScope
 

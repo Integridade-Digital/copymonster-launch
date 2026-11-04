@@ -1,4 +1,5 @@
-import { createClient, SupabaseClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient, type SupportedStorage } from '@supabase/supabase-js';
+import { createSessionCookieStorage } from './session-cookie-storage';
 
 /** JSON document the `get_my_profile()` RPC returns, per `supabase/migrations/025` and `040`. */
 export interface MyProfileResult {
@@ -395,6 +396,43 @@ if (SUPABASE_URL === undefined || SUPABASE_ANON_KEY === undefined) {
   console.warn('Supabase credentials not configured. Auth will not work.');
 }
 
+/**
+ * Shared-cookie store for the session, or `undefined` outside a browser.
+ *
+ * `localStorage` is origin-scoped, so the tenant subdomain never saw the
+ * session created on the main app and auth-scoped Remote calls (Usage,
+ * checkout, session follow) failed with a missing bearer token.
+ */
+const sessionStorage = typeof document === 'undefined'
+  ? undefined
+  : createSessionCookieStorage({
+      document,
+      hostname: window.location.hostname,
+      secure: window.location.protocol === 'https:',
+    });
+
+/**
+ * Copy a session written by an older build into the shared cookie once, so
+ * accounts already signed in on the main app keep working across subdomains
+ * without signing in again.
+ * @param storage - cookie-backed store that receives the value.
+ */
+function migrateLegacyLocalSession(storage: SupportedStorage): void {
+  try {
+    for (let index = 0; index < localStorage.length; index += 1) {
+      const key = localStorage.key(index);
+      if (key === null || !key.startsWith('sb-') || !key.endsWith('-auth-token')) continue;
+      if (storage.getItem(key) !== null) continue;
+      const legacy = localStorage.getItem(key);
+      if (legacy !== null) storage.setItem(key, legacy);
+    }
+  } catch {
+    // Private-mode storage can be unreadable; Supabase then starts signed out.
+  }
+}
+
+if (sessionStorage !== undefined) migrateLegacyLocalSession(sessionStorage);
+
 export const supabaseClient: SupabaseClient<Database> = createClient<Database>(
   SUPABASE_URL ?? '',
   SUPABASE_ANON_KEY ?? '',
@@ -403,6 +441,7 @@ export const supabaseClient: SupabaseClient<Database> = createClient<Database>(
       autoRefreshToken: true,
       persistSession: true,
       detectSessionInUrl: true,
+      ...sessionStorage === undefined ? {} : { storage: sessionStorage },
     },
   },
 );

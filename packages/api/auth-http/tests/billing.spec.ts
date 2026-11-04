@@ -233,7 +233,39 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       const res = createMockRes()
       await handleCheckout(mockContext, req, res)
       expect(res.statusCode).toBe(400)
-      expect(res.json()).toEqual({ error: 'plan_not_billable' })
+      expect(res.json()).toEqual({
+        error: 'plan_not_billable',
+        message: 'Your workspace has no billable plan yet. Choose a plan to continue.',
+      })
+    })
+
+    it('rejects a plan without a Stripe price with 400 and a readable message', async () => {
+      resolveIdentity.mockResolvedValue(identity())
+      mockSupabase.from
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({
+            data: { id: 'tenant-1', stripe_customer_id: null, name: 'Tenant', plan_id: 'plan-pro' },
+            error: null,
+          }),
+        })
+        .mockReturnValueOnce({
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({ data: { stripe_price_id: null }, error: null }),
+        })
+      const req = createMockReq({
+        method: 'POST',
+        headers: { authorization: 'Bearer valid_token' },
+      })
+      const res = createMockRes()
+      await handleCheckout(mockContext, req, res)
+      expect(res.statusCode).toBe(400)
+      expect(res.json()).toEqual({
+        error: 'plan_not_billable',
+        message: 'This plan is not available for checkout yet. Please contact support.',
+      })
     })
 
     it('answers 413 for a body above the cap', async () => {

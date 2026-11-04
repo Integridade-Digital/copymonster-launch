@@ -333,7 +333,10 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
 
     // 2. The price is the tenant's plan, never a client-supplied value.
     if (!tenant.plan_id) {
-      sendJson(res, 400, { error: 'plan_not_billable' })
+      sendJson(res, 400, {
+        error: 'plan_not_billable',
+        message: 'Your workspace has no billable plan yet. Choose a plan to continue.',
+      })
       return
     }
     const { data: plan, error: planErr } = await supabaseAdminClient
@@ -343,7 +346,10 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
       .single()
     const priceId = planErr === null ? plan?.stripe_price_id : undefined
     if (typeof priceId !== 'string' || priceId === '') {
-      sendJson(res, 400, { error: 'plan_not_billable' })
+      sendJson(res, 400, {
+        error: 'plan_not_billable',
+        message: 'This plan is not available for checkout yet. Please contact support.',
+      })
       return
     }
 

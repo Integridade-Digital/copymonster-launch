@@ -314,8 +314,27 @@ export class SettingsController extends TypertRemoteService {
         p_tenant_id: targetTenantId === identity.tenantId ? null : targetTenantId,
       })
 
-    if (tenantErr !== null || metrics === null) {
+    if (tenantErr !== null) {
       throw new RemoteError('gateway/bad-request', `Tenant não encontrado: ${targetTenantId}`, {})
+    }
+    // A caller the RPC cannot derive a tenant for still gets a usable panel:
+    // the trial meter renders from zero instead of the section reporting an
+    // opaque failure.
+    if (metrics === null) {
+      return {
+        tenantId: targetTenantId,
+        subscriptionStatus: 'trialing',
+        plan: null,
+        trial: {
+          trialEndsAt: null,
+          trialUsed: false,
+          trialTokensUsed: 0,
+          maxTrialTokens: 1000000,
+          isExpired: false,
+          daysLeft: 0,
+        },
+        usage: { currentPeriodTokensUsed: 0, totalTokensLimit: 1000000 },
+      }
     }
 
     const tenant = metrics.tenant

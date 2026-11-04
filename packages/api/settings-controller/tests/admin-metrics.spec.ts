@@ -63,6 +63,7 @@ const mockAuditLogs = [
 ]
 
 let rpcCalls: Array<{ fn: string; params: unknown }> = []
+let metricsOverride: { tenant: (typeof mockTenants)[number]; plan: typeof mockPlan } | null | undefined
 
 vi.mock('@deepseek-ai/dsh-supabase-client', () => {
   const rpc = (fn: string, params: unknown) => {
@@ -70,6 +71,7 @@ vi.mock('@deepseek-ai/dsh-supabase-client', () => {
     if (fn === 'admin_list_tenants') return Promise.resolve({ data: mockTenants, error: null })
     if (fn === 'admin_list_audit_logs') return Promise.resolve({ data: mockAuditLogs, error: null })
     if (fn === 'get_my_tenant_metrics') {
+      if (metricsOverride !== undefined) return Promise.resolve({ data: metricsOverride, error: null })
       return Promise.resolve({ data: { tenant: mockTenants[0], plan: mockPlan }, error: null })
     }
     return Promise.resolve({ data: null, error: null })
@@ -82,6 +84,7 @@ vi.mock('@deepseek-ai/dsh-supabase-client', () => {
 describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)', () => {
   beforeEach(() => {
     rpcCalls = []
+    metricsOverride = undefined
   })
 
   it('permite que administradores listem tenants e logs de auditoria', async () => {
@@ -146,6 +149,26 @@ describe('SettingsController - Métricas, Auditoria e Administração (Etapa 3)'
     expect(metrics.trial.maxTrialTokens).toBe(1000000)
     expect(metrics.trial.daysLeft).toBeGreaterThan(0)
     expect(metrics.plan?.slug).toBe('pro')
+  })
+
+  it('falls back to empty trial metrics when the RPC returns no tenant row', async () => {
+    metricsOverride = null
+    const ctx = new Context()
+
+    ctx.provide('authIdentity', {
+      userId: 'usr_member',
+      tenantId: 'ten_001',
+      role: 'member',
+    })
+    ctx.provide('authToken', 'token-member')
+
+    await ctx.plugin(SettingsController)
+
+    const metrics = await ctx.settingsController.getTenantMetrics()
+    expect(metrics.plan).toBeNull()
+    expect(metrics.trial.trialTokensUsed).toBe(0)
+    expect(metrics.trial.maxTrialTokens).toBe(1000000)
+    expect(metrics.usage).toEqual({ currentPeriodTokensUsed: 0, totalTokensLimit: 1000000 })
   })
 
   it('bloqueia membro comum de consultar métricas de outro tenant', async () => {

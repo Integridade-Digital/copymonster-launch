@@ -12,6 +12,33 @@
   color: var(--dsw-alias-label-primary);
 }
 
+.error {
+  margin: 0;
+  font-size: 14px;
+  color: var(--dsw-alias-label-primary);
+}
+
+.errorDetail {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dsw-alias-label-secondary);
+}
+
+.retry {
+  align-self: flex-start;
+  padding: 6px 12px;
+  border: 1px solid var(--dsw-alias-line-regular);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--dsw-alias-label-primary);
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.retry:hover {
+  border-color: var(--dsw-alias-brand-primary);
+}
+
 .facts {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

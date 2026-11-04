@@ -7,7 +7,7 @@
  * provider credentials stays behind the platform-operator gate.
  */
 
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { en } from './locales.ts'
@@ -63,28 +63,49 @@ function tokens(value: number): string {
  */
 export function UsageSection(props: UsageSectionProps): ReactNode {
   const { load, t } = props
-  const [state, setState] = useState<{ status: 'loading' | 'ready' | 'error'; metrics?: UsageMetrics }>({
-    status: 'loading',
-  })
+  const [state, setState] = useState<{
+    status: 'loading' | 'ready' | 'error'
+    metrics?: UsageMetrics
+    message?: string | undefined
+  }>({ status: 'loading' })
 
   // The slot rebuilds the inject face on every render; keep the first loader so
   // the effect below runs once instead of refetching on each parent render.
   const loadRef = useRef(load)
   loadRef.current = load
 
-  useEffect(() => {
-    let live = true
+  const fetchMetrics = useCallback((): void => {
+    setState({ status: 'loading' })
     void loadRef.current()
-      .then((metrics) => { if (live) setState({ status: 'ready', metrics }) })
-      .catch(() => { if (live) setState({ status: 'error' }) })
-    return () => { live = false }
+      .then((metrics) => { setState({ status: 'ready', metrics }) })
+      // The Remote failure names the cause (expired session, missing row, RPC
+      // failure); show it instead of a generic "unavailable" line.
+      .catch((error: unknown) => {
+        setState({
+          status: 'error',
+          message: error instanceof Error && error.message !== '' ? error.message : undefined,
+        })
+      })
   }, [])
+
+  useEffect(() => {
+    fetchMetrics()
+  }, [fetchMetrics])
 
   if (state.status === 'loading') {
     return <div className={styles.page} role="status" aria-live="polite">{t('usageLoading')}</div>
   }
   if (state.status === 'error' || state.metrics === undefined) {
-    return <div className={styles.page} role="alert">{t('usageError')}</div>
+    return (
+      <div className={styles.page} role="alert">
+        <h2 className={styles.title}>{t('usageTitle')}</h2>
+        <p className={styles.error}>{t('usageError')}</p>
+        {state.message !== undefined && <p className={styles.errorDetail}>{state.message}</p>}
+        <button type="button" className={styles.retry} onClick={fetchMetrics}>
+          {t('usageRetry')}
+        </button>
+      </div>
+    )
   }
 
   const { metrics } = state

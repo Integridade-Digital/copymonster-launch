@@ -312,7 +312,7 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
       const data = (await response.json().catch(() => null)) as CheckoutResponse | null
 
       if (!response.ok) {
-        const msg = data?.error ?? data?.message ?? `Checkout failed (${response.status})`
+        const msg = data?.message ?? data?.error ?? `Checkout failed (${response.status})`
         throw new Error(msg)
       }
 

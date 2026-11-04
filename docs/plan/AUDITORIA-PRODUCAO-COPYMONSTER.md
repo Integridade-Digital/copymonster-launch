@@ -411,6 +411,8 @@ Todas com `REVOKE ... FROM PUBLIC, anon` e `GRANT EXECUTE ... TO authenticated`.
 
 O CopyMonster ocupa ~7 GB; o resto é tooling partilhado e outros projetos. Antes de acrescentar disco ou um segundo nó, vale limpar caches (~20 GB recuperáveis).
 
+**Limpeza executada em 2026-11-04:** `pnpm store prune` (766 MB), remoção do `/tmp/node-compile-cache` (3 GB) e `journalctl --vacuum-size=500M` (1.4 GB). Disco de **93 % → 85 %** (11 GB livres). Não se tocou em `/tmp/dsh-home-backup`, `/tmp/backup-restore` nem no cache do `opencode` (11 GB): são dados de outros fluxos e a decisão é do operador.
+
 **Esforço restante:** 1–2 dias. **Risco:** médio.
 
 ### Fase 3 — Operação contínua (~2 dias)

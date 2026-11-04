@@ -20,6 +20,8 @@ import { ModelsSection } from './ModelsSection.tsx'
 import type { ModelsSectionInjected } from './ModelsSection.tsx'
 import { DeepSeekOnboardingDialog } from './DeepSeekOnboardingDialog.tsx'
 import type { DeepSeekOnboardingInjected } from './DeepSeekOnboardingDialog.tsx'
+import { UsageSection } from './UsageSection.tsx'
+import type { UsageMetrics, UsageSectionInjected } from './UsageSection.tsx'
 import { WelcomeNotice } from './WelcomeNotice.tsx'
 import type { WelcomeNoticeInjected } from './WelcomeNotice.tsx'
 import { WelcomeNoticeStore } from './welcome-store.ts'
@@ -102,6 +104,16 @@ export function apply(ctx: ClientContext): void {
   // The scope's own memory mode is what keeps a remote browser process-local,
   // so the store needs no isLoopback branch of its own.
   const welcomeController = new WelcomeNoticeStore(ctx.configForms.get<Record<string, unknown>>(WELCOME_NOTICE_SETTINGS_NAMESPACE))
+  // Usage is product information for every creator: the trial meter and the
+  // plan status stay visible while provider configuration does not.
+  const usageInjected = (): UsageSectionInjected => ({
+    load: async (): Promise<UsageMetrics> => {
+      const response = await ctx.remote.settings.getTenantMetrics()
+      if (!response.ok) throw new Error(response.error.message)
+      return response.value as UsageMetrics
+    },
+    t,
+  })
   const welcomeInjected = (): WelcomeNoticeInjected => ({
     controller: welcomeController,
     hooks: { welcome: welcomeController.store },
@@ -126,6 +138,14 @@ export function apply(ctx: ClientContext): void {
       for (const dispose of disposers) dispose()
     }
   }, 'ui-settings-models: pushed invalidations')
+
+  ctx.effect(() => ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'usage',
+    order: 9,
+    label: () => t('usageNav'),
+    inject: usageInjected,
+  }, UsageSection)), 'ui-settings-models: usage section')
 
   // Provider topology is platform-operator territory: the admin configures the
   // key every creator talks through, so the Models page and the credential

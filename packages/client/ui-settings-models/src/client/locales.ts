@@ -2,6 +2,19 @@
 
 /** English strings (the key-set source of truth for this pair). */
 export const en = {
+  usageNav: 'Usage',
+  usageTitle: 'Usage',
+  usagePlan: 'Plan',
+  usageStatus: 'Status',
+  usageTrialEnds: 'Trial ends',
+  usageTrialExpired: 'Trial expired',
+  usageDaysRemaining: '{days} days remaining',
+  usageTrialTokens: 'Trial Token Consumption',
+  usagePeriodTokens: 'This period',
+  usageTokensUsed: '{used} / {limit} tokens ({percent}%)',
+  usageNoPlan: 'No plan',
+  usageLoading: 'Loading usage…',
+  usageError: 'Usage is unavailable right now.',
   nav: 'Models',
   deepSeekAccount: 'DeepSeek Account',
   title: 'Models',
@@ -146,6 +159,19 @@ export type ModelsKey = keyof typeof en
 
 /** Chinese strings (same keys as {@link en}). */
 export const zh: { [Key in keyof typeof en]: string } = {
+  usageNav: '用量',
+  usageTitle: '用量',
+  usagePlan: '套餐',
+  usageStatus: '状态',
+  usageTrialEnds: '试用结束',
+  usageTrialExpired: '试用已过期',
+  usageDaysRemaining: '剩余 {days} 天',
+  usageTrialTokens: '试用 Token 消耗',
+  usagePeriodTokens: '本周期',
+  usageTokensUsed: '{used} / {limit} tokens ({percent}%)',
+  usageNoPlan: '无套餐',
+  usageLoading: '正在加载用量…',
+  usageError: '暂时无法获取用量。',
   nav: '模型',
   deepSeekAccount: 'DeepSeek 账号',
   title: '模型',
@@ -287,6 +313,19 @@ export const zh: { [Key in keyof typeof en]: string } = {
 
 /** Japanese copy, checked against the English keys. */
 export const ja = {
+  usageNav: '使用状況',
+  usageTitle: '使用状況',
+  usagePlan: 'プラン',
+  usageStatus: 'ステータス',
+  usageTrialEnds: 'トライアル終了',
+  usageTrialExpired: 'トライアル期限切れ',
+  usageDaysRemaining: '残り {days} 日',
+  usageTrialTokens: 'トライアルのトークン消費',
+  usagePeriodTokens: '今期',
+  usageTokensUsed: '{used} / {limit} tokens ({percent}%)',
+  usageNoPlan: 'プランなし',
+  usageLoading: '使用状況を読み込み中…',
+  usageError: '現在、使用状況を取得できません。',
   'nav': 'モデル',
   'deepSeekAccount': 'DeepSeekアカウント',
   'title': 'モデル',
@@ -428,6 +467,19 @@ export const ja = {
 
 /** Spanish dictionary, checked against the English keys. */
 export const es = {
+  usageNav: 'Uso',
+  usageTitle: 'Uso',
+  usagePlan: 'Plan',
+  usageStatus: 'Estado',
+  usageTrialEnds: 'Fin de la prueba',
+  usageTrialExpired: 'Prueba caducada',
+  usageDaysRemaining: 'Quedan {days} días',
+  usageTrialTokens: 'Consumo de tokens de la prueba',
+  usagePeriodTokens: 'Este período',
+  usageTokensUsed: '{used} / {limit} tokens ({percent}%)',
+  usageNoPlan: 'Sin plan',
+  usageLoading: 'Cargando uso…',
+  usageError: 'El uso no está disponible ahora.',
   nav: 'Modelos',
   deepSeekAccount: 'Cuenta DeepSeek',
   title: 'Modelos',
@@ -569,6 +621,19 @@ export const es = {
 
 /** French dictionary, checked against the English keys. */
 export const fr = {
+  usageNav: 'Utilisation',
+  usageTitle: 'Utilisation',
+  usagePlan: 'Forfait',
+  usageStatus: 'Statut',
+  usageTrialEnds: "Fin de l'essai",
+  usageTrialExpired: 'Essai expiré',
+  usageDaysRemaining: '{days} jours restants',
+  usageTrialTokens: "Consommation de jetons de l'essai",
+  usagePeriodTokens: 'Cette période',
+  usageTokensUsed: '{used} / {limit} tokens ({percent}%)',
+  usageNoPlan: 'Aucun forfait',
+  usageLoading: "Chargement de l'utilisation…",
+  usageError: "L'utilisation est indisponible pour le moment.",
   nav: 'Modèles',
   deepSeekAccount: 'Compte DeepSeek',
   title: 'Modèles',
@@ -710,6 +775,19 @@ export const fr = {
 
 /** German dictionary, checked against the English keys. */
 export const de = {
+  usageNav: 'Nutzung',
+  usageTitle: 'Nutzung',
+  usagePlan: 'Tarif',
+  usageStatus: 'Status',
+  usageTrialEnds: 'Testphase endet',
+  usageTrialExpired: 'Testphase abgelaufen',
+  usageDaysRemaining: 'Noch {days} Tage',
+  usageTrialTokens: 'Token-Verbrauch der Testphase',
+  usagePeriodTokens: 'Dieser Zeitraum',
+  usageTokensUsed: '{used} / {limit} tokens ({percent}%)',
+  usageNoPlan: 'Kein Tarif',
+  usageLoading: 'Nutzung wird geladen…',
+  usageError: 'Die Nutzung ist derzeit nicht verfügbar.',
   nav: 'Modelle',
   deepSeekAccount: 'DeepSeek-Konto',
   title: 'Modelle',
@@ -851,6 +929,19 @@ export const de = {
 
 /** Russian dictionary, checked against the English keys. */
 export const ru = {
+  usageNav: 'Использование',
+  usageTitle: 'Использование',
+  usagePlan: 'Тариф',
+  usageStatus: 'Статус',
+  usageTrialEnds: 'Окончание пробного периода',
+  usageTrialExpired: 'Пробный период истёк',
+  usageDaysRemaining: 'Осталось дней: {days}',
+  usageTrialTokens: 'Расход токенов пробного периода',
+  usagePeriodTokens: 'Текущий период',
+  usageTokensUsed: '{used} / {limit} tokens ({percent}%)',
+  usageNoPlan: 'Нет тарифа',
+  usageLoading: 'Загрузка использования…',
+  usageError: 'Использование сейчас недоступно.',
   nav: 'Модели',
   deepSeekAccount: 'DeepSeek Аккаунт',
   title: 'Модели',
@@ -992,6 +1083,19 @@ export const ru = {
 
 /** Portuguese dictionary, checked against the English keys. */
 export const pt = {
+  usageNav: 'Utilização',
+  usageTitle: 'Utilização',
+  usagePlan: 'Plano',
+  usageStatus: 'Estado',
+  usageTrialEnds: 'Fim do teste',
+  usageTrialExpired: 'Teste expirado',
+  usageDaysRemaining: '{days} dias restantes',
+  usageTrialTokens: 'Consumo de tokens do teste',
+  usagePeriodTokens: 'Este período',
+  usageTokensUsed: '{used} / {limit} tokens ({percent}%)',
+  usageNoPlan: 'Sem plano',
+  usageLoading: 'A carregar utilização…',
+  usageError: 'A utilização não está disponível neste momento.',
   nav: 'Modelos',
   deepSeekAccount: 'DeepSeek Conta',
   title: 'Modelos',

@@ -15,6 +15,7 @@ import {
   WELCOME_NOTICE_ACK_FIELD, WELCOME_NOTICE_SETTINGS_NAMESPACE, WELCOME_NOTICE_VERSION,
 } from '../src/onboarding-copy.ts'
 import { ModelsSection } from '../src/client/ModelsSection.tsx'
+import { UsageSection } from '../src/client/UsageSection.tsx'
 import { DeepSeekOnboardingDialog } from '../src/client/DeepSeekOnboardingDialog.tsx'
 import { WelcomeNotice } from '../src/client/WelcomeNotice.tsx'
 import type { IndexInjection, WebServer } from '@deepseek-ai/dsh-host-webserver'
@@ -104,7 +105,7 @@ describe('ui-settings-models apply', () => {
       expect(slots.entries('settings.onboarding').map(entry => entry.options.id)).toEqual(['welcome-notice', 'deepseek-official'])
       const onboarding = slots.entries('settings.onboarding').find(entry => entry.options.id === 'deepseek-official')!
       expect((onboarding.inject as () => { automatic: boolean })().automatic).toBe(false)
-      expect(slots.entries('settings.section').map(entry => entry.options.id)).toEqual(['models'])
+      expect(slots.entries('settings.section').map(entry => entry.options.id)).toEqual(['usage', 'models'])
       await plugin.dispose()
       expect(slots.entries('settings.onboarding')).toEqual([])
       await host.dispose()
@@ -177,14 +178,14 @@ describe('ui-settings-models apply', () => {
 
     const after = await bench()
     await after.ctx.plugin({ inject: [...inject], apply }).await()
-    expect(after.slots.entries('settings.section')).toHaveLength(0)
+    expect(after.slots.entries('settings.section').map(entry => entry.options.id)).toEqual(['usage'])
     expect(after.slots.entries('settings.onboarding')).toHaveLength(0)
     declare(after.slots)
     await Promise.resolve()
-    expect(after.slots.entries('settings.section')[0]!.component).toBe(ModelsSection)
+    expect(after.slots.entries('settings.section').map(entry => entry.component)).toEqual([UsageSection, ModelsSection])
     expect(after.slots.entries('settings.onboarding')).toHaveLength(2)
     // The self-inflicted ledger notifications hit the duplicate guard.
-    expect(after.slots.entries('settings.section')).toHaveLength(1)
+    expect(after.slots.entries('settings.section')).toHaveLength(2)
   })
 
   it('keeps provider surfaces unregistered for a creator and follows a later admin grant', async () => {
@@ -193,18 +194,18 @@ describe('ui-settings-models apply', () => {
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     // The testing notice is product copy for everyone; provider setup is not.
-    expect(b.slots.entries('settings.section')).toHaveLength(0)
+    expect(b.slots.entries('settings.section').map(entry => entry.options.id)).toEqual(['usage'])
     expect(b.slots.entries('settings.onboarding').map(entry => entry.options.id)).toEqual(['welcome-notice'])
 
     vi.stubGlobal('__DSH_AUTH__', { isAdmin: true })
     auth.fire()
-    expect(b.slots.entries('settings.section').map(entry => entry.options.id)).toEqual(['models'])
+    expect(b.slots.entries('settings.section').map(entry => entry.options.id)).toEqual(['usage', 'models'])
     expect(b.slots.entries('settings.onboarding').map(entry => entry.options.id))
       .toEqual(['welcome-notice', 'deepseek-official'])
 
     vi.stubGlobal('__DSH_AUTH__', { isAdmin: false })
     auth.fire()
-    expect(b.slots.entries('settings.section')).toHaveLength(0)
+    expect(b.slots.entries('settings.section').map(entry => entry.options.id)).toEqual(['usage'])
     expect(b.slots.entries('settings.onboarding').map(entry => entry.options.id)).toEqual(['welcome-notice'])
   })
 
@@ -213,11 +214,12 @@ describe('ui-settings-models apply', () => {
     declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
     b.locale.setLocale('en')
-    expect(resolveSlotLabel(b.slots.entries('settings.section')[0]!.options.label)).toBe('Models')
-    const injected = b.slots.entries('settings.section')[0]!.inject as unknown as () => import('../src/client/ModelsSection.tsx').ModelsSectionInjected
+    const modelsEntry = b.slots.entries('settings.section').find(entry => entry.options.id === 'models')!
+    expect(resolveSlotLabel(modelsEntry.options.label)).toBe('Models')
+    const injected = modelsEntry.inject as unknown as () => import('../src/client/ModelsSection.tsx').ModelsSectionInjected
     expect(injected().t('deleteTitle')).toBe('Delete {provider}?')
     b.locale.setLocale('zh')
-    expect(resolveSlotLabel(b.slots.entries('settings.section')[0]!.options.label)).toBe('模型')
+    expect(resolveSlotLabel(modelsEntry.options.label)).toBe('模型')
     expect(injected().t('deleteTitle')).toBe('删除 {provider}？')
   })
 
@@ -233,7 +235,7 @@ describe('ui-settings-models apply', () => {
     const b = await bench()
     const redeclare = declare(b.slots)
     await b.ctx.plugin({ inject: [...inject], apply }).await()
-    expect(b.slots.entries('settings.section')).toHaveLength(1)
+    expect(b.slots.entries('settings.section')).toHaveLength(2)
     // Declarer unload: the cascade removes our entry while our local
     // disposer variable goes stale.
     redeclare()
@@ -241,11 +243,12 @@ describe('ui-settings-models apply', () => {
     expect(b.slots.entries('settings.onboarding')).toHaveLength(0)
     declare(b.slots)
     await Promise.resolve()
-    expect(b.slots.entries('settings.section')[0]!.component).toBe(ModelsSection)
+    expect(b.slots.entries('settings.section').map(entry => entry.component)).toEqual([UsageSection, ModelsSection])
     expect(b.slots.entries('settings.onboarding')).toHaveLength(2)
     // The locale path also recovers through the same ledger re-check.
     b.locale.setLocale('en')
-    expect(resolveSlotLabel(b.slots.entries('settings.section')[0]!.options.label)).toBe('Models')
+    const modelsEntry = b.slots.entries('settings.section').find(entry => entry.options.id === 'models')!
+    expect(resolveSlotLabel(modelsEntry.options.label)).toBe('Models')
     b.locale.setLocale('zh')
   })
 

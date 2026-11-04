@@ -12,7 +12,7 @@ import type { CredentialInfo } from '@deepseek-ai/dsh-credentials/types'
 import { Remote, RemoteError, TypertRemoteService } from '@deepseek-ai/dsh-typert-protocol'
 import { z } from 'zod'
 import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context'
-import { callerIsAdmin, getAuthIdentity } from './authz.ts'
+import { callerIsAdmin } from './authz.ts'
 
 /**
  * Fan-out bound on one remote `describe` batch. A settings page asks about the
@@ -86,8 +86,7 @@ export class CredentialsController extends TypertRemoteService {
   @Remote
   async describe(refs: string[]): Promise<Record<string, CredentialInfo>> {
     const request = parseRequest('credentials.describe', describeRequestSchema, { refs })
-    const identity = getAuthIdentity(this.ctx)
-    const isNonAdmin = identity !== undefined && identity.isAdmin !== true
+    const isNonAdmin = !callerIsAdmin(this.ctx)
     const branded = request.refs.map(ref => [ref, credentialRef(ref)] as const)
     const credentials = this.provider()
     const entries = await Promise.all(branded.map(async ([ref, key]) => {

@@ -158,8 +158,7 @@ export class SettingsController extends TypertRemoteService {
   @Remote
   describe(): SettingsDescribeValue {
     const settings = this.provider()
-    const identity = getAuthIdentity(this.ctx)
-    const isNonAdmin = identity !== undefined && identity.role !== 'owner' && identity.role !== 'admin' && identity.isAdmin !== true
+    const isNonAdmin = !callerIsAdmin(this.ctx)
     let descriptors = settings.describe({ redactSecrets: true })
     if (isNonAdmin) {
       descriptors = descriptors.filter(d => !isProtectedNamespace(String(d.ns)))

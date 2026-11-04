@@ -343,7 +343,7 @@ Remover a chave hoje desativaria os quatro plugins no tenant: sem `ctx.auth`, se
 
 O branch `fix/p0-4-service-role-key` (nos dois repositórios) contém a migração e o refactor completos. **Nada foi aplicado no VPS nem na base de dados.**
 
-**Migração `supabase/migrations/043_tenant_scoped_rpcs.sql`** — 10 funções `SECURITY DEFINER` que derivam o tenant de `auth.uid()` e nunca aceitam um id de tenant do cliente:
+**Migração `supabase/migrations/044_tenant_scoped_rpcs.sql`** — 10 funções `SECURITY DEFINER` que derivam o tenant de `auth.uid()` e nunca aceitam um id de tenant do cliente:
 
 | Função | Substitui |
 |---|---|
@@ -374,7 +374,7 @@ Todas com `REVOKE ... FROM PUBLIC, anon` e `GRANT EXECUTE ... TO authenticated`.
 
 **Plano de aplicação (por esta ordem, com autorização):**
 
-1. Aplicar `043_tenant_scoped_rpcs.sql` no Supabase (SQL editor ou `supabase db push`).
+1. Aplicar `044_tenant_scoped_rpcs.sql` no Supabase (SQL editor ou `supabase db push`).
 2. Validar cada RPC com um JWT de utilizador comum: `check_my_tenant_quota`, `get_my_tenant_metrics`, `increment_my_tenant_token_usage`.
 3. Confirmar que `anon` recebe `permission denied` nas 10 funções.
 4. Merge do branch e deploy do app principal + orquestrador.

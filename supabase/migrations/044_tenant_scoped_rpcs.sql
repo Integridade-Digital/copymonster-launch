@@ -1,5 +1,5 @@
 -- ============================================================================
--- Migration: 043_tenant_scoped_rpcs.sql
+-- Migration: 044_tenant_scoped_rpcs.sql
 -- Description: RPCs com escopo de chamador para o DSH do tenant deixar de
 --              precisar da SUPABASE_SERVICE_ROLE_KEY (P0-4 da auditoria).
 --

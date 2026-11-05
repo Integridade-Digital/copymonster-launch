@@ -29,21 +29,20 @@ A análise comparativa entre o mapeamento do projeto legado e o código do `copy
   2. Se possui a flag booleana `public.users.metadata ->> 'is_admin' = 'true'`.
 - **Implementação**: Todas as políticas RLS dos schemas `affiliate` e `finance` serão parametrizadas exclusivamente via `public.is_admin_or_owner()`.
 
-### 2.2 Unificação de Stripe & Billing (Fusão com `packages/api/auth-http/src/billing.ts`)
-- **Problema no Legado**: O projeto legado possuía um webhook separado (`stripe-to-affiliate`) e uma função isolada de checkout (`create-checkout-session`).
-- **Solução no CopyMonster**: O `copymonster-launch` já possui um subsistema robusto de faturamento em `packages/api/auth-http/src/billing.ts` atendendo a rotas do Cordis WebServer (`/api/billing/checkout`, `/api/billing/portal`, `/api/billing/webhook`), com verificação de assinatura HMAC-SHA256, limites de payload (`readBoundedBody`) e manipulação de assinaturas de tenants.
-- **Implementação**:
-  1. O endpoint `/api/billing/checkout` recebe o parâmetro opcional `affiliateId` vindo do frontend e o grava em `metadata[affiliate_id]` e `subscription_data[metadata][affiliate_id]` da sessão do Stripe.
-  2. O manipulador `handleWebhook` processa tanto a sincronização de planos dos tenants quanto os eventos de afiliados (`invoice.paid` / `invoice.payment_succeeded` e `charge.refunded`), garantindo um único endpoint de webhook no Stripe para todo o ecossistema.
+### 2.2 Webhook Stripe: decisão entre Edge Function e webhook existente
+- **Viabilidade técnica**: uma Supabase Edge Function pode receber webhooks Stripe, validar a assinatura usando o corpo bruto e um segredo próprio, e processar eventos de afiliados. O fato de o repositório ter migrations Supabase não significa que já tenha esse runtime configurado: no checkout analisado não há `supabase/functions/` nem configuração de Edge Functions.
+- **Decisão para esta implementação**: reutilizar o endpoint Stripe já configurado (`/api/billing/webhook`) e nele processar, além do billing atual, os eventos de afiliados já habilitados (`invoice.paid`, `invoice.payment_succeeded` e `charge.refunded`). Não criar nem registrar endpoint Stripe adicional. O código de domínio de afiliados deve ficar isolado em módulo/serviço próprio e ser chamado pelo webhook existente, para manter responsabilidades separadas sem duplicar configuração externa.
+- **Por que não adotar agora uma Edge Function separada**: ela é viável como tecnologia, mas um destino Stripe separado seria um novo endpoint e contrariaria a exigência de reutilizar os webhooks existentes. Mover o destino existente para uma Edge Function exigiria confirmar e preservar o processamento de billing atual; o repositório não mostra a configuração atual no Dashboard Stripe. Só reavaliar a separação se a inspeção do ambiente confirmar que o webhook Stripe já configurado aponta para uma Edge Function e que ela recebe os mesmos eventos, sem criar outra configuração.
+- **Preservação do billing**: manter intactos verificação de assinatura, leitura do corpo bruto, idempotência e eventos de billing existentes em `packages/api/auth-http/src/billing.ts`. Processamento afiliado deve ser idempotente e não impedir a resposta apropriada ao Stripe. Falhas transitórias devem produzir resposta retryable após garantir que nenhuma operação financeira parcial foi confirmada.
+- **Checkout e atribuição**: o checkout existente propaga o `affiliate_id` validado nos metadados da Checkout Session e da Subscription, preservando os metadados de tenant e usuário já exigidos pelo app. O processador de fatura resolve a atribuição a partir da invoice/subscription com regra explícita, sem confiar em valores enviados diretamente pelo navegador.
 
-### 2.3 Integração Visual no Shell do CopyMonster (Frontend DSH Web)
-- **Problema no Legado**: Painel construído como páginas isoladas sob React/Tailwind padrão com rotas `/dashboard/partners` e `/admin/partners`.
-- **Solução no CopyMonster**: O `copymonster-launch` é uma aplicação React moderna com temas unificados em `cm-theme.css`, modal de administração centralizado (`AdminModal.tsx`) e slots dinâmicos do Cordis Client (`settings.profile.item`, `settings.plans.item`, `sidebar.footer.action`).
-- **Implementação**:
-  1. **Painel do Afiliado**: Criado como componente overlay modal ou item de configurações (`AffiliateModal` / `AffiliateSettingsItem`), utilizando a paleta de variáveis CSS do CopyMonster (`--cm-card-bg`, `--cm-border-color`, `--cm-primary`).
-  2. **Painel Administrativo**: Integrado como uma nova aba dedicada no `AdminModal.tsx` (`AdminAffiliateTab`), contendo as 5 esteiras operacionais em sub-abas (Afiliados, KYC, Validação, Saques e Motor de Regras).
-
----
+### 2.3 Integração visual e navegação nativas do CopyMonster
+- O painel do afiliado será uma **aba/página dentro de Settings**, por exemplo `Settings > Affiliate`, não um modal isolado e não uma nova aba principal de Admin.
+- A administração será uma **sub-aba dentro da área Admin existente**, por exemplo `Admin > Affiliates`; não criar uma entrada nova no menu principal nem substituir as abas atuais.
+- Ambos os espaços reutilizam componentes, navegação, tokens, tipografia, espaçamento, estados, responsividade e tema de `apps/web/src` e `apps/web/src/cm-theme.css`. Não copiar uma interface Tailwind/Shadcn independente. Ao iniciar a implementação, confirmar os pontos de extensão reais do menu Settings e de `AdminModal.tsx` e encaixar a nova navegação nos padrões atuais.
+- Todo o texto visível deve vir da arquitetura i18n já existente, com inglês como idioma padrão e traduções para **todos os idiomas realmente suportados/ativados no CopyMonster** (incluindo `en`, `pt`, `zh` e `es` quando estiver habilitado no catálogo/runtime). Antes de codificar, inventariar o catálogo de locales do app e do shell DSH; não introduzir uma tradução parcial nem supor que uma língua esteja ativa apenas por aparecer num exemplo.
+- Criar chaves de tradução consistentes para interface de afiliado, administração, validação, erros, confirmações, estados vazios, acessibilidade, notificações e e-mails. English (`en`) é a fonte de referência; completar e revisar cada arquivo de locale, com fallback explícito para inglês e teste automatizado de chaves ausentes.
+- Notificações e e-mails devem guardar tipo/chave e dados estruturados, não uma frase fixa em português no banco; renderizar no idioma preferido do usuário, com fallback `en`, mantendo templates auditáveis.
 
 ## 3. REGRAS DE NEGÓCIO E POLÍTICAS FINANCEIRAS
 
@@ -667,6 +666,11 @@ Executada exclusivamente por requisições autenticadas de administradores:
 
 ---
 
+### 6.3 Webhook PayPal já configurado e reconciliação
+Reutilizar a configuração de webhook PayPal que já existe; **não criar um novo webhook**. Inventariar no ambiente quais eventos de Payouts estão habilitados e, no handler/destino já configurado, reconciliar mudanças de estado, falhas e conclusão do lote com `finance.payout_requests`. Verificar assinatura PayPal e idempotência dos eventos; não marcar pagamento como concluído apenas porque o pedido HTTP de criação do lote retornou sucesso. O e-mail PayPal validado e confirmado no perfil é o destinatário da transferência. Se a configuração atual não contiver eventos de Payouts necessários, registrar isso como pré-requisito de operação e pedir aprovação antes de alterar o Dashboard.
+
+---
+
 ## 7. AGENDADOR DE ELEGIBILIDADE (CRON JOB DE CARÊNCIA)
 
 Diariamente às **06:00 UTC**, o sistema identifica comissões que completaram o prazo de retenção e as promove para a fila de validação humana:
@@ -718,66 +722,39 @@ SELECT cron.schedule(
 
 ---
 
-## 8. ARQUITETURA DE FRONTEND NO COPYMONSTER
+## 8. ARQUITETURA DE FRONTEND E INTERNACIONALIZAÇÃO NO COPYMONSTER
 
-### 8.1 Captura Global de `?ref=` nas Páginas Públicas
-No carregamento de rotas de entrada (`main.tsx` ou em hook global):
-```typescript
-export function captureAffiliateReferral(): void {
-  if (typeof window === 'undefined') return
-  try {
-    const params = new URLSearchParams(window.location.search)
-    const ref = params.get('ref')
-    if (ref && /^[0-9a-f-]{36}$/i.test(ref)) {
-      localStorage.setItem('affiliate_ref', ref)
-    }
-  } catch {}
-}
-```
+### 8.1 Captura global de `?ref=` e atribuição
+Capturar e validar `?ref=<UUID>` nas rotas públicas suportadas antes de navegação/checkout; armazenar com política de expiração e consentimento compatível com privacidade. Preservar atribuição durante login/registo e checkout; definir e testar duração da atribuição, precedência de referências e prevenção de autoindicação. Nunca tratar o valor local do navegador como prova de elegibilidade: o servidor valida perfil, estado e associação com a fatura.
 
-### 8.2 Injeção de `affiliateId` no Checkout (`PlansPage.tsx`)
-Na função `handleInitiateCheckout` de `apps/web/src/pages/billing/PlansPage.tsx`:
-```typescript
-const affiliateRef = typeof window !== 'undefined' ? localStorage.getItem('affiliate_ref') : null
+### 8.2 Checkout existente
+Na chamada atual de checkout em `PlansPage.tsx`, incluir a referência validada como dado opcional; o servidor mantém autoridade sobre os metadados Stripe. A atribuição deve sobreviver aos fluxos suportados sem alterar `priceId`, URLs ou regras de faturamento existentes.
 
-const response = await fetch('/api/billing/checkout', {
-  method: 'POST',
-  headers: {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`,
-  },
-  body: JSON.stringify({
-    priceId,
-    successUrl: `${host}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
-    cancelUrl: `${host}/billing/cancel`,
-    ...(affiliateRef ? { affiliateId: affiliateRef } : {}),
-  }),
-})
-```
+### 8.3 Painel do afiliado: `Settings > Affiliate`
+Adicionar a aba dentro da navegação de Settings já existente, usando layout, componentes e estilos nativos do CopyMonster. A tela deve adaptar os estados ao status de cadastro e aprovação:
+- **Cadastro/KYC**: nome, CPF/CNPJ, e-mail PayPal para receber pagamentos, cidade/UF, aceite/versionamento dos termos e estado de análise. Exibir o campo de e-mail PayPal de forma clara; alterações posteriores devem ter validação, trilha de auditoria e política antifraude.
+- **Link de rastreamento**: link exclusivo com `?ref=<uuid>`, copiar/compartilhar e orientação sobre atribuição.
+- **Cards de saldo**: em retenção, disponível calculado do ledger e total já pago; exibir moeda de cada saldo e estados sem dados.
+- **Solicitar saque**: habilitar apenas se saldo disponível >= mínimo vigente (inicialmente US$50), KYC `APPROVED`, perfil ativo e inexistência de saque aberto; validar novamente no servidor numa operação atômica.
+- **Histórico de comissões**: status, valor, fatura de referência não sensível, data prevista e barra/progresso de 35 dias; traduzir estados e acessibilidade da barra.
+- **Histórico de saques/notificações**: valores, status PayPal, datas e mensagens contextualizadas.
 
-### 8.3 Painel do Parceiro (`AffiliateDashboard`)
-Componente acessível pelo usuário no painel de configurações ou via rota `/affiliate`:
-- **Modo 1 (Usuário Não Cadastrado)**:
-  - Apresenta os termos de adesão e formulário de KYC: Nome Completo, CPF/CNPJ, E-mail PayPal, Cidade/UF e checkbox de aceite obrigatório de termos.
-  - Ao submeter, cria o perfil em `affiliate.profiles` com status `PENDING`.
-- **Modo 2 (Usuário Cadastrado)**:
-  - Link de rastreamento exclusivo com botão de cópia de um clique (`https://app.copymonster.co/register?ref=UUID`).
-  - Cards de Resumo Financeiro:
-    - **Em Retenção**: Soma de comissões em `HOLDING` e `PENDING_VALIDATION`.
-    - **Saldo Disponível**: Cálculo real do livro contábil: $\sum 	ext{CREDIT} - \sum 	ext{DEBIT}$.
-    - **Total Já Pago**: Total histórico de resgates liquidados com sucesso.
-  - Botão **"Solicitar Saque"**: Habilitado dinamicamente quando `Saldo >= $50.00`, `KYC === APPROVED` e não há saques pendentes.
-  - Tabela de Transparência de Comissões com **barra de progresso temporal regressiva** indicando os dias restantes da retenção de 35 dias.
+### 8.4 Administração: `Admin > Affiliates`
+Integrar como sub-aba na experiência Admin existente, acessível apenas a administradores pela autorização canônica do projeto. Manter 5 esteiras internas:
+1. **Afiliados**: lista, pesquisa e status.
+2. **KYC**: revisar, aprovar/rejeitar com motivo e auditoria.
+3. **Validação de créditos**: aprovar/rejeitar comissões maduras; crédito no ledger na mesma transação atômica da transição de status.
+4. **Fila de saques**: revisar e executar via PayPal, com reconciliação de estado.
+5. **Motor de regras**: publicar versões de percentual, carência e mínimo com histórico, vigência e validação.
 
-### 8.4 Painel Administrativo (`AdminAffiliateTab.tsx`)
-Integrado no `AdminModal.tsx` como uma nova aba no menu lateral com o ícone `🤝` e 5 esteiras operacionais:
-1. **Afiliados (`AffiliatesList`)**: Visão consolidada da base de parceiros, status KYC, e-mail PayPal e data de adesão.
-2. **KYC (`KycApprovalQueue`)**: Fila de documentos com botões rápidos para Aprovar ou Rejeitar cadastros pendentes.
-3. **Validação de Créditos (`ValidationQueue`)**: Fila de comissões maduras (`PENDING_VALIDATION`). Ação de "Aprovar" grava a entrada atômica de `CREDIT` no `finance.ledger_entries`.
-4. **Fila de Saques (`PayoutQueue`)**: Pedidos de saque com botão "Processar via PayPal" disparando o `payout-executor`.
-5. **Motor de Regras (`RuleEngine`)**: Ajuste sem código da % de comissão (30%), dias de retenção (35) e saque mínimo ($50).
+### 8.5 Arquitetura i18n (todos os idiomas suportados)
+- Inglês (`en`) é o idioma padrão e a fonte para as chaves de tradução. Completar arquivos existentes em `apps/web/src/locales/` e os catálogos/locales do shell DSH que fornecem as áreas de Settings e Admin; confirmar em implementação a lista ativa de idiomas e incluir todos sem exceção (ex.: `pt`, `es`, `zh` quando suportados).
+- Incluir as strings de Affiliate Settings, cinco filas Admin, formulários, validação, erros HTTP, confirmações, tooltips, estados vazios, acessibilidade, notificações in-app e modelos de e-mail. E-mails usam idioma do perfil; se ausente, inglês.
+- Não inserir texto localizado diretamente em componentes, templates ou banco. Centralizar chaves, preservar interpolação/pluralização e evitar strings da marca upstream.
+- Critérios de qualidade: teste automatizado de cobertura de chaves por locale, revisão humana do vocabulário financeiro/legal, formatação monetária/data por locale e teste visual dos estados críticos em cada língua suportada.
 
----
+### 8.6 Design system e consistência visual
+Usar tema `cm-theme.css`, tokens e componentes já usados em `apps/web` e no shell DSH. Seguir tipografia, cores, foco, estados de loading/erro, responsividade e padrões de navegação existentes. Não introduzir Tailwind/Shadcn isolados nem um segundo sistema visual; implementar componentes novos apenas quando faltar equivalente nativo e documentar sua integração.
 
 ## 9. PLANO DE AÇÃO PASSO A PASSO (ROADMAP DE EXECUÇÃO)
 
@@ -793,9 +770,10 @@ O plano de ação está estruturado em **6 fases sequenciais** prontas para exec
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
-│ FASE 2: Backend e Unificação de Webhook Stripe              │
-│ - Atualizar handleCheckout em billing.ts com affiliateId    │
-│ - Expandir handleWebhook para invoice.paid e charge.refunded│
+│ FASE 2: Backend no webhook Stripe já configurado            │
+│ - Propagar affiliateId no checkout existente                │
+│ - Reutilizar /api/billing/webhook, sem novo endpoint Stripe │
+│ - Preservar invoice.paid, payment_succeeded e refunded      │
 │ - Implementar processamento com verificação de KYC e regras │
 │ - Implementar estorno contábil no ledger em reembolsos      │
 └──────────────────────────────┬──────────────────────────────┘
@@ -808,18 +786,18 @@ O plano de ação está estruturado em **6 fases sequenciais** prontas para exec
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
-│ FASE 4: Frontend do Afiliado & Rastreamento                 │
-│ - Adicionar captura de ?ref= na entrada da aplicação        │
-│ - Injetar affiliateId na chamada de PlansPage.tsx           │
-│ - Desenvolver AffiliateDashboard.tsx com KYC e barra de 35d │
-│ - Conectar botão "Solicitar Saque" ao backend               │
+│ FASE 4: Settings > Affiliate & rastreamento                 │
+│ - Capturar ?ref= e propagar no checkout existente           │
+│ - Criar aba Affiliate dentro de Settings                    │
+│ - KYC, e-mail PayPal, link, saldos, histórico e saque       │
+│ - Implementar os textos em todos os idiomas suportados      │
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
-│ FASE 5: Frontend Administrativo no AdminModal               │
-│ - Criar AdminAffiliateTab.tsx com as 5 sub-abas             │
-│ - Adicionar a aba 'affiliate' ao menu lateral de AdminModal │
-│ - Conectar aprovações de KYC, Comissões e Saques            │
+│ FASE 5: Admin > Affiliates (sub-aba existente)               │
+│ - Integrar as 5 esteiras dentro da área Admin atual         │
+│ - Não criar aba principal/menu novo                         │
+│ - Implementar todos os textos nos locales suportados        │
 └──────────────────────────────┬──────────────────────────────┘
                                │
 ┌──────────────────────────────▼──────────────────────────────┐
@@ -849,6 +827,12 @@ O plano de ação está estruturado em **6 fases sequenciais** prontas para exec
 | **Controle de Concorrência** | Afiliado com saque em `REQUESTED` tenta novo pedido | API bloqueia nova solicitação enquanto houver pedido aberto. |
 | **Liquidação PayPal** | Admin clica em "Pagar" na fila de saques | Pedido assume `PROCESSING`, lote é enviado ao PayPal, muda para `EXECUTED` e lança `DEBIT` no ledger. |
 | **Segurança RLS** | Afiliado tenta ler comissões ou perfis de outros usuários | Supabase RLS bloqueia e retorna apenas os registros onde `user_id = auth.uid()`. |
+| **Webhook existente** | Processar eventos Stripe atuais de billing e afiliados | Um único destino configurado processa os eventos habilitados; nenhuma configuração de webhook adicional é criada e o billing permanece íntegro. |
+| **PayPal existente** | Receber evento de payout já configurado | A assinatura é validada, o evento é idempotente e o pedido/ledger reconciliam sem duplicar débito. |
+| **Navegação do afiliado** | Usuário abre Settings | Affiliate aparece dentro de Settings; formulário inclui e-mail PayPal, link, três saldos, saque e histórico. |
+| **Administração** | Administrador abre Admin | Affiliates aparece como sub-aba dentro do Admin existente, com as cinco esteiras e sem novo item principal. |
+| **Internacionalização** | Visitar fluxos em cada idioma ativo | Todos os textos, erros, notificações e e-mails têm tradução revisada; en é o fallback e nenhuma chave necessária fica ausente. |
+| **Design system** | Verificar Affiliate e Admin em desktop/mobile | As telas usam tema, componentes, tipografia, tokens e layouts nativos do CopyMonster; sem UI isolada Tailwind/Shadcn. |
 
 ---
 *Documento preparado com especificações completas para a arquitetura do CopyMonster.*

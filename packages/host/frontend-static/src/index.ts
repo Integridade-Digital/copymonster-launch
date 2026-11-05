@@ -56,6 +56,10 @@ const MIME: Record<string, string> = {
   // Launchers require an image Content-Type for the install icons.
   '.png': 'image/png',
   '.svg': 'image/svg+xml',
+  // Social previews fetch the Open Graph artwork; scrapers reject octet-stream.
+  '.jpg': 'image/jpeg',
+  '.jpeg': 'image/jpeg',
+  '.webp': 'image/webp',
   '.json': 'application/json',
   '.map': 'application/json',
   '.webmanifest': 'application/manifest+json',

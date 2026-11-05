@@ -41,6 +41,7 @@ async function loadComposition(): Promise<Context> {
   await writeFile(join(dist, 'blob.bin'), 'BLOB')
   await writeFile(join(dist, 'manifest.webmanifest'), '{}')
   await writeFile(join(dist, 'icon-192.png'), 'PNG')
+  await writeFile(join(dist, 'preview.jpg'), 'JPG')
   await mkdir(join(dist, 'empty'))
   const configPath = join(root, 'cordis.yml')
   await writeFile(configPath, [
@@ -137,6 +138,8 @@ describe('real Loader composition', () => {
     })
     // The install icons are images; a launcher must not receive them as octet-stream.
     expect(await request(port, '/icon-192.png')).toMatchObject({ status: 200, type: 'image/png', body: 'PNG' })
+    // Social scrapers reject the Open Graph artwork unless it ships as an image type.
+    expect(await request(port, '/preview.jpg')).toMatchObject({ status: 200, type: 'image/jpeg', body: 'JPG' })
     expect(await request(port, '/app.js', { method: 'HEAD' })).toEqual({
       status: 200,
       type: 'text/javascript; charset=utf-8',

@@ -245,7 +245,7 @@ export function AffiliateSettings() {
         <section className={css.card}>
           <h3 className={css.cardTitle}>{t('affiliate.register.title')}</h3>
           <p className={css.subtitle}>{t('affiliate.register.description')}</p>
-          <form className={css.page} onSubmit={event => { void handleRegister(event) }}>
+          <form className={css.page} onSubmit={(event) => { void handleRegister(event) }}>
             <div className={css.formGrid}>
               <label className={css.formGroup}>
                 <span className={css.formLabel}>{t('affiliate.field.fullName')}</span>
@@ -301,7 +301,7 @@ export function AffiliateSettings() {
           </div>
           <section className={css.card}>
             <h3 className={css.cardTitle}>{t('affiliate.paypal.title')}</h3>
-            <form className={css.referralBox} onSubmit={event => { void handleSavePaypal(event) }}>
+            <form className={css.referralBox} onSubmit={(event) => { void handleSavePaypal(event) }}>
               <input className={css.input} type="email" value={paypalEmail} onChange={e => setPaypalEmail(e.target.value)} required maxLength={254} aria-label={t('affiliate.field.paypalEmail')} />
               <button className={css.secondaryButton} type="submit" disabled={saving}>{saving ? t('affiliate.saving') : t('affiliate.paypal.save')}</button>
             </form>
@@ -332,7 +332,7 @@ export function AffiliateSettings() {
                     <th className={css.th}>{t('affiliate.commissions.status')}</th>
                     <th className={css.th}>{t('affiliate.commissions.eligibility')}</th>
                   </tr></thead>
-                  <tbody>{commissions.map(commission => {
+                  <tbody>{commissions.map((commission) => {
                     const createdAt = new Date(commission.created_at).getTime()
                     const eligibleAt = new Date(commission.eligible_at).getTime()
                     const duration = Math.max(eligibleAt - createdAt, 1)

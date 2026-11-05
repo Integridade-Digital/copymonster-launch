@@ -16,13 +16,31 @@ interface ProfileTabConfig {
   key: ProfileSectionKey
   labelEn: string
   labelZh: string
-  icon: string
 }
 
 const PROFILE_TABS: ProfileTabConfig[] = [
-  { key: 'account', labelEn: 'Account Data', labelZh: '账户数据', icon: '👤' },
-  { key: 'security', labelEn: 'Security & Password', labelZh: '安全与密码', icon: '🔒' },
+  { key: 'account', labelEn: 'Account Data', labelZh: '账户数据' },
+  { key: 'security', labelEn: 'Security & Password', labelZh: '安全与密码' },
 ]
+
+/** Rail glyph for one profile section; both are native SVG, never emoji. */
+function profileIcon(key: ProfileSectionKey) {
+  const common = {
+    width: 16,
+    height: 16,
+    viewBox: '0 0 24 24',
+    fill: 'none',
+    stroke: 'currentColor',
+    strokeWidth: 1.5,
+    strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const,
+    'aria-hidden': true,
+  }
+  if (key === 'security') {
+    return <svg {...common}><rect x="4" y="11" width="16" height="10" rx="2" /><path d="M8 11V7a4 4 0 0 1 8 0v4" /></svg>
+  }
+  return <svg {...common}><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></svg>
+}
 
 export function ProfileModal({ isOpen, onClose, triggerRef, currentUser, onProfileUpdated }: ProfileModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
@@ -62,7 +80,7 @@ export function ProfileModal({ isOpen, onClose, triggerRef, currentUser, onProfi
                   onClick={() => setActiveSection(tab.key)}
                   className={`${css.railCell} ${isActive ? css.railCellActive : ''}`}
                 >
-                  <span className={css.railIcon}>{tab.icon}</span>
+                  <span className={css.railIcon}>{profileIcon(tab.key)}</span>
                   <span className={css.railLabel}>{label}</span>
                 </button>
               )

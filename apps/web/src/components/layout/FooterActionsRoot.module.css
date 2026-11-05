@@ -159,6 +159,16 @@
   text-overflow: ellipsis;
 }
 
+/* 16px glyph seat matching the Settings nav icon slot. */
+.railIcon {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+
 /* Content column: header + scrolling body, aligned with the Settings panel. */
 .contentArea {
   flex: 1;

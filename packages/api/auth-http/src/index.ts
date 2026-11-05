@@ -32,6 +32,14 @@ import { SESSION_TOKEN_PATH, handleSessionToken } from './session-token.ts'
 import { createIdentityResolver } from './identity.ts'
 import { createTenantPolicy } from './access.ts'
 import { clientKey, createRateLimiter, type RateLimiter } from './rate-limit.ts'
+import {
+  handleRequestAffiliatePayout,
+  handleAdminExecutePayout,
+  AFFILIATE_PAYOUT_REQUEST_PATH,
+  AFFILIATE_PAYOUT_REQUEST_ALIAS,
+  ADMIN_PAYOUT_EXECUTE_PATH,
+  ADMIN_PAYOUT_EXECUTE_ALIAS,
+} from './payout-executor.ts'
 import z from '@deepseek-ai/schemastery'
 
 export type { AuthErrorResponse, AuthIdentityResponse } from './types.ts'
@@ -49,6 +57,31 @@ export { handleLlmTest, LLM_TEST_PATH, type LlmTestResult } from './llm-test.ts'
 export { SESSION_TOKEN_PATH, handleSessionToken } from './session-token.ts'
 export { IDENTITY_HEADER, createIdentityResolver } from './identity.ts'
 export { createTenantPolicy } from './access.ts'
+export {
+  getPaypalAccessToken,
+  createPaypalPayout,
+  getPaypalPayoutStatus,
+  isPaypalMock,
+  getPaypalBaseUrl,
+  type PaypalPayoutItem,
+  type PaypalPayoutResult,
+  type PaypalPayoutStatusResult,
+} from './paypal-payout.ts'
+export {
+  getAffiliateBalance,
+  requestAffiliatePayout,
+  executePayout,
+  handleRequestAffiliatePayout,
+  handleAdminExecutePayout,
+  AFFILIATE_PAYOUT_REQUEST_PATH,
+  AFFILIATE_PAYOUT_REQUEST_ALIAS,
+  ADMIN_PAYOUT_EXECUTE_PATH,
+  ADMIN_PAYOUT_EXECUTE_ALIAS,
+  type RequestPayoutParams,
+  type RequestPayoutResult,
+  type ExecutePayoutOptions,
+  type ExecutePayoutResult,
+} from './payout-executor.ts'
 export {
   SESSION_MAX_AGE_SECONDS,
   signSessionCookie,
@@ -310,6 +343,33 @@ export function apply(ctx: Context, config: Config): void {
     path: BILLING_WEBHOOK_PATH,
     handler: limited((req: IncomingMessage, res: ServerResponse) => { handleWebhook(ctx, req, res) }, billingLimiter),
   }), `auth-http: ${BILLING_WEBHOOK_PATH}`)
+
+  const payoutLimiter = limiter()
+  const adminPayoutLimiter = limiter()
+
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: AFFILIATE_PAYOUT_REQUEST_PATH,
+    handler: limited((req: IncomingMessage, res: ServerResponse) => handleRequestAffiliatePayout(ctx, req, res), payoutLimiter),
+  }), `auth-http: ${AFFILIATE_PAYOUT_REQUEST_PATH}`)
+
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: AFFILIATE_PAYOUT_REQUEST_ALIAS,
+    handler: limited((req: IncomingMessage, res: ServerResponse) => handleRequestAffiliatePayout(ctx, req, res), payoutLimiter),
+  }), `auth-http: ${AFFILIATE_PAYOUT_REQUEST_ALIAS}`)
+
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: ADMIN_PAYOUT_EXECUTE_PATH,
+    handler: limited((req: IncomingMessage, res: ServerResponse) => handleAdminExecutePayout(ctx, req, res), adminPayoutLimiter),
+  }), `auth-http: ${ADMIN_PAYOUT_EXECUTE_PATH}`)
+
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: ADMIN_PAYOUT_EXECUTE_ALIAS,
+    handler: limited((req: IncomingMessage, res: ServerResponse) => handleAdminExecutePayout(ctx, req, res), adminPayoutLimiter),
+  }), `auth-http: ${ADMIN_PAYOUT_EXECUTE_ALIAS}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',

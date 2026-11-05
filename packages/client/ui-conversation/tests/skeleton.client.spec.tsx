@@ -874,6 +874,35 @@ describe('ConversationRoot resident composer', () => {
     expect(b.view.getByText('one')).toBeTruthy()
   })
 
+  it('reports why a workspace pick failed instead of leaving the composer inert', async () => {
+    const selectWorkspace = vi.fn(async () => {
+      throw new Error("cannot create a Workspace at \"olo\": EACCES: permission denied, mkdir '/var/copymonster/data/t/u/workspaces/olo'")
+    })
+    const b = mount(
+      sessionSnapshotOf({ blank: true }),
+      [{ ...workspace('one'), sessionIds: [SID] }],
+      selectWorkspace,
+    )
+    fireEvent.click(b.view.getByRole('button', { name: '选择工作区' }))
+    const owner = b.pickerOwner() as { onPick(id: WorkspaceId): void }
+    await act(async () => { owner.onPick(wid('one')); await Promise.resolve() })
+    expect(b.view.getByRole('alert').textContent).toBe(zh['hero.workspacePermissionDenied'])
+  })
+
+  it('names the Host reason for a workspace pick that failed for another cause', async () => {
+    const selectWorkspace = vi.fn(async () => { throw new Error('workspace/not-found: gone') })
+    const b = mount(
+      sessionSnapshotOf({ blank: true }),
+      [{ ...workspace('one'), sessionIds: [SID] }],
+      selectWorkspace,
+    )
+    fireEvent.click(b.view.getByRole('button', { name: '选择工作区' }))
+    const owner = b.pickerOwner() as { onPick(id: WorkspaceId): void }
+    await act(async () => { owner.onPick(wid('one')); await Promise.resolve() })
+    expect(b.view.getByRole('alert').textContent)
+      .toBe(zh['hero.workspacePickFailed'].replace('{reason}', 'workspace/not-found: gone'))
+  })
+
   it('blank session keeps the interactive picker chip (workspace switchable until the first message)', () => {
     const b = mount(sessionSnapshotOf({ blank: true }))
     const chip = b.view.getByRole('button', { name: '选择工作区' })

@@ -41,6 +41,7 @@
     "@deepseek-ai/dsh-constants": "workspace:*",
     "@deepseek-ai/dsh-host-webserver": "workspace:*",
     "@deepseek-ai/dsh-supabase-client": "workspace:*",
+    "@deepseek-ai/dsh-workspace": "workspace:*",
     "jose": "^6.2.3"
   },
   "peerDependencies": {
@@ -52,6 +53,7 @@
   "devDependencies": {
     "@deepseek-ai/cordis": "workspace:^",
     "@deepseek-ai/dsh-client-connection": "workspace:^",
+    "@deepseek-ai/dsh-session": "workspace:*",
     "@types/node": "^22.0.0",
     "typescript": "^5.3.0",
     "vitest": "^1.0.0",

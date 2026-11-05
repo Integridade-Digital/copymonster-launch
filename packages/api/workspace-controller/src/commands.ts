@@ -180,7 +180,7 @@ export class WorkspaceCommands {
       return Promise.reject(new RemoteError('gateway/bad-request', 'Workspace rename requires a non-blank title', {}))
     }
     return this.enqueue(async () => {
-      const workspace = this.requireConfinedWorkspace(request.workspaceId, identity, 'rename')
+      const workspace = this.requireConfinedWorkspace(request.workspaceId, identity)
       if (title !== workspace.title) {
         if (this.ctx.workspaceRegistry.list().some(candidate =>
           candidate.id !== workspace.id && candidate.title === title)) {
@@ -204,7 +204,7 @@ export class WorkspaceCommands {
    */
   delete(request: WorkspaceDeleteRequest, identity: UserIdentity): Promise<WorkspaceDeleteValue> {
     return this.enqueue(async () => {
-      this.requireConfinedWorkspace(request.workspaceId, identity, 'delete')
+      this.requireConfinedWorkspace(request.workspaceId, identity)
       if (!await this.ctx.workspaceRegistry.delete(WorkspaceId(request.workspaceId))) {
         throw workspaceNotFound(request.workspaceId)
       }
@@ -321,26 +321,26 @@ export class WorkspaceCommands {
   /**
    * Resolve one Workspace and refuse it when its directory lies outside the
    * caller's confined root.
+   *
+   * A platform operator reaches every Workspace the Host holds, so the sandbox
+   * confines only the tenant's own callers. A Workspace outside the caller's
+   * sandbox answers `workspace/not-found`: saying it exists but belongs to
+   * someone else would confirm another tenant's directory.
    * @param workspaceId - Workspace identity to resolve.
    * @param identity - authenticated caller identity owning the confined root.
-   * @param operation - verb name used in the refusal message.
    * @returns the confined Workspace.
    */
   private requireConfinedWorkspace(
     workspaceId: WorkspaceId,
     identity: UserIdentity,
-    operation: string,
   ): Workspace {
     const workspace = this.requireWorkspace(workspaceId)
+    if (identity.isAdmin === true) return workspace
     const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
     try {
       assertPathInSandbox(workspace.path, sandboxRoot)
     } catch {
-      throw new RemoteError(
-        'workspace/forbidden',
-        `Access denied: cannot ${operation} workspace outside authorized sandbox`,
-        { workspaceId },
-      )
+      throw workspaceNotFound(workspaceId)
     }
     return workspace
   }

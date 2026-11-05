@@ -118,3 +118,89 @@ describe('tenant access policy', () => {
     expect(actionsFor('member')).toEqual(['session/list'])
   })
 })
+
+describe('tenant access policy: owned Workspaces and Sessions', () => {
+  const descriptors = [
+    { namespace: 'workspace', method: 'delete' },
+    { namespace: 'workspace', method: 'rename' },
+    { namespace: 'session', method: 'create' },
+    { namespace: 'session', method: 'prompt' },
+  ]
+
+  const TENANT = '00000000-0000-0000-0000-000000000001'
+  const USER = 'a371977b-b414-4bd4-b51e-f2c16efc4425'
+
+  function policy(options: {
+    workspaces?: readonly { id: string; path: string }[]
+    sessions?: readonly { id: string; cwd: string }[]
+  } = {}) {
+    const ctx = new Context()
+    ctx.provide('typert', { local: { list: () => descriptors } } as never)
+    if (options.workspaces !== undefined) {
+      ctx.provide('workspaceRegistry', {
+        list: () => options.workspaces!.map(row => ({ id: row.id, path: row.path })),
+      } as never)
+    }
+    if (options.sessions !== undefined) {
+      ctx.provide('sessions', {
+        list: () => options.sessions!.map(row => ({ id: row.id, header: { cwd: row.cwd } })),
+      } as never)
+    }
+    return createTenantPolicy(ctx)
+  }
+
+  const principal = (role: 'owner' | 'admin' | 'member' = 'owner') => ({
+    kind: 'user' as const,
+    userId: USER,
+    tenantId: TENANT,
+    role,
+    isAdmin: false,
+  })
+
+  const ownRoot = `/var/copymonster/data/${TENANT}/${USER}/workspaces`
+  const foreignRoot = `/var/copymonster/data/${TENANT}/another-user/workspaces`
+
+  it('binds the Workspace this caller owns and refuses another tenant user\'s', () => {
+    const bindings = policy({
+      workspaces: [
+        { id: 'ws-own', path: `${ownRoot}/default` },
+        { id: 'ws-foreign', path: `${foreignRoot}/default` },
+      ],
+    }).bindings(principal())
+
+    const ids = bindings
+      .filter(binding => binding.resource.kind === 'workspace')
+      .map(binding => binding.resource.id)
+    expect(ids).toEqual(['ws-own'])
+  })
+
+  it('binds a Session whose working directory is inside the caller sandbox', () => {
+    const bindings = policy({
+      sessions: [
+        { id: 's-own', cwd: `${ownRoot}/default` },
+        { id: 's-foreign', cwd: `${foreignRoot}/default` },
+      ],
+    }).bindings(principal())
+
+    const ids = bindings
+      .filter(binding => binding.resource.kind === 'session')
+      .map(binding => binding.resource.id)
+    expect(ids).toEqual(['s-own'])
+  })
+
+  it('grants the same endpoint set on an owned resource as on the global surface', () => {
+    const bindings = policy({ workspaces: [{ id: 'ws-own', path: `${ownRoot}/default` }] })
+      .bindings(principal('member'))
+    const global = bindings.find(binding => binding.resource.kind === 'global')!
+    const workspace = bindings.find(binding => binding.resource.kind === 'workspace')!
+    expect(workspace.role.actions).toEqual(global.role.actions)
+    expect(workspace.role.actions).toContain('workspace/delete')
+    expect(workspace.role.actions).toContain('session/create')
+  })
+
+  it('grants no resource binding when the Host mounts neither store', () => {
+    const bindings = policy().bindings(principal())
+    expect(bindings).toHaveLength(1)
+    expect(bindings[0]!.resource).toEqual({ kind: 'global' })
+  })
+})

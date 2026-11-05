@@ -158,10 +158,42 @@ describe('DirectoryPicker and Workspace Tenant Isolation (authenticated)', () =>
     const created = await commands.create({ path: 'my-subfolder' }, identity)
     expect(created.workspace.path).toContain(userSandbox)
 
-    // Attempt to delete foreign workspace throws forbidden
-    await expect(commands.delete({ workspaceId: WorkspaceId('ws-foreign') }, identity)).rejects.toThrow(
-      /Access denied: cannot delete workspace outside authorized sandbox/,
-    )
+    // A foreign Workspace answers not-found: confirming it exists under
+    // another tenant would leak that tenant's directory.
+    await expect(commands.delete({ workspaceId: WorkspaceId('ws-foreign') }, identity)).rejects.toMatchObject({
+      code: 'workspace/not-found',
+    })
+  })
+
+  it('lets a platform operator manage a Workspace outside its own sandbox', async () => {
+    const ctx = new Context()
+    roots.push(ctx)
+
+    const tenantId = 'tenant-gamma'
+    const userId = 'user-789'
+    const userSandbox = resolveUserSandboxRoot(tenantId, userId)
+
+    await ctx.plugin(makeAuthPlugin(tenantId, userId))
+
+    ctx.provide('workspaceRegistry', {
+      get: (id: string) => (id === 'ws-foreign'
+        ? { id: 'ws-foreign', title: 'Foreign', path: '/var/other/proj', sessionIds: [] }
+        : undefined),
+      delete: async () => true,
+    })
+
+    const commands = new WorkspaceCommands(ctx)
+    const operator = {
+      tenantId, userId, role: 'owner', email: 'operator@example.com', isAdmin: true,
+    } as UserIdentity
+
+    await expect(commands.delete({ workspaceId: WorkspaceId('ws-foreign') }, operator))
+      .resolves.toEqual({ deleted: true })
+    // The same call from a tenant caller without the operator flag stays confined.
+    const confined = { tenantId, userId, role: 'owner', email: 'owner@example.com' } as UserIdentity
+    await expect(commands.delete({ workspaceId: WorkspaceId('ws-foreign') }, confined))
+      .rejects.toMatchObject({ code: 'workspace/not-found' })
+    expect(userSandbox).toContain(tenantId)
   })
 
   it('auto-provisions initial workspace inside tenant sandbox', async () => {

@@ -24,6 +24,12 @@
       "path": "../remote-access/tsconfig.host.json"
     },
     {
+      "path": "../../core/session"
+    },
+    {
+      "path": "../../workspace/workspace"
+    },
+    {
       "path": "../../typert/protocol"
     },
     {

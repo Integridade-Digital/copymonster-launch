@@ -15,6 +15,22 @@ function NoConversationWidthControls() {
 }
 
 /**
+ * Turn a Workspace pick failure into reader-facing copy.
+ *
+ * A sandbox the tenant's own uid cannot write is the one failure worth naming
+ * on its own: the Host reports the raw `EACCES` from `mkdir`, which says
+ * nothing to a creator.
+ * @param error - rejection of the Workspace connection.
+ * @param t - the Conversation locale seat.
+ * @returns the sentence shown under the Workspace chip.
+ */
+function workspaceFailureMessage(error: unknown, t: ConversationContentProps['t']): string {
+  const detail = error instanceof Error ? error.message : String(error)
+  if (/EACCES|EPERM|permission denied/iu.test(detail)) return t('hero.workspacePermissionDenied')
+  return t('hero.workspacePickFailed').replace('{reason}', detail)
+}
+
+/**
  * Render the shared Conversation body and its occurrence-selected local Components.
  * @param props - Factory input, standard Session sources, and Conversation seats.
  * @returns the Conversation view, Composer, and optional width controls.
@@ -40,6 +56,9 @@ export function ConversationContent(props: ConversationContentProps) {
 
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pendingWorkspaceId, setPendingWorkspaceId] = useState<WorkspaceId | undefined>()
+  // A pick that failed (a sandbox the Host cannot write, a refused connection)
+  // stays visible: the chip alone would look like nothing happened.
+  const [workspaceError, setWorkspaceError] = useState<string | undefined>()
   const pickerAnchor = useRef<HTMLButtonElement>(null)
 
   // Publishes the two live measurements floating View chrome reads off the
@@ -108,36 +127,45 @@ export function ConversationContent(props: ConversationContentProps) {
     : workspaceDisplayTitle(storedChipTitle, t('workspace.defaultName'))
 
   const heroWorkspaceRow = (
-    <div className={css.heroWorkspaceRow}>
-      <WorkspaceChip
-        buttonRef={pickerAnchor}
-        label={chipTitle}
-        menuOpen={pickerOpen}
-        onClick={() => { setPickerOpen(open => !open) }}
-        // The row only renders in the hero; a still-undefined title means the
-        // creator has not picked a workspace yet — the moment the nudge targets.
-        guide={chipTitle === undefined}
-        t={t}
-      />
-      {renderSlot('conversation.hero.workspace', {
-        open: pickerOpen,
-        anchorRef: pickerAnchor,
-        selectedId: pendingWorkspaceId ?? sessionWorkspace?.workspaceId,
-        onPick: async (workspaceId) => {
-          setPickerOpen(false)
-          setPendingWorkspaceId(workspaceId)
-          try {
-            await selectWorkspace(workspaceId)
-          } catch (err) {
-            console.error('[conversation] workspace selection failed:', err)
-            setPendingWorkspaceId(current => current === workspaceId ? undefined : current)
-          }
-        },
-        onClose: () => { setPickerOpen(false) },
-      })}
-      {renderSlot('conversation.hero.agentPreset', {})}
-      {sessionId === undefined ? null : <div className={css.heroOptions}>{renderSlot('conversation.hero.options', {})}</div>}
-    </div>
+    <>
+      <div className={css.heroWorkspaceRow}>
+        <WorkspaceChip
+          buttonRef={pickerAnchor}
+          label={chipTitle}
+          menuOpen={pickerOpen}
+          onClick={() => { setPickerOpen(open => !open) }}
+          // The row only renders in the hero; a still-undefined title means the
+          // creator has not picked a workspace yet — the moment the nudge targets.
+          guide={chipTitle === undefined}
+          t={t}
+        />
+        {renderSlot('conversation.hero.workspace', {
+          open: pickerOpen,
+          anchorRef: pickerAnchor,
+          selectedId: pendingWorkspaceId ?? sessionWorkspace?.workspaceId,
+          onPick: async (workspaceId) => {
+            setPickerOpen(false)
+            setWorkspaceError(undefined)
+            setPendingWorkspaceId(workspaceId)
+            try {
+              await selectWorkspace(workspaceId)
+            } catch (error: unknown) {
+              // The Host refuses a Workspace it cannot open (an unwritable
+              // sandbox, a path outside the tenant root); report it instead of
+              // leaving the composer inert with no explanation.
+              setPendingWorkspaceId(current => current === workspaceId ? undefined : current)
+              setWorkspaceError(workspaceFailureMessage(error, t))
+            }
+          },
+          onClose: () => { setPickerOpen(false) },
+        })}
+        {renderSlot('conversation.hero.agentPreset', {})}
+        {sessionId === undefined ? null : <div className={css.heroOptions}>{renderSlot('conversation.hero.options', {})}</div>}
+      </div>
+      {workspaceError !== undefined && (
+        <p className={css.workspacePickError} role="alert">{workspaceError}</p>
+      )}
+    </>
   )
 
   // The placeholder chip ("Choose workspace") and the Workspace-trigger input travel

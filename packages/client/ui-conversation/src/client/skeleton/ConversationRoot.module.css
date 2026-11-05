@@ -583,6 +583,16 @@
   padding: 0 16px 0 20px;
 }
 
+/* A Workspace pick the Host refused: the chip keeps its placeholder, and this
+   line names why the composer stayed inert. */
+.workspacePickError {
+  margin: 6px 0 0;
+  padding: 0 16px 0 20px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--dsw-alias-state-error-primary);
+}
+
 /* Plugin options share the row, pushed to its right edge. */
 .heroOptions {
   display: flex;

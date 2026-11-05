@@ -7,6 +7,8 @@ import { installImSettingsHidden } from './components/im/installImSettingsHidden
 import { ProfilePage } from './pages/ProfilePage'
 import { PlansPage } from './pages/billing/PlansPage'
 import { MyDnaPage } from './pages/settings/MyDnaPage'
+import { AffiliateSettings } from './pages/settings/AffiliateSettings'
+import { captureAffiliateRef } from './lib/affiliate'
 /** Browser entry for the Web client. */
 import React from 'react'
 import { createRoot } from 'react-dom/client'
@@ -28,6 +30,7 @@ import './cm-theme.css'
 import './auth.css'
 
 installShellLocaleBridge()
+if (typeof window !== 'undefined') captureAffiliateRef(window.location.search, window.localStorage)
 
 interface DesktopBootGlobal {
   dshDesktopBoot?: {
@@ -242,6 +245,10 @@ function MyDnaSettingsItem() {
   return <MyDnaPage onClose={() => {}} />
 }
 
+function AffiliateSettingsItem() {
+  return <AffiliateSettings />
+}
+
 const LazyWebApp = React.lazy(async () => {
   const { AppWebEntry, applyIndexInjections: applyInjections } = await import('@deepseek-ai/dsh-client-web')
 
@@ -269,6 +276,12 @@ const LazyWebApp = React.lazy(async () => {
               yield ctx.slots.register(
                 { name: 'settings.plans.item', id: 'copymonster-settings-plans', order: 0 },
                 PlansSettingsItem,
+              )
+            })
+            ctx.slots.inject('settings.affiliate.item', function* () {
+              yield ctx.slots.register(
+                { name: 'settings.affiliate.item', id: 'copymonster-settings-affiliate', order: 0 },
+                AffiliateSettingsItem,
               )
             })
             ctx.slots.inject('settings.my-dna.item', function* () {

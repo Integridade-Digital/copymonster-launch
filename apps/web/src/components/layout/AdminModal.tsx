@@ -7,7 +7,8 @@ import { AdminSystemTab } from '../../pages/admin/tabs/AdminSystemTab'
 import { AdminSessionsTab } from '../../pages/admin/tabs/AdminSessionsTab'
 import { AdminAuditTab } from '../../pages/admin/tabs/AdminAuditTab'
 import { AdminBillingTab } from '../../pages/admin/tabs/AdminBillingTab'
-import { t, getActiveLocale } from '../../locales'
+import { AdminAffiliates } from '../../pages/admin/tabs/AdminAffiliates'
+import { t } from '../../locales'
 import css from './FooterActionsRoot.module.css'
 
 interface AdminModalProps {
@@ -25,6 +26,7 @@ export type AdminTabKey =
   | 'sessions'
   | 'audit'
   | 'billing'
+  | 'affiliates'
 
 interface TabConfig {
   key: AdminTabKey
@@ -41,12 +43,12 @@ const ADMIN_TABS: TabConfig[] = [
   { key: 'sessions', labelEn: 'Sessions', labelZh: '会话', icon: '💬' },
   { key: 'audit', labelEn: 'Audit', labelZh: '审计', icon: '📜' },
   { key: 'billing', labelEn: 'Billing', labelZh: '账单', icon: '💳' },
+  { key: 'affiliates', labelEn: 'Affiliates', labelZh: '联盟', icon: '🤝' },
 ]
 
 export function AdminModal({ isOpen, onClose, triggerRef, isPlatformAdmin }: AdminModalProps) {
   const panelRef = useRef<HTMLDivElement>(null)
   const [activeTab, setActiveTab] = useState<AdminTabKey>('overview')
-  const lang = getActiveLocale()
 
   const titleId = useId()
   useFocusTrap(panelRef, { isOpen, onClose, triggerRef })
@@ -55,7 +57,7 @@ export function AdminModal({ isOpen, onClose, triggerRef, isPlatformAdmin }: Adm
 
   const isAuthorized = isPlatformAdmin === true
   const activeTabConfig = ADMIN_TABS.find(t => t.key === activeTab) || ADMIN_TABS[0]
-  const activeTabTitle = activeTabConfig ? (lang === 'zh' ? activeTabConfig.labelZh : activeTabConfig.labelEn) : 'Overview'
+  const activeTabTitle = activeTab === 'affiliates' ? t('admin.affiliates.title') : activeTabConfig ? t(`admin.tab.${activeTab === 'system' ? 'settings' : activeTab}` as any) : t('admin.tab.overview')
 
   return (
     <div className={css.overlay} role="presentation">
@@ -76,7 +78,7 @@ export function AdminModal({ isOpen, onClose, triggerRef, isPlatformAdmin }: Adm
               <div className={css.railList}>
                 {ADMIN_TABS.map((tab) => {
                   const isActive = activeTab === tab.key
-                  const label = lang === 'zh' ? `${tab.labelEn} (${tab.labelZh})` : tab.labelEn
+                  const label = tab.key === 'affiliates' ? t('admin.affiliates.title') : t(`admin.tab.${tab.key === 'system' ? 'settings' : tab.key}` as any)
                   return (
                     <button
                       key={tab.key}
@@ -116,6 +118,7 @@ export function AdminModal({ isOpen, onClose, triggerRef, isPlatformAdmin }: Adm
                 {activeTab === 'sessions' && <AdminSessionsTab />}
                 {activeTab === 'audit' && <AdminAuditTab />}
                 {activeTab === 'billing' && <AdminBillingTab />}
+                {activeTab === 'affiliates' && <AdminAffiliates />}
               </div>
             </div>
           </>

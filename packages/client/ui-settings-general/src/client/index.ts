@@ -32,6 +32,7 @@ import { GeneralSection } from './GeneralSection.tsx'
 import { ProfileSection } from './ProfileSection.tsx'
 import { PlansSection } from './PlansSection.tsx'
 import { MyDnaSection } from './MyDnaSection.tsx'
+import { AffiliateSection } from './AffiliateSection.tsx'
 import { SettingsDocumentAction } from './SettingsDocumentAction.tsx'
 import type { SettingsDocumentActionInjected } from './SettingsDocumentAction.tsx'
 import { SettingsDocumentStore } from './settings-document-store.ts'
@@ -58,6 +59,7 @@ declare module '@deepseek-ai/dsh-client-ui-slots' {
     'settings.profile.item': { kind: 'list'; scope: 'root' }
     'settings.plans.item': { kind: 'list'; scope: 'root' }
     'settings.my-dna.item': { kind: 'list'; scope: 'root' }
+    'settings.affiliate.item': { kind: 'list'; scope: 'root' }
   }
 }
 
@@ -228,4 +230,12 @@ export function apply(ctx: ClientContext): void {
     locale: NS,
     children: { 'settings.my-dna.item': { kind: 'list', scope: 'root' } },
   }, MyDnaSection))
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'affiliate',
+    order: 13,
+    label: () => t('affiliate.nav'),
+    locale: NS,
+    children: { 'settings.affiliate.item': { kind: 'list', scope: 'root' } },
+  }, AffiliateSection))
 }

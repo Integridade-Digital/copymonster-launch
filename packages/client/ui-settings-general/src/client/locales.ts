@@ -31,6 +31,7 @@ export const zh = {
   'profile.nav': '个人资料',
   'plans.nav': '计划',
   'my-dna.nav': '我的 DNA',
+  'affiliate.nav': '联盟伙伴',
   'general.currentVersion': '当前版本：{version}',
   'developerTools.title': '显示代码工作视图',
   'developerTools.error': '保存失败，请重试',
@@ -83,6 +84,7 @@ export const en = {
   'profile.nav': 'Profile',
   'plans.nav': 'Plans',
   'my-dna.nav': 'My DNA',
+  'affiliate.nav': 'Affiliate',
   'general.currentVersion': 'Current version: {version}',
   'developerTools.title': 'Show coding view',
   'developerTools.error': 'Could not save. Please try again.',
@@ -146,6 +148,7 @@ export const ja = {
   'hostRelease.unknown': '不明',
   'hostRelease.reload': '再読み込みして新しいバージョンを読み込む',
   'hostRelease.later': '後で',
+  'affiliate.nav': 'アフィリエイト',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
@@ -193,6 +196,7 @@ export const es = {
   'hostRelease.unknown': 'Desconocido',
   'hostRelease.reload': 'Recargar para cargar la nueva versión.',
   'hostRelease.later': 'Ahora no',
+  'affiliate.nav': 'Afiliados',
 } satisfies Record<keyof typeof en, string>
 
 /** French dictionary, checked against the English keys. */
@@ -240,6 +244,7 @@ export const fr = {
   'hostRelease.unknown': 'Inconnu',
   'hostRelease.reload': 'Recharger pour charger la nouvelle version',
   'hostRelease.later': 'Pas maintenant',
+  'affiliate.nav': 'Affiliation',
 } satisfies Record<keyof typeof en, string>
 
 /** German dictionary, checked against the English keys. */
@@ -287,6 +292,7 @@ export const de = {
   'hostRelease.unknown': 'Unbekannt',
   'hostRelease.reload': 'Neu laden, um die neue Version zu laden',
   'hostRelease.later': 'Nicht jetzt',
+  'affiliate.nav': 'Partnerprogramm',
 } satisfies Record<keyof typeof en, string>
 
 /** Russian dictionary, checked against the English keys. */
@@ -334,6 +340,7 @@ export const ru = {
   'hostRelease.unknown': 'Неизвестно',
   'hostRelease.reload': 'Перезагрузите, чтобы загрузить новую версию',
   'hostRelease.later': 'Не сейчас',
+  'affiliate.nav': 'Партнёры',
 } satisfies Record<keyof typeof en, string>
 
 /** Portuguese dictionary, checked against the English keys. */
@@ -381,4 +388,5 @@ export const pt = {
   'hostRelease.unknown': 'Desconhecido',
   'hostRelease.reload': 'Recarregue para carregar a nova versão',
   'hostRelease.later': 'Agora não',
+  'affiliate.nav': 'Afiliados',
 } satisfies Record<keyof typeof en, string>

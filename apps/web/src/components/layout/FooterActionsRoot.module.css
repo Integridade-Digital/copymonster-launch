@@ -60,7 +60,9 @@
   flex-shrink: 0;
 }
 
-/* Modal overlay — Settings pattern matching SettingsRoot */
+/* Modal shell — the same pane geometry, elevation tokens and rhythm as the
+ * Settings dialog (SettingsRoot.module.css). Admin, Profile and Plans share
+ * this single shell so every dialog reads as one design system. */
 .overlay {
   position: fixed;
   inset: 0;
@@ -73,11 +75,10 @@
 .mask {
   position: absolute;
   inset: 0;
-  background: color-mix(in srgb, black 65%, transparent);
-  backdrop-filter: blur(4px);
+  background: var(--dsw-alias-bg-mask-1);
+  backdrop-filter: var(--dsw-mask-blur);
 }
 
-/* Panel (Settings pattern: 800px x min(800px, 100vh - 48px), dark/gold theme) */
 .panel {
   position: relative;
   z-index: 1;
@@ -85,72 +86,69 @@
   width: 800px;
   height: min(800px, calc(100vh - 48px));
   max-width: calc(100vw - 48px);
-  border-radius: 20px;
+  border-radius: 32px;
   overflow: hidden;
-  background: var(--cm-background);
-  border: 1px solid var(--cm-border);
-  box-shadow: var(--cm-shadow);
-  color: var(--cm-foreground);
+  background: var(--dsw-alias-bg-layer-2);
+  box-shadow: var(--dsw-elevation-prominent);
+  color: var(--dsw-alias-label-primary);
   font-family: inherit;
+  --dsh-scrollbar-thumb: var(--dsw-alias-scrollbar-bg-l2);
+  --dsh-scrollbar-thumb-hover: var(--dsw-alias-scrollbar-hover-l2);
 }
 
-/* Vertical Nav Rail on Left */
+/* Vertical nav rail, matching the Settings section rail. */
 .navRail {
   flex: none;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  width: 196px;
-  padding: 20px 12px 16px;
+  gap: 18px;
+  width: 188px;
+  padding: 22px 12px 0;
   box-sizing: border-box;
-  background: var(--cm-card);
-  border-right: 1px solid var(--cm-secondary);
 }
 
 .railTitle {
-  padding: 0 10px;
-  font-size: 14px;
-  line-height: 20px;
-  font-weight: 600;
-  color: var(--cm-foreground);
+  padding: 0 12px;
+  font-size: var(--cm-font-size-lg);
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
 }
 
 .railList {
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 4px;
   overflow-y: auto;
 }
 
 .railCell {
   display: flex;
   align-items: center;
-  gap: 10px;
-  min-height: 44px;
-  padding: 0 12px;
+  gap: 8px;
+  height: 40px;
+  padding: 9px 16px 9px 12px;
   box-sizing: border-box;
   border: none;
-  border-radius: 8px;
+  border-radius: var(--cm-radius-lg);
   background: transparent;
   cursor: pointer;
   font-family: inherit;
-  font-size: 13px;
-  line-height: 20px;
+  font-size: var(--cm-font-size-md);
+  line-height: 22px;
   font-weight: 400;
-  color: var(--cm-muted-foreground);
+  color: var(--dsw-alias-label-primary);
   text-align: left;
-  transition: all 0.15s ease;
 }
 
 .railCell:hover {
-  background: color-mix(in srgb, var(--cm-foreground) 5%, transparent);
-  color: var(--cm-foreground);
+  background: var(--dsw-specific-sidebar-nav-item-hover);
 }
 
 .railCellActive {
-  background: color-mix(in srgb, var(--cm-primary) 12%, transparent);
-  color: var(--cm-primary);
-  font-weight: 500;
+  background: var(--dsw-specific-sidebar-nav-item-active);
+  color: var(--dsw-alias-label-primary);
+  font-weight: 400;
 }
 
 .railLabel {
@@ -161,31 +159,32 @@
   text-overflow: ellipsis;
 }
 
-/* Content Area on Right */
+/* Content column: header + scrolling body, aligned with the Settings panel. */
 .contentArea {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: var(--cm-background);
 }
 
-/* Header with Close X */
+/* Header matching the Settings header rhythm (54px, 20 top, 14 right), with
+ * the title left-aligned to the 24px body inset. */
 .header {
   flex: none;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  height: 52px;
-  padding: 12px 20px;
+  gap: 8px;
+  height: 54px;
+  padding: 20px 14px 8px 24px;
   box-sizing: border-box;
-  border-bottom: 1px solid var(--cm-secondary);
 }
 
 .headerTitle {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--cm-foreground);
+  font-size: var(--cm-font-size-lg);
+  line-height: 24px;
+  font-weight: 500;
+  color: var(--dsw-alias-label-primary);
 }
 
 .closeButton {
@@ -196,32 +195,31 @@
   height: 28px;
   padding: 0;
   border: none;
-  border-radius: 6px;
+  border-radius: 28px;
   background: transparent;
   cursor: pointer;
-  color: var(--cm-muted-foreground);
-  transition: all 0.15s ease;
+  color: var(--dsw-alias-label-primary);
 }
 
 .closeButton:hover {
-  background: color-mix(in srgb, var(--cm-foreground) 8%, transparent);
-  color: var(--cm-foreground);
+  background: var(--dsw-alias-interactive-bg-hover);
 }
 
-/* Body container that scrolls */
+/* Body container that scrolls, with the Settings options inset. */
 .bodyScroll {
   flex: 1;
   min-height: 0;
-  padding: 20px;
+  padding: 16px 24px 24px;
   overflow-y: auto;
 }
 
-/* Typography and element normalization matching Settings exactly */
+/* Typography and element normalization matching the Affiliate section whose
+ * controls Admin shares (38px fields, 9/18 buttons, 10/14 table cells). */
 .bodyScroll h2,
 .bodyScroll h3 {
-  font-size: 14px !important;
+  font-size: var(--cm-font-size-md) !important;
   font-weight: 600 !important;
-  color: var(--cm-foreground) !important;
+  color: var(--dsw-alias-label-primary) !important;
   margin: 0 0 8px 0 !important;
   line-height: 20px !important;
 }
@@ -234,13 +232,14 @@
   margin: 0 0 12px 0 !important;
 }
 
+/* Unstyled labels inherit the field rhythm; module-labeled fields keep their
+ * own layout because a class selector outranks this element rule. */
 .bodyScroll label {
   display: block;
-  font-size: 13px !important;
-  font-weight: 500 !important;
-  color: var(--cm-muted-foreground) !important;
-  margin-bottom: 6px !important;
-  white-space: nowrap;
+  font-size: var(--cm-font-size-sm);
+  font-weight: 600;
+  color: var(--cm-muted-foreground);
+  margin-bottom: 6px;
 }
 
 .bodyScroll input[type="text"],
@@ -249,12 +248,12 @@
 .bodyScroll input[type="number"],
 .bodyScroll input[type="search"],
 .bodyScroll select {
-  height: 32px !important;
+  height: 38px !important;
   font-size: 13px !important;
   line-height: 20px !important;
   background: var(--cm-background) !important;
   border: 1px solid var(--cm-border) !important;
-  border-radius: 6px !important;
+  border-radius: var(--cm-radius-md) !important;
   padding: 0 12px !important;
   color: var(--cm-foreground) !important;
   box-sizing: border-box !important;
@@ -269,19 +268,19 @@
 
 .bodyScroll button.primary,
 .bodyScroll button[type="submit"]:not(.secondary) {
-  height: 32px !important;
+  min-height: 38px !important;
   font-size: 13px !important;
-  font-weight: 500 !important;
+  font-weight: 600 !important;
   background: var(--cm-primary) !important;
   color: var(--cm-primary-foreground) !important;
-  border: none !important;
-  border-radius: 6px !important;
-  padding: 0 16px !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--cm-radius-md) !important;
+  padding: 9px 18px !important;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
   transition: opacity 0.15s ease;
 }
 
@@ -291,23 +290,24 @@
 }
 
 .bodyScroll button.secondary {
-  height: 32px !important;
+  min-height: 38px !important;
   font-size: 13px !important;
-  background: transparent !important;
+  font-weight: 600 !important;
+  background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
   color: var(--cm-foreground) !important;
-  border-radius: 6px !important;
-  padding: 0 16px !important;
+  border-radius: var(--cm-radius-md) !important;
+  padding: 9px 18px !important;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 6px;
+  gap: 8px;
 }
 
 .bodyScroll button.secondary:hover {
-  background: color-mix(in srgb, var(--cm-foreground) 5%, transparent) !important;
-  border-color: var(--cm-muted-foreground) !important;
+  background: var(--cm-muted) !important;
+  border-color: var(--cm-border) !important;
 }
 
 /* Tables in admin tabs */
@@ -319,19 +319,19 @@
 }
 
 .bodyScroll th {
-  font-size: 12px !important;
-  font-weight: 500 !important;
+  font-size: var(--cm-font-size-sm) !important;
+  font-weight: 600 !important;
   color: var(--cm-muted-foreground) !important;
   text-align: left !important;
-  padding: 8px 12px !important;
+  padding: 10px 14px !important;
   border-bottom: 1px solid var(--cm-border) !important;
-  background: var(--cm-card) !important;
+  background: var(--cm-muted) !important;
   white-space: nowrap !important;
 }
 
 .bodyScroll td {
-  padding: 8px 12px !important;
-  border-bottom: 1px solid var(--cm-secondary) !important;
+  padding: 12px 14px !important;
+  border-bottom: 1px solid var(--cm-border) !important;
   color: var(--cm-foreground) !important;
   vertical-align: middle !important;
 }
@@ -346,7 +346,6 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  background: var(--cm-background);
 }
 
 .adminRestricted {

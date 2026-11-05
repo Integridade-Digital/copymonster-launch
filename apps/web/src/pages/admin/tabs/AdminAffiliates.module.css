@@ -1,20 +1,175 @@
-.root { display:flex; flex-direction:column; gap:16px; color:var(--cm-foreground); }
-.tabs { display:flex; gap:8px; flex-wrap:wrap; border-bottom:1px solid var(--cm-border); padding-bottom:10px; }
-.tab, .button, .secondary { border:1px solid var(--cm-border); border-radius:8px; background:var(--cm-card); color:var(--cm-foreground); padding:8px 12px; font:inherit; cursor:pointer; }
-.tabActive, .button { background:var(--cm-primary); color:var(--cm-primary-foreground, #111); border-color:var(--cm-primary); }
-.secondary { background:transparent; }
-.button:disabled, .secondary:disabled { opacity:.55; cursor:not-allowed; }
-.error, .success { border-radius:8px; padding:10px 12px; }
-.error { color:var(--cm-destructive, #f87171); background:color-mix(in srgb, var(--cm-destructive, #f87171) 10%, transparent); }
-.success { color:var(--cm-primary); background:color-mix(in srgb, var(--cm-primary) 10%, transparent); }
-.tableWrap { overflow:auto; border:1px solid var(--cm-border); border-radius:10px; }
-.table { border-collapse:collapse; width:100%; min-width:680px; font-size:13px; }
-.table th, .table td { padding:10px 12px; border-bottom:1px solid var(--cm-border); text-align:left; vertical-align:top; }
-.table th { color:var(--cm-muted-foreground); font-weight:600; }
-.actions { display:flex; gap:6px; flex-wrap:wrap; }
-.input, .select { width:100%; min-height:38px; border:1px solid var(--cm-border); border-radius:8px; padding:8px 10px; background:var(--cm-background); color:var(--cm-foreground); font:inherit; }
-.form { max-width:540px; display:grid; gap:12px; }
-.label { display:grid; gap:6px; color:var(--cm-muted-foreground); font-size:13px; }
-.reason { min-width:180px; }
-.loading, .empty { color:var(--cm-muted-foreground); padding:20px 4px; }
-.status { display:inline-flex; border-radius:999px; padding:3px 8px; background:color-mix(in srgb, var(--cm-primary) 12%, transparent); font-size:12px; white-space:nowrap; }
+/* Admin affiliate queues share the control geometry of the Affiliate section
+ * rendered in Settings (AffiliateSettings.module.css). */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: var(--cm-foreground);
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--cm-border);
+  padding-bottom: 12px;
+}
+
+.tab,
+.button,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 9px 18px;
+  border: 1px solid var(--cm-border);
+  border-radius: var(--cm-radius-md);
+  background: var(--cm-card);
+  color: var(--cm-foreground);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, opacity 0.15s ease;
+}
+
+.tab:hover,
+.secondary:hover:not(:disabled) {
+  background: var(--cm-muted);
+}
+
+.tabActive,
+.button {
+  background: var(--cm-primary);
+  border-color: var(--cm-primary);
+  color: var(--cm-primary-foreground);
+}
+
+.tabActive:hover,
+.button:hover:not(:disabled) {
+  background: var(--cm-primary);
+  opacity: 0.9;
+}
+
+.secondary {
+  background: var(--cm-card);
+}
+
+.button:disabled,
+.secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error,
+.success {
+  border-radius: var(--cm-radius-md);
+  padding: 12px 16px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.error {
+  color: var(--cm-destructive);
+  background: color-mix(in srgb, var(--cm-destructive) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cm-destructive) 25%, transparent);
+}
+
+.success {
+  color: var(--cm-foreground);
+  background: color-mix(in srgb, var(--cm-success) 10%, transparent);
+  border: 1px solid color-mix(in srgb, var(--cm-success) 25%, transparent);
+}
+
+.tableWrap {
+  overflow: auto;
+  border: 1px solid var(--cm-border);
+  border-radius: var(--cm-radius-md);
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 680px;
+  font-size: 13px;
+  text-align: left;
+}
+
+.table th,
+.table td {
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--cm-border);
+  text-align: left;
+  vertical-align: top;
+}
+
+.table th {
+  background: var(--cm-muted);
+  color: var(--cm-muted-foreground);
+  font-size: var(--cm-font-size-sm);
+  font-weight: 600;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.input,
+.select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--cm-border);
+  border-radius: var(--cm-radius-md);
+  padding: 0 12px;
+  background: var(--cm-background);
+  color: var(--cm-foreground);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.input:focus,
+.select:focus {
+  border-color: var(--cm-primary);
+}
+
+.form {
+  max-width: 540px;
+  display: grid;
+  gap: 16px;
+}
+
+.label {
+  display: grid;
+  gap: 6px;
+  color: var(--cm-muted-foreground);
+  font-size: 13px;
+}
+
+.reason {
+  min-width: 180px;
+}
+
+.loading,
+.empty {
+  color: var(--cm-muted-foreground);
+  padding: 40px 4px;
+  font-size: 13px;
+}
+
+.status {
+  display: inline-flex;
+  border-radius: 999px;
+  padding: 3px 10px;
+  background: color-mix(in srgb, var(--cm-primary) 12%, transparent);
+  font-size: var(--cm-font-size-sm);
+  white-space: nowrap;
+}

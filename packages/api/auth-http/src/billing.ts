@@ -1,3 +1,8 @@
+import {
+  processAffiliateCommissionFromInvoice,
+  processAffiliateRefundFromCharge,
+  UUID_REGEX,
+} from './affiliate-processor.ts'
 /**
  * CopyMonster Stripe Billing and Webhook handlers.
  * Runs on ctx.webServer using native fetch and node:crypto (zero external dependencies).
@@ -313,10 +318,19 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
     return
   }
 
-  // The body is caller-supplied but no longer selects the price or the
-  // redirect targets; read it only to enforce the byte cap.
+  // The body is caller-supplied; parse it to read optional affiliate tracking
+  // and enforce the byte cap.
   const raw = await readBoundedBody(req, res)
   if (raw === undefined) return
+
+  const parsedBody = parseJsonObject(raw)
+  const affiliateIdCandidate = optionalString(parsedBody ?? {}, 'affiliateId')
+    ?? optionalString(parsedBody ?? {}, 'affiliate_id')
+  if (affiliateIdCandidate !== undefined && !UUID_REGEX.test(affiliateIdCandidate)) {
+    sendJson(res, 400, { error: 'invalid_affiliate_id', message: 'affiliateId must be a valid UUID' })
+    return
+  }
+  const affiliateId = affiliateIdCandidate !== undefined ? affiliateIdCandidate.toLowerCase() : undefined
 
   try {
     // 1. Check or create Stripe Customer
@@ -376,7 +390,7 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
 
     // 3. Create Checkout Session. Redirects always return to the platform
     // origin, so a caller cannot turn checkout into an open redirect.
-    const session = await callStripe('/checkout/sessions', {
+    const sessionParams: Record<string, string | number | boolean | undefined> = {
       customer: customerId,
       mode: 'subscription',
       'payment_method_types[0]': 'card',
@@ -387,7 +401,14 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
       'metadata[tenant_id]': identity.tenantId,
       'metadata[user_id]': identity.userId,
       'subscription_data[metadata][tenant_id]': identity.tenantId,
-    }, stripeKey)
+    }
+
+    if (affiliateId !== undefined) {
+      sessionParams['metadata[affiliate_id]'] = affiliateId
+      sessionParams['subscription_data[metadata][affiliate_id]'] = affiliateId
+    }
+
+    const session = await callStripe('/checkout/sessions', sessionParams, stripeKey)
 
     sendJson(res, 200, { url: session.url, sessionId: session.id })
   } catch (err: unknown) {
@@ -595,7 +616,8 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
         break
       }
 
-      case 'invoice.payment_succeeded': {
+      case 'invoice.payment_succeeded':
+      case 'invoice.paid': {
         // On recurring subscription cycle renewal, reset current cycle token meter
         const customerId = optionalString(object, 'customer')
         if (optionalString(object, 'billing_reason') === 'subscription_cycle' && customerId !== undefined) {
@@ -607,6 +629,15 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
             })
             .eq('stripe_customer_id', customerId)
         }
+
+        // Process affiliate commission if invoice carries affiliate_id metadata
+        const eventId = optionalString(payload, 'id') ?? ''
+        await processAffiliateCommissionFromInvoice(object, eventId)
+        break
+      }
+
+      case 'charge.refunded': {
+        await processAffiliateRefundFromCharge(object)
         break
       }
 
@@ -635,3 +666,8 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
     sendJson(res, 500, { error: message || 'webhook_processing_failed' })
   }
 }
+
+export {
+  processAffiliateCommissionFromInvoice,
+  processAffiliateRefundFromCharge,
+} from './affiliate-processor.ts'

@@ -35,7 +35,15 @@ import { clientKey, createRateLimiter, type RateLimiter } from './rate-limit.ts'
 import z from '@deepseek-ai/schemastery'
 
 export type { AuthErrorResponse, AuthIdentityResponse } from './types.ts'
-export { handleCheckout, handlePortal, handleWebhook, readRawBody, verifyStripeSignature } from './billing.ts'
+export {
+  handleCheckout,
+  handlePortal,
+  handleWebhook,
+  readRawBody,
+  verifyStripeSignature,
+  processAffiliateCommissionFromInvoice,
+  processAffiliateRefundFromCharge,
+} from './billing.ts'
 export { handleHealthz, HEALTHZ_PATH } from './health.ts'
 export { handleLlmTest, LLM_TEST_PATH, type LlmTestResult } from './llm-test.ts'
 export { SESSION_TOKEN_PATH, handleSessionToken } from './session-token.ts'

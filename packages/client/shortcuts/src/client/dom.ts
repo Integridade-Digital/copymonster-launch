@@ -74,8 +74,11 @@ export function installKeyboard(window: Window, shortcuts: Pick<ShortcutRegistry
     dialogs ??= document.querySelectorAll<HTMLElement>(modalSelector)
     const top = dialogs[dialogs.length - 1]
     const context: ShortcutContext = { region, modal: top === undefined ? null : top.dataset.shortcutModal ?? 'other', target: element }
-    const guarded = composition.guards(event) || deadKey
-      || event.getModifierState('AltGraph')
+    // Extensions and autofill can dispatch a keydown event without the
+    // KeyboardEvent methods; a missing method means no AltGraph modifier.
+    const altGraph = typeof event.getModifierState === 'function'
+      && event.getModifierState('AltGraph')
+    const guarded = composition.guards(event) || deadKey || altGraph
     const isDead = event.key === 'Dead'
     // macOS can report Option+Command+N as Dead outside input-method composition.
     const commandDeadKey = isDead && shortcuts.runtime === 'web' && shortcuts.platform === 'macos'

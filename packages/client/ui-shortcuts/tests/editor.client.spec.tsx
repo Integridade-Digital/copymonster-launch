@@ -181,6 +181,14 @@ it('retains macOS Web composition and accent guards while recording Option+Comma
   expect(f.onSaved).not.toHaveBeenCalled()
 })
 
+it('ignores a keydown event without KeyboardEvent methods', async () => {
+  const f = await mount()
+  const recorder = screen.getByRole('button', { name: en.record })
+  recorder.blur()
+  expect(() => { document.dispatchEvent(new Event('keydown')) }).not.toThrow()
+  expect(f.storage.write).not.toHaveBeenCalled()
+})
+
 it('records on release, keeps the draft on write failure, and updates all key labels after retry', async () => {
   const f = await mount()
   expect(f.recording).toHaveBeenCalledWith(true)

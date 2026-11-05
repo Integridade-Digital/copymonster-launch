@@ -172,6 +172,7 @@ export const zh = {
   'affiliate.error.load': '无法加载联盟数据：{reason}',
   'affiliate.error.save': '无法保存更改：{reason}',
   'affiliate.error.termsRequired': '请先接受联盟计划条款。',
+  'affiliate.error.invalidTaxId': '请输入 CPF（11 位）或 CNPJ（14 位）。',
   'affiliate.error.invalidPaypalEmail': '请输入有效的 PayPal 邮箱。',
   'affiliate.error.copy': '无法复制链接：{reason}',
   'affiliate.error.payout': '无法申请提现：{reason}',

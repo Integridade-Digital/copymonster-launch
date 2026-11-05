@@ -168,6 +168,12 @@ it('preserves composition, late closing keys, 229, AltGraph, and dead-key input'
   expect(press(input).defaultPrevented).toBe(true)
 })
 
+it('ignores a keydown event without KeyboardEvent methods', () => {
+  const { input, run } = mount()
+  expect(() => { input.dispatchEvent(new Event('keydown', { bubbles: true })) }).not.toThrow()
+  expect(run).not.toHaveBeenCalled()
+})
+
 it('accepts a shortcut after the composition-closing key is released inside a local control', () => {
   const { input, run } = mount()
   fireEvent.compositionStart(input)

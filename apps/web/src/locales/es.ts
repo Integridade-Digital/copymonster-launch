@@ -9,6 +9,7 @@ export const es = {
   'affiliate.error.load': 'No se pudieron cargar los datos: {reason}',
   'affiliate.error.save': 'No se pudieron guardar los cambios: {reason}',
   'affiliate.error.termsRequired': 'Acepta los términos del programa para continuar.',
+  'affiliate.error.invalidTaxId': 'Introduce un CPF (11 dígitos) o CNPJ (14 dígitos).',
   'affiliate.error.invalidPaypalEmail': 'Introduce un correo electrónico de PayPal válido.',
   'affiliate.error.copy': 'No se pudo copiar el enlace: {reason}',
   'affiliate.error.payout': 'No se pudo solicitar el pago: {reason}',

@@ -51,7 +51,6 @@
 .icon svg,
 .tabIcon svg,
 .placeholderIcon svg,
-.railIcon svg,
 .closeButton svg,
 .bodyScroll svg {
   width: 14px;
@@ -152,19 +151,6 @@
   background: color-mix(in srgb, var(--cm-primary) 12%, transparent);
   color: var(--cm-primary);
   font-weight: 500;
-}
-
-.railCellActive .railIcon {
-  color: var(--cm-primary);
-}
-
-.railIcon {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  flex: none;
-  font-size: 14px;
-  color: var(--cm-muted-foreground);
 }
 
 .railLabel {

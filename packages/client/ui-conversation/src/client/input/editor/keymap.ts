@@ -257,7 +257,9 @@ export function registerComposerKeymap(editor: LexicalEditor, handlers: Composer
     editor.registerCommand(KEY_ENTER_COMMAND, (event) => {
       // Returning true stops Lexical's fallback line break without consuming
       // the DOM event that application shortcuts need.
-      if (event !== null && (event.altKey || event.getModifierState('AltGraph')
+      const altGraph = event !== null && typeof event.getModifierState === 'function'
+        && event.getModifierState('AltGraph')
+      if (event !== null && (event.altKey || altGraph
         || (event.ctrlKey && event.metaKey) || (event.shiftKey && (event.ctrlKey || event.metaKey)))) return true
       // Plain Shift+Enter keeps its native line break, including during composition.
       if (event?.shiftKey === true) return false

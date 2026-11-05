@@ -136,6 +136,26 @@ describe('ui-settings-models apply', () => {
     ])
   })
 
+  it('loads tenant metrics with the request argument the gateway requires', async () => {
+    const mock = RemoteMock.create().load(remoteDefaultResponses)
+      .unary('settings/getTenantMetrics', ok({}))
+    const { ctx, slots } = await bench(mock)
+    declare(slots)
+    const plugin = ctx.plugin({ inject: [...inject], apply })
+    await plugin.await()
+    try {
+      const usage = slots.entries('settings.section').find(entry => entry.options.id === 'usage')!
+      const injected = usage.inject?.() ?? {}
+      const load = injected.load
+      if (typeof load !== 'function') throw new Error('usage inject must expose load')
+      await expect((load as () => Promise<unknown>)()).resolves.toEqual({})
+      expect(mock.remote.settings.getTenantMetrics).toHaveBeenCalledWith({})
+    } finally {
+      await plugin.dispose()
+      await ctx.fiber.dispose()
+    }
+  })
+
   it('registers the models nav entry for declarations before or after apply', async () => {
     const before = await bench()
     declare(before.slots)

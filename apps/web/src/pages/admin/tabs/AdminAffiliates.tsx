@@ -1,13 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { supabase } from '../../../lib/supabase/client'
 import { t } from '../../../locales'
+import { errorText } from '../../../lib/error-text'
 import css from './AdminAffiliates.module.css'
 
 type QueueTab = 'profiles' | 'kyc' | 'commissions' | 'payouts' | 'rules'
 type Row = Record<string, any>
 const TAB_KEYS: QueueTab[] = ['profiles', 'kyc', 'commissions', 'payouts', 'rules']
 const asRecord = (data: unknown): Row[] => Array.isArray(data) ? data as Row[] : []
-const errorText = (e: unknown) => e instanceof Error ? e.message : String(e)
 
 export function AdminAffiliates() {
   const [tab, setTab] = useState<QueueTab>('profiles')
@@ -34,7 +34,18 @@ export function AdminAffiliates() {
         (supabase as any).schema('finance').from('payout_requests').select('id,affiliate_id,amount,paypal_email_snapshot,status,created_at').eq('active', true).eq('status', 'REQUESTED').order('created_at').limit(300),
         (supabase as any).schema('affiliate').from('commission_rules').select('id,version_name,percentage,retention_days,min_payout_amount,is_current,created_at').eq('active', true).order('created_at', { ascending: false }).limit(20),
       ])
-      for (const r of [profileRes, kycRes, commissionRes, payoutRes, ruleRes]) if (r.error) throw r.error
+      for (const [label, result] of [
+        ['affiliate.profiles', profileRes],
+        ['affiliate.kyc', kycRes],
+        ['affiliate.commissions', commissionRes],
+        ['finance.payout_requests', payoutRes],
+        ['affiliate.commission_rules', ruleRes],
+      ] as const) {
+        if (result.error) {
+          console.error(`affiliate admin query failed: ${label}`, result.error)
+          throw result.error
+        }
+      }
       setProfiles(asRecord(profileRes.data)); setKyc(asRecord(kycRes.data)); setCommissions(asRecord(commissionRes.data)); setPayouts(asRecord(payoutRes.data)); setRules(asRecord(ruleRes.data))
     } catch (e) { setError(t('admin.affiliates.error.load', { reason: errorText(e) })) }
     finally { setLoading(false) }

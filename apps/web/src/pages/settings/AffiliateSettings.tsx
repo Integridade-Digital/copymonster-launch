@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../lib/supabase/client'
 import { t } from '../../locales'
 import { isValidAffiliateRef } from '../../lib/affiliate'
+import { errorText } from '../../lib/error-text'
 import css from './AffiliateSettings.module.css'
 
 interface AffiliateProfile {
@@ -36,8 +37,10 @@ function money(value: number): string {
   return new Intl.NumberFormat(undefined, { style: 'currency', currency: 'USD' }).format(value)
 }
 
-function getErrorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error)
+/** CPF has 11 digits and CNPJ has 14; punctuation is ignored. */
+function isValidTaxId(value: string): boolean {
+  const digits = value.replace(/\D/g, '')
+  return digits.length === 11 || digits.length === 14
 }
 
 export function AffiliateSettings() {
@@ -89,15 +92,23 @@ export function AffiliateSettings() {
         (supabase as any).schema('affiliate').from('commission_rules')
           .select('min_payout_amount').eq('is_current', true).maybeSingle(),
       ])
-      for (const result of [commissionResult, ledgerResult, payoutResult, ruleResult]) {
-        if (result.error) throw result.error
+      for (const [label, result] of [
+        ['commissions', commissionResult],
+        ['ledger_entries', ledgerResult],
+        ['payout_requests', payoutResult],
+        ['commission_rules', ruleResult],
+      ] as const) {
+        if (result.error) {
+          console.error(`affiliate settings query failed: ${label}`, result.error)
+          throw result.error
+        }
       }
       setCommissions((commissionResult.data ?? []) as Commission[])
       setLedger((ledgerResult.data ?? []) as LedgerEntry[])
       setPendingRequest((payoutResult.data ?? []).some((row: { status: string }) => ['REQUESTED', 'APPROVED', 'PROCESSING'].includes(row.status)))
       setMinimumPayout(Number(ruleResult.data?.min_payout_amount ?? 50))
     } catch (loadError) {
-      setError(t('affiliate.error.load', { reason: getErrorMessage(loadError) }))
+      setError(t('affiliate.error.load', { reason: errorText(loadError) }))
     } finally {
       setLoading(false)
     }
@@ -127,6 +138,10 @@ export function AffiliateSettings() {
       setError(t('affiliate.error.termsRequired'))
       return
     }
+    if (!isValidTaxId(cpfCnpj)) {
+      setError(t('affiliate.error.invalidTaxId'))
+      return
+    }
     if (!EMAIL_PATTERN.test(paypalEmail)) {
       setError(t('affiliate.error.invalidPaypalEmail'))
       return
@@ -148,7 +163,7 @@ export function AffiliateSettings() {
       setNotice(t('affiliate.register.success'))
       await load()
     } catch (saveError) {
-      setError(t('affiliate.error.save', { reason: getErrorMessage(saveError) }))
+      setError(t('affiliate.error.save', { reason: errorText(saveError) }))
     } finally {
       setSaving(false)
     }
@@ -160,7 +175,7 @@ export function AffiliateSettings() {
       setCopied(true)
       window.setTimeout(() => setCopied(false), 1800)
     } catch (copyError) {
-      setError(t('affiliate.error.copy', { reason: getErrorMessage(copyError) }))
+      setError(t('affiliate.error.copy', { reason: errorText(copyError) }))
     }
   }
 
@@ -181,7 +196,7 @@ export function AffiliateSettings() {
       setNotice(t('affiliate.paypal.saved'))
       await load()
     } catch (saveError) {
-      setError(t('affiliate.error.save', { reason: getErrorMessage(saveError) }))
+      setError(t('affiliate.error.save', { reason: errorText(saveError) }))
     } finally {
       setSaving(false)
     }
@@ -207,7 +222,7 @@ export function AffiliateSettings() {
       setNotice(t('affiliate.payout.requested'))
       await load()
     } catch (payoutError) {
-      setError(t('affiliate.error.payout', { reason: getErrorMessage(payoutError) }))
+      setError(t('affiliate.error.payout', { reason: errorText(payoutError) }))
     } finally {
       setRequestingPayout(false)
     }
@@ -220,7 +235,7 @@ export function AffiliateSettings() {
   return (
     <div className={css.page}>
       <header className={css.header}>
-        <h2 className={css.title}>🤝 {t('affiliate.title')}</h2>
+        <h2 className={css.title}>{t('affiliate.title')}</h2>
         <p className={css.subtitle}>{t('affiliate.subtitle')}</p>
       </header>
       {error && <p className={css.error} role="alert">{error}</p>}

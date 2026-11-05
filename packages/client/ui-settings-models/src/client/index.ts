@@ -108,7 +108,7 @@ export function apply(ctx: ClientContext): void {
   // plan status stay visible while provider configuration does not.
   const usageInjected = (): UsageSectionInjected => ({
     load: async (): Promise<UsageMetrics> => {
-      const response = await ctx.remote.settings.getTenantMetrics()
+      const response = await ctx.remote.settings.getTenantMetrics({})
       if (!response.ok) throw new Error(response.error.message)
       return response.value as UsageMetrics
     },

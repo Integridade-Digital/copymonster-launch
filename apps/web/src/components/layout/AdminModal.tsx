@@ -32,18 +32,17 @@ interface TabConfig {
   key: AdminTabKey
   labelEn: string
   labelZh: string
-  icon: string
 }
 
 const ADMIN_TABS: TabConfig[] = [
-  { key: 'overview', labelEn: 'Overview', labelZh: '概览', icon: '📊' },
-  { key: 'users', labelEn: 'Users', labelZh: '用户', icon: '👥' },
-  { key: 'tenants', labelEn: 'Tenants', labelZh: '租户', icon: '🏢' },
-  { key: 'system', labelEn: 'Settings', labelZh: '设置', icon: '⚙️' },
-  { key: 'sessions', labelEn: 'Sessions', labelZh: '会话', icon: '💬' },
-  { key: 'audit', labelEn: 'Audit', labelZh: '审计', icon: '📜' },
-  { key: 'billing', labelEn: 'Billing', labelZh: '账单', icon: '💳' },
-  { key: 'affiliates', labelEn: 'Affiliates', labelZh: '联盟', icon: '🤝' },
+  { key: 'overview', labelEn: 'Overview', labelZh: '概览' },
+  { key: 'users', labelEn: 'Users', labelZh: '用户' },
+  { key: 'tenants', labelEn: 'Tenants', labelZh: '租户' },
+  { key: 'system', labelEn: 'Settings', labelZh: '设置' },
+  { key: 'sessions', labelEn: 'Sessions', labelZh: '会话' },
+  { key: 'audit', labelEn: 'Audit', labelZh: '审计' },
+  { key: 'billing', labelEn: 'Billing', labelZh: '账单' },
+  { key: 'affiliates', labelEn: 'Affiliates', labelZh: '联盟' },
 ]
 
 export function AdminModal({ isOpen, onClose, triggerRef, isPlatformAdmin }: AdminModalProps) {
@@ -86,7 +85,6 @@ export function AdminModal({ isOpen, onClose, triggerRef, isPlatformAdmin }: Adm
                       onClick={() => setActiveTab(tab.key)}
                       className={`${css.railCell} ${isActive ? css.railCellActive : ''}`}
                     >
-                      <span className={css.railIcon}>{tab.icon}</span>
                       <span className={css.railLabel}>{label}</span>
                     </button>
                   )

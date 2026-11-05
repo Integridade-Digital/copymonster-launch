@@ -44,7 +44,9 @@ if (typeof window !== 'undefined') {
     }
     // composedPath preserves the real control inside an open shadow root.
     keyFocusOrigin = event.composedPath()[0]
-    if (!FOCUS_NAVIGATION.has(event.key) && !event.key.startsWith('Arrow')) return
+    // Extensions and autofill can dispatch a keydown event without a key.
+    const key = typeof event.key === 'string' ? event.key : ''
+    if (!FOCUS_NAVIGATION.has(key) && !key.startsWith('Arrow')) return
     pointerOwnsFocus = false
     publish()
   }, true)

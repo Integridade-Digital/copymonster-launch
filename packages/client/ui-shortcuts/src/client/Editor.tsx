@@ -87,7 +87,11 @@ EditorProps) {
     const reset = (): void => { pending = null; held.clear(); blocked = false; dead = false }
     restart.current = reset
     const down = (event: KeyboardEvent): void => {
-      if (composition.guards(event) || event.getModifierState('AltGraph')) { if (desktopChords) reset(); return }
+      // Extensions and autofill can dispatch a keydown event without the
+      // KeyboardEvent methods; a missing method means no AltGraph modifier.
+      const altGraph = typeof event.getModifierState === 'function'
+        && event.getModifierState('AltGraph')
+      if (composition.guards(event) || altGraph) { if (desktopChords) reset(); return }
       if ((!desktopChords || document.activeElement !== recorder.current) && event.key === 'Escape' && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
         event.preventDefault(); event.stopPropagation()
         if (!event.repeat && !writing.current) handlers.current.onClose()

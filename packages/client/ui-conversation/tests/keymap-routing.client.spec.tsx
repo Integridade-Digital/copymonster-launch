@@ -6,7 +6,7 @@
  */
 import { describe, expect, it, onTestFinished, vi } from 'vitest'
 import { fireEvent } from '@testing-library/react'
-import { $createParagraphNode, $createTextNode, $getRoot, createEditor } from 'lexical'
+import { $createParagraphNode, $createTextNode, $getRoot, createEditor, KEY_ENTER_COMMAND } from 'lexical'
 import { registerPlainText } from '@lexical/plain-text'
 import { registerComposerKeymap } from '../src/client/input/editor/keymap.ts'
 
@@ -107,6 +107,20 @@ describe('keymap keydown routing', () => {
     expect(event.defaultPrevented).toBe(false)
     expect(applicationKeydown).toHaveBeenCalledOnce()
     expect(editor.getEditorState().read(() => $getRoot().getTextContent())).toBe('unsent draft')
+  })
+
+  it('treats an Enter event without KeyboardEvent methods as a plain submit', () => {
+    const editor = createEditor({ namespace: 'keymap-routing', onError: (e) => { throw e } })
+    const submit = vi.fn()
+    onTestFinished(registerComposerKeymap(editor, {
+      arbitrate: () => 'pass', space: () => false, dismissPopup: () => {}, canSubmit: () => true,
+      submit, intakeFiles: () => {}, pasteText: () => {},
+    }))
+    const event = new KeyboardEvent('keydown', { cancelable: true })
+    Object.defineProperty(event, 'getModifierState', { value: undefined })
+    expect(editor.dispatchCommand(KEY_ENTER_COMMAND, event)).toBe(true)
+    expect(event.defaultPrevented).toBe(true)
+    expect(submit).toHaveBeenCalledWith(false)
   })
 
   it('routes Tab through arbitration and passes when unconsumed', () => {

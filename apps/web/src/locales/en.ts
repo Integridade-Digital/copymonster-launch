@@ -172,6 +172,7 @@ export const en = {
   'affiliate.error.load': 'Could not load affiliate data: {reason}',
   'affiliate.error.save': 'Could not save changes: {reason}',
   'affiliate.error.termsRequired': 'Accept the affiliate terms to continue.',
+  'affiliate.error.invalidTaxId': 'Enter a CPF (11 digits) or CNPJ (14 digits).',
   'affiliate.error.invalidPaypalEmail': 'Enter a valid PayPal email address.',
   'affiliate.error.copy': 'Could not copy the link: {reason}',
   'affiliate.error.payout': 'Could not request payout: {reason}',

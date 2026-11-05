@@ -96,4 +96,10 @@ describe('input modality', () => {
     button().focus()
     expect(published()).toBe(INPUT_MODALITY.pointer)
   })
+
+  it('ignores a keydown event without a key', () => {
+    click()
+    expect(() => { window.dispatchEvent(new Event('keydown')) }).not.toThrow()
+    expect(pointerModality()).toBe(false)
+  })
 })

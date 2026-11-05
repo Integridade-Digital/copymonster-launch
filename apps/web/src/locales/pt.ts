@@ -172,6 +172,7 @@ export const pt = {
   'affiliate.error.load': 'Não foi possível carregar os dados: {reason}',
   'affiliate.error.save': 'Não foi possível salvar: {reason}',
   'affiliate.error.termsRequired': 'Aceite os termos do programa para continuar.',
+  'affiliate.error.invalidTaxId': 'Informe um CPF (11 dígitos) ou CNPJ (14 dígitos).',
   'affiliate.error.invalidPaypalEmail': 'Informe um e-mail PayPal válido.',
   'affiliate.error.copy': 'Não foi possível copiar o link: {reason}',
   'affiliate.error.payout': 'Não foi possível solicitar o saque: {reason}',

@@ -41,7 +41,7 @@ export interface WorkspacePickFlowProps {
   /** Render this surface's directory-flow hole with the owner conversation (the entry's narrowed renderSlot). */
   renderDirectoryFlow: (owner: DirectoryFlowOwnerProps) => ReactNode
   /** A real Workspace was picked or created. */
-  onPick: (workspaceId: WorkspaceId) => void
+  onPick: (workspaceId: WorkspaceId) => void | Promise<void>
   /** Close the popover (outside click / Escape / post-pick). */
   onClose: () => void
   /** Report the picking interaction and adoption occupancy. */
@@ -208,7 +208,13 @@ export function WorkspacePickFlow({
       openDirectoryFlow()
       return
     }
-    onPick(id as WorkspaceId)
+    // onPick is now async; fire and forget with error logging
+    const result = onPick(id as WorkspaceId)
+    if (result instanceof Promise) {
+      result.catch((err: unknown) => {
+        console.error('[workspace-picker] onPick failed:', err)
+      })
+    }
   }
 
   return (

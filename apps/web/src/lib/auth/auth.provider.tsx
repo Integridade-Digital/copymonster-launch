@@ -146,11 +146,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshSession]);
 
-  const signIn = useCallback(async (email: string, password: string): Promise<{ error: Error | null }> => {
+  const signIn = useCallback(async (email: string, password: string): Promise<{ error: Error | null; data?: { session?: { access_token: string } } }> => {
     try {
-      const { error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
       if (error) throw error;
-      return { error: null };
+      return { error: null, data };
     } catch (error: unknown) {
       return { error: asError(error) };
     }

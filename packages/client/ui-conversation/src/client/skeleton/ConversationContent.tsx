@@ -123,12 +123,15 @@ export function ConversationContent(props: ConversationContentProps) {
         open: pickerOpen,
         anchorRef: pickerAnchor,
         selectedId: pendingWorkspaceId ?? sessionWorkspace?.workspaceId,
-        onPick: (workspaceId) => {
+        onPick: async (workspaceId) => {
           setPickerOpen(false)
           setPendingWorkspaceId(workspaceId)
-          void selectWorkspace(workspaceId).catch(() => {
+          try {
+            await selectWorkspace(workspaceId)
+          } catch (err) {
+            console.error('[conversation] workspace selection failed:', err)
             setPendingWorkspaceId(current => current === workspaceId ? undefined : current)
-          })
+          }
         },
         onClose: () => { setPickerOpen(false) },
       })}

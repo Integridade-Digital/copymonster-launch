@@ -658,6 +658,6 @@ export interface EmptyWorkspaceOwnerProps {
   anchorRef?: RefObject<HTMLElement>
   /** Currently selected Workspace, when available. */
   selectedId?: WorkspaceId | undefined
-  onPick: (workspaceId: WorkspaceId) => void
+  onPick: (workspaceId: WorkspaceId) => void | Promise<void>
   onClose: () => void
 }

@@ -383,7 +383,7 @@ describe('workspace browser rows', () => {
     expect(screen.queryByRole('menu')).toBeNull()
   })
 
-  it('workspace hover card shows its details and copies the full directory path', async () => {
+  it('workspace hover card shows its title and creation time without the directory path', async () => {
     vi.useFakeTimers()
     const writeText = vi.fn(async () => {})
     const restoreClipboard = installClipboard(writeText)
@@ -395,12 +395,12 @@ describe('workspace browser rows', () => {
       render(<ProjectRowItem group={group} onToggle={vi.fn()} onCreate={vi.fn()} t={t} />)
       fireEvent.pointerEnter(screen.getByRole('treeitem').parentElement as HTMLElement)
       act(() => { vi.advanceTimersByTime(500) })
-      // Card body: full title + cwd + absolute creation time.
+      // Card body: full title + absolute creation time; the host path stays hidden.
       expect(screen.getAllByText('Project')).toHaveLength(2)
-      expect(screen.getByText('/projects/project')).toBeTruthy()
+      expect(screen.queryByText('/projects/project')).toBeNull()
       expect(screen.getByText(/^创建于 \d+年\d+月\d+日 /)).toBeTruthy()
-      await act(async () => { fireEvent.click(screen.getByRole('button', { name: '复制: /projects/project' })) })
-      expect(writeText).toHaveBeenCalledWith('/projects/project')
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: '复制: Project' })) })
+      expect(writeText).toHaveBeenCalledWith('Project')
       expect(screen.getByRole('status').textContent).toBe('已复制')
     } finally {
       restoreClipboard()
@@ -408,57 +408,57 @@ describe('workspace browser rows', () => {
     }
   })
 
-  it('workspace hover card shows a POSIX home descendant as ~ and still copies the full path', async () => {
+  it('workspace hover card keeps a POSIX home path out of its text and accessible name', async () => {
     vi.useFakeTimers()
-    const writeText = vi.fn(async () => {})
-    const restoreClipboard = installClipboard(writeText)
     try {
       const group: GroupNode = {
         key: 'project', workspaceId: wid('project'), cwd: '/home/u/Documents/project', createdAt: 0, label: 'Project',
         sessionCount: 0, expanded: false, containsCurrent: false, sessions: [],
       }
-      render(<ProjectRowItem group={group} home="/home/u" onToggle={vi.fn()} onCreate={vi.fn()} t={t} />)
+      render(<ProjectRowItem group={group} onToggle={vi.fn()} onCreate={vi.fn()} t={t} />)
       fireEvent.pointerEnter(screen.getByRole('treeitem').parentElement as HTMLElement)
       act(() => { vi.advanceTimersByTime(500) })
-      expect(screen.getByText('~/Documents/project')).toBeTruthy()
+      expect(screen.queryByText('~/Documents/project')).toBeNull()
       expect(screen.queryByText('/home/u/Documents/project')).toBeNull()
-      await act(async () => { fireEvent.click(screen.getByRole('button', { name: '复制: /home/u/Documents/project' })) })
-      expect(writeText).toHaveBeenCalledWith('/home/u/Documents/project')
+      expect(screen.queryByRole('button', { name: /\/home\/u/ })).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('workspace hover card still copies the title when the directory is absent', async () => {
+    vi.useFakeTimers()
+    const writeText = vi.fn(async () => {})
+    const restoreClipboard = installClipboard(writeText)
+    try {
+      const group: GroupNode = {
+        key: 'project', workspaceId: wid('project'), cwd: undefined, createdAt: 0, label: 'Project',
+        sessionCount: 0, expanded: false, containsCurrent: false, sessions: [],
+      }
+      render(<ProjectRowItem group={group} onToggle={vi.fn()} onCreate={vi.fn()} t={t} />)
+      fireEvent.pointerEnter(screen.getByRole('treeitem').parentElement as HTMLElement)
+      act(() => { vi.advanceTimersByTime(500) })
+      expect(screen.getAllByText('Project')).toHaveLength(2)
+      expect(screen.getByText(/^创建于 \d+年\d+月\d+日 /)).toBeTruthy()
+      await act(async () => { fireEvent.click(screen.getByRole('button', { name: '复制: Project' })) })
+      expect(writeText).toHaveBeenCalledWith('Project')
     } finally {
       restoreClipboard()
       vi.useRealTimers()
     }
   })
 
-  it('workspace hover card without a directory omits the path and copy action', async () => {
-    vi.useFakeTimers()
-    try {
-      const group: GroupNode = {
-        key: 'project', workspaceId: wid('project'), cwd: undefined, createdAt: 0, label: 'Project',
-        sessionCount: 0, expanded: false, containsCurrent: false, sessions: [],
-      }
-      render(<ProjectRowItem group={group} home="/home/u" onToggle={vi.fn()} onCreate={vi.fn()} t={t} />)
-      fireEvent.pointerEnter(screen.getByRole('treeitem').parentElement as HTMLElement)
-      act(() => { vi.advanceTimersByTime(500) })
-      expect(screen.getAllByText('Project')).toHaveLength(2)
-      expect(screen.getByText(/^创建于 \d+年\d+月\d+日 /)).toBeTruthy()
-      expect(screen.queryByRole('button', { name: /^复制:/ })).toBeNull()
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('workspace hover card leaves a Windows path verbatim', async () => {
+  it('workspace hover card keeps a Windows path out of its text', async () => {
     vi.useFakeTimers()
     try {
       const group: GroupNode = {
         key: 'project', workspaceId: wid('project'), cwd: 'C:\\Users\\u\\project', createdAt: 0, label: 'Project',
         sessionCount: 0, expanded: false, containsCurrent: false, sessions: [],
       }
-      render(<ProjectRowItem group={group} home="C:\\Users\\u" onToggle={vi.fn()} onCreate={vi.fn()} t={t} />)
+      render(<ProjectRowItem group={group} onToggle={vi.fn()} onCreate={vi.fn()} t={t} />)
       fireEvent.pointerEnter(screen.getByRole('treeitem').parentElement as HTMLElement)
       act(() => { vi.advanceTimersByTime(500) })
-      expect(screen.getByText('C:\\Users\\u\\project')).toBeTruthy()
+      expect(screen.queryByText('C:\\Users\\u\\project')).toBeNull()
     } finally {
       vi.useRealTimers()
     }
@@ -556,6 +556,25 @@ describe('workspace browser rows', () => {
       fireEvent.pointerEnter(wrapper)
       act(() => { vi.advanceTimersByTime(1000) })
       expect(screen.queryByText('1分钟前')).toBeNull()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('session hover card names an untitled conversation and never shows its directory', () => {
+    vi.useFakeTimers()
+    try {
+      const node: SessionNode = {
+        id: sid('s-untitled'), title: '', blank: false, running: false,
+        runningSubagentCount: 0, completed: false, updatedAt: 0,
+        cwd: '/var/copymonster/data/tenant/user/workspaces/project',
+      }
+      render(<SessionNodeItem node={node} currentId={undefined} now={0} onOpen={vi.fn()}
+        onRename={vi.fn()} onFork={vi.fn()} onArchive={vi.fn()} onDelete={vi.fn()} t={t} />)
+      fireEvent.pointerEnter(screen.getByRole('treeitem').parentElement as HTMLElement)
+      act(() => { vi.advanceTimersByTime(500) })
+      expect(screen.getAllByText('未命名')).toHaveLength(1)
+      expect(screen.queryByText('/var/copymonster/data/tenant/user/workspaces/project')).toBeNull()
     } finally {
       vi.useRealTimers()
     }

@@ -252,7 +252,7 @@ describe('WorkspaceBrowser', () => {
     expect(b.props.startSession).not.toHaveBeenCalled()
   })
 
-  it('workspace hover card shows a POSIX home descendant as ~', () => {
+  it('workspace hover card keeps a POSIX home path hidden', () => {
     vi.useFakeTimers()
     try {
       mount({
@@ -265,7 +265,9 @@ describe('WorkspaceBrowser', () => {
       })
       fireEvent.pointerEnter(screen.getByRole('treeitem').parentElement as HTMLElement)
       act(() => { vi.advanceTimersByTime(500) })
-      expect(screen.getByText('~/Documents/project')).toBeTruthy()
+      expect(screen.queryByText('~/Documents/project')).toBeNull()
+      expect(screen.queryByText('/home/u/Documents/project')).toBeNull()
+      expect(screen.getAllByText('Project')).toHaveLength(2)
     } finally {
       vi.useRealTimers()
     }

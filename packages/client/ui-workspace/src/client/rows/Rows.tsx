@@ -15,7 +15,6 @@ import {
   StateDot,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { StateDotState } from '@deepseek-ai/dsh-client-ui-primitives'
-import { abbreviateHomePath } from '@deepseek-ai/dsh-util-workspace-path'
 import type { WorkspaceBrowserProps } from '../contract/slots.ts'
 import type { GroupNode, SearchResultNode, SessionNode } from '../tree.ts'
 import css from './Rows.module.css'
@@ -26,6 +25,12 @@ type RowTranslate = WorkspaceBrowserProps['t']
 /** Row display title: blank rows show the localized New Session label. */
 function displayTitle(node: SessionNode, t: RowTranslate): string {
   return node.blank ? t('session.new') : node.title
+}
+
+/** Hover-card title: a stored-but-empty title reads as the localized untitled label. */
+function hoverTitle(node: SessionNode, t: RowTranslate): string {
+  const title = displayTitle(node, t)
+  return title.trim() === '' ? t('session.untitled') : title
 }
 
 /**
@@ -76,17 +81,15 @@ function createdLabel(createdAt: number, t: RowTranslate): string {
   return t('hover.created', { time: `${date} ${pad2(d.getHours())}:${pad2(d.getMinutes())}` })
 }
 
-/** Hover-card body: workspace title, display directory path, absolute creation time. */
-function WorkspaceHoverContent({ label, cwd, createdAt, t }: {
+/** Hover-card body: workspace title and absolute creation time. */
+function WorkspaceHoverContent({ label, createdAt, t }: {
   label: string
-  cwd: string | undefined
   createdAt: number
   t: RowTranslate
 }) {
   return (
     <div className={css.hoverContent}>
       <div className={css.hoverTitle}>{label}</div>
-      <div className={css.hoverPath}>{cwd}</div>
       <div className={css.hoverTime}>{createdLabel(createdAt, t)}</div>
     </div>
   )
@@ -131,11 +134,10 @@ function rowHalf(e: { clientY: number; currentTarget: HTMLElement }): 'before' |
  * @param props.onToggle - expand/collapse the group.
  * @param props.onCreate - start a frontend Session inside this Workspace.
  * @param props.drag - optional workspace-row drag wiring.
- * @param props.home - host account home for POSIX hover-path abbreviation.
  * @param props.t - the browser root's locale seat.
  * @returns the row element.
  */
-export function ProjectRowItem({ group, containsCurrentDescendant = false, onToggle, onCreate, actions, drag, home, t }: {
+export function ProjectRowItem({ group, containsCurrentDescendant = false, onToggle, onCreate, actions, drag, t }: {
   group: GroupNode
   containsCurrentDescendant?: boolean
   onToggle: () => void
@@ -144,8 +146,6 @@ export function ProjectRowItem({ group, containsCurrentDescendant = false, onTog
   actions?: { rename: () => void; delete: () => void } | undefined
   /** Present only for real Workspace rows in the grouped view. */
   drag?: WorkspaceRowDragProps | undefined
-  /** Host account home; POSIX home-rooted hover paths display as `~`. */
-  home?: string | undefined
   t: RowTranslate
 }) {
   const row = group
@@ -229,12 +229,11 @@ export function ProjectRowItem({ group, containsCurrentDescendant = false, onTog
       anchor={ownRow}
       content={<WorkspaceHoverContent
         label={row.label}
-        cwd={row.cwd === undefined ? undefined : abbreviateHomePath(row.cwd, home)}
         createdAt={row.createdAt}
         t={t}
       />}
       disabled={menuOpen}
-      copyText={row.cwd}
+      copyText={row.label}
       copyLabel={t('copy')}
       copiedLabel={t('hover.copied')}
     />
@@ -312,7 +311,7 @@ function SessionHoverContent({ node, now, t }: { node: SessionNode; now: number;
   const statuses = sessionStatuses(node, t)
   return (
     <div className={css.hoverContent}>
-      <div className={css.hoverTitle}>{displayTitle(node, t)}</div>
+      <div className={css.hoverTitle}>{hoverTitle(node, t)}</div>
       {/* Same placeholder rule as the row's trailing cell: no timestamp
           before the first prompt. */}
       {!node.blank && <div className={css.hoverTime}>{hoverTimeLabel(node.updatedAt, now, t)}</div>}

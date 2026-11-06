@@ -1,11 +1,11 @@
 // @vitest-environment jsdom
 import { createSnapshotStore } from '@deepseek-ai/dsh-client-store'
 /**
- * Host home reaches the browsing region through the assembled renderer, which
- * memoizes a root entry's inject result for the whole registration — so a home
- * read once at first render would freeze there. This spec drives the real slot
- * renderer (not a direct `entry.inject()` call, which bypasses that memo) and
- * pins that a home learned after first render reaches the rendered rows.
+ * The browsing region must never print the Host directory, including through
+ * the assembled renderer that memoizes a root entry's inject result. This spec
+ * drives the real slot renderer (not a direct `entry.inject()` call, which
+ * bypasses that memo) and pins the privacy rule before and after the Host
+ * reports its home.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { act, cleanup, fireEvent, screen } from '@testing-library/react'
@@ -53,7 +53,7 @@ async function bench() {
   return { runtime, remote }
 }
 
-/** Open the Workspace row's hover card, which is where the home abbreviation shows. */
+/** Open the Workspace row's hover card. */
 function openHoverCard(): void {
   const row = screen.getByRole('treeitem').parentElement as HTMLElement
   fireEvent.pointerEnter(row)
@@ -67,8 +67,8 @@ function closeHoverCard(): void {
   act(() => { vi.advanceTimersByTime(800) })
 }
 
-describe('Host home in the assembled browsing region', () => {
-  it('abbreviates the path once a home learned after first render reaches the rows', async () => {
+describe('Host directory privacy in the assembled browsing region', () => {
+  it('keeps the Workspace path hidden before and after a home frame arrives', async () => {
     // First render precedes the ready frame: the shell mounts while the carrier
     // is still handshaking, so the Host reports no home yet.
     const { runtime, remote } = await bench()
@@ -77,7 +77,8 @@ describe('Host home in the assembled browsing region', () => {
     vi.useFakeTimers()
     try {
       openHoverCard()
-      expect(screen.getByText('/home/u/Documents/project')).toBeTruthy()
+      expect(screen.queryByText('/home/u/Documents/project')).toBeNull()
+      expect(screen.getAllByText('Project')).toHaveLength(2)
       closeHoverCard()
 
       // The ready frame lands: `$host.home` now answers, and the generation is
@@ -86,7 +87,9 @@ describe('Host home in the assembled browsing region', () => {
       act(() => { runtime.ctx.emit('connection/reset') })
       openHoverCard()
 
-      expect(screen.getByText('~/Documents/project')).toBeTruthy()
+      expect(screen.queryByText('~/Documents/project')).toBeNull()
+      expect(screen.queryByText('/home/u/Documents/project')).toBeNull()
+      expect(screen.getAllByText('Project')).toHaveLength(2)
     } finally {
       vi.useRealTimers()
     }

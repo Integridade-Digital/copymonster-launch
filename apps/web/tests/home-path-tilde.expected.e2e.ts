@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
-// Assembled POSIX home-path display: the fixture Host home is `/home/fixture`
-// and a second Workspace lives under it. The sidebar hover card must show
-// `~/Documents/project` while copy still writes the full path.
+// Assembled POSIX home-path privacy: the fixture Host home is `/home/fixture`
+// and a second Workspace lives under it. The sidebar hover card must keep the
+// host directory out of both its visible text and its accessible name.
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
@@ -12,8 +12,8 @@ const EXPECTED = join(process.cwd(), 'apps/web/tests/expected/home-path-tilde/wo
 
 installAssembledBootEnv()
 
-describe('assembled POSIX home-path display', () => {
-  it('shows the home-descendant Workspace path as ~ and copies the full path', async () => {
+describe('assembled POSIX home-path privacy', () => {
+  it('keeps the home-descendant Workspace path out of the hover card and copies the title', async () => {
     mountAssembledApp()
 
     const tree = await screen.findByRole('tree', { name: 'Sessions' }, { timeout: 10_000 })
@@ -23,16 +23,13 @@ describe('assembled POSIX home-path display', () => {
     if (group == null) throw new Error('home-descendant Workspace group missing')
 
     fireEvent.pointerEnter(group.parentElement as HTMLElement)
-    const hoverPath = await waitFor(() => {
-      const found = screen.getByText('~/Documents/project')
-      expect(found).toBeTruthy()
-      return found
-    }, { timeout: 2_000 })
+    const copy = await waitFor(() => screen.getByRole('button', { name: 'Copy: project' }), { timeout: 2_000 })
+    expect(screen.queryByText('~/Documents/project')).toBeNull()
     expect(screen.queryByText('/home/fixture/Documents/project')).toBeNull()
-    const copy = screen.getByRole('button', { name: 'Copy: /home/fixture/Documents/project' })
+    expect(screen.queryByRole('button', { name: /\/home\/fixture/ })).toBeNull()
 
     const shape = [
-      `hover=${hoverPath.textContent}`,
+      `hover=${copy.textContent}`,
       `copy=${copy.getAttribute('aria-label')}`,
     ].join('\n') + '\n'
     if (REFRESHING_GOLDEN) {

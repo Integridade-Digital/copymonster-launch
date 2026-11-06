@@ -24,13 +24,6 @@ import { DesktopUpdateIndicator } from './DesktopUpdateIndicator.tsx'
 
 const RECOVERY_CONFIRMATION_MS = 2_000
 
-/**
- * Sections kept registered but withheld from the navigation rail. They stay in
- * the ledger so their content column and item slots keep working; only the
- * sidebar entry is hidden.
- */
-const HIDDEN_SECTION_IDS: ReadonlySet<string> = new Set(['profile', 'my-dna'])
-
 /** Minimum visible time for the connecting pill; shorter attempts read as flicker. */
 const CONNECTING_MIN_VISIBLE_MS = 800
 
@@ -59,9 +52,8 @@ type PanelProps = {
  */
 
 function SettingsPanel({ rows, renderSlot, activeId, onSelect, onClose }: PanelProps) {
-  // Profile and My DNA stay registered but out of the rail; every other
-  // section is creator-facing, including Models (creator BYOK).
-  const visibleRows = rows.filter(row => !HIDDEN_SECTION_IDS.has(row.id))
+  // The Models section is creator BYOK, so every creator sees the row.
+  const visibleRows = rows
   const active = visibleRows.find(r => r.id === activeId)?.id ?? visibleRows[0]?.id
   // Entries can unmount underneath the requested id, so the render-time
   // projection falls back to the first row when the id is gone.

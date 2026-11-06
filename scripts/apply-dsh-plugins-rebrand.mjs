@@ -435,7 +435,27 @@ function translateMailHost(text) {
 
 function translateVercelClient(text) {
   const translated = applyReplacementTable(text, VERCEL_CLIENT_REPLACEMENTS);
-  return rebrand(applyReplacementTable(translated, VERCEL_THEME_REPLACEMENTS));
+  return stripVercelHint(rebrand(applyReplacementTable(translated, VERCEL_THEME_REPLACEMENTS)));
+}
+
+/**
+ * Drop the technical copy from the Vercel MCP settings card. The card keeps its
+ * title and action buttons; the description naming mcp.vercel.com, the tool
+ * prefix, and the token path, plus the raw connection-status line, are not
+ * useful to the end user.
+ * @param text - translated client bundle.
+ * @returns the bundle without the description and status nodes.
+ */
+function stripVercelHint(text) {
+  return text
+    .replace(
+      /\s*\/\* @__PURE__ \*\/ \(0, react_jsx_runtime\.jsxs?\)\("div", \{\s*style: s\.hint,\s*children: \[\s*"Connects to mcp\.vercel\.com[\s\S]*?\]\s*\}\),/,
+      '',
+    )
+    .replace(
+      /\s*\/\* @__PURE__ \*\/ \(0, react_jsx_runtime\.jsx\)\("div", \{\s*style: authorized \? s\.status : s\.statusWarn,\s*children: statusText\(view\)\s*\}\),/,
+      '',
+    );
 }
 
 function translateVercelHost(text) {

@@ -33,16 +33,33 @@ Visible categories are unchanged: `UI Enhancements`, `Workflow & Automation`,
 `Notifications & Integrations`, `Sessions & Messages`, and any other
 market-declared category outside the hidden set.
 
-## 2. Settings: Profile and My DNA removed from the rail
+## 2. Settings: Profile and My DNA stay in the rail
 
 `packages/client/ui-settings-general/src/client/SettingsRoot.tsx`
 
-- Added `HIDDEN_SECTION_IDS = new Set(['profile', 'my-dna'])`.
-- `SettingsPanel` filters those ids out of `visibleRows` only. Both sections
-  stay registered in the ledger, so their content column, item slots, and the
-  `settings.profile.item` / `settings.my-dna.item` contributions keep working;
-  only the navigation button is gone.
-- The active-section fallback still resolves to the first visible row.
+An earlier revision of this audit hid both tabs. That change is reverted: the
+section ledger is rendered in full again, so **Profile** and **My DNA** appear
+in the Settings navigation exactly as before. The regression test now asserts
+that both rows are present.
+
+## 2b. Vercel MCP card: technical copy removed
+
+`scripts/apply-dsh-plugins-rebrand.mjs`
+
+The Vercel MCP panel is a delivery plugin patched at install time by this
+script, not a file in this repository. Added `stripVercelHint()`, applied by
+`translateVercelClient`, which removes two nodes from the rendered card:
+
+- the description paragraph naming `mcp.vercel.com`, the `mcp__vercel__*` tool
+  prefix, the token path, and `(mode 0600)`;
+- the raw connection-status line (`Authorized · token updated … · MCP
+  connected · N tools`).
+
+The card now shows the **Vercel MCP** title and the action buttons
+(Authorize, Refresh token, Test connection, Clear credentials). The manual
+callback-URL row, the discovered-tools list, and the action feedback message
+remain, because they are functional rather than descriptive. No click,
+authorization, or navigation behavior changed.
 
 ## 3. Members card: model no longer exposed
 
@@ -146,8 +163,7 @@ status values returned by the API, and `console.*` diagnostics (now English).
 Pre-existing failures confirmed by stashing the changed source and re-running:
 `ui-settings-general/tests/apply.client.spec.ts` (26) and
 `settings-root.client.spec.tsx` (9) fail identically without these edits.
-The new rail test (`keeps Profile and My DNA registered but out of the
-navigation rail`) passes.
+The rail test (`keeps Profile and My DNA in the navigation rail`) passes.
 
 ## Not changed
 

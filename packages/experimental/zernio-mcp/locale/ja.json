@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Zernio MCP",
+    "description": "OAuth で Zernio アカウントを接続し、そのツールを mcp__zernio__* として公開します。"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Zernio MCP",
+    "description": "Conecta una cuenta de Zernio mediante OAuth y expone sus herramientas como mcp__zernio__*."
+  }
+}

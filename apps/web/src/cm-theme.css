@@ -153,7 +153,8 @@ div[data-settings-section="profile"],
 div[data-settings-section="plans"],
 div[data-settings-section="my-dna"],
 div[data-settings-section="scheduled-tasks"],
-div[data-settings-section="vercel-mcp"] {
+div[data-settings-section="vercel-mcp"],
+div[data-settings-section="zernio-mcp"] {
   padding-top: 16px !important;
 }
 
@@ -182,7 +183,8 @@ div[data-settings-section="vercel-mcp"] {
 [data-settings-section="scheduled-tasks"] .dsh-st-example,
 [data-settings-section="scheduled-tasks"] .dsh-st-prompt-card,
 [data-settings-section="scheduled-tasks"] .dsh-st-banner,
-[data-settings-section="vercel-mcp"] [data-slot="settings.section"] > div {
+[data-settings-section="vercel-mcp"] [data-slot="settings.section"] > div,
+[data-settings-section="zernio-mcp"] [data-slot="settings.section"] > div {
   box-sizing: border-box !important;
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;

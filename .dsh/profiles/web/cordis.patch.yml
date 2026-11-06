@@ -177,3 +177,6 @@
   config:
     default: standard
     selectedDefault: cordis
+- id: zernio-mcp
+  config:
+    publicOrigin: https://app.copymonster.co

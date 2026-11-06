@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Zernio MCP",
+    "description": "通过 OAuth 连接 Zernio 账户，并以 mcp__zernio__* 形式提供其工具。"
+  }
+}

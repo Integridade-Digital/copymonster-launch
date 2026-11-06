@@ -205,22 +205,6 @@
   text-overflow: ellipsis;
 }
 
-/* Hover-capable cards reveal model details on hover or focus; touch cards
-   keep the details visible beside the name and activity. */
-.memberModel {
-  display: none;
-}
-
-.member:focus-visible .memberModel {
-  display: inline;
-}
-
-@media (hover: hover) {
-  .member:hover .memberModel {
-    display: inline;
-  }
-}
-
 /* The member card is denser than the surfaces the standard capsule ships for,
    so the current-conversation tag drops one step in size. The 999 shrink
    factor collapses the tag (block display re-enables text-overflow) before
@@ -344,10 +328,4 @@
   gap: 6px;
   padding: 9px;
   font-size: 12px;
-}
-
-@media (hover: none) {
-  .memberModel {
-    display: inline;
-  }
 }

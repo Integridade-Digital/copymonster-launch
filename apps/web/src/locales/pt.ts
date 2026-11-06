@@ -1,4 +1,6 @@
+import { adminPt } from './admin'
 export const pt = {
+  ...adminPt,
   // Footer / Common
   'common.plans': 'Planos',
   'common.profile': 'Perfil',

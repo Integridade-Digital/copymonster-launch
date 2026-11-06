@@ -30,19 +30,18 @@ export type AdminTabKey =
 
 interface TabConfig {
   key: AdminTabKey
-  labelEn: string
-  labelZh: string
 }
 
+/** Rail order; every label resolves from the shared dictionaries. */
 const ADMIN_TABS: TabConfig[] = [
-  { key: 'overview', labelEn: 'Overview', labelZh: '概览' },
-  { key: 'users', labelEn: 'Users', labelZh: '用户' },
-  { key: 'tenants', labelEn: 'Tenants', labelZh: '租户' },
-  { key: 'system', labelEn: 'Settings', labelZh: '设置' },
-  { key: 'sessions', labelEn: 'Sessions', labelZh: '会话' },
-  { key: 'audit', labelEn: 'Audit', labelZh: '审计' },
-  { key: 'billing', labelEn: 'Billing', labelZh: '账单' },
-  { key: 'affiliates', labelEn: 'Affiliates', labelZh: '联盟' },
+  { key: 'overview' },
+  { key: 'users' },
+  { key: 'tenants' },
+  { key: 'system' },
+  { key: 'sessions' },
+  { key: 'audit' },
+  { key: 'billing' },
+  { key: 'affiliates' },
 ]
 
 export function AdminModal({ isOpen, onClose, triggerRef, isPlatformAdmin }: AdminModalProps) {

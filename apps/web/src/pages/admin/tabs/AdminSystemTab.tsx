@@ -1,6 +1,7 @@
 import { formatDate } from '../../../lib/format'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase/client'
+import { t } from '../../../locales'
 
 export interface SystemConfigItem {
   key: string
@@ -80,7 +81,7 @@ export function AdminSystemTab() {
         setCopiedKey(prev => (prev === key ? null : prev))
       }, 1500)
     }).catch((err) => {
-      console.error('Falha ao copiar:', err)
+      console.error('Failed to copy:', err)
     })
   }
 
@@ -105,8 +106,8 @@ export function AdminSystemTab() {
       setConfigs(configsRes.data || [])
       setWorkspaces(workspacesRes.data || [])
     } catch (err: unknown) {
-      console.error('Error ao carregar configurações do sistema:', err)
-      setError(err instanceof Error ? err.message : 'Falha ao buscar configurações do sistema e workspaces.')
+      console.error('Failed to load system settings:', err)
+      setError(err instanceof Error ? err.message : t('admin.system.loadFailure'))
     } finally {
       if (!isSilent) setIsLoading(false)
       setIsRefreshing(false)
@@ -145,7 +146,7 @@ export function AdminSystemTab() {
 
   const maskedSupabaseUrl = useMemo(() => {
     const rawUrl = (import.meta.env as Record<string, string | undefined>)?.VITE_SUPABASE_URL || ''
-    if (!rawUrl) return 'Not configured'
+    if (!rawUrl) return t('admin.common.notConfigured')
     try {
       const url = new URL(rawUrl)
       return `${url.protocol}//${url.hostname.slice(0, 8)}...${url.hostname.slice(-8)}`
@@ -166,7 +167,7 @@ export function AdminSystemTab() {
 
   const openEditConfigModal = (item: SystemConfigItem) => {
     if (item.is_secret || item.key === 'LLM_ENCRYPTION_KEY' || item.key.startsWith('system.')) {
-      alert('Esta chave é protegida pelo sistema e não pode ser editada via painel.')
+      alert(t('admin.system.protectedEdit'))
       return
     }
     setSelectedConfig(item)
@@ -181,7 +182,7 @@ export function AdminSystemTab() {
 
   const openDeleteConfigModal = (item: SystemConfigItem) => {
     if (item.is_secret || item.key === 'LLM_ENCRYPTION_KEY' || item.key.startsWith('system.')) {
-      alert('Chaves reservadas do sistema não podem ser excluídas.')
+      alert(t('admin.system.protectedDelete'))
       return
     }
     setSelectedConfig(item)
@@ -228,7 +229,7 @@ export function AdminSystemTab() {
       if (saveErr) throw new Error(saveErr.message)
       loadData(true)
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : 'Error ao alterar feature flag.')
+      alert(err instanceof Error ? err.message : t('admin.system.flagFailure'))
     }
   }
 
@@ -238,11 +239,11 @@ export function AdminSystemTab() {
 
     const key = formKey.trim()
     if (!key) {
-      setFormError('A chave é obrigatória.')
+      setFormError(t('admin.system.keyRequired'))
       return
     }
     if (key === 'LLM_ENCRYPTION_KEY' || key.startsWith('system.')) {
-      setFormError('Chaves reservadas do sistema não podem ser alteradas pelo painel.')
+      setFormError(t('admin.system.reservedEdit'))
       return
     }
 
@@ -266,8 +267,8 @@ export function AdminSystemTab() {
       closeModals()
       loadData(true)
     } catch (err: unknown) {
-      console.error('Error ao salvar configuração:', err)
-      setFormError(err instanceof Error ? err.message : 'Falha ao salvar configuração.')
+      console.error('Failed to save configuration:', err)
+      setFormError(err instanceof Error ? err.message : t('admin.system.saveFailure'))
     } finally {
       setIsMutating(false)
     }
@@ -286,8 +287,8 @@ export function AdminSystemTab() {
       closeModals()
       loadData(true)
     } catch (err: unknown) {
-      console.error('Error ao excluir chave:', err)
-      setFormError(err instanceof Error ? err.message : 'Falha ao excluir chave do sistema.')
+      console.error('Failed to delete key:', err)
+      setFormError(err instanceof Error ? err.message : t('admin.system.deleteFailure'))
     } finally {
       setIsMutating(false)
     }
@@ -306,8 +307,8 @@ export function AdminSystemTab() {
       closeModals()
       loadData(true)
     } catch (err: unknown) {
-      console.error('Error ao arquivar workspace:', err)
-      setFormError(err instanceof Error ? err.message : 'Falha ao arquivar workspace.')
+      console.error('Failed to archive workspace:', err)
+      setFormError(err instanceof Error ? err.message : t('admin.system.archiveFailure'))
     } finally {
       setIsMutating(false)
     }
@@ -365,13 +366,13 @@ export function AdminSystemTab() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '16px', borderBottom: '1px solid var(--cm-border)' }}>
         <div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Configurações do Sistema</h2>
+            <h2 style={{ fontSize: '18px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.system.title')}</h2>
             <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: 'color-mix(in srgb, var(--cm-primary) 15%, transparent)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)' }}>
-              Ambiente Operacional
+              {t('admin.system.operational')}
             </span>
           </div>
           <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', margin: '4px 0 0 0' }}>
-            Parâmetros globais do servidor, feature flags ativas, cotas, diretórios e workspaces multi-tenant.
+            {t('admin.system.subtitle')}
           </p>
         </div>
         <button
@@ -381,30 +382,30 @@ export function AdminSystemTab() {
           style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', fontSize: '12px', fontWeight: 500, color: 'var(--cm-foreground)', cursor: 'pointer', opacity: (isRefreshing || isLoading) ? 0.5 : 1 }}
         >
           <span style={isRefreshing ? { display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--cm-border)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', animation: 'cm-auth-spin 0.7s linear infinite' } : undefined}>↻</span>
-          Atualizar
+          {t('admin.common.refresh')}
         </button>
       </div>
 
       <div className="adminGrid">
         <div className="adminCard">
-          <div className="adminCardLabel">Total Parâmetros</div>
+          <div className="adminCardLabel">{t('admin.system.totalParams')}</div>
           <div className="adminCardValue">{totalConfigs}</div>
-          <div className="adminCardSub">Configurações ativas</div>
+          <div className="adminCardSub">{t('admin.system.activeSettings')}</div>
         </div>
         <div className="adminCard">
-          <div className="adminCardLabel">Feature Flags Ativas</div>
+          <div className="adminCardLabel">{t('admin.system.activeFlags')}</div>
           <div className="adminCardValue" style={{ color: 'var(--cm-primary)' }}>{activeFlagsCount}</div>
-          <div className="adminCardSub">Habilitadas</div>
+          <div className="adminCardSub">{t('admin.system.enabled')}</div>
         </div>
         <div className="adminCard">
-          <div className="adminCardLabel">Limites & Cotas</div>
+          <div className="adminCardLabel">{t('admin.system.limits')}</div>
           <div className="adminCardValue">{totalLimitsCount}</div>
-          <div className="adminCardSub">Políticas de consumo</div>
+          <div className="adminCardSub">{t('admin.system.limitsHint')}</div>
         </div>
         <div className="adminCard">
-          <div className="adminCardLabel">Workspaces Ativos</div>
+          <div className="adminCardLabel">{t('admin.system.activeWorkspaces')}</div>
           <div className="adminCardValue">{totalWorkspacesCount}</div>
-          <div className="adminCardSub">Multi-tenant</div>
+          <div className="adminCardSub">{t('admin.system.multiTenant')}</div>
         </div>
       </div>
 
@@ -416,7 +417,7 @@ export function AdminSystemTab() {
             onClick={() => loadData()}
             style={{ padding: '4px 10px', borderRadius: '6px', background: 'color-mix(in srgb, var(--cm-destructive) 20%, transparent)', color: 'var(--cm-destructive)', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
           >
-            Tentar novamente
+            {t('admin.common.retry')}
           </button>
         </div>
       )}
@@ -425,30 +426,30 @@ export function AdminSystemTab() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <span style={{ color: 'var(--cm-primary)', fontSize: '14px' }}>🖥</span>
-            <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Ambiente & Servidor</h3>
+            <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.system.environment')}</h3>
           </div>
           <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 500, background: 'var(--cm-background)', color: 'var(--cm-muted-foreground)', border: '1px solid var(--cm-border)' }}>
-            CopyMonster Web Frontend
+            {t('admin.system.frontendBadge')}
           </span>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', fontSize: '12px' }}>
           <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px' }}>
-            <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', fontSize: '11px' }}>Modo de Execução</span>
+            <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', fontSize: '11px' }}>{t('admin.system.runtimeMode')}</span>
             <span style={{ fontFamily: 'monospace', color: 'var(--cm-foreground)', fontWeight: 500, display: 'inline-block', marginTop: '4px' }}>
-              {(import.meta.env as Record<string, string | undefined>)?.MODE || 'production'}
+              {(import.meta.env as Record<string, string | undefined>)?.MODE || t('admin.system.productionFallback')}
             </span>
           </div>
           <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px' }}>
-            <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', fontSize: '11px' }}>Endpoint Supabase</span>
+            <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', fontSize: '11px' }}>{t('admin.system.supabaseEndpoint')}</span>
             <span style={{ fontFamily: 'monospace', color: 'var(--cm-foreground)', fontWeight: 500, display: 'inline-block', marginTop: '4px' }}>
               {maskedSupabaseUrl}
             </span>
           </div>
           <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px' }}>
-            <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', fontSize: '11px' }}>Raiz de Instalação no Host</span>
+            <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', fontSize: '11px' }}>{t('admin.system.installRoot')}</span>
             <span style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500, display: 'inline-block', marginTop: '4px' }}>
-              Não exposta por razões de segurança
+              {t('admin.system.notExposed')}
             </span>
           </div>
         </div>
@@ -459,10 +460,10 @@ export function AdminSystemTab() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ color: 'var(--cm-primary)', fontSize: '14px' }}>🚩</span>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Feature Flags</h3>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.system.featureFlags')}</h3>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', margin: '4px 0 0 0' }}>
-              Habilitação gradual e controle dinâmico de funcionalidades (<code style={{ color: 'var(--cm-primary)' }}>feature.*</code>).
+              {t('admin.system.flagsHint')}
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -470,7 +471,7 @@ export function AdminSystemTab() {
               type="text"
               value={flagSearchQuery}
               onChange={e => setFlagSearchQuery(e.target.value)}
-              placeholder="Buscar flag..."
+              placeholder={t('admin.system.searchFlags')}
               className="adminInput"
               style={{ width: '200px', marginBottom: 0 }}
             />
@@ -480,7 +481,7 @@ export function AdminSystemTab() {
               className="adminButton"
               style={{ fontSize: '12px' }}
             >
-              + Nova Flag
+              {t('admin.system.newFlag')}
             </button>
           </div>
         </div>
@@ -488,22 +489,22 @@ export function AdminSystemTab() {
         {isLoading ? (
           <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
             <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--cm-border)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', marginRight: '8px', animation: 'cm-auth-spin 0.7s linear infinite' }} />
-            Carregando feature flags...
+            {t('admin.system.loadingFlags')}
           </div>
         ) : filteredFlags.length === 0 ? (
           <div style={{ padding: '24px', textAlign: 'center', borderRadius: '8px', border: '1px dashed var(--cm-border)', background: 'color-mix(in srgb, var(--cm-background) 30%, transparent)', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
-            Nenhuma feature flag cadastrada no momento.
+            {t('admin.system.emptyFlags')}
           </div>
         ) : (
           <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
             <table className="adminTable">
               <thead>
                 <tr>
-                  <th>Chave</th>
-                  <th>Valor / Estado</th>
-                  <th>Descrição</th>
-                  <th>Atualizado em</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <th>{t('admin.common.key')}</th>
+                  <th>{t('admin.common.valueOrState')}</th>
+                  <th>{t('admin.common.description')}</th>
+                  <th>{t('admin.common.updatedAt')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('admin.common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -527,7 +528,7 @@ export function AdminSystemTab() {
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 10px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, cursor: 'pointer', border: `1px solid ${isActive ? 'color-mix(in srgb, var(--cm-success) 30%, transparent)' : 'var(--cm-border)'}`, background: isActive ? 'color-mix(in srgb, var(--cm-success) 15%, transparent)' : 'transparent', color: isActive ? 'var(--cm-success)' : 'var(--cm-muted-foreground)' }}
                           >
                             <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: isActive ? 'var(--cm-success)' : 'var(--cm-muted-foreground)', display: 'inline-block' }} />
-                            {isActive ? 'Ativa' : 'Inativa'}
+                            {isActive ? t('admin.system.active') : t('admin.system.inactive')}
                           </button>
                         ) : (
                           <span style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cm-foreground)', maxWidth: '200px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }}>
@@ -548,14 +549,14 @@ export function AdminSystemTab() {
                             onClick={() => openEditConfigModal(item)}
                             style={{ height: '28px', padding: '0 10px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: 'pointer', fontSize: '11px' }}
                           >
-                            Editar
+                            {t('admin.common.edit')}
                           </button>
                           <button
                             type="button"
                             onClick={() => openDeleteConfigModal(item)}
                             style={{ height: '28px', padding: '0 10px', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', borderRadius: '6px', color: 'var(--cm-destructive)', cursor: 'pointer', fontSize: '11px' }}
                           >
-                            Excluir
+                            {t('admin.common.delete')}
                           </button>
                         </div>
                       </td>
@@ -573,10 +574,10 @@ export function AdminSystemTab() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ color: 'var(--cm-primary)', fontSize: '14px' }}>⚖️</span>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Limites Globais & Cotas</h3>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.system.globalLimits')}</h3>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', margin: '4px 0 0 0' }}>
-              Políticas de consumo, rate-limits e restrições operacionais (<code style={{ color: 'var(--cm-primary)' }}>limit.*</code> e <code style={{ color: 'var(--cm-primary)' }}>quota.*</code>).
+              {t('admin.system.limitsHint2')}
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -584,7 +585,7 @@ export function AdminSystemTab() {
               type="text"
               value={limitSearchQuery}
               onChange={e => setLimitSearchQuery(e.target.value)}
-              placeholder="Buscar limite..."
+              placeholder={t('admin.system.searchLimits')}
               className="adminInput"
               style={{ width: '200px', marginBottom: 0 }}
             />
@@ -594,7 +595,7 @@ export function AdminSystemTab() {
               className="adminButton"
               style={{ fontSize: '12px' }}
             >
-              + Novo Limite
+              {t('admin.system.newLimit')}
             </button>
           </div>
         </div>
@@ -602,22 +603,22 @@ export function AdminSystemTab() {
         {isLoading ? (
           <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
             <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--cm-border)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', marginRight: '8px', animation: 'cm-auth-spin 0.7s linear infinite' }} />
-            Carregando limites...
+            {t('admin.system.loadingLimits')}
           </div>
         ) : filteredLimits.length === 0 ? (
           <div style={{ padding: '24px', textAlign: 'center', borderRadius: '8px', border: '1px dashed var(--cm-border)', background: 'color-mix(in srgb, var(--cm-background) 30%, transparent)', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
-            Nenhum limite ou cota global configurado.
+            {t('admin.system.emptyLimits')}
           </div>
         ) : (
           <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
             <table className="adminTable">
               <thead>
                 <tr>
-                  <th>Chave</th>
-                  <th>Valor</th>
-                  <th>Descrição</th>
-                  <th>Atualizado em</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <th>{t('admin.common.key')}</th>
+                  <th>{t('admin.common.value')}</th>
+                  <th>{t('admin.common.description')}</th>
+                  <th>{t('admin.common.updatedAt')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('admin.common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -644,14 +645,14 @@ export function AdminSystemTab() {
                           onClick={() => openEditConfigModal(item)}
                           style={{ height: '28px', padding: '0 10px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: 'pointer', fontSize: '11px' }}
                         >
-                          Editar
+                          {t('admin.common.edit')}
                         </button>
                         <button
                           type="button"
                           onClick={() => openDeleteConfigModal(item)}
                           style={{ height: '28px', padding: '0 10px', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', borderRadius: '6px', color: 'var(--cm-destructive)', cursor: 'pointer', fontSize: '11px' }}
                         >
-                          Excluir
+                          {t('admin.common.delete')}
                         </button>
                       </div>
                     </td>
@@ -668,10 +669,10 @@ export function AdminSystemTab() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ color: 'var(--cm-primary)', fontSize: '14px' }}>📁</span>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Workspaces Multi-tenant</h3>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.system.workspaces')}</h3>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', margin: '4px 0 0 0' }}>
-              Metadados de ambientes de trabalho isolados por tenant e usuário.
+              {t('admin.system.workspacesHint')}
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -679,7 +680,7 @@ export function AdminSystemTab() {
               type="text"
               value={workspaceSearchQuery}
               onChange={e => setWorkspaceSearchQuery(e.target.value)}
-              placeholder="Buscar workspace ou tenant..."
+              placeholder={t('admin.system.searchWorkspaces')}
               className="adminInput"
               style={{ width: '240px', marginBottom: 0 }}
             />
@@ -689,24 +690,24 @@ export function AdminSystemTab() {
         {isLoading ? (
           <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
             <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--cm-border)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', marginRight: '8px', animation: 'cm-auth-spin 0.7s linear infinite' }} />
-            Carregando workspaces...
+            {t('admin.system.loadingWorkspaces')}
           </div>
         ) : filteredWorkspaces.length === 0 ? (
           <div style={{ padding: '24px', textAlign: 'center', borderRadius: '8px', border: '1px dashed var(--cm-border)', background: 'color-mix(in srgb, var(--cm-background) 30%, transparent)', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
-            Nenhum workspace ativo encontrado.
+            {t('admin.system.emptyWorkspaces')}
           </div>
         ) : (
           <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
             <table className="adminTable">
               <thead>
                 <tr>
-                  <th>Título</th>
-                  <th>Workspace ID</th>
-                  <th>Tenant</th>
-                  <th>Owner</th>
-                  <th>Caminho Relativo</th>
-                  <th>Criado em</th>
-                  <th style={{ textAlign: 'right' }}>Actions</th>
+                  <th>{t('admin.common.title')}</th>
+                  <th>{t('admin.system.workspaceId')}</th>
+                  <th>{t('admin.common.tenant')}</th>
+                  <th>{t('admin.common.owner')}</th>
+                  <th>{t('admin.system.relativePath')}</th>
+                  <th>{t('admin.common.createdAt')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('admin.common.actions')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -732,7 +733,7 @@ export function AdminSystemTab() {
                         onClick={() => openArchiveWorkspaceModal(ws)}
                         style={{ height: '28px', padding: '0 10px', background: 'color-mix(in srgb, var(--cm-primary) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)', borderRadius: '6px', color: 'var(--cm-primary)', cursor: 'pointer', fontSize: '11px', fontWeight: 500 }}
                       >
-                        Arquivar
+                        {t('admin.sessions.archiveAction')}
                       </button>
                     </td>
                   </tr>
@@ -748,14 +749,14 @@ export function AdminSystemTab() {
           <div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ color: 'var(--cm-primary)', fontSize: '14px' }}>💾</span>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Armazenamento & Paths do Host</h3>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.system.storage')}</h3>
             </div>
             <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', margin: '4px 0 0 0' }}>
-              Raízes operacionais no filesystem do servidor e mapeamento absoluto de workspaces ativos.
+              {t('admin.system.storageHint')}
             </p>
           </div>
           <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 500, background: 'var(--cm-background)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)' }}>
-            Somente Leitura
+            {t('admin.system.readOnly')}
           </span>
         </div>
 
@@ -763,7 +764,7 @@ export function AdminSystemTab() {
           <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
-                <span style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500 }}>Workspaces Root</span>
+                <span style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500 }}>{t('admin.system.workspacesRoot')}</span>
                 <span style={{ fontSize: '10px', color: 'var(--cm-primary)', fontFamily: 'monospace', opacity: 0.8 }}>storage.workspaces_root</span>
               </div>
               <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--cm-foreground)', background: 'var(--cm-card)', padding: '8px', borderRadius: '8px', border: '1px solid var(--cm-border)', marginTop: '8px', wordBreak: 'break-all' }}>
@@ -776,9 +777,9 @@ export function AdminSystemTab() {
               style={{ width: '100%', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', fontSize: '12px', fontWeight: 500, color: 'var(--cm-foreground)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
               {copiedKey === 'ws-root' ? (
-                <span style={{ color: 'var(--cm-success)', fontWeight: 600 }}>✓ Copied!</span>
+                <span style={{ color: 'var(--cm-success)', fontWeight: 600 }}>{t('admin.common.copied')}</span>
               ) : (
-                <span>📋 Copy path</span>
+                <span>{t('admin.common.copyPath')}</span>
               )}
             </button>
           </div>
@@ -786,7 +787,7 @@ export function AdminSystemTab() {
           <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
-                <span style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500 }}>Uploads Root</span>
+                <span style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500 }}>{t('admin.system.uploadsRoot')}</span>
                 <span style={{ fontSize: '10px', color: 'var(--cm-primary)', fontFamily: 'monospace', opacity: 0.8 }}>storage.uploads_root</span>
               </div>
               <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--cm-foreground)', background: 'var(--cm-card)', padding: '8px', borderRadius: '8px', border: '1px solid var(--cm-border)', marginTop: '8px', wordBreak: 'break-all' }}>
@@ -799,9 +800,9 @@ export function AdminSystemTab() {
               style={{ width: '100%', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', fontSize: '12px', fontWeight: 500, color: 'var(--cm-foreground)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
               {copiedKey === 'up-root' ? (
-                <span style={{ color: 'var(--cm-success)', fontWeight: 600 }}>✓ Copied!</span>
+                <span style={{ color: 'var(--cm-success)', fontWeight: 600 }}>{t('admin.common.copied')}</span>
               ) : (
-                <span>📋 Copy path</span>
+                <span>{t('admin.common.copyPath')}</span>
               )}
             </button>
           </div>
@@ -809,7 +810,7 @@ export function AdminSystemTab() {
           <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '12px' }}>
-                <span style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500 }}>Logs Root</span>
+                <span style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500 }}>{t('admin.system.logsRoot')}</span>
                 <span style={{ fontSize: '10px', color: 'var(--cm-primary)', fontFamily: 'monospace', opacity: 0.8 }}>storage.logs_root</span>
               </div>
               <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--cm-foreground)', background: 'var(--cm-card)', padding: '8px', borderRadius: '8px', border: '1px solid var(--cm-border)', marginTop: '8px', wordBreak: 'break-all' }}>
@@ -822,9 +823,9 @@ export function AdminSystemTab() {
               style={{ width: '100%', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', fontSize: '12px', fontWeight: 500, color: 'var(--cm-foreground)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
             >
               {copiedKey === 'log-root' ? (
-                <span style={{ color: 'var(--cm-success)', fontWeight: 600 }}>✓ Copied!</span>
+                <span style={{ color: 'var(--cm-success)', fontWeight: 600 }}>{t('admin.common.copied')}</span>
               ) : (
-                <span>📋 Copy path</span>
+                <span>{t('admin.common.copyPath')}</span>
               )}
             </button>
           </div>
@@ -834,10 +835,10 @@ export function AdminSystemTab() {
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
               <span style={{ color: 'var(--cm-primary)' }}>🔒</span>
-              <h4 style={{ fontSize: '12px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Acesso Seguro ao Servidor</h4>
+              <h4 style={{ fontSize: '12px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.system.secureAccess')}</h4>
             </div>
             <span style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)' }}>
-              O filesystem do host não é exposto pelo painel. Use SSH/SFTP.
+              {t('admin.system.filesystemHint')}
             </span>
           </div>
 
@@ -850,7 +851,7 @@ export function AdminSystemTab() {
               onClick={() => handleCopyText(sshExampleCommand, 'ssh-cmd')}
               style={{ padding: '4px 12px', borderRadius: '6px', background: 'color-mix(in srgb, var(--cm-primary) 15%, transparent)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 40%, transparent)', fontSize: '12px', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
-              {copiedKey === 'ssh-cmd' ? '✓ Copied!' : 'Copy comando'}
+              {copiedKey === 'ssh-cmd' ? `✓ ${t('admin.common.copied')}` : t('admin.common.copyCommand')}
             </button>
           </div>
         </div>
@@ -858,13 +859,13 @@ export function AdminSystemTab() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '8px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <h4 style={{ fontSize: '12px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span>📂</span> Mapeamento de Workspaces e Paths Absolutos
+              <span>📂</span> {t('admin.system.pathMappingTitle')}
             </h4>
             <input
               type="text"
               value={storageWsSearchQuery}
               onChange={e => setStorageWsSearchQuery(e.target.value)}
-              placeholder="Buscar workspace ou path..."
+              placeholder={t('admin.system.searchPaths')}
               className="adminInput"
               style={{ width: '240px', marginBottom: 0 }}
             />
@@ -873,23 +874,23 @@ export function AdminSystemTab() {
           {isLoading ? (
             <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
               <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--cm-border)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', marginRight: '8px', animation: 'cm-auth-spin 0.7s linear infinite' }} />
-              Carregando mapeamento de paths...
+              {t('admin.system.loadingPaths')}
             </div>
           ) : storageWorkspaces.length === 0 ? (
             <div style={{ padding: '24px', textAlign: 'center', borderRadius: '8px', border: '1px dashed var(--cm-border)', background: 'color-mix(in srgb, var(--cm-background) 30%, transparent)', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
-              Nenhum workspace registrado com mapeamento de path ativo.
+              {t('admin.system.emptyPaths')}
             </div>
           ) : (
             <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
               <table className="adminTable">
                 <thead>
                   <tr>
-                    <th>Título</th>
-                    <th>Workspace ID</th>
-                    <th>Tenant</th>
-                    <th>Caminho Relativo</th>
-                    <th>Caminho Completo (Host)</th>
-                    <th style={{ textAlign: 'right' }}>Criado em</th>
+                    <th>{t('admin.common.title')}</th>
+                    <th>{t('admin.system.workspaceId')}</th>
+                    <th>{t('admin.common.tenant')}</th>
+                    <th>{t('admin.system.relativePath')}</th>
+                    <th>{t('admin.system.fullPath')}</th>
+                    <th style={{ textAlign: 'right' }}>{t('admin.common.createdAt')}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -942,7 +943,7 @@ export function AdminSystemTab() {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--cm-border)', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>
-                {selectedConfig ? 'Editar Parâmetro' : `Novo Parâmetro (${formPrefixType})`}
+                {selectedConfig ? t('admin.system.editParam') : t('admin.system.newParam', { type: formPrefixType })}
               </h3>
               <button
                 type="button"
@@ -956,44 +957,44 @@ export function AdminSystemTab() {
 
             <form onSubmit={handleSaveConfig} style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '12px' }}>
               <div>
-                <label style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>Chave do Parâmetro *</label>
+                <label style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>{t('admin.system.paramKey')}</label>
                 <input
                   type="text"
                   required
                   disabled={Boolean(selectedConfig) || isMutating}
                   value={formKey}
                   onChange={e => setFormKey(e.target.value)}
-                  placeholder="Ex: feature.export_pdf, limit.max_tokens..."
+                  placeholder={t('admin.system.paramKeyPlaceholder')}
                   className="adminInput"
                   style={{ fontFamily: 'monospace', opacity: (Boolean(selectedConfig) || isMutating) ? 0.5 : 1, marginBottom: 0 }}
                 />
               </div>
 
               <div>
-                <label style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>Valor (JSON ou Primitivo) *</label>
+                <label style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>{t('admin.system.paramValue')}</label>
                 <textarea
                   rows={4}
                   required
                   disabled={isMutating}
                   value={formValueStr}
                   onChange={e => setFormValueStr(e.target.value)}
-                  placeholder='Ex: {"enabled": true} ou 1000'
+                  placeholder={t('admin.system.valuePlaceholder')}
                   className="adminInput"
                   style={{ fontFamily: 'monospace', opacity: isMutating ? 0.5 : 1, marginBottom: 0 }}
                 />
                 <span style={{ fontSize: '10px', color: 'var(--cm-muted-foreground)', display: 'block', marginTop: '4px' }}>
-                  Dica: Para feature flags simples, utilize <code>{'{"enabled": true}'}</code> ou <code>true</code>.
+                  {t('admin.system.valueTip')}
                 </span>
               </div>
 
               <div>
-                <label style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>Descrição do Impacto</label>
+                <label style={{ color: 'var(--cm-muted-foreground)', fontWeight: 500, display: 'block', marginBottom: '4px' }}>{t('admin.system.impactDescription')}</label>
                 <input
                   type="text"
                   disabled={isMutating}
                   value={formDescription}
                   onChange={e => setFormDescription(e.target.value)}
-                  placeholder="Finalidade ou documento de referência deste parâmetro"
+                  placeholder={t('admin.system.impactPlaceholder')}
                   className="adminInput"
                   style={{ opacity: isMutating ? 0.5 : 1, marginBottom: 0 }}
                 />
@@ -1012,7 +1013,7 @@ export function AdminSystemTab() {
                   disabled={isMutating}
                   style={{ height: '32px', padding: '0 16px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: isMutating ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 500, opacity: isMutating ? 0.5 : 1 }}
                 >
-                  Cancel
+                  {t('admin.common.cancelAction')}
                 </button>
                 <button
                   type="submit"
@@ -1020,7 +1021,7 @@ export function AdminSystemTab() {
                   className="adminButton"
                   style={{ opacity: isMutating ? 0.5 : 1 }}
                 >
-                  {isMutating ? 'Saving...' : 'Salvar Parâmetro'}
+                  {isMutating ? t('admin.common.saving') : t('admin.system.saveParam')}
                 </button>
               </div>
             </form>
@@ -1050,11 +1051,11 @@ export function AdminSystemTab() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--cm-destructive)' }}>
               <span style={{ fontSize: '20px' }}>⚠️</span>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Excluir Parâmetro</h3>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.system.deleteParam')}</h3>
             </div>
 
             <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '12px', marginBottom: 0 }}>
-              Tem certeza de que deseja excluir a chave{' '}
+              {t('admin.system.deleteConfirm')}{' '}
               <strong style={{ color: 'var(--cm-foreground)', fontFamily: 'monospace' }}>{selectedConfig.key}</strong>?
             </p>
 
@@ -1071,7 +1072,7 @@ export function AdminSystemTab() {
                 disabled={isMutating}
                 style={{ height: '32px', padding: '0 16px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: isMutating ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 500, opacity: isMutating ? 0.5 : 1 }}
               >
-                Cancel
+                {t('admin.common.cancelAction')}
               </button>
               <button
                 type="button"
@@ -1079,7 +1080,7 @@ export function AdminSystemTab() {
                 disabled={isMutating}
                 style={{ height: '32px', padding: '0 16px', background: 'color-mix(in srgb, var(--cm-destructive) 20%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 40%, transparent)', borderRadius: '6px', color: 'var(--cm-destructive)', cursor: isMutating ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 600, opacity: isMutating ? 0.5 : 1 }}
               >
-                {isMutating ? 'Deleting...' : 'Confirm Deletion'}
+                {isMutating ? t('admin.common.deleting') : t('admin.common.confirmDeletion')}
               </button>
             </div>
           </div>
@@ -1108,18 +1109,17 @@ export function AdminSystemTab() {
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--cm-primary)' }}>
               <span style={{ fontSize: '20px' }}>📁</span>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Arquivar Workspace</h3>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.system.archiveWorkspace')}</h3>
             </div>
 
             <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '12px', marginBottom: 0 }}>
-              Deseja arquivar o workspace <strong style={{ color: 'var(--cm-foreground)' }}>{selectedWorkspace.title}</strong> (
-              <span style={{ fontFamily: 'monospace', color: 'var(--cm-foreground)' }}>{selectedWorkspace.workspace_id}</span>) do tenant{' '}
+              {t('admin.system.archiveConfirm')} <strong style={{ color: 'var(--cm-foreground)' }}>{selectedWorkspace.title}</strong> (
+              <span style={{ fontFamily: 'monospace', color: 'var(--cm-foreground)' }}>{selectedWorkspace.workspace_id}</span>{t('admin.system.archiveTenantSuffix')}{' '}
               <strong style={{ color: 'var(--cm-foreground)' }}>{selectedWorkspace.tenant_name}</strong>?
             </p>
 
             <div style={{ padding: '12px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-primary) 10%, transparent)', fontSize: '12px', color: 'var(--cm-primary)', marginTop: '12px' }}>
-              <strong>Nota de Segurança:</strong> Esta ação realiza um arquivamento lógico (soft delete).
-              A pasta física de arquivos no servidor <strong>NÃO</strong> é excluída.
+              <strong>{t('admin.system.securityNote')}</strong> {t('admin.system.archiveNote')}
             </div>
 
             {formError && (
@@ -1135,7 +1135,7 @@ export function AdminSystemTab() {
                 disabled={isMutating}
                 style={{ height: '32px', padding: '0 16px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: isMutating ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 500, opacity: isMutating ? 0.5 : 1 }}
               >
-                Cancel
+                {t('admin.common.cancelAction')}
               </button>
               <button
                 type="button"
@@ -1143,7 +1143,7 @@ export function AdminSystemTab() {
                 disabled={isMutating}
                 style={{ height: '32px', padding: '0 16px', background: 'color-mix(in srgb, var(--cm-primary) 20%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-primary) 40%, transparent)', borderRadius: '6px', color: 'var(--cm-primary)', cursor: isMutating ? 'not-allowed' : 'pointer', fontSize: '13px', fontWeight: 600, opacity: isMutating ? 0.5 : 1 }}
               >
-                {isMutating ? 'Arquivando...' : 'Confirm Arquivamento'}
+                {isMutating ? t('admin.system.archiving') : t('admin.system.confirmArchive')}
               </button>
             </div>
           </div>

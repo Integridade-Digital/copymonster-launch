@@ -1,7 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import type { MarketListingEntry, MarketListingVersion } from '@deepseek-ai/dsh-api-remotes/client'
 import type { LocalizedText } from '@deepseek-ai/dsh-package-manifest'
-import { declaredQuery, displayDeclarations, indexLabel, INITIAL_QUERY, presentedVersion, sourceFacts, withText } from '../src/client/presentation.ts'
+import {
+  declaredQuery, displayDeclarations, hiddenCategory, indexLabel, INITIAL_QUERY, presentedVersion, sourceFacts,
+  visibleDeclarations, withText,
+} from '../src/client/presentation.ts'
 
 const resolveText = (text: LocalizedText): string => typeof text === 'string' ? text : text.zh ?? text.en
 
@@ -22,6 +25,25 @@ describe('displayDeclarations', () => {
       b: { title: 'Beta' }, a: { title: { en: 'Alpha', zh: 'Beta' } }, c: { title: 'Alpha' },
     }, resolveText, 'en').map(({ id, title }) => ({ id, title }))).toEqual([{ id: 'c', title: 'Alpha' }, { id: 'a', title: 'Beta' }, { id: 'b', title: 'Beta' }])
     expect(displayDeclarations({ z: { title: 'X' }, x: { title: 'X' }, y: { title: 'X' } }, resolveText, 'en').map(item => item.id)).toEqual(['x', 'y', 'z'])
+  })
+})
+
+describe('visibleDeclarations', () => {
+  it('withholds the categories the Discover tab must not offer', () => {
+    const categories = {
+      'themes-appearance': { title: 'Themes & Appearance' },
+      'models-providers': { title: { en: 'Models & Providers', pt: 'Modelos e Provedores' } },
+      security: { title: 'Security & Permissions' },
+      runtime: { title: 'Development & Runtime' },
+      browser: { title: 'Browser & Web' },
+      'ui-enhancements': { title: 'UI Enhancements' },
+      workflow: { title: 'Workflow & Automation' },
+    }
+    expect(visibleDeclarations(categories, resolveText, 'en').map(item => item.id)).toEqual(['ui-enhancements', 'workflow'])
+    // A source that renames the id still hides the category by its declared title.
+    expect(visibleDeclarations({ 'my-themes': { title: 'Themes & Appearance' } }, resolveText, 'en')).toEqual([])
+    expect(hiddenCategory('security-permissions', undefined)).toBe(true)
+    expect(hiddenCategory('ui-enhancements', 'UI Enhancements')).toBe(false)
   })
 })
 
@@ -48,6 +70,12 @@ describe('declaredQuery', () => {
     expect(declaredQuery({ ...declared, category: 'gone', labels: ['ui', 'gone'], sort: { kind: 'key', id: 'gone', direction: 'asc' } }, metadata))
       .toEqual({ text: 'x', category: null, labels: ['ui'], sort: { kind: 'index' } })
     expect(declaredQuery({ ...declared, labels: ['gone'] }, metadata)).toEqual({ ...declared, labels: [] })
+  })
+
+  it('drops an active filter on a withheld category', () => {
+    const withheld = { categories: { 'themes-appearance': { title: 'Themes & Appearance' }, tools: { title: 'Tools' } }, labels: {}, sortKeys: {} }
+    expect(declaredQuery({ ...INITIAL_QUERY, category: 'themes-appearance' }, withheld).category).toBeNull()
+    expect(declaredQuery({ ...INITIAL_QUERY, category: 'tools' }, withheld).category).toBe('tools')
   })
 })
 

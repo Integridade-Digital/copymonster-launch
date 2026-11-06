@@ -44,6 +44,8 @@ export interface TrajectoryLayoutInput {
   runningCalls: TrajectorySnapshot['runningCalls']
   requests?: readonly RequestView[]
   callSchemas?: RequestInspectionSnapshot['callSchemas']
+  /** Display-only text mask applied to every derived cell string. */
+  mask?: (text: string) => string
 }
 
 interface UsageLike {
@@ -179,7 +181,7 @@ export function deriveTrajectoryLayout(
   t: TrajectoryTranslate,
 ): readonly TrajectoryTurnModel[] {
   const {
-    nodes, eventLocations, partial, runningCalls, requests = [], callSchemas,
+    nodes, eventLocations, partial, runningCalls, requests = [], callSchemas, mask,
   } = input
   const resultByCall = indexResults(nodes)
   const callById = new Map<string, ToolCallBlock>(resultByCall)
@@ -547,8 +549,8 @@ export function deriveTrajectoryLayout(
   }
 
   return [
-    ...[...turns.entries()].map(([turn, entry]) => toTurnModel(turn, entry, t)),
-    ...standaloneCompactions.map(entry => toTurnModel(null, entry, t)),
+    ...[...turns.entries()].map(([turn, entry]) => toTurnModel(turn, entry, t, mask)),
+    ...standaloneCompactions.map(entry => toTurnModel(null, entry, t, mask)),
   ].sort((left, right) => firstCellIndex(left) - firstCellIndex(right))
 }
 
@@ -565,12 +567,14 @@ export function appendTrajectoryPartialLayout(
   partial: TrajectorySnapshot['partial'],
   lastIndex: number,
   t: TrajectoryTranslate,
+  mask?: (text: string) => string,
 ): readonly TrajectoryTurnModel[] {
   if (partial === null) return turns
   const partialTurn = deriveTrajectoryLayout({
     nodes: [],
     partial,
     runningCalls: [],
+    ...(mask === undefined ? {} : { mask }),
   }, t).at(0)
   if (partialTurn === undefined) return turns
   const streamed: TrajectoryTurnModel = {
@@ -628,16 +632,62 @@ function toTurnModel(
   turn: number | null,
   entry: TurnBucket,
   t: TrajectoryTranslate,
+  mask: ((text: string) => string) | undefined,
 ): TrajectoryTurnModel {
   const groups = entry.groups.map(({ title, laid }): TrajectoryGroupModel => {
     const description = groupDescription(laid, t)
     return {
       title,
       ...(description !== undefined ? { description } : {}),
-      cells: laid.map(l => l.cell),
+      cells: laid.map(l => maskedCell(l.cell, mask)),
     }
   })
   return { turn, groups }
+}
+
+/** Cell string fields the details panel and summaries render. */
+const MASKED_CELL_TEXT_KEYS = [
+  'text', 'previewMarkdown', 'inputDetail', 'systemPromptDetail', 'outputDetail',
+  'thinkingDetail', 'result', 'resultPreviewMarkdown', 'schemaDetail',
+] as const satisfies readonly (keyof TrajectoryCellProps)[]
+
+/**
+ * Apply the display mask to one cell's recorded text, including the source
+ * blocks and prompt snapshots the details panel renders.
+ * @param cell - derived cell.
+ * @param mask - display mask, or undefined when no workspace is known.
+ * @returns the cell itself when there is nothing to mask.
+ */
+function maskedCell(
+  cell: TrajectoryCellProps,
+  mask: ((text: string) => string) | undefined,
+): TrajectoryCellProps {
+  if (mask === undefined) return cell
+  const masked: Record<string, unknown> = { ...cell }
+  for (const key of MASKED_CELL_TEXT_KEYS) {
+    const value = cell[key]
+    if (typeof value === 'string') masked[key] = mask(value)
+  }
+  if (cell.sourceBlocks !== undefined) masked.sourceBlocks = cell.sourceBlocks.map(block => ({ ...block, content: mask(block.content) }))
+  if (cell.outputBlocks !== undefined) masked.outputBlocks = cell.outputBlocks.map(block => ({ ...block, content: mask(block.content) }))
+  if (cell.promptDetail !== undefined) masked.promptDetail = maskDeep(cell.promptDetail, mask)
+  if (cell.previousPromptDetail !== undefined) masked.previousPromptDetail = maskDeep(cell.previousPromptDetail, mask)
+  return masked as unknown as TrajectoryCellProps
+}
+
+/**
+ * Mask every string inside a JSON-compatible snapshot.
+ * @param value - JSON-compatible value.
+ * @param mask - display mask.
+ * @returns a copy with masked strings.
+ */
+function maskDeep<T>(value: T, mask: (text: string) => string): T {
+  if (typeof value === 'string') return mask(value) as T
+  if (Array.isArray(value)) return value.map(item => maskDeep(item, mask)) as T
+  if (typeof value !== 'object' || value === null) return value
+  const result: Record<string, unknown> = {}
+  for (const [key, item] of Object.entries(value)) result[key] = maskDeep(item, mask)
+  return result as T
 }
 
 /** Chronological section position from the fold's monotonically assigned cell indexes. */

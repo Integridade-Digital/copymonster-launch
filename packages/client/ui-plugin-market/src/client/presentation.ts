@@ -30,13 +30,59 @@ export function withText(query: DiscoverQuery, text: string): DiscoverQuery {
 }
 
 /**
+ * Read the English title of a declaration, which every hidden-category match compares against.
+ * @param title - declared localized title.
+ * @returns the English text.
+ */
+function englishTitle(title: LocalizedText): string {
+  return typeof title === 'string' ? title : title.en
+}
+
+/**
+ * Categories the Discover tab never offers. A market index declares its own
+ * category ids, so the id and the declared English title are both matched:
+ * a source that names one of these categories differently still hides it.
+ */
+const HIDDEN_CATEGORY_KEYS: ReadonlySet<string> = new Set([
+  'themes-appearance',
+  'models-providers',
+  'security-permissions',
+  'development-runtime',
+  'browser-web',
+])
+
+/**
+ * Reduce a category id or title to the comparable key form.
+ * @param value - declared id or title.
+ * @returns lowercase words joined by single hyphens.
+ */
+function categoryKey(value: string): string {
+  return value.toLowerCase().replace(/[^a-z0-9]+/gu, '-').replace(/^-+|-+$/gu, '')
+}
+
+/**
+ * Whether a category is withheld from the Discover tab.
+ * @param id - declared category id.
+ * @param title - declared title, when the declaration carries one.
+ * @returns true when the category must not be offered.
+ */
+export function hiddenCategory(id: string, title: LocalizedText | undefined): boolean {
+  return HIDDEN_CATEGORY_KEYS.has(categoryKey(id))
+    || (title !== undefined && HIDDEN_CATEGORY_KEYS.has(categoryKey(englishTitle(title))))
+}
+
+/**
  * Drop filters and the sort key the index no longer declares, so every active choice stays visible in the toolbar.
  * @param query - the current query.
  * @param metadata - the declarations of the index that answered it.
  * @returns the query itself when every id is declared, otherwise a reduced copy.
  */
 export function declaredQuery(query: DiscoverQuery, metadata: MarketIndexMetadata): DiscoverQuery {
-  const category = query.category !== null && !Object.hasOwn(metadata.categories, query.category) ? null : query.category
+  const declared = query.category === null ? undefined : metadata.categories[query.category]
+  const category = query.category !== null
+    && (declared === undefined || hiddenCategory(query.category, declared.title))
+    ? null
+    : query.category
   const labels = query.labels.filter(label => Object.hasOwn(metadata.labels, label))
   const sort: MarketSort = query.sort.kind === 'key' && !Object.hasOwn(metadata.sortKeys, query.sort.id) ? { kind: 'index' } : query.sort
   const unchanged = category === query.category && labels.length === query.labels.length && sort === query.sort
@@ -64,6 +110,20 @@ export function displayDeclarations<T extends { readonly title: LocalizedText }>
   return Object.entries(declarations)
     .map(([id, declaration]) => ({ id, title: resolveText(declaration.title), declaration }))
     .sort((a, b) => collator.compare(a.title, b.title) || (a.id < b.id ? -1 : 1))
+}
+
+/**
+ * Declarations offered in the Discover toolbar, with withheld categories removed.
+ * @param declarations - id → declaration with a `title`.
+ * @param resolveText - current-language text resolution.
+ * @param language - current UI language for collation.
+ * @returns the visible declarations in display order.
+ */
+export function visibleDeclarations<T extends { readonly title: LocalizedText }>(
+  declarations: Readonly<Record<string, T>>, resolveText: (text: LocalizedText) => string, language: string,
+): DisplayDeclaration<T>[] {
+  return displayDeclarations(declarations, resolveText, language)
+    .filter(item => !hiddenCategory(item.id, item.declaration.title))
 }
 
 /**

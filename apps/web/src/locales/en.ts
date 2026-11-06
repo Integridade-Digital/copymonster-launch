@@ -1,4 +1,6 @@
+import { adminEn } from './admin'
 export const en = {
+  ...adminEn,
   // Footer / Common
   'common.plans': 'Plans',
   'common.profile': 'Profile',

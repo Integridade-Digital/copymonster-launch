@@ -25,6 +25,7 @@ import {
   type TrajectoryTimeRange,
 } from './timeline.ts'
 import { trajectoryRecordId } from './trajectory-record.ts'
+import { workspaceMask } from './workspace-mask.ts'
 import { TrajectorySearchIndex } from './trajectory-search-index.ts'
 import type { TrajectorySnapshot } from './trajectory-contract.ts'
 import css from './views.module.css'
@@ -130,7 +131,7 @@ function addUsage(
 }
 
 export function TrajectoryView({
-  useSession, useTrajectory, useDuration, loadOlder, loadImage, setActualDuration,
+  sessionId, useSession, useSessions, useTrajectory, useDuration, loadOlder, loadImage, setActualDuration,
   viewRequest, completeViewRequest, renderSlot, t, jsonStringWrapping,
 }: ConvViewProps
   & Pick<PropsRenderSlots<'conversation.trajectory.images'>, 'renderSlot'>
@@ -154,6 +155,10 @@ export function TrajectoryView({
   const [timelineRecordFocus, setTimelineRecordFocus] = useState<{
     readonly index: number
   } | null>(null)
+  // The ledger replays model-facing text, so the workspace directory is masked
+  // before any of it reaches the screen.
+  const cwd = useSessions(state => state.byId[sessionId]?.cwd)
+  const mask = useMemo(() => workspaceMask(cwd), [cwd])
   const completeInspection = useTrajectory(snapshot => snapshot)
   const latestNodeSeq = completeInspection.eventNodes.at(-1)?.seq
   const [historyTailSeq, setHistoryTailSeq] = useState(latestNodeSeq)
@@ -323,11 +328,12 @@ export function TrajectoryView({
       requests,
       systemPrompts: inspection.systemPrompts,
       callSchemas,
+      mask,
     }, t)
     return { turns, lastIndex: lastCellIndex(turns) }
   }, [
     nodes, eventLocations, partialTurn, partialStep,
-    runningCalls, requests, inspection.systemPrompts, callSchemas, t,
+    runningCalls, requests, inspection.systemPrompts, callSchemas, t, mask,
   ])
   const timelinePartialSignature = partialStructureSignature(partial)
   const partialStartTime = partial?.timing?.stepStartTime
@@ -342,8 +348,8 @@ export function TrajectoryView({
     },
   [partialStep, partialTurn, timelinePartialSignature, partialStartTime, partialFirstTokenTime])
   const timelineTurns = useMemo(
-    () => appendTrajectoryPartialLayout(finalized.turns, timelinePartial, finalized.lastIndex, t),
-    [finalized, timelinePartial, t],
+    () => appendTrajectoryPartialLayout(finalized.turns, timelinePartial, finalized.lastIndex, t, mask),
+    [finalized, timelinePartial, t, mask],
   )
   const timelineMode: TrajectoryTimelineMode = actualDuration
     ? actualTime ? 'actual' : 'duration'

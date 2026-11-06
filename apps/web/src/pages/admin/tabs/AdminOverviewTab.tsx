@@ -1,6 +1,7 @@
 import { formatCurrency } from '../../../lib/format'
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../lib/supabase/client'
+import { t } from '../../../locales'
 
 interface DailyMetric {
   date: string
@@ -97,7 +98,7 @@ export function AdminOverviewTab() {
         setModelStats([])
       }
     } catch (err: any) {
-      setError(err?.message || 'Falha ao carregar métricas de visão geral.')
+      setError(err?.message || t('admin.overview.loadFailure'))
     } finally {
       setIsLoading(false)
     }
@@ -117,7 +118,7 @@ export function AdminOverviewTab() {
       }
       await loadOverviewData()
     } catch (err: any) {
-      setError(err?.message || 'Error ao recalcular métricas diárias.')
+      setError(err?.message || t('admin.overview.recalculateFailure'))
     } finally {
       setIsRefreshing(false)
     }
@@ -140,7 +141,7 @@ export function AdminOverviewTab() {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px', color: 'var(--cm-muted-foreground)' }}>
         <span className="cm-auth-spinner" style={{ marginBottom: '16px' }} aria-hidden="true" />
-        <p style={{ fontSize: '13px', margin: 0 }}>Carregando indicadores do painel...</p>
+        <p style={{ fontSize: '13px', margin: 0 }}>{t('admin.overview.loading')}</p>
       </div>
     )
   }
@@ -149,31 +150,31 @@ export function AdminOverviewTab() {
     <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', color: 'var(--cm-foreground)' }}>
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--cm-border)' }}>
         <div>
-          <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: '0 0 4px 0' }}>Overview da Plataforma</h3>
+          <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: '0 0 4px 0' }}>{t('admin.overview.title')}</h3>
           <p style={{ fontSize: '13px', color: 'var(--cm-muted-foreground)', margin: 0 }}>
-            Métricas consolidadas de receita, uso de infraestrutura e saúde dos serviços.
+            {t('admin.overview.subtitle')}
           </p>
         </div>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderRadius: '8px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)' }}>
-            <span style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>Banco:</span>
+            <span style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>{t('admin.overview.database')}</span>
             {health.dbStatus === 'operational' && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 500, color: 'var(--cm-success)' }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--cm-success)', display: 'inline-block' }} />
-                Operacional ({health.dbLatencyMs}ms)
+                {t('admin.overview.operationalLatency', { ms: health.dbLatencyMs })}
               </span>
             )}
             {health.dbStatus === 'degraded' && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 500, color: 'var(--cm-primary)' }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--cm-primary)', display: 'inline-block' }} />
-                Degradado ({health.dbLatencyMs}ms)
+                {t('admin.overview.degradedLatency', { ms: health.dbLatencyMs })}
               </span>
             )}
             {health.dbStatus === 'down' && (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 500, color: 'var(--cm-destructive)' }}>
                 <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--cm-destructive)', display: 'inline-block' }} />
-                Indisponível
+                {t('admin.overview.dbUnavailable')}
               </span>
             )}
           </div>
@@ -186,14 +187,14 @@ export function AdminOverviewTab() {
             {isRefreshing ? (
               <>
                 <span style={{ width: '14px', height: '14px', border: '2px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', display: 'inline-block', animation: 'cm-auth-spin 0.7s linear infinite' }} />
-                Atualizando...
+                {t('admin.overview.updating')}
               </>
             ) : (
               <>
                 <svg width="14" height="14" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Recalcular Métricas
+                {t('admin.overview.recalculate')}
               </>
             )}
           </button>
@@ -209,52 +210,52 @@ export function AdminOverviewTab() {
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
         <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>MRR Estimado</div>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>{t('admin.overview.mrr')}</div>
           <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-primary)' }}>
             {formatCurrency(latestMetrics?.estimated_mrr || 0)}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
-            ARR: {formatCurrency((latestMetrics?.estimated_mrr || 0) * 12)}
+            {t('admin.overview.arr', { value: formatCurrency((latestMetrics?.estimated_mrr || 0) * 12) })}
           </div>
         </div>
 
         <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>Users Ativos (Hoje)</div>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>{t('admin.overview.activeUsers')}</div>
           <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-foreground)' }}>
             {formatNumber(latestMetrics?.active_users || 0)}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
-            Tenants: {formatNumber(latestMetrics?.active_tenants || 0)}
+            {t('admin.overview.tenantsLine', { value: formatNumber(latestMetrics?.active_tenants || 0) })}
           </div>
         </div>
 
         <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>Tokens (Hoje)</div>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>{t('admin.overview.tokensToday')}</div>
           <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-foreground)' }}>
             {formatTokens(latestMetrics?.tokens_consumed || 0)}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
-            Consumo diário
+            {t('admin.overview.dailyUsage')}
           </div>
         </div>
 
         <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>Sessions Totais</div>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>{t('admin.overview.totalSessions')}</div>
           <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-foreground)' }}>
             {formatNumber(totalSessions)}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
-            Indexadas no banco
+            {t('admin.overview.indexedInDb')}
           </div>
         </div>
 
         <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>Saúde do Sistema</div>
+          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>{t('admin.overview.systemHealth')}</div>
           <div style={{ fontSize: '20px', fontWeight: 600, color: health.dbStatus === 'operational' ? 'var(--cm-success)' : health.dbStatus === 'degraded' ? 'var(--cm-primary)' : 'var(--cm-destructive)' }}>
-            {health.dbStatus === 'operational' ? 'Operacional' : health.dbStatus === 'degraded' ? 'Degradado' : 'Indisponível'}
+            {health.dbStatus === 'operational' ? t('admin.overview.dbOperational') : health.dbStatus === 'degraded' ? t('admin.overview.dbDegraded') : t('admin.overview.dbUnavailable')}
           </div>
           <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
-            Latência: {health.dbLatencyMs}ms
+            {t('admin.overview.latency', { ms: health.dbLatencyMs })}
           </div>
         </div>
       </div>
@@ -263,13 +264,13 @@ export function AdminOverviewTab() {
         <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--cm-card)', border: '1px solid var(--cm-border)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
           <div>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Models Mais Utilizados</h4>
-              <span style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)' }}>Top 10 por volume</span>
+              <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.overview.topModels')}</h4>
+              <span style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)' }}>{t('admin.overview.topModelsHint')}</span>
             </div>
 
             {modelStats.length === 0 ? (
               <div style={{ padding: '32px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
-                Nenhuma sessão indexada com registro de modelo até o momento.
+                {t('admin.overview.noModelSessions')}
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -281,7 +282,7 @@ export function AdminOverviewTab() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
                         <span style={{ fontFamily: 'monospace', color: 'var(--cm-foreground)' }}>{item.model}</span>
                         <span style={{ color: 'var(--cm-muted-foreground)' }}>
-                          {formatNumber(item.session_count)} sessões ({formatTokens(item.tokens_sum)} tokens)
+                          {t('admin.overview.modelUsage', { sessions: formatNumber(item.session_count), tokens: formatTokens(item.tokens_sum) })}
                         </span>
                       </div>
                       <div style={{ height: '6px', borderRadius: '3px', background: 'var(--cm-secondary)', overflow: 'hidden' }}>
@@ -299,23 +300,23 @@ export function AdminOverviewTab() {
 
         <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--cm-card)', border: '1px solid var(--cm-border)' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>Histórico Recente (Snapshot Diário)</h4>
-            <span style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)' }}>Últimos 14 dias</span>
+            <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.overview.history')}</h4>
+            <span style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)' }}>{t('admin.overview.historyHint')}</span>
           </div>
 
           {history.length === 0 ? (
             <div style={{ padding: '32px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
-              Nenhum snapshot diário gerado. Clique em &quot;Recalcular Métricas&quot; acima para registrar o primeiro.
+              {t('admin.overview.noSnapshot')}
             </div>
           ) : (
             <div style={{ overflowX: 'auto' }}>
               <table className="adminTable">
                 <thead>
                   <tr>
-                    <th>Data</th>
-                    <th>Users</th>
-                    <th>Tokens</th>
-                    <th>MRR</th>
+                    <th>{t('admin.overview.date')}</th>
+                    <th>{t('admin.overview.users')}</th>
+                    <th>{t('admin.common.tokens')}</th>
+                    <th>{t('admin.overview.mrrColumn')}</th>
                   </tr>
                 </thead>
                 <tbody>

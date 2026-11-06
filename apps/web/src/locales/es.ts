@@ -1,6 +1,8 @@
+import { adminEs } from './admin'
 import { en } from './en'
 
 export const es = {
+  ...adminEs,
   ...en,
   'affiliate.title': 'Programa de afiliados',
   'affiliate.subtitle': 'Consulta tus referidos, comisiones y elegibilidad de pago.',

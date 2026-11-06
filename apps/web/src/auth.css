@@ -179,7 +179,10 @@ body.auth-bg,
 .auth-logo {
   display: block;
   margin: 0 auto 20px;
-  max-width: 180px;
+  /* The brand mark stays a header accent above the card copy: 120px keeps it
+     under a third of a short viewport instead of competing with the title and
+     status text underneath. */
+  max-width: 120px;
   width: 100%;
   height: auto;
   object-fit: contain;

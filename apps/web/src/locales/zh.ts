@@ -1,4 +1,6 @@
+import { adminZh } from './admin'
 export const zh = {
+  ...adminZh,
   // Footer / Common
   'common.plans': '计划',
   'common.profile': '个人资料',

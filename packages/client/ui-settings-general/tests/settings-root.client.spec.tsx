@@ -394,6 +394,24 @@ describe('SettingsPanel navigation', () => {
     expect(screen.getByRole('button', { name: 'General' })).toBeTruthy()
   })
 
+  it('keeps Profile and My DNA registered but out of the navigation rail', () => {
+    mount({
+      rows: [
+        { id: 'general', order: 0, label: 'General' },
+        { id: 'profile', order: 10, label: 'Profile' },
+        { id: 'my-dna', order: 12, label: 'My DNA' },
+        { id: 'models', order: 20, label: 'Models' },
+      ],
+    })
+    openPanel()
+    expect(screen.getByRole('button', { name: 'General' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Models' })).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Profile' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'My DNA' })).toBeNull()
+    // The hidden rows keep their content column reachable by id.
+    expect(screen.getByTestId('section-general')).toBeTruthy()
+  })
+
   it('gives every section a nav glyph, distinct for the ids the shell knows', () => {
     mount({
       rows: [

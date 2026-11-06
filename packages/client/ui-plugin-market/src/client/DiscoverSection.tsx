@@ -9,7 +9,8 @@ import type { InjectFace, PropsLocale, PropsRuntime } from '@deepseek-ai/dsh-cli
 import type { MarketCompatibility, MarketListingEntry, MarketListingVersion, MarketSearchResult, MarketSort } from '@deepseek-ai/dsh-api-remotes/client'
 import type { DiscoverFace, DiscoverState, ListingFailure, ListingState, SourceFailure } from './market-store.ts'
 import {
-  displayDeclarations, indexLabel, presentedVersion, sourceFacts, withText, type DiscoverQuery, type DisplayDeclaration, type SourceFact,
+  displayDeclarations, hiddenCategory, indexLabel, presentedVersion, sourceFacts, visibleDeclarations, withText,
+  type DiscoverQuery, type DisplayDeclaration, type SourceFact,
 } from './presentation.ts'
 import { PluginDetailSection } from './PluginDetailSection.tsx'
 import css from './DiscoverSection.module.css'
@@ -200,7 +201,12 @@ function EntryDetail({ entry, listing, t, face, hooks, language, onBack, onInsta
   const version = presentedVersion(entry)
   const date = formatDate(version.publishTimestamp, language, 'long')
   const categoryId = entry.metadata.category
-  const category = categoryId === undefined ? undefined : listing.metadata.categories[categoryId]
+  const declaredCategory = categoryId === undefined ? undefined : listing.metadata.categories[categoryId]
+  // A withheld category stays off every surface, including this entry's facts.
+  const category = categoryId !== undefined && declaredCategory !== undefined
+    && hiddenCategory(categoryId, declaredCategory.title)
+    ? undefined
+    : declaredCategory
   const labels = displayDeclarations(listing.metadata.labels, face.resolveText, language)
     .filter(label => entry.metadata.labels.includes(label.id))
   const { compatibility } = version
@@ -414,7 +420,7 @@ function Browser({ state, listing, t, face, hooks, language, onInstall, openPack
     return () => { clearTimeout(timer) }
   }, [text, query, face])
   const declarations = useMemo(() => ({
-    categories: value === null ? [] : displayDeclarations(value.metadata.categories, face.resolveText, language),
+    categories: value === null ? [] : visibleDeclarations(value.metadata.categories, face.resolveText, language),
     labels: value === null ? [] : displayDeclarations(value.metadata.labels, face.resolveText, language),
     sortKeys: value === null ? [] : displayDeclarations(value.metadata.sortKeys, face.resolveText, language),
   }), [value, face, language])

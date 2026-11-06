@@ -76,6 +76,26 @@ describe('TrajectoryTurn', () => {
 })
 
 describe('deriveTrajectoryLayout', () => {
+  it('masks the workspace directory in every derived cell string', () => {
+    const cwd = '/var/copymonster/data/t/u/workspaces/loja'
+    const turns = deriveTrajectoryLayoutWithLocale({
+      nodes: [
+        { kind: 'user', seq: 1, time: 1_000, content: [{ type: 'text', text: `Read ${cwd}/notes.md` }], source: null },
+        {
+          kind: 'assistant', seq: 2, time: 3_000, turn: 1, step: 1,
+          blocks: [{ kind: 'text', text: `Saved under ${cwd}.` }],
+        },
+      ],
+      partial: null,
+      runningCalls: [],
+      mask: text => text.split(cwd).join('[Workspace path hidden]'),
+    }, t)
+    const cells = turns.flatMap(turn => turn.groups.flatMap(group => group.cells))
+    const rendered = JSON.stringify(cells)
+    expect(rendered).not.toContain(cwd)
+    expect(rendered).toContain('[Workspace path hidden]')
+  })
+
   it('marks an interrupted assistant as failed while retaining its output', () => {
     const turns = deriveTrajectoryLayout({
       nodes: [{

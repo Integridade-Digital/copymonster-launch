@@ -141,7 +141,7 @@ describe('TeamAction', () => {
     expect(screen.getByRole('heading', { name: '成员3' })).toBeTruthy()
   })
 
-  it('overlays live Session status and the durable model selection on roster rows', () => {
+  it('overlays live Session status on roster rows without exposing their model', () => {
     const statuses: SessionStatusSnapshot = new Map([[WORKER, { running: true, pendingInteraction: undefined, completionUnread: false }]])
     const b = bench({
       statuses,
@@ -159,8 +159,11 @@ describe('TeamAction', () => {
     })
     render(<TeamAction {...b.props} />)
     openPanel()
-    expect(screen.getByRole('button', { name: new RegExp(`lead.*${zh['memberStatus.running']}.*lead-model`, 'u') })).toBeTruthy()
-    const row = screen.getByRole('button', { name: new RegExp(`worker.*${zh['memberStatus.running']}.*worker-model`, 'u') })
+    const leadRow = screen.getByRole('button', { name: new RegExp(`lead.*${zh['memberStatus.running']}`, 'u') })
+    // The roster reports member activity, never the model behind it.
+    expect(leadRow.textContent).not.toContain('lead-model')
+    const row = screen.getByRole('button', { name: new RegExp(`worker.*${zh['memberStatus.running']}`, 'u') })
+    expect(row.textContent).not.toContain('worker-model')
     expect(row.querySelector('[data-state="ongoing"]')).not.toBeNull()
 
     act(() => { b.statuses.set(new Map([[WORKER, { running: false, pendingInteraction: undefined, completionUnread: false }]])) })
@@ -243,7 +246,7 @@ describe('TeamAction', () => {
       state: 'ready', error: null,
       values: { modelSelection: { lastUsed: null, next: { provider: 'p', model: 'updated-worker-model' } } },
     })
-    expect(screen.getByRole('button', { name: /worker.*updated-worker-model/u })).toBeTruthy()
+    expect(screen.getByRole('button', { name: /^worker/u }).textContent).not.toContain('updated-worker-model')
     setProjection(b.sessions, SESSION, { ...team, tasks: [{ ...task, subject: 'Updated parent task' }] })
     expect(screen.getByText('Updated parent task')).toBeTruthy()
   })

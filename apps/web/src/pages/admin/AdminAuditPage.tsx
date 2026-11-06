@@ -1,6 +1,7 @@
 import { formatDateTime } from '../../lib/format'
 import { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../lib/supabase/client'
+import { t } from '../../locales'
 
 interface AuditLog {
   id: string
@@ -82,9 +83,9 @@ export function AdminAuditPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', color: 'var(--cm-foreground)' }}>
       {/* Cabeçalho */}
       <div>
-        <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Trilha de Auditoria</h3>
+        <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">{t('admin.audit.title')}</h3>
         <p className="text-xs text-[var(--cm-muted-foreground)] mt-1">
-          Registro imutável de mutações, operações de segurança e logs de sistema.
+          {t('admin.audit.subtitle')}
         </p>
       </div>
 
@@ -97,29 +98,29 @@ export function AdminAuditPage() {
       {/* Grid de KPIs no padrão Overview */}
       <div className="adminGrid">
         <div className="adminCard">
-          <div className="adminCardLabel">Total de Eventos (Página)</div>
+          <div className="adminCardLabel">{t('admin.audit.pageTotal')}</div>
           <div className="adminCardValue">{kpis.total}</div>
-          <div className="adminCardSub">Registros carregados</div>
+          <div className="adminCardSub">{t('admin.audit.loadedRecords')}</div>
         </div>
         <div className="adminCard">
-          <div className="adminCardLabel">Criações</div>
+          <div className="adminCardLabel">{t('admin.audit.creations')}</div>
           <div className="adminCardValue text-emerald-400">{kpis.create}</div>
-          <div className="adminCardSub">INSERT / CREATE</div>
+          <div className="adminCardSub">{t('admin.audit.creationsHint')}</div>
         </div>
         <div className="adminCard">
-          <div className="adminCardLabel">Atualizações</div>
+          <div className="adminCardLabel">{t('admin.audit.updates')}</div>
           <div className="adminCardValue text-blue-400">{kpis.update}</div>
-          <div className="adminCardSub">UPDATE / MODIFY</div>
+          <div className="adminCardSub">{t('admin.audit.updatesHint')}</div>
         </div>
         <div className="adminCard">
-          <div className="adminCardLabel">Exclusões / Arquivamentos</div>
+          <div className="adminCardLabel">{t('admin.audit.deletions')}</div>
           <div className="adminCardValue text-rose-400">{kpis.del}</div>
-          <div className="adminCardSub">DELETE / ARCHIVE</div>
+          <div className="adminCardSub">{t('admin.audit.deletionsHint')}</div>
         </div>
         <div className="adminCard">
-          <div className="adminCardLabel">Segurança / Auth</div>
+          <div className="adminCardLabel">{t('admin.audit.security')}</div>
           <div className="adminCardValue text-amber-400">{kpis.auth}</div>
-          <div className="adminCardSub">Sessões e credenciais</div>
+          <div className="adminCardSub">{t('admin.audit.securityHint')}</div>
         </div>
       </div>
 
@@ -129,7 +130,7 @@ export function AdminAuditPage() {
           type="text"
           value={resourceFilter}
           onChange={e => setResourceFilter(e.target.value)}
-          placeholder="Filtrar por recurso (ex: tenants, users)..."
+          placeholder={t('admin.audit.searchPlaceholder')}
           className="adminInput h-8 px-3 text-xs bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] focus:outline-none focus:border-[var(--cm-primary)] min-w-[220px]"
         />
         <select
@@ -140,11 +141,11 @@ export function AdminAuditPage() {
           }}
           className="adminInput h-8 px-3 text-xs bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)]"
         >
-          <option value="">Todas as Ações</option>
-          <option value="create">create</option>
-          <option value="update">update</option>
-          <option value="delete">delete</option>
-          <option value="login">login</option>
+          <option value="">{t('admin.audit.allActions')}</option>
+          <option value="create">{t('admin.audit.actionCreate')}</option>
+          <option value="update">{t('admin.audit.actionUpdate')}</option>
+          <option value="delete">{t('admin.audit.actionDelete')}</option>
+          <option value="login">{t('admin.audit.actionLogin')}</option>
         </select>
         {(actionFilter || resourceFilter) && (
           <button
@@ -155,7 +156,7 @@ export function AdminAuditPage() {
             }}
             className="text-xs text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] px-2 py-1 underline cursor-pointer"
           >
-            Limpar Filtros
+            {t('admin.common.clearFilters')}
           </button>
         )}
       </div>
@@ -165,25 +166,25 @@ export function AdminAuditPage() {
         <table className="adminTable w-full text-left border-collapse text-xs">
           <thead className="bg-[var(--cm-card)] text-[var(--cm-muted-foreground)] uppercase font-semibold text-[11px] border-b border-[var(--cm-border)]">
             <tr>
-              <th className="py-2.5 px-3">Data/Hora</th>
-              <th className="py-2.5 px-3">Ação</th>
-              <th className="py-2.5 px-3">Recurso</th>
-              <th className="py-2.5 px-3">ID Recurso</th>
-              <th className="py-2.5 px-3">IP</th>
-              <th className="py-2.5 px-3 text-right">Detalhes</th>
+              <th className="py-2.5 px-3">{t('admin.audit.dateTime')}</th>
+              <th className="py-2.5 px-3">{t('admin.audit.action')}</th>
+              <th className="py-2.5 px-3">{t('admin.audit.resource')}</th>
+              <th className="py-2.5 px-3">{t('admin.audit.resourceId')}</th>
+              <th className="py-2.5 px-3">{t('admin.audit.ip')}</th>
+              <th className="py-2.5 px-3 text-right">{t('admin.audit.details')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--cm-border)]">
             {isLoading ? (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-xs text-[var(--cm-muted-foreground)]">
-                  Carregando trilha de auditoria...
+                  {t('admin.audit.loading')}
                 </td>
               </tr>
             ) : filteredLogs.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-xs text-[var(--cm-muted-foreground)]">
-                  Nenhum log encontrado.
+                  {t('admin.audit.empty')}
                 </td>
               </tr>
             ) : (
@@ -205,7 +206,7 @@ export function AdminAuditPage() {
                       onClick={() => setSelectedLog(log)}
                       className="text-[var(--cm-primary)] hover:text-[var(--cm-primary)] text-xs font-medium cursor-pointer"
                     >
-                      Ver Payload
+                      {t('admin.audit.viewPayload')}
                     </button>
                   </td>
                 </tr>
@@ -216,21 +217,21 @@ export function AdminAuditPage() {
 
         {/* Paginação */}
         <div className="flex justify-between items-center p-3 border-t border-[var(--cm-border)] bg-[var(--cm-card)] text-xs text-[var(--cm-muted-foreground)]">
-          <div>Página {page + 1}</div>
+          <div>{t('admin.common.page')} {page + 1}</div>
           <div className="space-x-2">
             <button
               onClick={() => setPage(p => Math.max(0, p - 1))}
               disabled={page === 0 || isLoading}
               className="px-2.5 py-1 border border-[var(--cm-border)] rounded text-xs text-[var(--cm-foreground)] disabled:opacity-40 hover:bg-[var(--cm-secondary)] cursor-pointer"
             >
-              Anterior
+              {t('admin.common.previous')}
             </button>
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={logs.length < pageSize || isLoading}
               className="px-2.5 py-1 border border-[var(--cm-border)] rounded text-xs text-[var(--cm-foreground)] disabled:opacity-40 hover:bg-[var(--cm-secondary)] cursor-pointer"
             >
-              Próxima
+              {t('admin.common.next')}
             </button>
           </div>
         </div>
@@ -242,42 +243,42 @@ export function AdminAuditPage() {
           <div className="relative p-6 border border-[var(--cm-border)] w-full max-w-2xl shadow-2xl rounded-xl bg-[var(--cm-card)] text-[var(--cm-foreground)] max-h-[85vh] overflow-y-auto space-y-4">
             <div className="flex justify-between items-center pb-3 border-b border-[var(--cm-border)]">
               <h3 className="text-sm font-semibold text-white">
-                Log de Auditoria: <span className="text-[var(--cm-primary)] font-mono">{selectedLog.action}</span>
+                {t('admin.audit.logLabel')} <span className="text-[var(--cm-primary)] font-mono">{selectedLog.action}</span>
               </h3>
               <button
                 onClick={() => setSelectedLog(null)}
                 className="text-[var(--cm-muted-foreground)] hover:text-white text-lg font-bold cursor-pointer"
               >
-                &times;
+                {'×'}
               </button>
             </div>
             <div className="grid grid-cols-2 gap-3 text-xs">
               <div>
-                <span className="text-[var(--cm-muted-foreground)]">Recurso:</span> {selectedLog.resource_type || '-'}
+                <span className="text-[var(--cm-muted-foreground)]">{t('admin.audit.resourceLabel')}</span> {selectedLog.resource_type || '-'}
               </div>
               <div>
-                <span className="text-[var(--cm-muted-foreground)]">ID Recurso:</span>{' '}
+                <span className="text-[var(--cm-muted-foreground)]">{t('admin.audit.resourceIdLabel')}</span>{' '}
                 <span className="font-mono text-[11px]">{selectedLog.resource_id || '-'}</span>
               </div>
               <div>
-                <span className="text-[var(--cm-muted-foreground)]">Usuário:</span>{' '}
-                <span className="font-mono text-[11px]">{selectedLog.user_id || 'Anônimo / Sistema'}</span>
+                <span className="text-[var(--cm-muted-foreground)]">{t('admin.audit.userLabel')}</span>{' '}
+                <span className="font-mono text-[11px]">{selectedLog.user_id || t('admin.audit.anonymous')}</span>
               </div>
               <div>
-                <span className="text-[var(--cm-muted-foreground)]">Data/Hora:</span>{' '}
+                <span className="text-[var(--cm-muted-foreground)]">{t('admin.audit.dateTimeLabel')}</span>{' '}
                 {formatDateTime(selectedLog.created_at)}
               </div>
             </div>
             <div className="space-y-3 pt-2">
-              <AuditValueBlock label="Valor Anterior (Old)" value={selectedLog.old_value} />
-              <AuditValueBlock label="Novo Valor (New)" value={selectedLog.new_value} />
+              <AuditValueBlock label={t('admin.audit.oldValue')} value={selectedLog.old_value} />
+              <AuditValueBlock label={t('admin.audit.newValue')} value={selectedLog.new_value} />
             </div>
             <div className="flex justify-end pt-3 border-t border-[var(--cm-border)]">
               <button
                 onClick={() => setSelectedLog(null)}
                 className="h-8 px-4 bg-[var(--cm-secondary)] border border-[var(--cm-border)] rounded text-xs text-[var(--cm-foreground)] hover:text-white cursor-pointer"
               >
-                Fechar
+                {t('admin.common.cancelAction')}
               </button>
             </div>
           </div>

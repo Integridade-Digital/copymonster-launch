@@ -1,6 +1,7 @@
 import { formatDate } from '../../lib/format'
 import React, { useState, useEffect, useMemo } from 'react'
 import { supabase } from '../../lib/supabase/client'
+import { t } from '../../locales'
 
 interface Tenant {
   id: string
@@ -41,7 +42,7 @@ export function AdminTenantsPage() {
   }
 
   async function handleSuspendTenant(tenantId: string) {
-    if (!confirm('Tem certeza que deseja suspender este tenant?')) return
+    if (!confirm(t('admin.tenants.suspendConfirm'))) return
 
     try {
       const { error } = await supabase
@@ -52,7 +53,7 @@ export function AdminTenantsPage() {
       if (error) throw error
       loadTenants()
     } catch (err: unknown) {
-      alert('Erro ao suspender tenant: ' + (err instanceof Error ? err.message : String(err)))
+      alert(t('admin.tenants.suspendFailure', { reason: err instanceof Error ? err.message : String(err) }))
     }
   }
 
@@ -66,7 +67,7 @@ export function AdminTenantsPage() {
       if (error) throw error
       loadTenants()
     } catch (err: unknown) {
-      alert('Erro ao ativar tenant: ' + (err instanceof Error ? err.message : String(err)))
+      alert(t('admin.tenants.activateFailure', { reason: err instanceof Error ? err.message : String(err) }))
     }
   }
 
@@ -102,16 +103,16 @@ export function AdminTenantsPage() {
       {/* Cabeçalho da Seção */}
       <div className="flex justify-between items-center">
         <div>
-          <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">Gestão de Tenants</h3>
+          <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">{t('admin.tenants.title')}</h3>
           <p className="text-xs text-[var(--cm-muted-foreground)] mt-1">
-            Organizações registradas, planos ativos e controle de status de acesso.
+            {t('admin.tenants.subtitle')}
           </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
           className="adminButton inline-flex items-center justify-center h-8 px-4 bg-[var(--cm-primary)] hover:bg-[var(--cm-primary)] text-[var(--cm-primary-foreground)] font-semibold text-xs rounded-md shadow-sm transition-colors cursor-pointer"
         >
-          Novo Tenant
+          {t('admin.tenants.new')}
         </button>
       </div>
 
@@ -124,24 +125,24 @@ export function AdminTenantsPage() {
       {/* Grid de KPIs no padrão Overview */}
       <div className="adminGrid">
         <div className="adminCard">
-          <div className="adminCardLabel">Total de Tenants</div>
+          <div className="adminCardLabel">{t('admin.tenants.total')}</div>
           <div className="adminCardValue">{kpis.total}</div>
-          <div className="adminCardSub">Cadastrados</div>
+          <div className="adminCardSub">{t('admin.tenants.registered')}</div>
         </div>
         <div className="adminCard">
-          <div className="adminCardLabel">Ativos</div>
+          <div className="adminCardLabel">{t('admin.tenants.active')}</div>
           <div className="adminCardValue text-emerald-400">{kpis.active}</div>
-          <div className="adminCardSub">Operação normal</div>
+          <div className="adminCardSub">{t('admin.tenants.activeHint')}</div>
         </div>
         <div className="adminCard">
-          <div className="adminCardLabel">Suspensos</div>
+          <div className="adminCardLabel">{t('admin.tenants.suspended')}</div>
           <div className="adminCardValue text-amber-400">{kpis.suspended}</div>
-          <div className="adminCardSub">Acesso bloqueado</div>
+          <div className="adminCardSub">{t('admin.tenants.suspendedHint')}</div>
         </div>
         <div className="adminCard">
-          <div className="adminCardLabel">Em Trial</div>
+          <div className="adminCardLabel">{t('admin.tenants.trial')}</div>
           <div className="adminCardValue text-blue-400">{kpis.trial}</div>
-          <div className="adminCardSub">Período de testes</div>
+          <div className="adminCardSub">{t('admin.tenants.trialHint')}</div>
         </div>
       </div>
 
@@ -151,7 +152,7 @@ export function AdminTenantsPage() {
           type="text"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          placeholder="Buscar tenant por nome ou slug..."
+          placeholder={t('admin.tenants.searchPlaceholder')}
           className="adminInput h-8 px-3 text-xs bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] focus:outline-none focus:border-[var(--cm-primary)] min-w-[240px]"
         />
         <select
@@ -159,9 +160,9 @@ export function AdminTenantsPage() {
           onChange={e => setStatusFilter(e.target.value as any)}
           className="adminInput h-8 px-3 text-xs bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)]"
         >
-          <option value="all">Todos os Status</option>
-          <option value="active">Apenas Ativos</option>
-          <option value="suspended">Apenas Suspensos</option>
+          <option value="all">{t('admin.common.allStatuses')}</option>
+          <option value="active">{t('admin.tenants.onlyActive')}</option>
+          <option value="suspended">{t('admin.tenants.onlySuspended')}</option>
         </select>
         {(searchTerm || statusFilter !== 'all') && (
           <button
@@ -171,7 +172,7 @@ export function AdminTenantsPage() {
             }}
             className="text-xs text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] px-2 py-1 underline cursor-pointer"
           >
-            Limpar Filtros
+            {t('admin.common.clearFilters')}
           </button>
         )}
       </div>
@@ -181,19 +182,19 @@ export function AdminTenantsPage() {
         <table className="adminTable w-full text-left border-collapse text-xs">
           <thead className="bg-[var(--cm-card)] text-[var(--cm-muted-foreground)] uppercase font-semibold text-[11px] border-b border-[var(--cm-border)]">
             <tr>
-              <th className="py-2.5 px-3">Nome</th>
-              <th className="py-2.5 px-3">Slug</th>
-              <th className="py-2.5 px-3">Status</th>
-              <th className="py-2.5 px-3">Assinatura</th>
-              <th className="py-2.5 px-3">Criado Em</th>
-              <th className="py-2.5 px-3 text-right">Ações</th>
+              <th className="py-2.5 px-3">{t('admin.common.name')}</th>
+              <th className="py-2.5 px-3">{t('admin.common.slug')}</th>
+              <th className="py-2.5 px-3">{t('admin.common.status')}</th>
+              <th className="py-2.5 px-3">{t('admin.tenants.subscription')}</th>
+              <th className="py-2.5 px-3">{t('admin.tenants.createdAt')}</th>
+              <th className="py-2.5 px-3 text-right">{t('admin.common.actions')}</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[var(--cm-border)]">
             {filteredTenants.length === 0 ? (
               <tr>
                 <td colSpan={6} className="py-8 text-center text-xs text-[var(--cm-muted-foreground)]">
-                  Nenhum tenant encontrado.
+                  {t('admin.tenants.empty')}
                 </td>
               </tr>
             ) : (
@@ -213,7 +214,7 @@ export function AdminTenantsPage() {
                     </span>
                   </td>
                   <td className="py-2.5 px-3 text-[var(--cm-foreground)] font-mono text-[11px] capitalize">
-                    {tenant.subscription_status || 'trial'}
+                    {tenant.subscription_status || t('admin.tenants.trial')}
                   </td>
                   <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] text-[11px]">
                     {formatDate(tenant.created_at)}
@@ -224,14 +225,14 @@ export function AdminTenantsPage() {
                         onClick={() => handleSuspendTenant(tenant.id)}
                         className="text-amber-400 hover:text-amber-300 text-xs font-medium cursor-pointer"
                       >
-                        Suspender
+                        {t('admin.tenants.suspendAction')}
                       </button>
                     ) : (
                       <button
                         onClick={() => handleActivateTenant(tenant.id)}
                         className="text-emerald-400 hover:text-emerald-300 text-xs font-medium cursor-pointer"
                       >
-                        Ativar
+                        {t('admin.tenants.activateAction')}
                       </button>
                     )}
                   </td>
@@ -269,7 +270,7 @@ function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCrea
       if (error) throw error
       onCreated()
     } catch (err: unknown) {
-      alert('Erro ao criar tenant: ' + (err instanceof Error ? err.message : String(err)))
+      alert(t('admin.tenants.createFailure', { reason: err instanceof Error ? err.message : String(err) }))
     } finally {
       setIsCreating(false)
     }
@@ -279,33 +280,33 @@ function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCrea
     <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
       <div className="relative p-6 border border-[var(--cm-border)] w-full max-w-md shadow-2xl rounded-xl bg-[var(--cm-card)] text-[var(--cm-foreground)]">
         <div className="flex justify-between items-center mb-5 pb-3 border-b border-[var(--cm-border)]">
-          <h3 className="text-sm font-semibold text-white">Criar Novo Tenant</h3>
+          <h3 className="text-sm font-semibold text-white">{t('admin.tenants.create')}</h3>
           <button
             onClick={onClose}
             className="text-[var(--cm-muted-foreground)] hover:text-white text-lg font-bold cursor-pointer"
           >
-            &times;
+            {'×'}
           </button>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs font-medium text-[var(--cm-muted-foreground)] mb-1.5">Nome</label>
+            <label className="block text-xs font-medium text-[var(--cm-muted-foreground)] mb-1.5">{t('admin.common.name')}</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
-              placeholder="Ex: Agência Alpha"
+              placeholder={t('admin.tenants.namePlaceholder')}
               className="adminInput w-full h-8 px-3 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] text-xs focus:outline-none focus:border-[var(--cm-primary)]"
               required
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[var(--cm-muted-foreground)] mb-1.5">Slug</label>
+            <label className="block text-xs font-medium text-[var(--cm-muted-foreground)] mb-1.5">{t('admin.common.slug')}</label>
             <input
               type="text"
               value={slug}
               onChange={e => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
-              placeholder="ex: agencia-alpha"
+              placeholder={t('admin.tenants.slugPlaceholder')}
               className="adminInput w-full h-8 px-3 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] text-xs font-mono focus:outline-none focus:border-[var(--cm-primary)]"
               required
             />
@@ -316,14 +317,14 @@ function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCrea
               onClick={onClose}
               className="h-8 px-3 border border-[var(--cm-border)] rounded-md text-xs text-[var(--cm-muted-foreground)] hover:text-white hover:bg-[var(--cm-secondary)] transition-colors cursor-pointer"
             >
-              Cancelar
+              {t('admin.common.cancelAction')}
             </button>
             <button
               type="submit"
               disabled={isCreating}
               className="h-8 px-4 bg-[var(--cm-primary)] hover:bg-[var(--cm-primary)] text-[var(--cm-primary-foreground)] font-semibold text-xs rounded-md disabled:opacity-50 transition-colors cursor-pointer"
             >
-              {isCreating ? 'Criando...' : 'Criar Tenant'}
+              {isCreating ? t('admin.tenants.creating') : t('admin.tenants.createAction')}
             </button>
           </div>
         </form>

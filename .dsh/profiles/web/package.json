@@ -17,9 +17,9 @@
         "@deepseek-ai/dsh-experimental-auto-review",
         "@xmanrui/dsh-im",
         "@deepseek-ai/dsh-cua-bundle",
-        "@deepseek-ai/dsh-experimental-inspector-profile",
         "@deepseek-ai/dsh-personalized-recommendations",
         "@deepseek-ai/dsh-experimental-tool-worktree",
+        "@deepseek-ai/dsh-experimental-inspector-profile",
         "@deepseek-ai/dsh-experimental-cot-translation-bundle",
         "@deepseek-ai/dsh-experimental-session-titles-bundle",
         "@deepseek-ai/dsh-copymonster"

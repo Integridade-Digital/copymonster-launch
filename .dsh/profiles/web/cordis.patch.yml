@@ -15,24 +15,64 @@
   name: "@deepseek-ai/dsh-llm-pi-ai"
   config:
     providers:
-      freellm:
-        displayName: Free-llm
-        apiKeyEnv: FREELLM_API_KEY
+      refuseless:
+        displayName: Refuseless
+        apiKeyEnv: REFUSELESS_API_KEY
         api: openai-completions
-        baseURL: https://api.fortunadigital.me/v1
+        baseURL: https://api.refuseless.com/v1
         models:
-          - id: gemma-4-31b
-            name: Gemma 4 31B
-          - id: gemini-3.5-flash
-            name: Gemini 3.5 Flash
-          - id: gemini-3.6-flash
-            name: Gemini 3.6 Flash
-          - id: nemotron-3-ultra
-            name: Nemotron 3 Ultra
-          - id: nemotron-3-super
-            name: Nemotron 3 Super
-          - id: nemotron-3-nano-30b
-            name: Nemotron 3 Nano 30B
+          - id: glm-5.3-abliterated
+            name: GLM 5.3 Abliterated
+            contextWindow: 1048576
+            maxTokens: 131072
+            reasoningEfforts:
+              low: low
+              high: high
+              max: max
+          - id: glm-5.3-flash-abliterated
+            name: GLM 5.3 Flash Abliterated
+            contextWindow: 1048576
+            maxTokens: 131072
+            reasoningEfforts:
+              low: low
+              high: high
+              max: max
+          - id: deepseek-v4.1-flash-abliterated
+            name: DeepSeek V4.1 Flash 1017 Abliterated
+            contextWindow: 1048576
+            maxTokens: 131072
+            reasoningEfforts:
+              off: ""
+              low: low
+              high: high
+              max: max
+          - id: deepseek-v4.1-flash-fast
+            name: DeepSeek V4.1 Flash 1017
+            contextWindow: 1048576
+            maxTokens: 262144
+            reasoningEfforts:
+              off: ""
+              low: low
+              high: high
+              max: max
+          - id: minimax-m3.1-flash
+            name: Minimax M3.1 Flash
+            contextWindow: 1048576
+            maxTokens: 512000
+            reasoningEfforts:
+              low: low
+              high: high
+              max: max
+          - id: deepseek-v4.1-flash-abliterated-free
+            name: DeepSeek V4.1 Flash 1017 Abliterated FREE
+            contextWindow: 524288
+            maxTokens: 131072
+            reasoningEfforts:
+              off: ""
+              low: low
+              high: high
+              max: max
+
       agentrouter:
         displayName: AgentRouter
         apiKeyEnv: AGENTROUTER_API_KEY

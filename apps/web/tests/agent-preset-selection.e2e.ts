@@ -293,7 +293,7 @@ describe('web e2e: agent-preset selection', () => {
     // Every shipped preset, each with the sentence saying what it composes —
     // the id alone never said what a preset does.
     expect(snapshot).toContain('Minimal mode')
-    expect(snapshot).toContain('Creator mode')
+    expect(snapshot).toContain('Creator Monster')
     await page.keyboard.press('Escape')
   })
 
@@ -377,7 +377,7 @@ describe('web e2e: agent-preset selection', () => {
     await page.getByRole('button', { name: 'Minimal mode', exact: true }).click()
     await page.getByRole('menu').waitFor()
     expect(await page.getByRole('menuitem', { name: /^PTC mode|^Minimal mode/ }).count()).toBe(0)
-    expect(await page.getByRole('menuitem', { name: /^Standard mode|^Creator mode/ }).count()).toBe(2)
+    expect(await page.getByRole('menuitem', { name: /^Standard mode|^Creator Monster/ }).count()).toBe(2)
     await page.keyboard.press('Escape')
     await expect.poll(async () => (await scaffold.ctx.agentPresets.remoteExportList()).presets.find(preset => preset.isDefault)?.id).toBe('standard')
 
@@ -474,7 +474,7 @@ it.each([false, true])('starts Creator from Plugins with Coding Tools=%s without
     const creator = scaffold.ctx.agents.get(creationBody.result.value.sessionId)
     if (creator === undefined) throw new Error('The Creator entry did not publish its Session')
     expect(creator.id).not.toBe(standard.id)
-    const picker = page.getByTitle('Choose the agent preset for your new task', { exact: true }).filter({ hasText: 'Creator mode' })
+    const picker = page.getByTitle('Choose the agent preset for your new task', { exact: true }).filter({ hasText: 'Creator Monster' })
     await picker.waitFor()
     const creatorComposer = composerOf(creator.id)
     await creatorComposer.waitFor()

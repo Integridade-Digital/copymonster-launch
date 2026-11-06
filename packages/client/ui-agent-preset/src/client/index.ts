@@ -3,7 +3,7 @@
  * a chip on the new-session screen for the session about to start, a
  * read-only label in the session header, and a settings section that lists
  * the roster (selection, the new-task default, a read-only view of each
- * declared composition, and the way into Creator mode).
+ * declared composition, and the way into Creator Monster).
  *
  * A running session keeps the composition it began with (the host switches a
  * session's preset only before its first turn). That is what splits

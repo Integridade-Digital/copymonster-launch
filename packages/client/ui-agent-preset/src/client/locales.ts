@@ -40,7 +40,7 @@ export type AgentPresetSettingsKey =
 export const en: Record<AgentPresetSettingsKey, string> = {
   ...guideEn,
   builtInGroup: 'Built-in', customGroup: 'Custom',
-  sectionIntro: 'Choose the agent’s tools and how it works. Use Standard mode for everyday tasks, or Creator mode to add capabilities to CopyMonster.',
+  sectionIntro: 'Choose the agent’s tools and how it works. Use Standard mode for everyday tasks, or Creator Monster to add capabilities to CopyMonster.',
 
   seatHint: 'Choose the agent preset for your new task',
   headerHint: 'The agent preset chosen when this task started',
@@ -58,7 +58,7 @@ export const en: Record<AgentPresetSettingsKey, string> = {
   presetMinimalName: 'Minimal Monster',
   presetMinimalDescription:
     'The agent uses a terminal and image reading, with context compaction. Useful for testing and comparing its basic performance.',
-  presetCordisName: 'Creator mode',
+  presetCordisName: 'Creator Monster',
   presetCordisDescription:
     'Customize CopyMonster through conversation. Let the agent write plugins that add features or UI, or combine tools and prompts to create your own mode.',
 
@@ -77,10 +77,10 @@ export const en: Record<AgentPresetSettingsKey, string> = {
 
   creatorDraft: 'Let the agent help me create a preset',
   createPlugin: 'Let the agent create a plugin',
-  createPluginDescription: 'Enter Creator mode and make your own CopyMonster plugin',
-  createPluginChecking: 'Checking whether Creator mode is available',
+  createPluginDescription: 'Enter Creator Monster and make your own CopyMonster plugin',
+  createPluginChecking: 'Checking whether Creator Monster is available',
   createPluginUnavailable: 'Temporarily unavailable. Reopen this menu to retry',
-  createPluginMissing: 'Creator mode is not included in this configuration',
+  createPluginMissing: 'Creator Monster is not included in this configuration',
 
 }
 
@@ -88,7 +88,7 @@ export const en: Record<AgentPresetSettingsKey, string> = {
 export const zh: Record<AgentPresetSettingsKey, string> = {
   ...guideZh,
   builtInGroup: '内置', customGroup: '自定义',
-  sectionIntro: '选择 Agent 的工具和工作方式。日常任务用「标准模式」，扩展 CopyMonster 的能力用「创造模式」。',
+  sectionIntro: '选择 Agent 的工具和工作方式。日常任务用「标准模式」，扩展 CopyMonster 的能力用「Creator Monster」。',
 
   seatHint: '选择新任务使用的 Agent 预设',
   headerHint: '本任务的 Agent 预设，在任务开始时确定',
@@ -103,7 +103,7 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
   presetPtcDescription: '包含标准模式的所有能力，更适合批量调用工具，并对结果进行筛选、整理、去重、统计或汇总的任务。',
   presetMinimalName: '极简 Monster',
   presetMinimalDescription: 'Agent 使用终端和图片读取工具，并支持上下文压缩，适合测试和对比其基础表现。',
-  presetCordisName: '创造模式',
+  presetCordisName: 'Creator Monster',
   presetCordisDescription: '用对话定制 CopyMonster：让 Agent 编写插件，添加新功能或界面；也能组合工具和提示词，创建自己的模式。',
 
   presetBrandPositioningName: '品牌定位 Monster',
@@ -121,10 +121,10 @@ export const zh: Record<AgentPresetSettingsKey, string> = {
 
   creatorDraft: '让 Agent 帮我创建预设模式',
   createPlugin: '让 Agent 创建插件',
-  createPluginDescription: '进入创造模式，制作属于你的 CopyMonster 插件',
-  createPluginChecking: '正在确认创造模式是否可用',
+  createPluginDescription: '进入 Creator Monster，制作属于你的 CopyMonster 插件',
+  createPluginChecking: '正在确认 Creator Monster 是否可用',
   createPluginUnavailable: '暂时不可用，请重新打开菜单重试',
-  createPluginMissing: '当前配置未提供创造模式',
+  createPluginMissing: '当前配置未提供 Creator Monster',
 
 }
 
@@ -139,7 +139,7 @@ export const ja = {
   ...guideJa,
   'builtInGroup': '組み込み',
   'customGroup': 'カスタム',
-  'sectionIntro': 'エージェントのツールと動作を選択します。日々のタスクには標準モードを、CopyMonster に機能を追加するにはクリエイターモードを使用してください。',
+  'sectionIntro': 'エージェントのツールと動作を選択します。日々のタスクには標準モードを、CopyMonster に機能を追加するには Creator Monster を使用してください。',
   'seatHint': '新しいタスクで使用するエージェントプリセットを選択',
   'headerHint': 'このタスクの開始時に選択されたエージェントプリセット',
   'nav': 'エージェントプリセット',
@@ -151,7 +151,7 @@ export const ja = {
   'presetPtcDescription': '標準モードのすべての機能を含みます。ツールを一括で呼び出し、その結果を絞り込み、整理、重複排除、集計、要約するタスクに適しています。',
   'presetMinimalName': '最小 Monster',
   'presetMinimalDescription': 'エージェントはターミナルと画像読み取りを使用し、コンテキスト圧縮にも対応します。基本的な性能のテストや比較に役立ちます。',
-  'presetCordisName': 'クリエイターモード',
+  'presetCordisName': 'Creator Monster',
   'presetCordisDescription': '会話を通じて CopyMonster をカスタマイズします。機能や UI を追加するプラグインをエージェントに書かせたり、ツールとプロンプトを組み合わせて独自のモードを作成したりできます。',
   presetBrandPositioningName: 'ブランドポジショニング Monster',
   presetBrandPositioningDescription:
@@ -164,17 +164,17 @@ export const ja = {
   'close': '閉じる',
   'creatorDraft': 'エージェントにプリセット作成を手伝ってもらう',
   'createPlugin': 'エージェントにプラグインを作成してもらう',
-  'createPluginDescription': 'クリエイターモードに入り、独自の CopyMonster プラグインを作成',
-  'createPluginChecking': 'クリエイターモードが利用可能か確認中',
+  'createPluginDescription': 'Creator Monster に入り、独自の CopyMonster プラグインを作成',
+  'createPluginChecking': 'Creator Monster が利用可能か確認中',
   'createPluginUnavailable': '一時的に利用できません。このメニューを開き直して再試行してください',
-  'createPluginMissing': 'この構成にはクリエイターモードが含まれていません',
+  'createPluginMissing': 'この構成には Creator Monster が含まれていません',
 } satisfies Record<keyof typeof en, string>
 
 /** Spanish dictionary, checked against the English keys. */
 export const es = {
   ...guideEs,
   builtInGroup: 'Incorporado', customGroup: 'personalizado',
-  sectionIntro: 'Elija las herramientas del agente y cómo funciona. Utilice el modo Estándar para las tareas diarias o el modo Creador para agregar capacidades a CopyMonster.',
+  sectionIntro: 'Elija las herramientas del agente y cómo funciona. Utilice el modo Estándar para las tareas diarias o Creator Monster para agregar capacidades a CopyMonster.',
 
   seatHint: 'Elija el agente preestablecido para su nueva tarea',
   headerHint: 'El agente preestablecido elegido cuando comenzó esta tarea',
@@ -192,7 +192,7 @@ export const es = {
   presetMinimalName: 'Monster mínimo',
   presetMinimalDescription:
     'El agente utiliza un terminal y lectura de imágenes, con compactación de contexto. Útil para probar y comparar su rendimiento básico.',
-  presetCordisName: 'Modo creador',
+  presetCordisName: 'Creator Monster',
   presetCordisDescription:
     'Personaliza CopyMonster a través de la conversación. Deje que el agente escriba complementos que agreguen funciones o interfaz de usuario, o combine herramientas e indicaciones para crear su propio modo.',
 
@@ -211,10 +211,10 @@ export const es = {
 
   creatorDraft: 'Deja que el agente me ayude a crear un preset',
   createPlugin: 'Deje que el agente cree un complemento',
-  createPluginDescription: 'Ingrese al modo Creador y cree su propio complemento CopyMonster',
-  createPluginChecking: 'Comprobando si el modo Creador está disponible',
+  createPluginDescription: 'Ingrese a Creator Monster y cree su propio complemento CopyMonster',
+  createPluginChecking: 'Comprobando si Creator Monster está disponible',
   createPluginUnavailable: 'Temporalmente no disponible. Vuelve a abrir este menú para volver a intentarlo.',
-  createPluginMissing: 'El modo creador no está incluido en esta configuración.',
+  createPluginMissing: 'Creator Monster no está incluido en esta configuración.',
 
 } satisfies Record<keyof typeof en, string>
 
@@ -222,7 +222,7 @@ export const es = {
 export const fr = {
   ...guideFr,
   builtInGroup: 'Intégré', customGroup: 'Personnalisé',
-  sectionIntro: 'Choisissez les outils de l’agent et son fonctionnement. Utilisez le mode Standard pour les tâches quotidiennes ou le mode Créateur pour ajouter des fonctionnalités à CopyMonster.',
+  sectionIntro: 'Choisissez les outils de l’agent et son fonctionnement. Utilisez le mode Standard pour les tâches quotidiennes ou Creator Monster pour ajouter des fonctionnalités à CopyMonster.',
 
   seatHint: "Choisissez le préréglage d'agent pour votre nouvelle tâche",
   headerHint: "Le préréglage d'agent choisi au démarrage de cette tâche",
@@ -240,7 +240,7 @@ export const fr = {
   presetMinimalName: 'Monster minimal',
   presetMinimalDescription:
     "L'agent utilise un terminal et une lecture d'image, avec compactage du contexte. Utile pour tester et comparer ses performances de base.",
-  presetCordisName: 'Mode Créateur',
+  presetCordisName: 'Creator Monster',
   presetCordisDescription:
     "Personnalisez CopyMonster via la conversation. Laissez l'agent écrire des plugins qui ajoutent des fonctionnalités ou une interface utilisateur, ou combinez des outils et des invites pour créer votre propre mode.",
 
@@ -259,10 +259,10 @@ export const fr = {
 
   creatorDraft: "Laissez l'agent m'aider à créer un préréglage",
   createPlugin: "Laissez l'agent créer un plugin",
-  createPluginDescription: 'Entrez en mode Créateur et créez votre propre plugin CopyMonster',
-  createPluginChecking: 'Vérifier si le mode Créateur est disponible',
+  createPluginDescription: 'Entrez dans Creator Monster et créez votre propre plugin CopyMonster',
+  createPluginChecking: 'Vérifier si Creator Monster est disponible',
   createPluginUnavailable: 'Temporairement indisponible. Rouvrez ce menu pour réessayer',
-  createPluginMissing: "Le mode Créateur n'est pas inclus dans cette configuration",
+  createPluginMissing: "Creator Monster n'est pas inclus dans cette configuration",
 
 } satisfies Record<keyof typeof en, string>
 
@@ -270,7 +270,7 @@ export const fr = {
 export const de = {
   ...guideDe,
   builtInGroup: 'Eingebaut', customGroup: 'Benutzerdefiniert',
-  sectionIntro: 'Wählen Sie die Tools des Agenten und deren Funktionsweise aus. Verwenden Sie den Standardmodus für alltägliche Aufgaben oder den Creator-Modus, um CopyMonster Funktionen hinzuzufügen.',
+  sectionIntro: 'Wählen Sie die Tools des Agenten und deren Funktionsweise aus. Verwenden Sie den Standardmodus für alltägliche Aufgaben oder Creator Monster, um CopyMonster Funktionen hinzuzufügen.',
 
   seatHint: 'Wählen Sie die Agentenvoreinstellung für Ihre neue Aufgabe',
   headerHint: 'Die Agentenvoreinstellung, die beim Start dieser Aufgabe ausgewählt wurde',
@@ -288,7 +288,7 @@ export const de = {
   presetMinimalName: 'Minimal Monster',
   presetMinimalDescription:
     'Der Agent verwendet ein Terminal und das Lesen von Bildern mit Kontextkomprimierung. Nützlich zum Testen und Vergleichen der Grundleistung.',
-  presetCordisName: 'Erstellermodus',
+  presetCordisName: 'Creator Monster',
   presetCordisDescription:
     'Passen Sie CopyMonster durch Gespräche an. Lassen Sie den Agenten Plugins schreiben, die Funktionen oder Benutzeroberflächen hinzufügen, oder kombinieren Sie Tools und Eingabeaufforderungen, um Ihren eigenen Modus zu erstellen.',
 
@@ -307,10 +307,10 @@ export const de = {
 
   creatorDraft: 'Lassen Sie sich vom Agenten beim Erstellen einer Voreinstellung helfen',
   createPlugin: 'Lassen Sie den Agenten ein Plugin erstellen',
-  createPluginDescription: 'Wechseln Sie in den Erstellermodus und erstellen Sie Ihr eigenes CopyMonster-Plugin',
-  createPluginChecking: 'Prüfen, ob der Creator-Modus verfügbar ist',
+  createPluginDescription: 'Wechseln Sie zu Creator Monster und erstellen Sie Ihr eigenes CopyMonster-Plugin',
+  createPluginChecking: 'Prüfen, ob Creator Monster verfügbar ist',
   createPluginUnavailable: 'Vorübergehend nicht verfügbar. Öffnen Sie dieses Menü erneut, um es erneut zu versuchen',
-  createPluginMissing: 'Der Creator-Modus ist in dieser Konfiguration nicht enthalten',
+  createPluginMissing: 'Creator Monster ist in dieser Konfiguration nicht enthalten',
 
 } satisfies Record<keyof typeof en, string>
 
@@ -318,7 +318,7 @@ export const de = {
 export const ru = {
   ...guideRu,
   builtInGroup: 'Встроенный', customGroup: 'Пользовательский',
-  sectionIntro: 'Выбирайте инструменты агента и то, как они работают. Используйте стандартный режим для повседневных задач или режим Creator, чтобы расширить возможности CopyMonster.',
+  sectionIntro: 'Выбирайте инструменты агента и то, как они работают. Используйте стандартный режим для повседневных задач или Creator Monster, чтобы расширить возможности CopyMonster.',
 
   seatHint: 'Выберите предустановку агента для вашей новой задачи',
   headerHint: 'Предварительная настройка агента, выбранная при запуске этой задачи',
@@ -336,7 +336,7 @@ export const ru = {
   presetMinimalName: 'Минимальный Monster',
   presetMinimalDescription:
     'Агент использует терминал и чтение изображений со сжатием контекста. Полезно для тестирования и сравнения его базовой производительности.',
-  presetCordisName: 'Режим автора',
+  presetCordisName: 'Creator Monster',
   presetCordisDescription:
     'Настройте CopyMonster через разговор. Позвольте агенту писать плагины, которые добавляют функции или пользовательский интерфейс, или комбинируйте инструменты и подсказки для создания собственного режима.',
 
@@ -355,10 +355,10 @@ export const ru = {
 
   creatorDraft: 'Позвольте агенту помочь мне создать пресет',
   createPlugin: 'Позвольте агенту создать плагин',
-  createPluginDescription: 'Войдите в режим Creator и создайте свой собственный плагин CopyMonster.',
-  createPluginChecking: 'Проверка доступности режима Creator',
+  createPluginDescription: 'Перейдите в Creator Monster и создайте свой собственный плагин CopyMonster.',
+  createPluginChecking: 'Проверка доступности Creator Monster',
   createPluginUnavailable: 'Временно недоступен. Откройте это меню еще раз, чтобы повторить попытку.',
-  createPluginMissing: 'Режим Creator не включен в эту конфигурацию.',
+  createPluginMissing: 'Creator Monster не включен в эту конфигурацию.',
 
 } satisfies Record<keyof typeof en, string>
 
@@ -366,7 +366,7 @@ export const ru = {
 export const pt = {
   ...guidePt,
   builtInGroup: 'Integrado', customGroup: 'Personalizado',
-  sectionIntro: 'Escolha as ferramentas do agente e como funciona. Use o modo Padrão para tarefas diárias ou o modo Criador para adicionar recursos ao CopyMonster.',
+  sectionIntro: 'Escolha as ferramentas do agente e como funciona. Use o modo Padrão para tarefas diárias ou Creator Monster para adicionar recursos ao CopyMonster.',
 
   seatHint: 'Escolha a predefinição de agente para sua nova tarefa',
   headerHint: 'A predefinição do agente escolhida quando esta tarefa foi iniciada',
@@ -384,7 +384,7 @@ export const pt = {
   presetMinimalName: 'Monster mínimo',
   presetMinimalDescription:
     'O agente utiliza terminal e leitura de imagens, com compactação de contexto. Útil para testar e comparar seu desempenho básico.',
-  presetCordisName: 'Modo criador',
+  presetCordisName: 'Creator Monster',
   presetCordisDescription:
     'Personalize CopyMonster por meio de conversa. Deixe o agente escrever plug-ins que adicionem recursos ou UI, ou combine ferramentas e prompts para criar seu próprio modo.',
 
@@ -403,10 +403,10 @@ export const pt = {
 
   creatorDraft: 'Deixe o agente me ajudar a criar uma predefinição',
   createPlugin: 'Deixe o agente criar um plugin',
-  createPluginDescription: 'Entre no modo Criador e crie seu próprio plug-in CopyMonster',
-  createPluginChecking: 'Verificando se o modo Criador está disponível',
+  createPluginDescription: 'Entre em Creator Monster e crie seu próprio plug-in CopyMonster',
+  createPluginChecking: 'Verificando se Creator Monster está disponível',
   createPluginUnavailable: 'Temporariamente indisponível. Reabra este menu para tentar novamente',
-  createPluginMissing: 'O modo criador não está incluído nesta configuração',
+  createPluginMissing: 'Creator Monster não está incluído nesta configuração',
 
 
 } satisfies Record<keyof typeof en, string>

@@ -49,7 +49,7 @@
     - listitem: 你展开的思考内容可能包含你的代码和对话细节。
     - listitem: 默认使用 Bing，也可以选择 Google。两者都无需账号或 API key，但都不保证可用，也不保证免费额度。
     - listitem:
-      - text: 如果已配置 DeepSeek 账号或官方 API，还会出现
+      - text: 如果已配置 CopyMonster 账号或官方 API，还会出现
       - strong: DeepSeek Flash · 账号（付费）
       - text: 和
       - strong: DeepSeek Flash · 官方 API（付费）

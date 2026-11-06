@@ -57,7 +57,7 @@ function CardDescription({ text }: { text: string }): ReactNode {
   )
 }
 
-/** Render the roster with its default, mode help, composition viewer, and the guidance to Creator mode.
+/** Render the roster with its default, mode help, composition viewer, and the guidance to Creator Monster.
  * @param props Settings actions, snapshot hooks and localized text.
  * @returns The preset settings section.
  */
@@ -80,7 +80,7 @@ export function AgentPresetSection({
   const viewed = state.view
   const viewedRow = viewed === null ? undefined : state.rows.find(row => row.id === viewed.id)
   const viewedTitle = viewed === null ? '' : viewedRow === undefined ? viewed.title : presetDisplayText(viewedRow, t).name
-  // Creator mode authors presets in conversation; it needs the flow to land a
+  // Creator Monster authors presets in conversation; it needs the flow to land a
   // session in and the self-referential preset on the roster.
   const creator = startCreatorDraft !== undefined && state.rows.some(row => row.id === 'cordis') ? startCreatorDraft : undefined
   /* The custom group is where a preset of one's own appears, so its entry

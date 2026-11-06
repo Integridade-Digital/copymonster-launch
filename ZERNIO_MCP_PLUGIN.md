@@ -117,6 +117,12 @@ Os gates globais de documentação (`doc-sync`) continuam a falhar por problemas
 - O cartão usa os mesmos estilos inline e as mesmas regras de `cm-theme.css` do Vercel; não há folha de estilos própria.
 - O ficheiro de credenciais é por utilizador do SO. O campo `tenant` isola por processo/tenant quando o deployment o configura; isolamento por sessão autenticada num Host partilhado exigiria backend e está fora do escopo.
 
+## Commit e push
+
+- Commit: `3b0b710754` — `feat(web): add Zernio MCP settings plugin below Vercel`.
+- Push: `master` → `origin/master` (`c11ef40054..3b0b710754`).
+- O push usou `--no-verify` por autorização explícita: o hook de pré-push corre o typecheck do repositório e falha em testes de backend pré-existentes (`packages/api/auth-http/tests/*` e `packages/api/session-controller/tests/*`), fora do escopo e não alterados.
+
 ## Proibições respeitadas
 
 Não foram lidos nem alterados `/etc/nginx`, `/etc/apache2`, `/usr/local/hestia`, `/etc/cloudflared`, `/etc/hosts`, portas, processos, `systemctl`, scripts de deploy, `billing.ts`, `affiliate-processor.ts`, `paypal-payout.ts`, `payout-executor.ts`, Stripe/Supabase/PayPal, migrações `052`/`053` ou o código do plugin Vercel.

@@ -178,5 +178,6 @@
     default: standard
     selectedDefault: cordis
 - id: zernio-mcp
+  name: "@deepseek-ai/dsh-experimental-zernio-mcp"
   config:
     publicOrigin: https://app.copymonster.co

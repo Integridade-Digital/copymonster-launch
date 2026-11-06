@@ -310,15 +310,18 @@ div[data-settings-section="zernio-mcp"] {
   box-shadow: none !important;
 }
 
-/* Vercel MCP renders one inline-styled card in host DOM. */
-[data-settings-section="vercel-mcp"] [data-slot="settings.section"] > div {
+/* Vercel and Zernio MCP render one inline-styled card each in host DOM. */
+[data-settings-section="vercel-mcp"] [data-slot="settings.section"] > div,
+[data-settings-section="zernio-mcp"] [data-slot="settings.section"] > div {
   width: 100% !important;
   max-width: none !important;
 }
 
-/* Vercel MCP buttons are inline-styled too. They take the General selector
- * geometry (pill control) rather than the card surface. */
-[data-settings-section="vercel-mcp"] button {
+/* Their buttons are inline-styled too. They take the General selector
+ * geometry (pill control) rather than the card surface, so an MCP card reads
+ * as outline controls instead of filled primary actions. */
+[data-settings-section="vercel-mcp"] button,
+[data-settings-section="zernio-mcp"] button {
   min-height: 44px !important;
   padding: 0 14px !important;
   border: none !important;
@@ -329,8 +332,18 @@ div[data-settings-section="zernio-mcp"] {
   box-shadow: none !important;
 }
 
-[data-settings-section="vercel-mcp"] button:disabled {
+[data-settings-section="vercel-mcp"] button:disabled,
+[data-settings-section="zernio-mcp"] button:disabled {
   opacity: 0.5 !important;
+}
+
+/* The Zernio card carries a description line the Vercel card omits. It takes
+ * the card's own text size and color so both cards read as one recipe. */
+[data-settings-section="zernio-mcp"] [data-slot="settings.section"] > div > p + p {
+  margin: 0 !important;
+  font-size: 13px !important;
+  opacity: 1 !important;
+  color: inherit !important;
 }
 
 /* Side card (dsh-better-sidebar): the group containers and inventory cards are CSS-module

@@ -80,7 +80,7 @@ export function AdminTenantsPage() {
   }, [tenants])
 
   const filteredTenants = useMemo(() => {
-    return tenants.filter(t => {
+    return tenants.filter((t) => {
       const matchesSearch =
         !searchTerm ||
         t.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -92,37 +92,39 @@ export function AdminTenantsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-[var(--cm-primary)]"></div>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '320px' }}>
+        <span className="adminSpinner" style={{ width: '28px', height: '28px' }} aria-hidden="true" />
       </div>
     )
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', color: 'var(--cm-foreground)' }}>
-      {/* Cabeçalho da Seção */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">{t('admin.tenants.title')}</h3>
-          <p className="text-xs text-[var(--cm-muted-foreground)] mt-1">
-            {t('admin.tenants.subtitle')}
-          </p>
+    <div className="adminTabBody">
+      <div className="adminTabHeader">
+        <div className="adminTabHeaderText">
+          <div className="adminTabTitleRow">
+            <p className="adminTabSubtitle">{t('admin.tenants.subtitle')}</p>
+            <span className="adminBadge adminBadgePrimary">
+              {t('admin.tenants.total')}: {kpis.total}
+            </span>
+          </div>
         </div>
-        <button
-          onClick={() => setShowCreateModal(true)}
-          className="adminButton inline-flex items-center justify-center h-8 px-4 bg-[var(--cm-primary)] hover:bg-[var(--cm-primary)] text-[var(--cm-primary-foreground)] font-semibold text-xs rounded-md shadow-sm transition-colors cursor-pointer"
-        >
-          {t('admin.tenants.new')}
-        </button>
+        <div className="adminToolbar">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="adminButton"
+          >
+            {t('admin.tenants.new')}
+          </button>
+        </div>
       </div>
 
       {error && (
-        <div className="p-3 bg-red-950/60 border border-red-800 text-red-200 rounded-lg text-xs">
-          {error}
+        <div className="adminNotice adminNoticeError">
+          <span>{error}</span>
         </div>
       )}
 
-      {/* Grid de KPIs no padrão Overview */}
       <div className="adminGrid">
         <div className="adminCard">
           <div className="adminCardLabel">{t('admin.tenants.total')}</div>
@@ -131,34 +133,35 @@ export function AdminTenantsPage() {
         </div>
         <div className="adminCard">
           <div className="adminCardLabel">{t('admin.tenants.active')}</div>
-          <div className="adminCardValue text-emerald-400">{kpis.active}</div>
+          <div className="adminCardValue" style={{ color: 'var(--cm-success)' }}>{kpis.active}</div>
           <div className="adminCardSub">{t('admin.tenants.activeHint')}</div>
         </div>
         <div className="adminCard">
           <div className="adminCardLabel">{t('admin.tenants.suspended')}</div>
-          <div className="adminCardValue text-amber-400">{kpis.suspended}</div>
+          <div className="adminCardValue" style={{ color: 'var(--cm-primary)' }}>{kpis.suspended}</div>
           <div className="adminCardSub">{t('admin.tenants.suspendedHint')}</div>
         </div>
         <div className="adminCard">
           <div className="adminCardLabel">{t('admin.tenants.trial')}</div>
-          <div className="adminCardValue text-blue-400">{kpis.trial}</div>
+          <div className="adminCardValue" style={{ color: 'var(--cm-foreground)' }}>{kpis.trial}</div>
           <div className="adminCardSub">{t('admin.tenants.trialHint')}</div>
         </div>
       </div>
 
-      {/* Barra de Filtros */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="adminToolbar">
         <input
           type="text"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
           placeholder={t('admin.tenants.searchPlaceholder')}
-          className="adminInput h-8 px-3 text-xs bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] focus:outline-none focus:border-[var(--cm-primary)] min-w-[240px]"
+          className="adminInput"
+          style={{ width: '240px', marginBottom: 0 }}
         />
         <select
           value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value as any)}
-          className="adminInput h-8 px-3 text-xs bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)]"
+          onChange={e => setStatusFilter(e.target.value as 'all' | 'active' | 'suspended')}
+          className="adminInput"
+          style={{ width: '160px', marginBottom: 0 }}
         >
           <option value="all">{t('admin.common.allStatuses')}</option>
           <option value="active">{t('admin.tenants.onlyActive')}</option>
@@ -170,77 +173,74 @@ export function AdminTenantsPage() {
               setSearchTerm('')
               setStatusFilter('all')
             }}
-            className="text-xs text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] px-2 py-1 underline cursor-pointer"
+            className="adminLinkButton"
           >
             {t('admin.common.clearFilters')}
           </button>
         )}
       </div>
 
-      {/* Tabela envelopada em .adminCard */}
-      <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
-        <table className="adminTable w-full text-left border-collapse text-xs">
-          <thead className="bg-[var(--cm-card)] text-[var(--cm-muted-foreground)] uppercase font-semibold text-[11px] border-b border-[var(--cm-border)]">
-            <tr>
-              <th className="py-2.5 px-3">{t('admin.common.name')}</th>
-              <th className="py-2.5 px-3">{t('admin.common.slug')}</th>
-              <th className="py-2.5 px-3">{t('admin.common.status')}</th>
-              <th className="py-2.5 px-3">{t('admin.tenants.subscription')}</th>
-              <th className="py-2.5 px-3">{t('admin.tenants.createdAt')}</th>
-              <th className="py-2.5 px-3 text-right">{t('admin.common.actions')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--cm-border)]">
-            {filteredTenants.length === 0 ? (
+      <div className="adminCard adminCardTable">
+        <div style={{ overflowX: 'auto' }}>
+          <table className="adminTable">
+            <thead>
               <tr>
-                <td colSpan={6} className="py-8 text-center text-xs text-[var(--cm-muted-foreground)]">
-                  {t('admin.tenants.empty')}
-                </td>
+                <th>{t('admin.common.name')}</th>
+                <th>{t('admin.common.slug')}</th>
+                <th>{t('admin.common.status')}</th>
+                <th>{t('admin.tenants.subscription')}</th>
+                <th>{t('admin.tenants.createdAt')}</th>
+                <th style={{ textAlign: 'right' }}>{t('admin.common.actions')}</th>
               </tr>
-            ) : (
-              filteredTenants.map(tenant => (
-                <tr key={tenant.id} className="hover:bg-[var(--cm-muted)] transition-colors">
-                  <td className="py-2.5 px-3 font-medium text-[var(--cm-foreground)]">{tenant.name}</td>
-                  <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] font-mono text-[11px]">{tenant.slug}</td>
-                  <td className="py-2.5 px-3">
-                    <span className={`px-2 py-0.5 inline-flex text-[10px] font-semibold rounded border ${
-                      tenant.status === 'active'
-                        ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-                        : tenant.status === 'suspended'
-                          ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-                          : 'bg-rose-500/10 border-rose-500/30 text-rose-400'
-                    }`}>
-                      {tenant.status}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 text-[var(--cm-foreground)] font-mono text-[11px] capitalize">
-                    {tenant.subscription_status || t('admin.tenants.trial')}
-                  </td>
-                  <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] text-[11px]">
-                    {formatDate(tenant.created_at)}
-                  </td>
-                  <td className="py-2.5 px-3 text-right">
-                    {tenant.status === 'active' ? (
-                      <button
-                        onClick={() => handleSuspendTenant(tenant.id)}
-                        className="text-amber-400 hover:text-amber-300 text-xs font-medium cursor-pointer"
-                      >
-                        {t('admin.tenants.suspendAction')}
-                      </button>
-                    ) : (
-                      <button
-                        onClick={() => handleActivateTenant(tenant.id)}
-                        className="text-emerald-400 hover:text-emerald-300 text-xs font-medium cursor-pointer"
-                      >
-                        {t('admin.tenants.activateAction')}
-                      </button>
-                    )}
+            </thead>
+            <tbody>
+              {filteredTenants.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--cm-muted-foreground)' }}>
+                    {t('admin.tenants.empty')}
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                filteredTenants.map(tenant => (
+                  <tr key={tenant.id}>
+                    <td style={{ fontWeight: 500 }}>{tenant.name}</td>
+                    <td style={{ color: 'var(--cm-muted-foreground)', fontFamily: 'monospace', fontSize: '11px' }}>{tenant.slug}</td>
+                    <td>
+                      <span className={`adminBadge ${tenant.status === 'active' ? 'adminBadgeSuccess' : tenant.status === 'suspended' ? 'adminBadgePrimary' : 'adminBadgeDanger'}`}>
+                        {tenant.status}
+                      </span>
+                    </td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '11px', textTransform: 'capitalize' }}>
+                      {tenant.subscription_status || t('admin.tenants.trial')}
+                    </td>
+                    <td style={{ color: 'var(--cm-muted-foreground)', fontSize: '11px', whiteSpace: 'nowrap' }}>
+                      {formatDate(tenant.created_at)}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      {tenant.status === 'active' ? (
+                        <button
+                          onClick={() => handleSuspendTenant(tenant.id)}
+                          className="adminRowButton"
+                          style={{ color: 'var(--cm-primary)' }}
+                        >
+                          {t('admin.tenants.suspendAction')}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleActivateTenant(tenant.id)}
+                          className="adminRowButton"
+                          style={{ color: 'var(--cm-success)' }}
+                        >
+                          {t('admin.tenants.activateAction')}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
       </div>
 
       {showCreateModal && (
@@ -277,52 +277,57 @@ function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCrea
   }
 
   return (
-    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="relative p-6 border border-[var(--cm-border)] w-full max-w-md shadow-2xl rounded-xl bg-[var(--cm-card)] text-[var(--cm-foreground)]">
-        <div className="flex justify-between items-center mb-5 pb-3 border-b border-[var(--cm-border)]">
-          <h3 className="text-sm font-semibold text-white">{t('admin.tenants.create')}</h3>
+    <div className="adminOverlay">
+      <div className="adminOverlayMask" onClick={onClose} />
+      <div className="adminDialog" style={{ maxWidth: '480px' }}>
+        <div className="adminDialogHeader">
+          <h3 className="adminDialogTitle">{t('admin.tenants.create')}</h3>
           <button
             onClick={onClose}
-            className="text-[var(--cm-muted-foreground)] hover:text-white text-lg font-bold cursor-pointer"
+            className="adminDialogClose"
+            aria-label={t('common.close')}
           >
             {'×'}
           </button>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div>
-            <label className="block text-xs font-medium text-[var(--cm-muted-foreground)] mb-1.5">{t('admin.common.name')}</label>
+            <label className="adminFieldLabel">{t('admin.common.name')}</label>
             <input
               type="text"
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder={t('admin.tenants.namePlaceholder')}
-              className="adminInput w-full h-8 px-3 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] text-xs focus:outline-none focus:border-[var(--cm-primary)]"
+              className="adminInput"
+              style={{ marginBottom: 0 }}
               required
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[var(--cm-muted-foreground)] mb-1.5">{t('admin.common.slug')}</label>
+            <label className="adminFieldLabel">{t('admin.common.slug')}</label>
             <input
               type="text"
               value={slug}
               onChange={e => setSlug(e.target.value.toLowerCase().replace(/\s+/g, '-'))}
               placeholder={t('admin.tenants.slugPlaceholder')}
-              className="adminInput w-full h-8 px-3 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] text-xs font-mono focus:outline-none focus:border-[var(--cm-primary)]"
+              className="adminInput"
+              style={{ marginBottom: 0, fontFamily: 'monospace' }}
               required
             />
           </div>
-          <div className="flex justify-end space-x-2 pt-2">
+          <div className="adminDialogFooter">
             <button
               type="button"
               onClick={onClose}
-              className="h-8 px-3 border border-[var(--cm-border)] rounded-md text-xs text-[var(--cm-muted-foreground)] hover:text-white hover:bg-[var(--cm-secondary)] transition-colors cursor-pointer"
+              className="adminButton adminButtonSecondary"
             >
               {t('admin.common.cancelAction')}
             </button>
             <button
               type="submit"
               disabled={isCreating}
-              className="h-8 px-4 bg-[var(--cm-primary)] hover:bg-[var(--cm-primary)] text-[var(--cm-primary-foreground)] font-semibold text-xs rounded-md disabled:opacity-50 transition-colors cursor-pointer"
+              className="adminButton"
+              style={{ opacity: isCreating ? 0.5 : 1 }}
             >
               {isCreating ? t('admin.tenants.creating') : t('admin.tenants.createAction')}
             </button>

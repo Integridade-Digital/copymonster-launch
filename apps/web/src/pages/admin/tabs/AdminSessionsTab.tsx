@@ -270,33 +270,33 @@ export function AdminSessionsTab() {
     switch (status) {
       case 'active':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 10px', borderRadius: '9999px', fontSize: '11px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-primary) 15%, transparent)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--cm-primary)', display: 'inline-block' }} />
+          <span className="adminBadge adminBadgePrimary">
+            <span aria-hidden="true" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
             {t('admin.sessions.statusActive')}
           </span>
         )
       case 'completed':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 10px', borderRadius: '9999px', fontSize: '11px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-success) 15%, transparent)', color: 'var(--cm-success)', border: '1px solid color-mix(in srgb, var(--cm-success) 30%, transparent)' }}>
+          <span className="adminBadge adminBadgeSuccess">
             {t('admin.sessions.statusCompleted')}
           </span>
         )
       case 'archived':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 10px', borderRadius: '9999px', fontSize: '11px', fontWeight: 500, background: 'var(--cm-secondary)', color: 'var(--cm-muted-foreground)', border: '1px solid var(--cm-border)' }}>
+          <span className="adminBadge">
             {t('admin.sessions.statusArchived')}
           </span>
         )
       case 'error':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 10px', borderRadius: '9999px', fontSize: '11px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-destructive) 15%, transparent)', color: 'var(--cm-destructive)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--cm-destructive)', display: 'inline-block' }} />
+          <span className="adminBadge adminBadgeDanger">
+            <span aria-hidden="true" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
             {t('admin.common.error')}
           </span>
         )
       default:
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 10px', borderRadius: '9999px', fontSize: '11px', fontWeight: 500, background: 'var(--cm-secondary)', color: 'var(--cm-muted-foreground)', border: '1px solid var(--cm-border)' }}>
+          <span className="adminBadge">
             {status}
           </span>
         )
@@ -315,30 +315,28 @@ export function AdminSessionsTab() {
   const hasActiveFilters = Boolean(debouncedSearch || selectedTenant || selectedModel || selectedStatus || selectedPeriod !== 'all')
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', color: 'var(--cm-foreground)' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--cm-border)' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.sessions.title')}</h2>
-            <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '9999px', fontSize: '12px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-primary) 20%, transparent)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)' }}>
+    <div className="adminTabBody">
+      <div className="adminTabHeader">
+        <div className="adminTabHeaderText">
+          <div className="adminTabTitleRow">
+            <p className="adminTabSubtitle">{t('admin.sessions.subtitle')}</p>
+            <span className="adminBadge adminBadgePrimary">
               {t('admin.sessions.totalBadge', { value: kpis?.total_sessions ?? totalCount })}
             </span>
             {kpis && (
-              <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '9999px', fontSize: '12px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-success) 15%, transparent)', color: 'var(--cm-success)', border: '1px solid color-mix(in srgb, var(--cm-success) 30%, transparent)' }}>
+              <span className="adminBadge adminBadgeSuccess">
                 {t('admin.sessions.activeToday', { count: kpis.active_sessions })}
               </span>
             )}
           </div>
-          <p style={{ fontSize: '13px', color: 'var(--cm-muted-foreground)', margin: '4px 0 0 0' }}>
-            {t('admin.sessions.subtitle')}
-          </p>
         </div>
 
         <button
           onClick={() => loadSessionsData(true)}
           disabled={isLoading || isRefreshing}
           title={t('admin.sessions.refreshAria')}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', height: '32px', padding: '0 16px', background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', fontSize: '12px', fontWeight: 500, color: 'var(--cm-foreground)', cursor: 'pointer', opacity: isLoading || isRefreshing ? 0.5 : 1 }}
+          className="adminButton adminButtonSecondary"
+          style={{ opacity: isLoading || isRefreshing ? 0.5 : 1 }}
         >
           <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--cm-muted-foreground)', animation: isRefreshing ? 'cm-auth-spin 0.8s linear infinite' : undefined }}>
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -348,15 +346,15 @@ export function AdminSessionsTab() {
       </div>
 
       {actionSuccess && (
-        <div style={{ padding: '10px 14px', borderRadius: '8px', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'color-mix(in srgb, var(--cm-success) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-success) 30%, transparent)', color: 'var(--cm-success)' }}>
+        <div className="adminNotice adminNoticeSuccess">
           <span>{actionSuccess}</span>
-          <button onClick={() => setActionSuccess(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit', opacity: 0.7, fontSize: '12px', lineHeight: 1, padding: '2px' }}>✕</button>
+          <button onClick={() => setActionSuccess(null)} className="adminNoticeDismiss" aria-label={t('common.close')}>✕</button>
         </div>
       )}
       {actionError && (
-        <div style={{ padding: '10px 14px', borderRadius: '8px', fontSize: '13px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', color: 'var(--cm-destructive)' }}>
+        <div className="adminNotice adminNoticeError">
           <span>{actionError}</span>
-          <button onClick={() => setActionError(null)} style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'inherit', opacity: 0.7, fontSize: '12px', lineHeight: 1, padding: '2px' }}>✕</button>
+          <button onClick={() => setActionError(null)} className="adminNoticeDismiss" aria-label={t('common.close')}>✕</button>
         </div>
       )}
 
@@ -472,21 +470,21 @@ export function AdminSessionsTab() {
       </div>
 
       {error && (
-        <div style={{ padding: '16px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', color: 'var(--cm-destructive)', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="adminNotice adminNoticeError">
           <div>
             <p style={{ fontWeight: 600, margin: 0 }}>{t('admin.sessions.loadError')}</p>
             <p style={{ margin: '2px 0 0 0' }}>{error}</p>
           </div>
           <button
             onClick={() => loadSessionsData()}
-            style={{ padding: '4px 12px', borderRadius: '6px', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 15%, transparent)', color: 'var(--cm-destructive)', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+            className="adminRowButton adminRowButtonDanger"
           >
             {t('admin.common.retry')}
           </button>
         </div>
       )}
 
-      <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="adminCard adminCardTable">
         <div style={{ overflowX: 'auto' }}>
           <table className="adminTable">
             <thead>
@@ -506,7 +504,7 @@ export function AdminSessionsTab() {
                 <tr>
                   <td colSpan={8} style={{ padding: '48px', textAlign: 'center', color: 'var(--cm-muted-foreground)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-                      <div style={{ width: '24px', height: '24px', border: '2px solid var(--cm-primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'cm-auth-spin 0.8s linear infinite' }} />
+                      <span className="adminSpinner" style={{ width: '24px', height: '24px' }} aria-hidden="true" />
                       <span style={{ fontSize: '12px' }}>{t('admin.sessions.loading')}</span>
                     </div>
                   </td>
@@ -537,7 +535,8 @@ export function AdminSessionsTab() {
                         </span>
                         <button
                           onClick={() => handleCopyId(row.session_id)}
-                          style={{ fontSize: '10px', color: 'var(--cm-muted-foreground)', cursor: 'pointer', background: 'none', border: 'none', whiteSpace: 'nowrap' }}
+                          className="adminLinkButton"
+                          style={{ color: 'var(--cm-muted-foreground)', whiteSpace: 'nowrap' }}
                           title={t('admin.sessions.copyIdAria')}
                         >
                           {copiedId === row.session_id ? `✓ ${t('admin.common.copied')}` : t('admin.common.copy')}
@@ -566,7 +565,7 @@ export function AdminSessionsTab() {
                     </td>
 
                     <td>
-                      <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontFamily: 'monospace', fontSize: '11px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)', color: 'var(--cm-primary)' }}>
+                      <span className="adminBadge" style={{ fontFamily: 'monospace', color: 'var(--cm-primary)' }}>
                         {row.model_used}
                       </span>
                     </td>
@@ -587,7 +586,7 @@ export function AdminSessionsTab() {
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '6px' }}>
                         <button
                           onClick={() => setInspectingSession(row)}
-                          style={{ padding: '4px 10px', borderRadius: '6px', background: 'var(--cm-card)', border: '1px solid var(--cm-border)', color: 'var(--cm-foreground)', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+                          className="adminRowButton"
                           title={t('admin.sessions.inspectAria')}
                         >
                           {t('admin.common.details')}
@@ -596,7 +595,8 @@ export function AdminSessionsTab() {
                           <button
                             onClick={() => handleArchiveSession(row)}
                             disabled={isSubmittingAction}
-                            style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--cm-border)', background: 'transparent', color: 'var(--cm-muted-foreground)', cursor: 'pointer', fontSize: '12px', opacity: isSubmittingAction ? 0.5 : 1 }}
+                            className="adminRowButton"
+                            style={{ opacity: isSubmittingAction ? 0.5 : 1 }}
                             title={t('admin.sessions.archiveAria')}
                           >
                             {t('admin.sessions.archiveAction')}
@@ -605,7 +605,8 @@ export function AdminSessionsTab() {
                         <button
                           onClick={() => setSessionToPurge(row)}
                           disabled={isSubmittingAction}
-                          style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid color-mix(in srgb, var(--cm-destructive) 25%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', color: 'var(--cm-destructive)', cursor: 'pointer', fontSize: '12px', opacity: isSubmittingAction ? 0.5 : 1 }}
+                          className="adminRowButton adminRowButtonDanger"
+                          style={{ opacity: isSubmittingAction ? 0.5 : 1 }}
                           title={t('admin.sessions.purgeAria')}
                         >
                           {t('admin.sessions.purgeAction')}
@@ -649,14 +650,16 @@ export function AdminSessionsTab() {
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage <= 1 || isLoading}
-                style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', color: 'var(--cm-foreground)', cursor: 'pointer', opacity: (currentPage <= 1 || isLoading) ? 0.4 : 1, fontSize: '12px' }}
+                className="adminRowButton"
+                style={{ opacity: (currentPage <= 1 || isLoading) ? 0.4 : 1 }}
               >
                 {t('admin.common.previous')}
               </button>
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages || isLoading}
-                style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', color: 'var(--cm-foreground)', cursor: 'pointer', opacity: (currentPage >= totalPages || isLoading) ? 0.4 : 1, fontSize: '12px' }}
+                className="adminRowButton"
+                style={{ opacity: (currentPage >= totalPages || isLoading) ? 0.4 : 1 }}
               >
                 {t('admin.common.next')}
               </button>
@@ -666,9 +669,9 @@ export function AdminSessionsTab() {
       </div>
 
       {inspectingSession && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="adminOverlay">
           <div
-            style={{ position: 'absolute', inset: 0, background: 'var(--cm-overlay)', backdropFilter: 'blur(4px)' }}
+            className="adminOverlayMask"
             onClick={() => setInspectingSession(null)}
           />
           <div
@@ -678,17 +681,17 @@ export function AdminSessionsTab() {
             onKeyDown={(e) => {
               if (e.key === 'Escape') setInspectingSession(null)
             }}
-            style={{ position: 'relative', width: '100%', maxWidth: '640px', margin: '24px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--cm-shadow)', maxHeight: '80vh', overflowY: 'auto', outline: 'none', color: 'var(--cm-foreground)' }}
+            className="adminDialog"
+            style={{ maxWidth: '640px' }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--cm-border)', marginBottom: '16px' }}>
+            <div className="adminDialogHeader">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--cm-primary)', display: 'inline-block' }} />
-                <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.sessions.inspect')}</h3>
+                <h3 className="adminDialogTitle">{t('admin.sessions.inspect')}</h3>
                 {getStatusBadge(inspectingSession.status)}
               </div>
               <button
                 onClick={() => setInspectingSession(null)}
-                style={{ cursor: 'pointer', background: 'none', border: 'none', color: 'var(--cm-muted-foreground)', fontSize: '16px' }}
+                className="adminDialogClose"
                 title={t('admin.common.close')}
               >
                 ✕
@@ -700,7 +703,7 @@ export function AdminSessionsTab() {
                 <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', marginBottom: '4px', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{t('admin.sessions.sessionTitle')}</span>
                 <div style={{ fontSize: '15px', fontWeight: 500, color: 'var(--cm-foreground)' }}>{inspectingSession.title}</div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px' }}>
-                  <span style={{ fontFamily: 'monospace', fontSize: '12px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)', padding: '2px 8px', borderRadius: '4px', color: 'var(--cm-primary)' }}>
+                  <span style={{ fontFamily: 'monospace', fontSize: '12px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)', padding: '2px 8px', borderRadius: 'var(--cm-radius-sm)', color: 'var(--cm-primary)' }}>
                     {inspectingSession.session_id}
                   </span>
                   <button
@@ -712,7 +715,7 @@ export function AdminSessionsTab() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', padding: '16px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-background)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', padding: '16px', borderRadius: 'var(--cm-radius-md)', border: '1px solid var(--cm-border)', background: 'var(--cm-background)' }}>
                 <div>
                   <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', fontSize: '12px' }}>{t('admin.common.tenant')}</span>
                   <span style={{ fontWeight: 500, color: 'var(--cm-foreground)' }}>{inspectingSession.tenant_name}</span>
@@ -745,7 +748,7 @@ export function AdminSessionsTab() {
                 </div>
               </div>
 
-              <div style={{ padding: '16px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-primary) 40%, transparent)', background: 'var(--cm-card)' }}>
+              <div style={{ padding: '16px', borderRadius: 'var(--cm-radius-md)', border: '1px solid color-mix(in srgb, var(--cm-primary) 40%, transparent)', background: 'var(--cm-card)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--cm-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                   <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--cm-primary)' }}>
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -756,13 +759,14 @@ export function AdminSessionsTab() {
                   {t('admin.sessions.transcriptBody')}
                   {t('admin.sessions.transcriptHint')}
                 </p>
-                <div style={{ padding: '10px', borderRadius: '8px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                <div style={{ padding: '10px', borderRadius: 'var(--cm-radius-md)', background: 'var(--cm-background)', border: '1px solid var(--cm-border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                   <code style={{ fontSize: '12px', fontFamily: 'monospace', color: 'var(--cm-primary)', wordBreak: 'break-all', userSelect: 'all' }}>
                     {sshTranscriptCommand}
                   </code>
                   <button
                     onClick={() => handleCopyCommand(sshTranscriptCommand)}
-                    style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', color: 'var(--cm-foreground)', cursor: 'pointer', fontSize: '12px', fontWeight: 500, whiteSpace: 'nowrap' }}
+                    className="adminRowButton"
+                    style={{ whiteSpace: 'nowrap' }}
                   >
                     {copiedCommand ? `✓ ${t('admin.common.copied')}` : t('admin.common.copy')}
                   </button>
@@ -772,7 +776,7 @@ export function AdminSessionsTab() {
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '8px', borderTop: '1px solid var(--cm-border)' }}>
                 <button
                   onClick={() => handleCopyId(inspectingSession.session_id)}
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', height: '32px', padding: '0 16px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: 'pointer', fontSize: '13px' }}
+                  className="adminButton adminButtonSecondary"
                 >
                   {copiedId === inspectingSession.session_id ? `✓ ${t('admin.common.copied')}` : t('admin.common.copyId')}
                 </button>
@@ -781,7 +785,8 @@ export function AdminSessionsTab() {
                     <button
                       onClick={() => handleArchiveSession(inspectingSession)}
                       disabled={isSubmittingAction}
-                      style={{ height: '32px', padding: '0 16px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-muted-foreground)', cursor: 'pointer', fontSize: '13px', opacity: isSubmittingAction ? 0.5 : 1 }}
+                      className="adminButton adminButtonSecondary"
+                      style={{ opacity: isSubmittingAction ? 0.5 : 1 }}
                     >
                       {t('admin.sessions.archiveAction')}
                     </button>
@@ -789,7 +794,8 @@ export function AdminSessionsTab() {
                   <button
                     onClick={() => setSessionToPurge(inspectingSession)}
                     disabled={isSubmittingAction}
-                    style={{ height: '32px', padding: '0 16px', background: 'var(--cm-destructive)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, opacity: isSubmittingAction ? 0.5 : 1 }}
+                    className="adminButton"
+                    style={{ background: 'var(--cm-destructive)', color: 'var(--cm-primary-foreground)', opacity: isSubmittingAction ? 0.5 : 1 }}
                   >
                     {t('admin.sessions.purgeSession')}
                   </button>
@@ -801,9 +807,9 @@ export function AdminSessionsTab() {
       )}
 
       {sessionToPurge && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="adminOverlay">
           <div
-            style={{ position: 'absolute', inset: 0, background: 'var(--cm-overlay)', backdropFilter: 'blur(4px)' }}
+            className="adminOverlayMask"
             onClick={() => setSessionToPurge(null)}
           />
           <div
@@ -813,13 +819,17 @@ export function AdminSessionsTab() {
             onKeyDown={(e) => {
               if (e.key === 'Escape') setSessionToPurge(null)
             }}
-            style={{ position: 'relative', width: '100%', maxWidth: '520px', margin: '24px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--cm-shadow)', maxHeight: '80vh', overflowY: 'auto', outline: 'none', color: 'var(--cm-foreground)' }}
+            className="adminDialog"
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', color: 'var(--cm-destructive)', marginBottom: '16px' }}>
-              <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: 'color-mix(in srgb, var(--cm-destructive) 15%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, flexShrink: 0 }}>
-                !
-              </div>
-              <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.sessions.purgeTitle')}</h3>
+            <div className="adminDialogHeader">
+              <h3 className="adminDialogTitle">{t('admin.sessions.purgeTitle')}</h3>
+              <button
+                onClick={() => setSessionToPurge(null)}
+                className="adminDialogClose"
+                aria-label={t('common.close')}
+              >
+                ✕
+              </button>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '12px' }}>
@@ -828,7 +838,7 @@ export function AdminSessionsTab() {
                 <strong style={{ color: 'var(--cm-foreground)' }}>"{sessionToPurge.title}"</strong> ({sessionToPurge.session_id}).
               </p>
 
-              <div style={{ padding: '12px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', color: 'var(--cm-destructive)' }}>
+              <div style={{ padding: '12px', borderRadius: 'var(--cm-radius-md)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', color: 'var(--cm-destructive)' }}>
                 <p style={{ fontWeight: 600, margin: 0 }}>{t('admin.sessions.governance')}</p>
                 <p style={{ margin: '4px 0 0 0', opacity: 0.9 }}>
                   {t('admin.sessions.purgeGovernance')}
@@ -839,16 +849,18 @@ export function AdminSessionsTab() {
                 <button
                   onClick={() => setSessionToPurge(null)}
                   disabled={isSubmittingAction}
-                  style={{ height: '32px', padding: '0 16px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-muted-foreground)', cursor: 'pointer', fontSize: '13px', opacity: isSubmittingAction ? 0.5 : 1 }}
+                  className="adminButton adminButtonSecondary"
+                  style={{ opacity: isSubmittingAction ? 0.5 : 1 }}
                 >
                   {t('admin.common.cancelAction')}
                 </button>
                 <button
                   onClick={handleConfirmPurge}
                   disabled={isSubmittingAction}
-                  style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', height: '32px', padding: '0 16px', background: 'var(--cm-destructive)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontSize: '13px', fontWeight: 600, opacity: isSubmittingAction ? 0.5 : 1 }}
+                  className="adminButton"
+                  style={{ background: 'var(--cm-destructive)', color: 'var(--cm-primary-foreground)', opacity: isSubmittingAction ? 0.5 : 1 }}
                 >
-                  {isSubmittingAction && <span style={{ width: '14px', height: '14px', border: '2px solid white', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'cm-auth-spin 0.8s linear infinite' }} />}
+                  {isSubmittingAction && <span className="adminSpinner" aria-hidden="true" />}
                   <span>{isSubmittingAction ? t('admin.sessions.purging') : t('admin.sessions.confirmPurge')}</span>
                 </button>
               </div>

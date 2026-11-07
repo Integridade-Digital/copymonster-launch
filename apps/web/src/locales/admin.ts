@@ -229,6 +229,10 @@ export const adminEn = {
   'admin.system.llm.lightweightProvider': 'Lightweight provider',
   'admin.system.llm.lightweightModel': 'Lightweight model',
   'admin.system.llm.saveFailure': 'Could not save LLM routing configuration.',
+  'admin.system.llm.saveMask': 'Save masking',
+  'admin.system.llm.savePrimary': 'Save primary route',
+  'admin.system.llm.saveFallback': 'Save failover chain',
+  'admin.system.llm.saveDelegation': 'Save delegation',
 
   // Billing
   'admin.billing.title': 'Billing & subscriptions',
@@ -672,6 +676,10 @@ export const adminPt: Record<keyof typeof adminEn, string> = {
   'admin.system.llm.lightweightProvider': 'Provedor leve',
   'admin.system.llm.lightweightModel': 'Modelo leve',
   'admin.system.llm.saveFailure': 'Falha ao salvar configuração de roteamento LLM.',
+  'admin.system.llm.saveMask': 'Salvar máscara',
+  'admin.system.llm.savePrimary': 'Salvar rota primária',
+  'admin.system.llm.saveFallback': 'Salvar cadeia de failover',
+  'admin.system.llm.saveDelegation': 'Salvar delegação',
   'admin.system.llm.maskProtected': 'Chave de máscara protegida',
 
   'admin.system.searchLlm': 'Buscar configuração LLM…',
@@ -1118,6 +1126,10 @@ export const adminZh: Record<keyof typeof adminEn, string> = {
   'admin.system.llm.lightweightProvider': '轻量级提供商',
   'admin.system.llm.lightweightModel': '轻量级模型',
   'admin.system.llm.saveFailure': '保存 LLM 路由配置失败。',
+  'admin.system.llm.saveMask': '保存掩码',
+  'admin.system.llm.savePrimary': '保存主路由',
+  'admin.system.llm.saveFallback': '保存故障转移链',
+  'admin.system.llm.saveDelegation': '保存委托',
   'admin.system.llm.maskProtected': '受保护的掩码键',
 
   'admin.system.searchLlm': '搜索 LLM 配置…',
@@ -1564,6 +1576,10 @@ export const adminEs: Record<keyof typeof adminEn, string> = {
   'admin.system.llm.lightweightProvider': 'Proveedor ligero',
   'admin.system.llm.lightweightModel': 'Modelo ligero',
   'admin.system.llm.saveFailure': 'No se pudo guardar la configuración de enrutamiento LLM.',
+  'admin.system.llm.saveMask': 'Guardar enmascaramiento',
+  'admin.system.llm.savePrimary': 'Guardar ruta primaria',
+  'admin.system.llm.saveFallback': 'Guardar cadena de failover',
+  'admin.system.llm.saveDelegation': 'Guardar delegación',
   'admin.system.llm.maskProtected': 'Clave de máscara protegida',
 
   'admin.system.searchLlm': 'Buscar configuración LLM…',

@@ -223,6 +223,15 @@
   overflow-y: auto;
 }
 
+/* Admin body: the Settings `.options` inset (24px side/bottom, no top) is the
+ * only padding. Admin tabs carry no second root padding. */
+.adminBodyScroll {
+  flex: 1;
+  min-height: 0;
+  padding: 0 24px 24px;
+  overflow-y: auto;
+}
+
 /* Typography and element normalization matching the Affiliate section whose
  * controls Admin shares (38px fields, 9/18 buttons, 10/14 table cells). */
 .bodyScroll h2,
@@ -382,14 +391,279 @@
   gap: 12px;
 }
 
+/* Tab body: Settings `.options` owns the inset, so the tab adds rhythm only. */
+.adminTabBody, :global(.adminTabBody) {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  color: var(--cm-foreground);
+}
+
+/* Tab header: subtitle + badges left, actions right; no repeated tab title
+ * because the dialog header already names the active tab. */
+.adminTabHeader, :global(.adminTabHeader) {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--cm-border);
+}
+
+.adminTabHeaderText, :global(.adminTabHeaderText) {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.adminTabTitleRow, :global(.adminTabTitleRow) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.adminTabSubtitle, :global(.adminTabSubtitle) {
+  font-size: 13px !important;
+  line-height: 18px !important;
+  color: var(--cm-muted-foreground) !important;
+  margin: 0 !important;
+}
+
+.adminToolbar, :global(.adminToolbar) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+/* State pills share the Settings card palette. */
+.adminBadge, :global(.adminBadge) {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--cm-border);
+  background: var(--cm-secondary);
+  color: var(--cm-muted-foreground);
+  font-size: var(--cm-font-size-sm);
+  font-weight: 500;
+  line-height: 18px;
+  white-space: nowrap;
+}
+
+.adminBadgePrimary, :global(.adminBadgePrimary) {
+  background: color-mix(in srgb, var(--cm-primary) 15%, transparent);
+  border-color: color-mix(in srgb, var(--cm-primary) 30%, transparent);
+  color: var(--cm-primary);
+}
+
+.adminBadgeSuccess, :global(.adminBadgeSuccess) {
+  background: color-mix(in srgb, var(--cm-success) 15%, transparent);
+  border-color: color-mix(in srgb, var(--cm-success) 30%, transparent);
+  color: var(--cm-success);
+}
+
+.adminBadgeDanger, :global(.adminBadgeDanger) {
+  background: color-mix(in srgb, var(--cm-destructive) 15%, transparent);
+  border-color: color-mix(in srgb, var(--cm-destructive) 30%, transparent);
+  color: var(--cm-destructive);
+}
+
+/* Cards use the Settings section recipe: cm-card fill, 1px cm-border,
+ * var(--cm-radius-lg), var(--cm-padding-card), no shadow. */
 .adminCard, :global(.adminCard) {
+  box-sizing: border-box;
   background: var(--cm-card);
   border: 1px solid var(--cm-border);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: var(--cm-radius-lg);
+  padding: var(--cm-padding-card);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
+  box-shadow: none;
+}
+
+/* Card that holds a table: the table owns its own cell inset. */
+.adminCardTable, :global(.adminCardTable) {
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Section card used inside a tab, one level above the KPI cards. */
+.adminSectionCard, :global(.adminSectionCard) {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  background: var(--cm-card);
+  border: 1px solid var(--cm-border);
+  border-radius: var(--cm-radius-lg);
+  padding: var(--cm-padding-card);
+  box-shadow: none;
+}
+
+/* Nested surface for a group of fields inside a section card. */
+.adminSubCard, :global(.adminSubCard) {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--cm-background);
+  border: 1px solid var(--cm-border);
+  border-radius: var(--cm-radius-md);
+  padding: var(--cm-padding-card);
+}
+
+.adminSectionTitle, :global(.adminSectionTitle) {
+  font-size: var(--cm-font-size-md) !important;
+  font-weight: 600 !important;
+  line-height: 20px !important;
+  color: var(--cm-foreground) !important;
+  margin: 0 !important;
+}
+
+.adminSectionHint, :global(.adminSectionHint) {
+  font-size: 13px !important;
+  line-height: 18px !important;
+  color: var(--cm-muted-foreground) !important;
+  margin: 0 !important;
+}
+
+.adminFieldLabel, :global(.adminFieldLabel) {
+  display: block;
+  font-size: var(--cm-font-size-sm);
+  font-weight: 600;
+  color: var(--cm-muted-foreground);
+  margin-bottom: 6px;
+}
+
+.adminFieldHint, :global(.adminFieldHint) {
+  display: block;
+  font-size: var(--cm-font-size-sm);
+  color: var(--cm-muted-foreground);
+  margin-top: 4px;
+}
+
+/* Feedback banners: one geometry, state-tinted. */
+.adminNotice, :global(.adminNotice) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--cm-radius-md);
+  border: 1px solid var(--cm-border);
+  background: var(--cm-muted);
+  color: var(--cm-foreground);
+  font-size: 13px;
+  line-height: 18px;
+}
+
+.adminNoticeError, :global(.adminNoticeError) {
+  border-color: color-mix(in srgb, var(--cm-destructive) 30%, transparent);
+  background: color-mix(in srgb, var(--cm-destructive) 10%, transparent);
+  color: var(--cm-destructive);
+}
+
+.adminNoticeSuccess, :global(.adminNoticeSuccess) {
+  border-color: color-mix(in srgb, var(--cm-success) 30%, transparent);
+  background: color-mix(in srgb, var(--cm-success) 10%, transparent);
+  color: var(--cm-success);
+}
+
+.adminNoticeDismiss, :global(.adminNoticeDismiss) {
+  border: none;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--cm-font-size-sm);
+  line-height: 1;
+  padding: 2px;
+  opacity: 0.7;
+}
+
+/* Nested dialog (create/edit/confirm) inside a tab. */
+.adminOverlay, :global(.adminOverlay) {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.adminOverlayMask, :global(.adminOverlayMask) {
+  position: absolute;
+  inset: 0;
+  background: var(--cm-overlay);
+  backdrop-filter: blur(4px);
+}
+
+.adminDialog, :global(.adminDialog) {
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  margin: 24px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  background: var(--cm-card);
+  border: 1px solid var(--cm-border);
+  border-radius: var(--cm-radius-lg);
+  padding: var(--cm-padding-card);
+  box-shadow: var(--cm-shadow);
+  outline: none;
+}
+
+.adminDialogHeader, :global(.adminDialogHeader) {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--cm-border);
+  margin-bottom: 16px;
+}
+
+.adminDialogTitle, :global(.adminDialogTitle) {
+  font-size: var(--cm-font-size-md) !important;
+  font-weight: 600 !important;
+  line-height: 20px !important;
+  color: var(--cm-foreground) !important;
+  margin: 0 !important;
+}
+
+.adminDialogClose, :global(.adminDialogClose) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: none;
+  border-radius: 28px;
+  background: transparent;
+  color: var(--cm-muted-foreground);
+  cursor: pointer;
+  font-size: var(--cm-font-size-md);
+  line-height: 1;
+}
+
+.adminDialogClose:hover {
+  background: var(--cm-muted);
+}
+
+.adminDialogFooter, :global(.adminDialogFooter) {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 12px;
+  margin-top: 16px;
+  border-top: 1px solid var(--cm-border);
 }
 
 .adminCardLabel, :global(.adminCardLabel) {
@@ -418,33 +692,40 @@
   width: 100%;
   border-collapse: collapse;
   font-size: 13px;
+  line-height: 18px;
 }
 
 .adminTable th, :global(.adminTable th) {
-  font-size: 12px;
+  font-size: var(--cm-font-size-sm);
   text-transform: uppercase;
   color: var(--cm-muted-foreground);
-  background: var(--cm-card);
+  background: var(--cm-muted);
   border-bottom: 1px solid var(--cm-border);
-  padding: 8px 12px;
+  padding: 10px 14px;
   text-align: left;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 .adminTable td, :global(.adminTable td) {
-  padding: 8px 12px;
+  padding: 12px 14px;
   border-bottom: 1px solid var(--cm-border);
   color: var(--cm-foreground);
+  vertical-align: middle;
+}
+
+.adminTable tr:hover td {
+  background: color-mix(in srgb, var(--cm-foreground) 2%, transparent);
 }
 
 .adminInput, :global(.adminInput) {
   display: block;
   width: 100%;
-  height: 32px;
+  min-height: 38px;
   font-size: 13px;
   background: var(--cm-background);
   border: 1px solid var(--cm-border);
-  border-radius: 6px;
+  border-radius: var(--cm-radius-md);
   padding: 0 12px;
   margin-bottom: 16px;
   color: var(--cm-foreground);
@@ -453,34 +734,197 @@
   transition: border-color 0.15s ease;
 }
 
+textarea.adminInput, :global(textarea.adminInput) {
+  min-height: 96px;
+  padding: 10px 12px;
+  line-height: 18px;
+  resize: vertical;
+}
+
 .adminInput:focus, :global(.adminInput:focus) {
   border-color: var(--cm-primary);
 }
 
 .adminLabel, :global(.adminLabel) {
   display: block;
-  font-size: 13px;
+  font-size: var(--cm-font-size-sm);
   color: var(--cm-muted-foreground);
   margin-bottom: 6px;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .adminButton, :global(.adminButton) {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 32px;
-  padding: 0 16px;
+  gap: 8px;
+  min-height: 38px;
+  padding: 9px 18px;
   background: var(--cm-primary);
   color: var(--cm-primary-foreground);
-  border-radius: 6px;
+  border-radius: var(--cm-radius-md);
   font-size: 13px;
   font-weight: 600;
   width: auto;
-  border: none;
+  border: 1px solid transparent;
   cursor: pointer;
   transition: opacity 0.15s ease;
   text-decoration: none;
+}
+
+.adminButtonSecondary, :global(.adminButtonSecondary) {
+  background: var(--cm-card);
+  border-color: var(--cm-border);
+  color: var(--cm-foreground);
+}
+
+.adminButtonSecondary:hover:not(:disabled), :global(.adminButtonSecondary:hover:not(:disabled)) {
+  background: var(--cm-muted);
+  opacity: 1;
+}
+
+.adminButtonDanger, :global(.adminButtonDanger) {
+  background: color-mix(in srgb, var(--cm-destructive) 15%, transparent);
+  border-color: color-mix(in srgb, var(--cm-destructive) 30%, transparent);
+  color: var(--cm-destructive);
+}
+
+.adminButtonDanger:hover:not(:disabled), :global(.adminButtonDanger:hover:not(:disabled)) {
+  background: color-mix(in srgb, var(--cm-destructive) 20%, transparent);
+  opacity: 1;
+}
+
+/* Compact row action inside tables. */
+.adminRowButton, :global(.adminRowButton) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 30px;
+  padding: 4px 12px;
+  border: 1px solid var(--cm-border);
+  border-radius: var(--cm-radius-sm);
+  background: transparent;
+  color: var(--cm-foreground);
+  cursor: pointer;
+  font-size: var(--cm-font-size-sm);
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.adminRowButton:hover:not(:disabled), :global(.adminRowButton:hover:not(:disabled)) {
+  background: var(--cm-muted);
+}
+
+.adminRowButtonDanger, :global(.adminRowButtonDanger) {
+  border-color: color-mix(in srgb, var(--cm-destructive) 30%, transparent);
+  background: color-mix(in srgb, var(--cm-destructive) 10%, transparent);
+  color: var(--cm-destructive);
+}
+
+.adminRowButtonDanger:hover:not(:disabled), :global(.adminRowButtonDanger:hover:not(:disabled)) {
+  background: color-mix(in srgb, var(--cm-destructive) 15%, transparent);
+}
+
+/* Inline link-style control (clear filters, secondary text actions). */
+.adminLinkButton, :global(.adminLinkButton) {
+  border: none;
+  background: none;
+  color: var(--cm-primary);
+  cursor: pointer;
+  font-size: var(--cm-font-size-sm);
+  text-decoration: underline;
+  padding: 0;
+}
+
+/* Empty and loading state inside a tab section. */
+.adminEmptyState, :global(.adminEmptyState) {
+  padding: 24px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--cm-muted-foreground);
+}
+
+.adminEmptyStateBordered, :global(.adminEmptyStateBordered) {
+  border: 1px dashed var(--cm-border);
+  border-radius: var(--cm-radius-md);
+}
+
+/* Monospace path or value block. */
+.adminCodeBlock, :global(.adminCodeBlock) {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--cm-foreground);
+  background: var(--cm-card);
+  padding: 8px;
+  border-radius: var(--cm-radius-md);
+  border: 1px solid var(--cm-border);
+  margin-top: 8px;
+  word-break: break-all;
+}
+
+.adminSpinner, :global(.adminSpinner) {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--cm-border);
+  border-top-color: var(--cm-primary);
+  border-radius: 50%;
+  animation: cm-auth-spin 0.7s linear infinite;
+}
+
+/* Icon-only table action. */
+.adminIconButton, :global(.adminIconButton) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--cm-border);
+  border-radius: var(--cm-radius-sm);
+  background: var(--cm-card);
+  color: var(--cm-muted-foreground);
+  cursor: pointer;
+}
+
+.adminIconButton:hover, :global(.adminIconButton:hover) {
+  background: var(--cm-muted);
+}
+
+/* Row action menu, aligned with the Settings card palette. */
+.adminMenu, :global(.adminMenu) {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  margin-top: 4px;
+  min-width: 176px;
+  padding: 4px 0;
+  background: var(--cm-card);
+  border: 1px solid var(--cm-border);
+  border-radius: var(--cm-radius-md);
+  box-shadow: var(--cm-shadow);
+  z-index: 30;
+  text-align: left;
+  font-size: var(--cm-font-size-sm);
+  color: var(--cm-foreground);
+}
+
+.adminMenuItem, :global(.adminMenuItem) {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  text-align: left;
+  font-size: var(--cm-font-size-sm);
+  color: var(--cm-foreground);
+}
+
+.adminMenuItem:hover:not(:disabled), :global(.adminMenuItem:hover:not(:disabled)) {
+  background: var(--cm-muted);
 }
 
 .adminButton:hover:not(:disabled), :global(.adminButton:hover:not(:disabled)) {
@@ -563,6 +1007,24 @@ button.backButton,
 
   .bodyScroll {
     padding: 16px;
+  }
+
+  .adminBodyScroll {
+    padding: 0 16px 16px;
+  }
+
+  .adminTabHeader, :global(.adminTabHeader) {
+    align-items: stretch;
+  }
+
+  .adminSectionCard, :global(.adminSectionCard),
+  .adminCard, :global(.adminCard) {
+    padding: 12px;
+  }
+
+  .adminDialog, :global(.adminDialog) {
+    max-width: calc(100vw - 32px);
+    margin: 16px;
   }
 
   .adminContainer,

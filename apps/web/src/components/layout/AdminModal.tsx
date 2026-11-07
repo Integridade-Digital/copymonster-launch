@@ -55,7 +55,7 @@ export function AdminModal({ isOpen, onClose, triggerRef, isPlatformAdmin }: Adm
 
   const isAuthorized = isPlatformAdmin === true
   const activeTabConfig = ADMIN_TABS.find(t => t.key === activeTab) || ADMIN_TABS[0]
-  const activeTabTitle = activeTab === 'affiliates' ? t('admin.affiliates.title') : activeTabConfig ? t(`admin.tab.${activeTab === 'system' ? 'settings' : activeTab}` as any) : t('admin.tab.overview')
+  const activeTabTitle = activeTab === 'affiliates' ? t('admin.affiliates.title') : activeTabConfig ? t(`admin.tab.${activeTab === 'system' ? 'settings' : activeTab}` as string) : t('admin.tab.overview')
 
   return (
     <div className={css.overlay} role="presentation">
@@ -76,7 +76,7 @@ export function AdminModal({ isOpen, onClose, triggerRef, isPlatformAdmin }: Adm
               <div className={css.railList}>
                 {ADMIN_TABS.map((tab) => {
                   const isActive = activeTab === tab.key
-                  const label = tab.key === 'affiliates' ? t('admin.affiliates.title') : t(`admin.tab.${tab.key === 'system' ? 'settings' : tab.key}` as any)
+                  const label = tab.key === 'affiliates' ? t('admin.affiliates.title') : t(`admin.tab.${tab.key === 'system' ? 'settings' : tab.key}` as string)
                   return (
                     <button
                       key={tab.key}
@@ -107,7 +107,7 @@ export function AdminModal({ isOpen, onClose, triggerRef, isPlatformAdmin }: Adm
                   </svg>
                 </button>
               </div>
-              <div className={css.bodyScroll}>
+              <div className={css.adminBodyScroll}>
                 {activeTab === 'overview' && <AdminOverviewTab />}
                 {activeTab === 'users' && <AdminUsersTab />}
                 {activeTab === 'tenants' && <AdminTenantsTab />}

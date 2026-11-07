@@ -22,8 +22,8 @@ function AuditValueBlock({ label, value }: { label: string; value: unknown }) {
   if (!json) return null
   return (
     <div>
-      <h4 className="font-semibold text-[var(--cm-muted-foreground)] mb-1 text-xs uppercase tracking-wider">{label}</h4>
-      <pre className="p-3 bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-lg text-emerald-400 overflow-x-auto text-xs font-mono">{json}</pre>
+      <h4 className="adminFieldLabel">{label}</h4>
+      <pre className="adminCodeBlock" style={{ background: 'var(--cm-background)', overflowX: 'auto' }}>{json}</pre>
     </div>
   )
 }
@@ -80,22 +80,24 @@ export function AdminAuditPage() {
   }, [logs, resourceFilter])
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px', width: '100%', color: 'var(--cm-foreground)' }}>
-      {/* Cabeçalho */}
-      <div>
-        <h3 className="text-sm font-semibold text-[var(--cm-foreground)]">{t('admin.audit.title')}</h3>
-        <p className="text-xs text-[var(--cm-muted-foreground)] mt-1">
-          {t('admin.audit.subtitle')}
-        </p>
+    <div className="adminTabBody">
+      <div className="adminTabHeader">
+        <div className="adminTabHeaderText">
+          <div className="adminTabTitleRow">
+            <p className="adminTabSubtitle">{t('admin.audit.subtitle')}</p>
+            <span className="adminBadge adminBadgePrimary">
+              {t('admin.audit.pageTotal')}: {kpis.total}
+            </span>
+          </div>
+        </div>
       </div>
 
       {error && (
-        <div className="p-3 bg-red-950/60 border border-red-800 text-red-200 rounded-lg text-xs">
-          {error}
+        <div className="adminNotice adminNoticeError">
+          <span>{error}</span>
         </div>
       )}
 
-      {/* Grid de KPIs no padrão Overview */}
       <div className="adminGrid">
         <div className="adminCard">
           <div className="adminCardLabel">{t('admin.audit.pageTotal')}</div>
@@ -104,42 +106,43 @@ export function AdminAuditPage() {
         </div>
         <div className="adminCard">
           <div className="adminCardLabel">{t('admin.audit.creations')}</div>
-          <div className="adminCardValue text-emerald-400">{kpis.create}</div>
+          <div className="adminCardValue" style={{ color: 'var(--cm-success)' }}>{kpis.create}</div>
           <div className="adminCardSub">{t('admin.audit.creationsHint')}</div>
         </div>
         <div className="adminCard">
           <div className="adminCardLabel">{t('admin.audit.updates')}</div>
-          <div className="adminCardValue text-blue-400">{kpis.update}</div>
+          <div className="adminCardValue" style={{ color: 'var(--cm-primary)' }}>{kpis.update}</div>
           <div className="adminCardSub">{t('admin.audit.updatesHint')}</div>
         </div>
         <div className="adminCard">
           <div className="adminCardLabel">{t('admin.audit.deletions')}</div>
-          <div className="adminCardValue text-rose-400">{kpis.del}</div>
+          <div className="adminCardValue" style={{ color: 'var(--cm-destructive)' }}>{kpis.del}</div>
           <div className="adminCardSub">{t('admin.audit.deletionsHint')}</div>
         </div>
         <div className="adminCard">
           <div className="adminCardLabel">{t('admin.audit.security')}</div>
-          <div className="adminCardValue text-amber-400">{kpis.auth}</div>
+          <div className="adminCardValue" style={{ color: 'var(--cm-foreground)' }}>{kpis.auth}</div>
           <div className="adminCardSub">{t('admin.audit.securityHint')}</div>
         </div>
       </div>
 
-      {/* Barra de Filtros */}
-      <div className="flex flex-wrap items-center gap-2">
+      <div className="adminToolbar">
         <input
           type="text"
           value={resourceFilter}
           onChange={e => setResourceFilter(e.target.value)}
           placeholder={t('admin.audit.searchPlaceholder')}
-          className="adminInput h-8 px-3 text-xs bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] placeholder-[var(--cm-muted-foreground)] focus:outline-none focus:border-[var(--cm-primary)] min-w-[220px]"
+          className="adminInput"
+          style={{ width: '220px', marginBottom: 0 }}
         />
         <select
           value={actionFilter}
-          onChange={e => {
+          onChange={(e) => {
             setActionFilter(e.target.value)
             setPage(0)
           }}
-          className="adminInput h-8 px-3 text-xs bg-[var(--cm-background)] border border-[var(--cm-border)] rounded-md text-[var(--cm-foreground)] focus:outline-none focus:border-[var(--cm-primary)]"
+          className="adminInput"
+          style={{ width: '160px', marginBottom: 0 }}
         >
           <option value="">{t('admin.audit.allActions')}</option>
           <option value="create">{t('admin.audit.actionCreate')}</option>
@@ -154,82 +157,84 @@ export function AdminAuditPage() {
               setResourceFilter('')
               setPage(0)
             }}
-            className="text-xs text-[var(--cm-muted-foreground)] hover:text-[var(--cm-foreground)] px-2 py-1 underline cursor-pointer"
+            className="adminLinkButton"
           >
             {t('admin.common.clearFilters')}
           </button>
         )}
       </div>
 
-      {/* Tabela envelopada em .adminCard */}
-      <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
-        <table className="adminTable w-full text-left border-collapse text-xs">
-          <thead className="bg-[var(--cm-card)] text-[var(--cm-muted-foreground)] uppercase font-semibold text-[11px] border-b border-[var(--cm-border)]">
-            <tr>
-              <th className="py-2.5 px-3">{t('admin.audit.dateTime')}</th>
-              <th className="py-2.5 px-3">{t('admin.audit.action')}</th>
-              <th className="py-2.5 px-3">{t('admin.audit.resource')}</th>
-              <th className="py-2.5 px-3">{t('admin.audit.resourceId')}</th>
-              <th className="py-2.5 px-3">{t('admin.audit.ip')}</th>
-              <th className="py-2.5 px-3 text-right">{t('admin.audit.details')}</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--cm-border)]">
-            {isLoading ? (
+      <div className="adminCard adminCardTable">
+        <div style={{ overflowX: 'auto' }}>
+          <table className="adminTable">
+            <thead>
               <tr>
-                <td colSpan={6} className="py-8 text-center text-xs text-[var(--cm-muted-foreground)]">
-                  {t('admin.audit.loading')}
-                </td>
+                <th>{t('admin.audit.dateTime')}</th>
+                <th>{t('admin.audit.action')}</th>
+                <th>{t('admin.audit.resource')}</th>
+                <th>{t('admin.audit.resourceId')}</th>
+                <th>{t('admin.audit.ip')}</th>
+                <th style={{ textAlign: 'right' }}>{t('admin.audit.details')}</th>
               </tr>
-            ) : filteredLogs.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="py-8 text-center text-xs text-[var(--cm-muted-foreground)]">
-                  {t('admin.audit.empty')}
-                </td>
-              </tr>
-            ) : (
-              filteredLogs.map(log => (
-                <tr key={log.id} className="hover:bg-[var(--cm-muted)] transition-colors">
-                  <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] font-mono text-[11px]">
-                    {formatDateTime(log.created_at)}
-                  </td>
-                  <td className="py-2.5 px-3">
-                    <span className="px-2 py-0.5 inline-flex text-[10px] font-semibold rounded bg-[var(--cm-secondary)] text-[var(--cm-foreground)] border border-[var(--cm-border)]">
-                      {log.action}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-3 text-[var(--cm-foreground)] font-medium">{log.resource_type || '-'}</td>
-                  <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] font-mono text-[11px]">{log.resource_id ? log.resource_id.slice(0, 8) + '...' : '-'}</td>
-                  <td className="py-2.5 px-3 text-[var(--cm-muted-foreground)] font-mono text-[11px]">{log.ip_address || '-'}</td>
-                  <td className="py-2.5 px-3 text-right">
-                    <button
-                      onClick={() => setSelectedLog(log)}
-                      className="text-[var(--cm-primary)] hover:text-[var(--cm-primary)] text-xs font-medium cursor-pointer"
-                    >
-                      {t('admin.audit.viewPayload')}
-                    </button>
+            </thead>
+            <tbody>
+              {isLoading ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--cm-muted-foreground)' }}>
+                    <span className="adminSpinner" style={{ marginRight: '8px' }} aria-hidden="true" />
+                    {t('admin.audit.loading')}
                   </td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : filteredLogs.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--cm-muted-foreground)' }}>
+                    {t('admin.audit.empty')}
+                  </td>
+                </tr>
+              ) : (
+                filteredLogs.map(log => (
+                  <tr key={log.id}>
+                    <td style={{ color: 'var(--cm-muted-foreground)', fontFamily: 'monospace', fontSize: '11px', whiteSpace: 'nowrap' }}>
+                      {formatDateTime(log.created_at)}
+                    </td>
+                    <td>
+                      <span className="adminBadge">{log.action}</span>
+                    </td>
+                    <td style={{ fontWeight: 500 }}>{log.resource_type || '-'}</td>
+                    <td style={{ color: 'var(--cm-muted-foreground)', fontFamily: 'monospace', fontSize: '11px' }}>{log.resource_id ? log.resource_id.slice(0, 8) + '...' : '-'}</td>
+                    <td style={{ color: 'var(--cm-muted-foreground)', fontFamily: 'monospace', fontSize: '11px' }}>{log.ip_address || '-'}</td>
+                    <td style={{ textAlign: 'right' }}>
+                      <button
+                        onClick={() => setSelectedLog(log)}
+                        className="adminRowButton"
+                        style={{ color: 'var(--cm-primary)' }}
+                      >
+                        {t('admin.audit.viewPayload')}
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
 
-        {/* Paginação */}
-        <div className="flex justify-between items-center p-3 border-t border-[var(--cm-border)] bg-[var(--cm-card)] text-xs text-[var(--cm-muted-foreground)]">
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '12px 16px', borderTop: '1px solid var(--cm-border)', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
           <div>{t('admin.common.page')} {page + 1}</div>
-          <div className="space-x-2">
+          <div style={{ display: 'flex', gap: '8px' }}>
             <button
               onClick={() => setPage(p => Math.max(0, p - 1))}
               disabled={page === 0 || isLoading}
-              className="px-2.5 py-1 border border-[var(--cm-border)] rounded text-xs text-[var(--cm-foreground)] disabled:opacity-40 hover:bg-[var(--cm-secondary)] cursor-pointer"
+              className="adminRowButton"
+              style={{ opacity: (page === 0 || isLoading) ? 0.4 : 1 }}
             >
               {t('admin.common.previous')}
             </button>
             <button
               onClick={() => setPage(p => p + 1)}
               disabled={logs.length < pageSize || isLoading}
-              className="px-2.5 py-1 border border-[var(--cm-border)] rounded text-xs text-[var(--cm-foreground)] disabled:opacity-40 hover:bg-[var(--cm-secondary)] cursor-pointer"
+              className="adminRowButton"
+              style={{ opacity: (logs.length < pageSize || isLoading) ? 0.4 : 1 }}
             >
               {t('admin.common.next')}
             </button>
@@ -237,46 +242,47 @@ export function AdminAuditPage() {
         </div>
       </div>
 
-      {/* Modal de Detalhes do Log */}
       {selectedLog && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="relative p-6 border border-[var(--cm-border)] w-full max-w-2xl shadow-2xl rounded-xl bg-[var(--cm-card)] text-[var(--cm-foreground)] max-h-[85vh] overflow-y-auto space-y-4">
-            <div className="flex justify-between items-center pb-3 border-b border-[var(--cm-border)]">
-              <h3 className="text-sm font-semibold text-white">
-                {t('admin.audit.logLabel')} <span className="text-[var(--cm-primary)] font-mono">{selectedLog.action}</span>
+        <div className="adminOverlay">
+          <div className="adminOverlayMask" onClick={() => setSelectedLog(null)} />
+          <div className="adminDialog" style={{ maxWidth: '640px' }}>
+            <div className="adminDialogHeader">
+              <h3 className="adminDialogTitle">
+                {t('admin.audit.logLabel')} <span style={{ color: 'var(--cm-primary)', fontFamily: 'monospace' }}>{selectedLog.action}</span>
               </h3>
               <button
                 onClick={() => setSelectedLog(null)}
-                className="text-[var(--cm-muted-foreground)] hover:text-white text-lg font-bold cursor-pointer"
+                className="adminDialogClose"
+                aria-label={t('common.close')}
               >
                 {'×'}
               </button>
             </div>
-            <div className="grid grid-cols-2 gap-3 text-xs">
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px', fontSize: '13px' }}>
               <div>
-                <span className="text-[var(--cm-muted-foreground)]">{t('admin.audit.resourceLabel')}</span> {selectedLog.resource_type || '-'}
+                <span style={{ color: 'var(--cm-muted-foreground)' }}>{t('admin.audit.resourceLabel')}</span> {selectedLog.resource_type || '-'}
               </div>
               <div>
-                <span className="text-[var(--cm-muted-foreground)]">{t('admin.audit.resourceIdLabel')}</span>{' '}
-                <span className="font-mono text-[11px]">{selectedLog.resource_id || '-'}</span>
+                <span style={{ color: 'var(--cm-muted-foreground)' }}>{t('admin.audit.resourceIdLabel')}</span>{' '}
+                <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{selectedLog.resource_id || '-'}</span>
               </div>
               <div>
-                <span className="text-[var(--cm-muted-foreground)]">{t('admin.audit.userLabel')}</span>{' '}
-                <span className="font-mono text-[11px]">{selectedLog.user_id || t('admin.audit.anonymous')}</span>
+                <span style={{ color: 'var(--cm-muted-foreground)' }}>{t('admin.audit.userLabel')}</span>{' '}
+                <span style={{ fontFamily: 'monospace', fontSize: '11px' }}>{selectedLog.user_id || t('admin.audit.anonymous')}</span>
               </div>
               <div>
-                <span className="text-[var(--cm-muted-foreground)]">{t('admin.audit.dateTimeLabel')}</span>{' '}
+                <span style={{ color: 'var(--cm-muted-foreground)' }}>{t('admin.audit.dateTimeLabel')}</span>{' '}
                 {formatDateTime(selectedLog.created_at)}
               </div>
             </div>
-            <div className="space-y-3 pt-2">
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingTop: '8px' }}>
               <AuditValueBlock label={t('admin.audit.oldValue')} value={selectedLog.old_value} />
               <AuditValueBlock label={t('admin.audit.newValue')} value={selectedLog.new_value} />
             </div>
-            <div className="flex justify-end pt-3 border-t border-[var(--cm-border)]">
+            <div className="adminDialogFooter">
               <button
                 onClick={() => setSelectedLog(null)}
-                className="h-8 px-4 bg-[var(--cm-secondary)] border border-[var(--cm-border)] rounded text-xs text-[var(--cm-foreground)] hover:text-white cursor-pointer"
+                className="adminButton adminButtonSecondary"
               >
                 {t('admin.common.cancelAction')}
               </button>

@@ -165,43 +165,43 @@ export function AdminBillingTab() {
     switch (status) {
       case 'active':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 10px', borderRadius: '9999px', fontSize: '11px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-success) 15%, transparent)', color: 'var(--cm-success)', border: '1px solid color-mix(in srgb, var(--cm-success) 30%, transparent)' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--cm-success)', display: 'inline-block' }} />
+          <span className="adminBadge adminBadgeSuccess">
+            <span aria-hidden="true" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
             {t('admin.billing.statusActive')}
           </span>
         )
       case 'trial':
       case 'trialing':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 10px', borderRadius: '9999px', fontSize: '11px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-primary) 15%, transparent)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--cm-primary)', display: 'inline-block' }} />
+          <span className="adminBadge adminBadgePrimary">
+            <span aria-hidden="true" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
             {t('admin.billing.statusTrialing')}
           </span>
         )
       case 'trial_expired':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 10px', borderRadius: '9999px', fontSize: '11px', fontWeight: 500, background: 'var(--cm-secondary)', color: 'var(--cm-muted-foreground)', border: '1px solid var(--cm-border)' }}>
+          <span className="adminBadge">
             {t('admin.billing.statusTrialExpired')}
           </span>
         )
       case 'past_due':
       case 'unpaid':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 10px', borderRadius: '9999px', fontSize: '11px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-destructive) 15%, transparent)', color: 'var(--cm-destructive)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)' }}>
-            <span style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'var(--cm-destructive)', display: 'inline-block' }} />
+          <span className="adminBadge adminBadgeDanger">
+            <span aria-hidden="true" style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor', display: 'inline-block' }} />
             {t('admin.billing.statusPastDue')}
           </span>
         )
       case 'canceled':
       case 'deleted':
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 10px', borderRadius: '9999px', fontSize: '11px', fontWeight: 500, background: 'var(--cm-secondary)', color: 'var(--cm-muted-foreground)', border: '1px solid var(--cm-border)' }}>
+          <span className="adminBadge">
             {t('admin.billing.statusCanceled')}
           </span>
         )
       default:
         return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '2px 10px', borderRadius: '9999px', fontSize: '11px', fontWeight: 500, background: 'var(--cm-secondary)', color: 'var(--cm-muted-foreground)', border: '1px solid var(--cm-border)' }}>
+          <span className="adminBadge">
             {status}
           </span>
         )
@@ -213,25 +213,25 @@ export function AdminBillingTab() {
     switch (slug?.toLowerCase()) {
       case 'legend':
         return (
-          <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: 'color-mix(in srgb, var(--cm-primary) 15%, transparent)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)' }}>
+          <span className="adminBadge adminBadgePrimary">
             {name || t('admin.billing.planLegend')}
           </span>
         )
       case 'pro':
         return (
-          <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, background: 'color-mix(in srgb, var(--cm-success) 15%, transparent)', color: 'var(--cm-success)', border: '1px solid color-mix(in srgb, var(--cm-success) 30%, transparent)' }}>
+          <span className="adminBadge adminBadgeSuccess">
             {name || t('admin.billing.planPro')}
           </span>
         )
       case 'starter':
         return (
-          <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 500, background: 'var(--cm-background)', color: 'var(--cm-muted-foreground)', border: '1px solid var(--cm-border)' }}>
+          <span className="adminBadge">
             {name || t('admin.billing.planStarter')}
           </span>
         )
       default:
         return (
-          <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 500, background: 'var(--cm-card)', color: 'var(--cm-muted-foreground)', border: '1px solid var(--cm-border)' }}>
+          <span className="adminBadge">
             {name || t('admin.billing.planFree')}
           </span>
         )
@@ -243,31 +243,29 @@ export function AdminBillingTab() {
   const hasActiveFilters = Boolean(debouncedSearch || selectedPlan || selectedStatus || selectedInterval)
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', color: 'var(--cm-foreground)' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--cm-border)' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: 700, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.billing.title')}</h2>
-            <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '9999px', fontSize: '12px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-primary) 20%, transparent)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)' }}>
+    <div className="adminTabBody">
+      <div className="adminTabHeader">
+        <div className="adminTabHeaderText">
+          <div className="adminTabTitleRow">
+            <p className="adminTabSubtitle">{t('admin.billing.subtitle')}</p>
+            <span className="adminBadge adminBadgePrimary">
               {t('admin.billing.activeSubscriptionsBadge', { count: kpis?.active_subscriptions ?? 0 })}
             </span>
             {kpis && (
-              <span style={{ display: 'inline-block', padding: '2px 10px', borderRadius: '9999px', fontSize: '12px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-success) 15%, transparent)', color: 'var(--cm-success)', border: '1px solid color-mix(in srgb, var(--cm-success) 30%, transparent)' }}>
+              <span className="adminBadge adminBadgeSuccess">
                 {t('admin.billing.mrrBadge', { value: formatCurrencyLocal(kpis.mrr_estimated_cents) })}
               </span>
             )}
           </div>
-          <p style={{ fontSize: '13px', color: 'var(--cm-muted-foreground)', margin: '4px 0 0 0' }}>
-            {t('admin.billing.subtitle')}
-          </p>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="adminToolbar">
           <a
             href={STRIPE_DASHBOARD_BASE}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', height: '32px', padding: '0 16px', background: 'color-mix(in srgb, var(--cm-primary) 12%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-primary) 40%, transparent)', borderRadius: '8px', fontSize: '12px', fontWeight: 600, color: 'var(--cm-primary)', cursor: 'pointer', textDecoration: 'none' }}
+            className="adminButton adminButtonSecondary"
+            style={{ color: 'var(--cm-primary)' }}
           >
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
@@ -279,7 +277,8 @@ export function AdminBillingTab() {
             onClick={() => loadBillingData(true)}
             disabled={isLoading || isRefreshing}
             title={t('admin.billing.refreshAria')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', height: '32px', padding: '0 16px', background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', fontSize: '12px', fontWeight: 500, color: 'var(--cm-foreground)', cursor: 'pointer', opacity: isLoading || isRefreshing ? 0.5 : 1 }}
+            className="adminButton adminButtonSecondary"
+            style={{ opacity: isLoading || isRefreshing ? 0.5 : 1 }}
           >
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--cm-muted-foreground)', animation: isRefreshing ? 'cm-auth-spin 0.8s linear infinite' : undefined }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -379,7 +378,7 @@ export function AdminBillingTab() {
               setSelectedInterval('')
               setCurrentPage(1)
             }}
-            style={{ fontSize: '12px', color: 'var(--cm-primary)', cursor: 'pointer', background: 'none', border: 'none', textDecoration: 'underline' }}
+            className="adminLinkButton"
           >
             {t('admin.common.clearAllFilters')}
           </button>
@@ -387,21 +386,21 @@ export function AdminBillingTab() {
       </div>
 
       {error && (
-        <div style={{ padding: '16px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', color: 'var(--cm-destructive)', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="adminNotice adminNoticeError">
           <div>
             <p style={{ fontWeight: 600, margin: 0 }}>{t('admin.billing.loadError')}</p>
             <p style={{ margin: '2px 0 0 0' }}>{error}</p>
           </div>
           <button
             onClick={() => loadBillingData()}
-            style={{ padding: '4px 12px', borderRadius: '6px', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 15%, transparent)', color: 'var(--cm-destructive)', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+            className="adminRowButton adminRowButtonDanger"
           >
             {t('admin.common.retry')}
           </button>
         </div>
       )}
 
-      <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="adminCard adminCardTable">
         <div style={{ overflowX: 'auto' }}>
           <table className="adminTable">
             <thead>
@@ -420,7 +419,7 @@ export function AdminBillingTab() {
                 <tr>
                   <td colSpan={7} style={{ padding: '48px', textAlign: 'center', color: 'var(--cm-muted-foreground)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-                      <div style={{ width: '24px', height: '24px', border: '2px solid var(--cm-primary)', borderTopColor: 'transparent', borderRadius: '50%', animation: 'cm-auth-spin 0.8s linear infinite' }} />
+                      <span className="adminSpinner" style={{ width: '24px', height: '24px' }} aria-hidden="true" />
                       <span style={{ fontSize: '12px' }}>{t('admin.billing.loading')}</span>
                     </div>
                   </td>
@@ -523,7 +522,7 @@ export function AdminBillingTab() {
                       <td style={{ textAlign: 'right' }}>
                         <button
                           onClick={() => setInspectingTenant(row)}
-                          style={{ padding: '4px 10px', borderRadius: '6px', background: 'var(--cm-card)', border: '1px solid var(--cm-border)', color: 'var(--cm-foreground)', cursor: 'pointer', fontSize: '12px', fontWeight: 500 }}
+                          className="adminRowButton"
                           title={t('admin.billing.inspectAria')}
                         >
                           {t('admin.common.details')}
@@ -567,14 +566,16 @@ export function AdminBillingTab() {
               <button
                 onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                 disabled={currentPage <= 1 || isLoading}
-                style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', color: 'var(--cm-foreground)', cursor: 'pointer', opacity: (currentPage <= 1 || isLoading) ? 0.4 : 1, fontSize: '12px' }}
+                className="adminRowButton"
+                style={{ opacity: (currentPage <= 1 || isLoading) ? 0.4 : 1 }}
               >
                 {t('admin.common.previous')}
               </button>
               <button
                 onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                 disabled={currentPage >= totalPages || isLoading}
-                style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', color: 'var(--cm-foreground)', cursor: 'pointer', opacity: (currentPage >= totalPages || isLoading) ? 0.4 : 1, fontSize: '12px' }}
+                className="adminRowButton"
+                style={{ opacity: (currentPage >= totalPages || isLoading) ? 0.4 : 1 }}
               >
                 {t('admin.common.next')}
               </button>
@@ -584,9 +585,9 @@ export function AdminBillingTab() {
       </div>
 
       {inspectingTenant && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="adminOverlay">
           <div
-            style={{ position: 'absolute', inset: 0, background: 'var(--cm-overlay)', backdropFilter: 'blur(4px)' }}
+            className="adminOverlayMask"
             onClick={() => setInspectingTenant(null)}
           />
           <div
@@ -596,17 +597,17 @@ export function AdminBillingTab() {
             onKeyDown={(e) => {
               if (e.key === 'Escape') setInspectingTenant(null)
             }}
-            style={{ position: 'relative', width: '100%', maxWidth: '640px', margin: '24px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--cm-shadow)', maxHeight: '80vh', overflowY: 'auto', outline: 'none', color: 'var(--cm-foreground)' }}
+            className="adminDialog"
+            style={{ maxWidth: '640px' }}
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--cm-border)', marginBottom: '16px' }}>
+            <div className="adminDialogHeader">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--cm-primary)', display: 'inline-block' }} />
-                <h3 style={{ fontSize: '15px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.billing.subscriptionAudit')}</h3>
+                <h3 className="adminDialogTitle">{t('admin.billing.subscriptionAudit')}</h3>
                 {getStatusBadge(inspectingTenant.subscription_status)}
               </div>
               <button
                 onClick={() => setInspectingTenant(null)}
-                style={{ cursor: 'pointer', background: 'none', border: 'none', color: 'var(--cm-muted-foreground)', fontSize: '16px' }}
+                className="adminDialogClose"
                 title={t('admin.common.close')}
               >
                 ✕
@@ -620,7 +621,7 @@ export function AdminBillingTab() {
                 <div style={{ fontFamily: 'monospace', fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '2px' }}>{inspectingTenant.tenant_slug}</div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', padding: '16px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-background)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px', padding: '16px', borderRadius: 'var(--cm-radius-md)', border: '1px solid var(--cm-border)', background: 'var(--cm-background)' }}>
                 <div>
                   <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', fontSize: '12px' }}>{t('admin.billing.contractedPlan')}</span>
                   <div style={{ marginTop: '4px' }}>{getPlanBadge(inspectingTenant.plan_slug, inspectingTenant.plan_name)}</div>
@@ -653,7 +654,7 @@ export function AdminBillingTab() {
                 </div>
               </div>
 
-              <div style={{ padding: '16px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-background)' }}>
+              <div style={{ padding: '16px', borderRadius: 'var(--cm-radius-md)', border: '1px solid var(--cm-border)', background: 'var(--cm-background)' }}>
                 <div style={{ fontSize: '11px', fontWeight: 600, color: 'var(--cm-muted-foreground)', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '12px' }}>{t('admin.billing.planLimits')}</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '12px', fontSize: '12px' }}>
                   <div>
@@ -680,7 +681,7 @@ export function AdminBillingTab() {
                 </div>
               </div>
 
-              <div style={{ padding: '16px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-primary) 40%, transparent)', background: 'var(--cm-card)' }}>
+              <div style={{ padding: '16px', borderRadius: 'var(--cm-radius-md)', border: '1px solid color-mix(in srgb, var(--cm-primary) 40%, transparent)', background: 'var(--cm-card)' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '11px', fontWeight: 600, color: 'var(--cm-primary)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--cm-primary)' }}>
@@ -693,7 +694,8 @@ export function AdminBillingTab() {
                       href={`${STRIPE_DASHBOARD_BASE}/customers/${inspectingTenant.stripe_customer_id}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '4px 10px', borderRadius: '6px', background: 'color-mix(in srgb, var(--cm-primary) 20%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-primary) 40%, transparent)', color: 'var(--cm-primary)', fontSize: '12px', fontWeight: 500, textDecoration: 'none' }}
+                      className="adminRowButton"
+                      style={{ color: 'var(--cm-primary)' }}
                     >
                       <span>{t('admin.billing.openInStripe')}</span>
                       <svg width="12" height="12" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -704,7 +706,7 @@ export function AdminBillingTab() {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px', fontSize: '12px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', borderRadius: '6px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', borderRadius: 'var(--cm-radius-sm)', background: 'var(--cm-background)', border: '1px solid var(--cm-border)' }}>
                     <div style={{ overflow: 'hidden', marginRight: '8px' }}>
                       <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', fontSize: '10px' }}>{t('admin.billing.customerId')}</span>
                       <span style={{ fontFamily: 'monospace', color: 'var(--cm-foreground)' }}>{inspectingTenant.stripe_customer_id || t('admin.common.notAssigned')}</span>
@@ -712,14 +714,15 @@ export function AdminBillingTab() {
                     {inspectingTenant.stripe_customer_id && (
                       <button
                         onClick={() => handleCopy(inspectingTenant.stripe_customer_id || '', 'drawer_cust')}
-                        style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', cursor: 'pointer', background: 'none', border: '1px solid var(--cm-border)', borderRadius: '4px', padding: '2px 8px', whiteSpace: 'nowrap' }}
+                        className="adminRowButton"
+                        style={{ color: 'var(--cm-muted-foreground)' }}
                       >
                         {copiedId === 'drawer_cust' ? `✓ ${t('admin.common.copied')}` : t('admin.common.copy')}
                       </button>
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', borderRadius: '6px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px', borderRadius: 'var(--cm-radius-sm)', background: 'var(--cm-background)', border: '1px solid var(--cm-border)' }}>
                     <div style={{ overflow: 'hidden', marginRight: '8px' }}>
                       <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', fontSize: '10px' }}>{t('admin.billing.subscriptionId')}</span>
                       <span style={{ fontFamily: 'monospace', color: 'var(--cm-foreground)' }}>{inspectingTenant.stripe_subscription_id || t('admin.common.notAssigned')}</span>
@@ -727,7 +730,8 @@ export function AdminBillingTab() {
                     {inspectingTenant.stripe_subscription_id && (
                       <button
                         onClick={() => handleCopy(inspectingTenant.stripe_subscription_id || '', 'drawer_sub')}
-                        style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', cursor: 'pointer', background: 'none', border: '1px solid var(--cm-border)', borderRadius: '4px', padding: '2px 8px', whiteSpace: 'nowrap' }}
+                        className="adminRowButton"
+                        style={{ color: 'var(--cm-muted-foreground)' }}
                       >
                         {copiedId === 'drawer_sub' ? `✓ ${t('admin.common.copied')}` : t('admin.common.copy')}
                       </button>
@@ -736,20 +740,20 @@ export function AdminBillingTab() {
                 </div>
 
                 {inspectingTenant.cancel_at_period_end && (
-                  <div style={{ padding: '10px 12px', borderRadius: '8px', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', color: 'var(--cm-destructive)', fontSize: '12px', marginTop: '12px' }}>
+                  <div style={{ padding: '10px 12px', borderRadius: 'var(--cm-radius-md)', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', color: 'var(--cm-destructive)', fontSize: '12px', marginTop: '12px' }}>
                     <strong>{t('admin.billing.cancellationScheduled')}</strong> {t('admin.billing.cancellationNote')}
                   </div>
                 )}
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px', paddingTop: '16px', marginTop: '16px', borderTop: '1px solid var(--cm-border)' }}>
+            <div className="adminDialogFooter" style={{ justifyContent: 'space-between' }}>
               <span style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
                 {t('admin.billing.readOnly')}
               </span>
               <button
                 onClick={() => setInspectingTenant(null)}
-                style={{ height: '32px', padding: '0 16px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: 'pointer', fontSize: '13px' }}
+                className="adminButton adminButtonSecondary"
               >
                 {t('admin.common.cancelAction')}
               </button>

@@ -85,20 +85,24 @@ export function AdminOverviewTab() {
       setTotalSessions(sessionCount || 0)
 
       // 4. Distribuição de modelos via RPC agregada (Problema 3)
-      const { data: distData, error: distError } = await (supabase.rpc as any)('get_model_distribution')
+      const { data: distData, error: distError } = await (supabase.rpc as unknown as (name: string) => Promise<{ data: unknown[] | null; error: unknown }>)('get_model_distribution')
       if (!distError && distData) {
         setModelStats(
-          distData.map((d: any) => ({
-            model: d.model,
-            session_count: Number(d.session_count) || 0,
-            tokens_sum: Number(d.tokens_sum) || 0,
-          })),
+          distData.map((d: unknown) => {
+            const rec = d as { model?: string; session_count?: number; tokens_sum?: number }
+            return {
+              model: rec.model ?? '',
+              session_count: Number(rec.session_count) || 0,
+              tokens_sum: Number(rec.tokens_sum) || 0,
+            }
+          }),
         )
       } else {
         setModelStats([])
       }
-    } catch (err: any) {
-      setError(err?.message || t('admin.overview.loadFailure'))
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setError(msg || t('admin.overview.loadFailure'))
     } finally {
       setIsLoading(false)
     }
@@ -112,13 +116,14 @@ export function AdminOverviewTab() {
     try {
       setIsRefreshing(true)
       setError(null)
-      const { error: rpcErr } = await (supabase.rpc as any)('refresh_metrics_daily')
+      const { error: rpcErr } = await (supabase.rpc as unknown as (name: string) => Promise<{ error: unknown }>)('refresh_metrics_daily')
       if (rpcErr) {
         throw rpcErr
       }
       await loadOverviewData()
-    } catch (err: any) {
-      setError(err?.message || t('admin.overview.recalculateFailure'))
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      setError(msg || t('admin.overview.recalculateFailure'))
     } finally {
       setIsRefreshing(false)
     }
@@ -140,53 +145,42 @@ export function AdminOverviewTab() {
   if (isLoading) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px', color: 'var(--cm-muted-foreground)' }}>
-        <span className="cm-auth-spinner" style={{ marginBottom: '16px' }} aria-hidden="true" />
+        <span className="adminSpinner" style={{ marginBottom: '16px' }} aria-hidden="true" />
         <p style={{ fontSize: '13px', margin: 0 }}>{t('admin.overview.loading')}</p>
       </div>
     )
   }
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', color: 'var(--cm-foreground)' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--cm-border)' }}>
-        <div>
-          <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: '0 0 4px 0' }}>{t('admin.overview.title')}</h3>
-          <p style={{ fontSize: '13px', color: 'var(--cm-muted-foreground)', margin: 0 }}>
-            {t('admin.overview.subtitle')}
-          </p>
+    <div className="adminTabBody">
+      <div className="adminTabHeader">
+        <div className="adminTabHeaderText">
+          <div className="adminTabTitleRow">
+            <p className="adminTabSubtitle">{t('admin.overview.subtitle')}</p>
+            <span className={`adminBadge ${health.dbStatus === 'operational' ? 'adminBadgeSuccess' : health.dbStatus === 'degraded' ? 'adminBadgePrimary' : 'adminBadgeDanger'}`}>
+              <span
+                aria-hidden="true"
+                style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'currentColor', display: 'inline-block' }}
+              />
+              {health.dbStatus === 'operational'
+                ? t('admin.overview.operationalLatency', { ms: health.dbLatencyMs })
+                : health.dbStatus === 'degraded'
+                  ? t('admin.overview.degradedLatency', { ms: health.dbLatencyMs })
+                  : t('admin.overview.dbUnavailable')}
+            </span>
+          </div>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '6px 12px', borderRadius: '8px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)' }}>
-            <span style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>{t('admin.overview.database')}</span>
-            {health.dbStatus === 'operational' && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 500, color: 'var(--cm-success)' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--cm-success)', display: 'inline-block' }} />
-                {t('admin.overview.operationalLatency', { ms: health.dbLatencyMs })}
-              </span>
-            )}
-            {health.dbStatus === 'degraded' && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 500, color: 'var(--cm-primary)' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--cm-primary)', display: 'inline-block' }} />
-                {t('admin.overview.degradedLatency', { ms: health.dbLatencyMs })}
-              </span>
-            )}
-            {health.dbStatus === 'down' && (
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: 500, color: 'var(--cm-destructive)' }}>
-                <span style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--cm-destructive)', display: 'inline-block' }} />
-                {t('admin.overview.dbUnavailable')}
-              </span>
-            )}
-          </div>
-
+        <div className="adminToolbar">
           <button
             onClick={handleRefresh}
             disabled={isRefreshing}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', fontSize: '12px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-primary) 10%, transparent)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)', cursor: 'pointer', opacity: isRefreshing ? 0.5 : 1 }}
+            className="adminButton adminButtonSecondary"
+            style={{ opacity: isRefreshing ? 0.5 : 1 }}
           >
             {isRefreshing ? (
               <>
-                <span style={{ width: '14px', height: '14px', border: '2px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', display: 'inline-block', animation: 'cm-auth-spin 0.7s linear infinite' }} />
+                <span className="adminSpinner" aria-hidden="true" />
                 {t('admin.overview.updating')}
               </>
             ) : (
@@ -202,74 +196,77 @@ export function AdminOverviewTab() {
       </div>
 
       {error && (
-        <div style={{ padding: '12px', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', borderRadius: '8px', color: 'var(--cm-destructive)', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="adminNotice adminNoticeError">
           <span>{error}</span>
-          <button onClick={() => setError(null)} style={{ color: 'var(--cm-destructive)', cursor: 'pointer', background: 'none', border: 'none', fontSize: '14px' }}>✕</button>
+          <button onClick={() => setError(null)} className="adminNoticeDismiss" aria-label={t('common.close')}>✕</button>
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
-        <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>{t('admin.overview.mrr')}</div>
-          <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-primary)' }}>
+      <div className="adminGrid">
+        <div className="adminCard">
+          <div className="adminCardLabel">{t('admin.overview.mrr')}</div>
+          <div className="adminCardValue" style={{ color: 'var(--cm-primary)' }}>
             {formatCurrency(latestMetrics?.estimated_mrr || 0)}
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
+          <div className="adminCardSub">
             {t('admin.overview.arr', { value: formatCurrency((latestMetrics?.estimated_mrr || 0) * 12) })}
           </div>
         </div>
 
-        <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>{t('admin.overview.activeUsers')}</div>
-          <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-foreground)' }}>
+        <div className="adminCard">
+          <div className="adminCardLabel">{t('admin.overview.activeUsers')}</div>
+          <div className="adminCardValue">
             {formatNumber(latestMetrics?.active_users || 0)}
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
+          <div className="adminCardSub">
             {t('admin.overview.tenantsLine', { value: formatNumber(latestMetrics?.active_tenants || 0) })}
           </div>
         </div>
 
-        <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>{t('admin.overview.tokensToday')}</div>
-          <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-foreground)' }}>
+        <div className="adminCard">
+          <div className="adminCardLabel">{t('admin.overview.tokensToday')}</div>
+          <div className="adminCardValue">
             {formatTokens(latestMetrics?.tokens_consumed || 0)}
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
+          <div className="adminCardSub">
             {t('admin.overview.dailyUsage')}
           </div>
         </div>
 
-        <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>{t('admin.overview.totalSessions')}</div>
-          <div style={{ fontSize: '20px', fontWeight: 600, color: 'var(--cm-foreground)' }}>
+        <div className="adminCard">
+          <div className="adminCardLabel">{t('admin.overview.totalSessions')}</div>
+          <div className="adminCardValue">
             {formatNumber(totalSessions)}
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
+          <div className="adminCardSub">
             {t('admin.overview.indexedInDb')}
           </div>
         </div>
 
-        <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px' }}>
-          <div style={{ fontSize: '12px', textTransform: 'uppercase', color: 'var(--cm-muted-foreground)', marginBottom: '6px' }}>{t('admin.overview.systemHealth')}</div>
-          <div style={{ fontSize: '20px', fontWeight: 600, color: health.dbStatus === 'operational' ? 'var(--cm-success)' : health.dbStatus === 'degraded' ? 'var(--cm-primary)' : 'var(--cm-destructive)' }}>
+        <div className="adminCard">
+          <div className="adminCardLabel">{t('admin.overview.systemHealth')}</div>
+          <div
+            className="adminCardValue"
+            style={{ color: health.dbStatus === 'operational' ? 'var(--cm-success)' : health.dbStatus === 'degraded' ? 'var(--cm-primary)' : 'var(--cm-destructive)' }}
+          >
             {health.dbStatus === 'operational' ? t('admin.overview.dbOperational') : health.dbStatus === 'degraded' ? t('admin.overview.dbDegraded') : t('admin.overview.dbUnavailable')}
           </div>
-          <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', marginTop: '4px' }}>
+          <div className="adminCardSub">
             {t('admin.overview.latency', { ms: health.dbLatencyMs })}
           </div>
         </div>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '16px' }}>
-        <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--cm-card)', border: '1px solid var(--cm-border)', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
+        <div className="adminCard">
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-              <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.overview.topModels')}</h4>
-              <span style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)' }}>{t('admin.overview.topModelsHint')}</span>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
+              <h4 className="adminSectionTitle">{t('admin.overview.topModels')}</h4>
+              <span className="adminSectionHint">{t('admin.overview.topModelsHint')}</span>
             </div>
 
             {modelStats.length === 0 ? (
-              <div style={{ padding: '32px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
+              <div style={{ padding: '32px', textAlign: 'center', fontSize: '13px', color: 'var(--cm-muted-foreground)' }}>
                 {t('admin.overview.noModelSessions')}
               </div>
             ) : (
@@ -279,7 +276,7 @@ export function AdminOverviewTab() {
                   const pct = Math.round((item.session_count / maxCount) * 100)
                   return (
                     <div key={idx} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', fontSize: '12px' }}>
                         <span style={{ fontFamily: 'monospace', color: 'var(--cm-foreground)' }}>{item.model}</span>
                         <span style={{ color: 'var(--cm-muted-foreground)' }}>
                           {t('admin.overview.modelUsage', { sessions: formatNumber(item.session_count), tokens: formatTokens(item.tokens_sum) })}
@@ -298,14 +295,14 @@ export function AdminOverviewTab() {
           </div>
         </div>
 
-        <div style={{ padding: '16px', borderRadius: '12px', background: 'var(--cm-card)', border: '1px solid var(--cm-border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '12px' }}>
-            <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.overview.history')}</h4>
-            <span style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)' }}>{t('admin.overview.historyHint')}</span>
+        <div className="adminCard">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', marginBottom: '12px' }}>
+            <h4 className="adminSectionTitle">{t('admin.overview.history')}</h4>
+            <span className="adminSectionHint">{t('admin.overview.historyHint')}</span>
           </div>
 
           {history.length === 0 ? (
-            <div style={{ padding: '32px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
+            <div style={{ padding: '32px', textAlign: 'center', fontSize: '13px', color: 'var(--cm-muted-foreground)' }}>
               {t('admin.overview.noSnapshot')}
             </div>
           ) : (

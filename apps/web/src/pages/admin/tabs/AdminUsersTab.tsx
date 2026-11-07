@@ -350,20 +350,17 @@ export function AdminUsersTab() {
   const isLastOwner = activeActionUser?.role === 'owner' && (tenantOwnerCount !== null && tenantOwnerCount <= 1)
 
   return (
-    <div style={{ padding: '24px', display: 'flex', flexDirection: 'column', gap: '24px', color: 'var(--cm-foreground)' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: '16px', paddingBottom: '16px', borderBottom: '1px solid var(--cm-border)' }}>
-        <div>
-          <h2 style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '20px', fontWeight: 700, color: 'var(--cm-foreground)', margin: 0 }}>
-            <span>{t('admin.users.title')}</span>
-            <span style={{ display: 'inline-block', padding: '2px 8px', borderRadius: '9999px', fontSize: '12px', fontWeight: 500, background: 'color-mix(in srgb, var(--cm-primary) 20%, transparent)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)' }}>
+    <div className="adminTabBody">
+      <div className="adminTabHeader">
+        <div className="adminTabHeaderText">
+          <div className="adminTabTitleRow">
+            <p className="adminTabSubtitle">{t('admin.users.subtitle')}</p>
+            <span className="adminBadge adminBadgePrimary">
               {t('admin.users.totalBadge', { count: totalCount })}
             </span>
-          </h2>
-          <p style={{ fontSize: '13px', color: 'var(--cm-muted-foreground)', margin: '4px 0 0 0' }}>
-            {t('admin.users.subtitle')}
-          </p>
+          </div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div className="adminToolbar">
           <button
             onClick={() => {
               loadUsers()
@@ -371,10 +368,11 @@ export function AdminUsersTab() {
             }}
             disabled={isLoading}
             title={t('admin.users.refreshAria')}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', fontSize: '12px', fontWeight: 500, color: 'var(--cm-foreground)', cursor: 'pointer', opacity: isLoading ? 0.5 : 1 }}
+            className="adminButton adminButtonSecondary"
+            style={{ opacity: isLoading ? 0.5 : 1 }}
           >
             {isLoading ? (
-              <span style={{ width: '14px', height: '14px', border: '2px solid var(--cm-border)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', display: 'inline-block', animation: 'cm-auth-spin 0.7s linear infinite' }} />
+              <span className="adminSpinner" aria-hidden="true" />
             ) : (
               <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--cm-muted-foreground)' }}>
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -468,7 +466,7 @@ export function AdminUsersTab() {
         {hasActiveFilters && (
           <button
             onClick={handleClearFilters}
-            style={{ fontSize: '12px', color: 'var(--cm-primary)', cursor: 'pointer', background: 'none', border: 'none', textDecoration: 'underline' }}
+            className="adminLinkButton"
           >
             {t('admin.common.clearAllFilters')}
           </button>
@@ -476,7 +474,7 @@ export function AdminUsersTab() {
       </div>
 
       {error && (
-        <div style={{ padding: '16px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', color: 'var(--cm-destructive)', fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div className="adminNotice adminNoticeError">
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ flexShrink: 0 }}>
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -485,14 +483,14 @@ export function AdminUsersTab() {
           </div>
           <button
             onClick={() => loadUsers()}
-            style={{ padding: '4px 10px', borderRadius: '6px', background: 'color-mix(in srgb, var(--cm-destructive) 20%, transparent)', color: 'var(--cm-destructive)', border: 'none', cursor: 'pointer', fontSize: '12px' }}
+            className="adminRowButton adminRowButtonDanger"
           >
             {t('admin.common.retry')}
           </button>
         </div>
       )}
 
-      <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
+      <div className="adminCard adminCardTable">
         <div style={{ overflowX: 'auto' }}>
           <table className="adminTable">
             <thead>
@@ -510,7 +508,7 @@ export function AdminUsersTab() {
                 <tr>
                   <td colSpan={6} style={{ padding: '48px', textAlign: 'center', color: 'var(--cm-muted-foreground)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '12px' }}>
-                      <span className="cm-auth-spinner" aria-hidden="true" />
+                      <span className="adminSpinner" aria-hidden="true" />
                       <span>{t('admin.users.loading')}</span>
                     </div>
                   </td>
@@ -523,7 +521,7 @@ export function AdminUsersTab() {
                         <p style={{ color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.users.emptyFiltered')}</p>
                         <button
                           onClick={handleClearFilters}
-                          style={{ color: 'var(--cm-primary)', cursor: 'pointer', background: 'none', border: 'none', textDecoration: 'underline', fontSize: '12px' }}
+                          className="adminLinkButton"
                         >
                           {t('admin.common.clearFilters')}
                         </button>
@@ -537,9 +535,8 @@ export function AdminUsersTab() {
                 users.map((user) => {
                   const rowKey = user.membership_id ?? `${user.user_id}-${user.tenant_id ?? 'root'}`
                   const isMenuOpen = actionMenuOpenRow === rowKey
-                  const roleStyle = user.role === 'owner' || user.role === 'admin'
-                    ? { display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' as const, background: 'color-mix(in srgb, var(--cm-primary) 15%, transparent)', color: 'var(--cm-primary)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)' }
-                    : { display: 'inline-block', padding: '2px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: 600, textTransform: 'uppercase' as const, background: 'color-mix(in srgb, var(--cm-secondary) 50%, transparent)', color: 'var(--cm-muted-foreground)', border: '1px solid var(--cm-border)' }
+                  const isPrivilegedRole = user.role === 'owner' || user.role === 'admin'
+                  const roleClassName = isPrivilegedRole ? 'adminBadge adminBadgePrimary' : 'adminBadge'
                   const suspended = user.user_status === 'suspended'
 
                   return (
@@ -566,37 +563,17 @@ export function AdminUsersTab() {
 
                       <td>
                         {user.role ? (
-                          <span style={roleStyle}>{user.role}</span>
+                          <span className={roleClassName} style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}>{user.role}</span>
                         ) : (
                           <span style={{ color: 'var(--cm-muted-foreground)' }}>-</span>
                         )}
                       </td>
 
                       <td>
-                        <span
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            padding: '2px 10px',
-                            borderRadius: '9999px',
-                            fontSize: '11px',
-                            fontWeight: 500,
-                            background: suspended
-                              ? 'color-mix(in srgb, var(--cm-destructive) 15%, transparent)'
-                              : 'color-mix(in srgb, var(--cm-success) 15%, transparent)',
-                            color: suspended ? 'var(--cm-destructive)' : 'var(--cm-success)',
-                            border: `1px solid color-mix(in srgb, ${suspended ? 'var(--cm-destructive)' : 'var(--cm-success)'} 30%, transparent)`,
-                          }}
-                        >
+                        <span className={`adminBadge ${suspended ? 'adminBadgeDanger' : 'adminBadgeSuccess'}`}>
                           <span
-                            style={{
-                              width: '6px',
-                              height: '6px',
-                              borderRadius: '50%',
-                              background: suspended ? 'var(--cm-destructive)' : 'var(--cm-success)',
-                              display: 'inline-block',
-                            }}
+                            aria-hidden="true"
+                            style={{ width: '6px', height: '6px', borderRadius: '50%', background: 'currentColor', display: 'inline-block' }}
                           />
                           <span>{suspended ? t('admin.common.suspended') : t('admin.common.active')}</span>
                         </span>
@@ -614,7 +591,7 @@ export function AdminUsersTab() {
                               setActionMenuOpenRow(isMenuOpen ? null : rowKey)
                             }}
                             title={t('admin.users.actionsAria')}
-                            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: '28px', height: '28px', padding: 0, borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', color: 'var(--cm-muted-foreground)', cursor: 'pointer' }}
+                            className="adminIconButton"
                           >
                             <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path
@@ -629,7 +606,7 @@ export function AdminUsersTab() {
                           {isMenuOpen && (
                             <div
                               onClick={e => e.stopPropagation()}
-                              style={{ position: 'absolute', right: 0, top: '100%', marginTop: '4px', width: '176px', background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', boxShadow: 'var(--cm-shadow)', zIndex: 30, padding: '4px 0', textAlign: 'left', fontSize: '12px', color: 'var(--cm-foreground)' }}
+                              className="adminMenu"
                             >
                               <button
                                 onClick={() => {
@@ -637,7 +614,8 @@ export function AdminUsersTab() {
                                   openRoleModal(user)
                                 }}
                                 disabled={!user.membership_id}
-                                style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', color: 'var(--cm-foreground)', opacity: user.membership_id ? 1 : 0.4 }}
+                                className="adminMenuItem"
+                                style={{ opacity: user.membership_id ? 1 : 0.4 }}
                               >
                                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--cm-primary)' }}>
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -650,7 +628,8 @@ export function AdminUsersTab() {
                                   setActionMenuOpenRow(null)
                                   openStatusModal(user)
                                 }}
-                                style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', color: suspended ? 'var(--cm-success)' : 'var(--cm-destructive)' }}
+                                className="adminMenuItem"
+                                style={{ color: suspended ? 'var(--cm-success)' : 'var(--cm-destructive)' }}
                               >
                                 {suspended ? (
                                   <>
@@ -674,7 +653,7 @@ export function AdminUsersTab() {
                                   setActionMenuOpenRow(null)
                                   openResetPasswordModal(user)
                                 }}
-                                style={{ display: 'flex', alignItems: 'center', gap: '8px', width: '100%', padding: '8px 12px', border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontSize: '12px', color: 'var(--cm-foreground)' }}
+                                className="adminMenuItem"
                               >
                                 <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--cm-primary)' }}>
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
@@ -721,14 +700,16 @@ export function AdminUsersTab() {
               <button
                 onClick={() => setCurrentPage(p => Math.max(p - 1, 1))}
                 disabled={currentPage <= 1 || isLoading}
-                style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', color: 'var(--cm-foreground)', cursor: 'pointer', opacity: (currentPage <= 1 || isLoading) ? 0.4 : 1, fontSize: '12px' }}
+                className="adminRowButton"
+                style={{ opacity: (currentPage <= 1 || isLoading) ? 0.4 : 1 }}
               >
                 {t('admin.common.previous')}
               </button>
               <button
                 onClick={() => setCurrentPage(p => Math.min(p + 1, totalPages))}
                 disabled={currentPage >= totalPages || isLoading}
-                style={{ padding: '4px 10px', borderRadius: '6px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', color: 'var(--cm-foreground)', cursor: 'pointer', opacity: (currentPage >= totalPages || isLoading) ? 0.4 : 1, fontSize: '12px' }}
+                className="adminRowButton"
+                style={{ opacity: (currentPage >= totalPages || isLoading) ? 0.4 : 1 }}
               >
                 {t('admin.common.next')}
               </button>
@@ -739,9 +720,9 @@ export function AdminUsersTab() {
 
       {/* Modal 1: Alterar Role (Role) */}
       {activeModalType === 'role' && activeActionUser && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="adminOverlay">
           <div
-            style={{ position: 'absolute', inset: 0, background: 'var(--cm-overlay)', backdropFilter: 'blur(4px)' }}
+            className="adminOverlayMask"
             onClick={closeModal}
           />
           <div
@@ -756,23 +737,24 @@ export function AdminUsersTab() {
                 closeModal()
               }
             }}
-            style={{ position: 'relative', width: '100%', maxWidth: '480px', margin: '24px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--cm-shadow)', outline: 'none' }}
+            className="adminDialog"
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--cm-border)', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.users.changeRoleTitle')}</h3>
+            <div className="adminDialogHeader">
+              <h3 className="adminDialogTitle">{t('admin.users.changeRoleTitle')}</h3>
               <button
                 onClick={closeModal}
                 disabled={isMutating}
-                style={{ cursor: isMutating ? 'not-allowed' : 'pointer', background: 'none', border: 'none', color: 'var(--cm-muted-foreground)', fontSize: '16px' }}
+                className="adminDialogClose"
+                aria-label={t('common.close')}
               >
                 ✕
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <div>
                 <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', marginBottom: '4px' }}>{t('admin.audit.userLabel')}</span>
-                <div style={{ padding: '10px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-background)' }}>
+                <div style={{ padding: '10px', borderRadius: 'var(--cm-radius-md)', border: '1px solid var(--cm-border)', background: 'var(--cm-background)' }}>
                   <div style={{ color: 'var(--cm-foreground)', fontWeight: 500, fontSize: '13px' }}>{activeActionUser.full_name || t('admin.common.noName')}</div>
                   <div style={{ color: 'var(--cm-muted-foreground)', fontFamily: 'monospace', fontSize: '11px' }}>{activeActionUser.email}</div>
                 </div>
@@ -780,7 +762,7 @@ export function AdminUsersTab() {
 
               <div>
                 <span style={{ color: 'var(--cm-muted-foreground)', display: 'block', marginBottom: '4px' }}>{t('admin.users.linkedTenant')}</span>
-                <div style={{ color: 'var(--cm-foreground)', fontWeight: 500, padding: '10px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-background)', fontSize: '13px' }}>
+                <div style={{ color: 'var(--cm-foreground)', fontWeight: 500, padding: '10px', borderRadius: 'var(--cm-radius-md)', border: '1px solid var(--cm-border)', background: 'var(--cm-background)', fontSize: '13px' }}>
                   {activeActionUser.tenant_name || t('admin.common.none')}
                 </div>
               </div>
@@ -810,24 +792,19 @@ export function AdminUsersTab() {
               </div>
 
               {isSelf && (
-                <div style={{ padding: '12px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-primary) 10%, transparent)', color: 'var(--cm-primary)', fontSize: '11px' }}>
+                <div style={{ padding: '12px', borderRadius: 'var(--cm-radius-md)', border: '1px solid color-mix(in srgb, var(--cm-primary) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-primary) 10%, transparent)', color: 'var(--cm-primary)', fontSize: '11px' }}>
                   {t('admin.users.selfRoleWarning')}
                 </div>
               )}
 
               {isLastOwner && selectedNewRole !== 'owner' && (
-                <div style={{ padding: '12px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', color: 'var(--cm-destructive)', fontSize: '11px' }}>
+                <div style={{ padding: '12px', borderRadius: 'var(--cm-radius-md)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', color: 'var(--cm-destructive)', fontSize: '11px' }}>
                   {t('admin.users.lastOwnerWarning')}
                 </div>
               )}
 
               {modalFeedback && (
-                <div
-                  style={modalFeedback.type === 'success'
-                    ? { padding: '12px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-success) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-success) 15%, transparent)', color: 'var(--cm-success)', fontSize: '12px' }
-                    : { padding: '12px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 15%, transparent)', color: 'var(--cm-destructive)', fontSize: '12px' }
-                  }
-                >
+                <div className={`adminNotice ${modalFeedback.type === 'success' ? 'adminNoticeSuccess' : 'adminNoticeError'}`}>
                   {modalFeedback.message}
                 </div>
               )}
@@ -836,7 +813,8 @@ export function AdminUsersTab() {
                 <button
                   onClick={closeModal}
                   disabled={isMutating}
-                  style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '10px 16px', borderRadius: '6px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', color: 'var(--cm-muted-foreground)', fontSize: '13px', fontWeight: 500, cursor: isMutating ? 'not-allowed' : 'pointer', opacity: isMutating ? 0.5 : 1 }}
+                  className="adminButton adminButtonSecondary"
+                  style={{ flex: 1, opacity: isMutating ? 0.5 : 1 }}
                 >
                   {t('admin.common.cancelAction')}
                 </button>
@@ -851,7 +829,7 @@ export function AdminUsersTab() {
                   className="adminButton"
                   style={{ flex: 1, gap: '8px', opacity: (isMutating || selectedNewRole === activeActionUser.role || (isSelf && selectedNewRole !== activeActionUser.role) || (isLastOwner && selectedNewRole !== 'owner')) ? 0.4 : 1 }}
                 >
-                  {isMutating && <span style={{ width: '14px', height: '14px', border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'cm-auth-spin 0.7s linear infinite' }} />}
+                  {isMutating && <span className="adminSpinner" aria-hidden="true" />}
                   <span>{t('admin.users.saveChange')}</span>
                 </button>
               </div>
@@ -862,9 +840,9 @@ export function AdminUsersTab() {
 
       {/* Modal 2: Suspender / Reativar Conta */}
       {activeModalType === 'status' && activeActionUser && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="adminOverlay">
           <div
-            style={{ position: 'absolute', inset: 0, background: 'var(--cm-overlay)', backdropFilter: 'blur(4px)' }}
+            className="adminOverlayMask"
             onClick={closeModal}
           />
           <div
@@ -879,22 +857,23 @@ export function AdminUsersTab() {
                 closeModal()
               }
             }}
-            style={{ position: 'relative', width: '100%', maxWidth: '480px', margin: '24px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--cm-shadow)', outline: 'none' }}
+            className="adminDialog"
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--cm-border)', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>
+            <div className="adminDialogHeader">
+              <h3 className="adminDialogTitle">
                 {activeActionUser.user_status === 'suspended' ? t('admin.users.reactivateUser') : t('admin.users.suspendUser')}
               </h3>
               <button
                 onClick={closeModal}
                 disabled={isMutating}
-                style={{ cursor: isMutating ? 'not-allowed' : 'pointer', background: 'none', border: 'none', color: 'var(--cm-muted-foreground)', fontSize: '16px' }}
+                className="adminDialogClose"
+                aria-label={t('common.close')}
               >
                 ✕
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <p style={{ color: 'var(--cm-muted-foreground)', margin: 0 }}>
                 {activeActionUser.user_status === 'suspended' ? (
                   <>{t('admin.users.reactivateConfirm')}</>
@@ -905,7 +884,7 @@ export function AdminUsersTab() {
                 )}
               </p>
 
-              <div style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-background)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <div style={{ padding: '12px', borderRadius: 'var(--cm-radius-md)', border: '1px solid var(--cm-border)', background: 'var(--cm-background)', display: 'flex', flexDirection: 'column', gap: '4px' }}>
                 <div style={{ color: 'var(--cm-foreground)', fontWeight: 500, fontSize: '13px' }}>{activeActionUser.full_name || t('admin.common.noName')}</div>
                 <div style={{ color: 'var(--cm-muted-foreground)', fontFamily: 'monospace', fontSize: '11px' }}>{activeActionUser.email}</div>
                 <div style={{ fontSize: '11px' }}>
@@ -917,18 +896,13 @@ export function AdminUsersTab() {
               </div>
 
               {isSelf && (
-                <div style={{ padding: '12px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', color: 'var(--cm-destructive)', fontSize: '11px' }}>
+                <div style={{ padding: '12px', borderRadius: 'var(--cm-radius-md)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', color: 'var(--cm-destructive)', fontSize: '11px' }}>
                   {t('admin.users.selfSuspendWarning')}
                 </div>
               )}
 
               {modalFeedback && (
-                <div
-                  style={modalFeedback.type === 'success'
-                    ? { padding: '12px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-success) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-success) 15%, transparent)', color: 'var(--cm-success)', fontSize: '12px' }
-                    : { padding: '12px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 15%, transparent)', color: 'var(--cm-destructive)', fontSize: '12px' }
-                  }
-                >
+                <div className={`adminNotice ${modalFeedback.type === 'success' ? 'adminNoticeSuccess' : 'adminNoticeError'}`}>
                   {modalFeedback.message}
                 </div>
               )}
@@ -937,31 +911,23 @@ export function AdminUsersTab() {
                 <button
                   onClick={closeModal}
                   disabled={isMutating}
-                  style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '10px 16px', borderRadius: '6px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', color: 'var(--cm-muted-foreground)', fontSize: '13px', fontWeight: 500, cursor: isMutating ? 'not-allowed' : 'pointer', opacity: isMutating ? 0.5 : 1 }}
+                  className="adminButton adminButtonSecondary"
+                  style={{ flex: 1, opacity: isMutating ? 0.5 : 1 }}
                 >
                   {t('admin.common.cancelAction')}
                 </button>
                 <button
                   onClick={handleToggleStatus}
                   disabled={isMutating || isSelf}
+                  className="adminButton"
                   style={{
                     flex: 1,
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '8px',
-                    padding: '10px 16px',
-                    borderRadius: '6px',
-                    border: 'none',
                     background: activeActionUser.user_status === 'suspended' ? 'var(--cm-success)' : 'var(--cm-destructive)',
                     color: 'var(--cm-primary-foreground)',
-                    fontSize: '13px',
-                    fontWeight: 600,
-                    cursor: (isMutating || isSelf) ? 'not-allowed' : 'pointer',
                     opacity: (isMutating || isSelf) ? 0.4 : 1,
                   }}
                 >
-                  {isMutating && <span style={{ width: '14px', height: '14px', border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'cm-auth-spin 0.7s linear infinite' }} />}
+                  {isMutating && <span className="adminSpinner" aria-hidden="true" />}
                   <span>{activeActionUser.user_status === 'suspended' ? t('admin.users.confirmReactivation') : t('admin.users.confirmSuspension')}</span>
                 </button>
               </div>
@@ -972,9 +938,9 @@ export function AdminUsersTab() {
 
       {/* Modal 3: Resetar Senha */}
       {activeModalType === 'reset_password' && activeActionUser && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 1050, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <div className="adminOverlay">
           <div
-            style={{ position: 'absolute', inset: 0, background: 'var(--cm-overlay)', backdropFilter: 'blur(4px)' }}
+            className="adminOverlayMask"
             onClick={closeModal}
           />
           <div
@@ -989,37 +955,33 @@ export function AdminUsersTab() {
                 closeModal()
               }
             }}
-            style={{ position: 'relative', width: '100%', maxWidth: '480px', margin: '24px', background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '12px', padding: '24px', boxShadow: 'var(--cm-shadow)', outline: 'none' }}
+            className="adminDialog"
           >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingBottom: '12px', borderBottom: '1px solid var(--cm-border)', marginBottom: '16px' }}>
-              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.users.sendResetTitle')}</h3>
+            <div className="adminDialogHeader">
+              <h3 className="adminDialogTitle">{t('admin.users.sendResetTitle')}</h3>
               <button
                 onClick={closeModal}
                 disabled={isMutating}
-                style={{ cursor: isMutating ? 'not-allowed' : 'pointer', background: 'none', border: 'none', color: 'var(--cm-muted-foreground)', fontSize: '16px' }}
+                className="adminDialogClose"
+                aria-label={t('common.close')}
               >
                 ✕
               </button>
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', fontSize: '12px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
               <p style={{ color: 'var(--cm-muted-foreground)', margin: 0 }}>
                 {t('admin.users.resetDescription')}
               </p>
 
-              <div style={{ padding: '12px', borderRadius: '8px', border: '1px solid var(--cm-border)', background: 'var(--cm-background)' }}>
+              <div style={{ padding: '12px', borderRadius: 'var(--cm-radius-md)', border: '1px solid var(--cm-border)', background: 'var(--cm-background)' }}>
                 <div style={{ color: 'var(--cm-muted-foreground)', fontSize: '11px' }}>{t('admin.users.recipient')}</div>
                 <div style={{ color: 'var(--cm-foreground)', fontWeight: 500, marginTop: '2px', fontSize: '13px' }}>{activeActionUser.full_name || t('admin.common.noName')}</div>
                 <div style={{ color: 'var(--cm-primary)', fontFamily: 'monospace', fontSize: '11px', marginTop: '2px' }}>{activeActionUser.email}</div>
               </div>
 
               {modalFeedback && (
-                <div
-                  style={modalFeedback.type === 'success'
-                    ? { padding: '12px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-success) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-success) 15%, transparent)', color: 'var(--cm-success)', fontSize: '12px' }
-                    : { padding: '12px', borderRadius: '8px', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', background: 'color-mix(in srgb, var(--cm-destructive) 15%, transparent)', color: 'var(--cm-destructive)', fontSize: '12px' }
-                  }
-                >
+                <div className={`adminNotice ${modalFeedback.type === 'success' ? 'adminNoticeSuccess' : 'adminNoticeError'}`}>
                   {modalFeedback.message}
                 </div>
               )}
@@ -1028,7 +990,8 @@ export function AdminUsersTab() {
                 <button
                   onClick={closeModal}
                   disabled={isMutating}
-                  style={{ flex: 1, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '10px 16px', borderRadius: '6px', border: '1px solid var(--cm-border)', background: 'var(--cm-card)', color: 'var(--cm-muted-foreground)', fontSize: '13px', fontWeight: 500, cursor: isMutating ? 'not-allowed' : 'pointer', opacity: isMutating ? 0.5 : 1 }}
+                  className="adminButton adminButtonSecondary"
+                  style={{ flex: 1, opacity: isMutating ? 0.5 : 1 }}
                 >
                   {t('admin.common.cancelAction')}
                 </button>
@@ -1038,7 +1001,7 @@ export function AdminUsersTab() {
                   className="adminButton"
                   style={{ flex: 1, gap: '8px', opacity: isMutating ? 0.4 : 1 }}
                 >
-                  {isMutating && <span style={{ width: '14px', height: '14px', border: '2px solid currentColor', borderTopColor: 'transparent', borderRadius: '50%', display: 'inline-block', animation: 'cm-auth-spin 0.7s linear infinite' }} />}
+                  {isMutating && <span className="adminSpinner" aria-hidden="true" />}
                   <span>{t('admin.users.sendEmail')}</span>
                 </button>
               </div>

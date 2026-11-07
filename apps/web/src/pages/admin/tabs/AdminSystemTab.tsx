@@ -1,5 +1,5 @@
 import { formatDate } from '../../../lib/format'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { supabase } from '../../../lib/supabase/client'
 import { t } from '../../../locales'
 
@@ -59,6 +59,32 @@ export function AdminSystemTab() {
   const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState<string>('')
   const [storageWsSearchQuery, setStorageWsSearchQuery] = useState<string>('')
   const [llmSearchQuery, setLlmSearchQuery] = useState<string>('')
+
+  // Editing state for the dedicated Central LLM Routing cards. Kept separate
+  // from the generic llm.* table so mask/primary/fallback/delegation can be
+  // saved without tripping the llm.mask.* protection in the generic editor.
+  const [llmForm, setLlmForm] = useState<{
+    maskEnabled: boolean
+    maskVirtualModel: string
+    maskVirtualModelName: string
+    primaryProvider: string
+    primaryModel: string
+    fallback: Array<{ provider: string; model?: string }>
+    delegationEnabled: boolean
+    delegationProvider: string
+    delegationModel: string
+  }>({
+    maskEnabled: false,
+    maskVirtualModel: '',
+    maskVirtualModelName: '',
+    primaryProvider: '',
+    primaryModel: '',
+    fallback: [],
+    delegationEnabled: false,
+    delegationProvider: '',
+    delegationModel: '',
+  })
+  const llmFormInitialized = useRef(false)
 
   const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false)
   const [isDeleteConfigModalOpen, setIsDeleteConfigModalOpen] = useState<boolean>(false)
@@ -155,6 +181,98 @@ export function AdminSystemTab() {
       l => l.key.toLowerCase().includes(q) || (l.description && l.description.toLowerCase().includes(q)),
     )
   }, [llmConfigs, llmSearchQuery])
+
+  // ---- Central LLM routing helpers ---------------------------------------
+
+  const configByKey = useMemo(() => {
+    const map = new Map<string, SystemConfigItem>()
+    for (const c of configs) map.set(c.key, c)
+    return map
+  }, [configs])
+
+  const getStr = (key: string, def = '') => {
+    const c = configByKey.get(key)
+    if (!c) return def
+    if (typeof c.value === 'string') return c.value
+    if (c.value && typeof c.value === 'object') return JSON.stringify(c.value)
+    return String(c.value ?? def)
+  }
+
+  const getBool = (key: string, def = false) => {
+    const c = configByKey.get(key)
+    if (!c) return def
+    if (typeof c.value === 'boolean') return c.value
+    return def
+  }
+
+  function getJson<T>(key: string, def: T): T {
+    const c = configByKey.get(key)
+    if (!c) return def
+    if (c.value && typeof c.value === 'object') return c.value as T
+    try {
+      return JSON.parse(String(c.value)) as T
+    } catch {
+      return def
+    }
+  }
+
+  const saveLlmConfig = async (key: string, value: unknown) => {
+    setIsMutating(true)
+    try {
+      const { error } = await supabase.rpc('admin_upsert_system_config', {
+        p_key: key,
+        p_value: value,
+        p_description: null,
+        p_is_secret: false,
+      })
+      if (error) throw new Error(error.message)
+      await loadData(true)
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : t('admin.system.llm.saveFailure'))
+    } finally {
+      setIsMutating(false)
+    }
+  }
+
+  const saveMask = async () => {
+    await saveLlmConfig('llm.mask.enabled', llmForm.maskEnabled)
+    await saveLlmConfig('llm.mask.virtualModel', llmForm.maskVirtualModel)
+    await saveLlmConfig('llm.mask.virtualModelName', llmForm.maskVirtualModelName)
+  }
+
+  const savePrimary = async () => {
+    await saveLlmConfig('llm.primary.provider', llmForm.primaryProvider)
+    await saveLlmConfig('llm.primary.model', llmForm.primaryModel)
+  }
+
+  const saveFallback = async () => {
+    await saveLlmConfig('llm.fallback', llmForm.fallback)
+  }
+
+  const saveDelegation = async () => {
+    await saveLlmConfig('llm.delegation.enabled', llmForm.delegationEnabled)
+    await saveLlmConfig('llm.delegation.provider', llmForm.delegationProvider)
+    await saveLlmConfig('llm.delegation.model', llmForm.delegationModel)
+  }
+
+  // Seed the editing form from persisted config on first load only, so the
+  // admin's in-flight edits are not clobbered by a subsequent reload.
+  useEffect(() => {
+    if (llmFormInitialized.current) return
+    llmFormInitialized.current = true
+    setLlmForm({
+      maskEnabled: getBool('llm.mask.enabled'),
+      maskVirtualModel: getStr('llm.mask.virtualModel', 'copy-monster-default'),
+      maskVirtualModelName: getStr('llm.mask.virtualModelName', 'Model CopyMonster'),
+      primaryProvider: getStr('llm.primary.provider', 'deepseek-official'),
+      primaryModel: getStr('llm.primary.model', 'deepseek-chat'),
+      fallback: getJson('llm.fallback', []),
+      delegationEnabled: getBool('llm.delegation.enabled'),
+      delegationProvider: getStr('llm.delegation.provider', ''),
+      delegationModel: getStr('llm.delegation.model', ''),
+    })
+  }, [])
+
   const totalWorkspacesCount = workspaces.length
 
   const maskedSupabaseUrl = useMemo(() => {
@@ -979,66 +1097,292 @@ export function AdminSystemTab() {
             <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--cm-border)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', marginRight: '8px', animation: 'cm-auth-spin 0.7s linear infinite' }} />
             {t('admin.system.loadingLlm')}
           </div>
-        ) : filteredLlm.length === 0 ? (
-          <div style={{ padding: '24px', textAlign: 'center', borderRadius: '8px', border: '1px dashed var(--cm-border)', background: 'color-mix(in srgb, var(--cm-background) 30%, transparent)', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
-            {t('admin.system.emptyLlm')}
-          </div>
         ) : (
-          <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
-            <table className="adminTable">
-              <thead>
-                <tr>
-                  <th>{t('admin.common.key')}</th>
-                  <th>{t('admin.common.valueOrState')}</th>
-                  <th>{t('admin.common.description')}</th>
-                  <th>{t('admin.common.updatedAt')}</th>
-                  <th style={{ textAlign: 'right' }}>{t('admin.common.actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLlm.map(item => (
-                  <tr key={item.key}>
-                    <td style={{ fontFamily: 'monospace', fontWeight: 500, color: 'var(--cm-foreground)' }}>
-                      {item.key}
-                    </td>
-                    <td style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cm-primary)', fontWeight: 500, maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }}>
-                      {typeof item.value === 'object' ? JSON.stringify(item.value as unknown) : String(item.value)}
-                    </td>
-                    <td style={{ color: 'var(--cm-muted-foreground)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                      {item.description || '—'}
-                    </td>
-                    <td style={{ color: 'var(--cm-muted-foreground)', whiteSpace: 'nowrap' }}>
-                      {formatDate(item.updated_at)}
-                    </td>
-                    <td style={{ textAlign: 'right' }}>
-                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
-                        <button
-                          type="button"
-                          onClick={() => openEditConfigModal(item)}
-                          style={{ height: '28px', padding: '0 10px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: 'pointer', fontSize: '11px' }}
-                        >
-                          {t('admin.common.edit')}
-                        </button>
-                        {item.key.startsWith('llm.mask') ? (
-                          <span style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)', padding: '0 6px', borderRadius: '4px', background: 'color-mix(in srgb, var(--cm-muted-foreground) 10%, transparent)' }}>
-                            {t('admin.system.llm.maskProtected')}
-                          </span>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => openDeleteConfigModal(item)}
-                            style={{ height: '28px', padding: '0 10px', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', borderRadius: '6px', color: 'var(--cm-destructive)', cursor: 'pointer', fontSize: '11px' }}
-                          >
-                            {t('admin.common.delete')}
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
+          <>
+            {/* ---- Central LLM routing: model masking ---- */}
+            <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: 'var(--cm-primary)', fontSize: '13px' }}>🔒</span>
+                <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.system.llm.maskTitle')}</h4>
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)', margin: 0 }}>{t('admin.system.llm.maskEnabledHint')}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--cm-foreground)', cursor: 'pointer', userSelect: 'none' }}>
+                  <input
+                    type="checkbox"
+                    checked={llmForm.maskEnabled}
+                    onChange={e => setLlmForm(prev => ({ ...prev, maskEnabled: e.target.checked }))}
+                    style={{ width: '16px', height: '16px', accentColor: 'var(--cm-primary)' }}
+                  />
+                  {t('admin.system.llm.maskEnabled')}
+                </label>
+                <button
+                  type="button"
+                  onClick={saveMask}
+                  disabled={isMutating}
+                  className="adminButton"
+                  style={{ fontSize: '12px' }}
+                >
+                  {t('admin.system.saveParam')}
+                </button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '6px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--cm-muted-foreground)', marginBottom: '4px' }}>{t('admin.system.llm.virtualModelId')}</label>
+                  <input
+                    type="text"
+                    value={llmForm.maskVirtualModel}
+                    onChange={e => setLlmForm(prev => ({ ...prev, maskVirtualModel: e.target.value }))}
+                    disabled={isMutating}
+                    className="adminInput"
+                    style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--cm-muted-foreground)', marginBottom: '4px' }}>{t('admin.system.llm.virtualModelName')}</label>
+                  <input
+                    type="text"
+                    value={llmForm.maskVirtualModelName}
+                    onChange={e => setLlmForm(prev => ({ ...prev, maskVirtualModelName: e.target.value }))}
+                    disabled={isMutating}
+                    className="adminInput"
+                    style={{ width: '100%', fontSize: '12px' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ---- Central LLM routing: primary route ---- */}
+            <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: 'var(--cm-primary)', fontSize: '13px' }}>🎯</span>
+                <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.system.llm.primaryTitle')}</h4>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '6px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--cm-muted-foreground)', marginBottom: '4px' }}>{t('admin.system.llm.primaryProvider')}</label>
+                  <input
+                    type="text"
+                    value={llmForm.primaryProvider}
+                    onChange={e => setLlmForm(prev => ({ ...prev, primaryProvider: e.target.value }))}
+                    disabled={isMutating}
+                    className="adminInput"
+                    style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--cm-muted-foreground)', marginBottom: '4px' }}>{t('admin.system.llm.primaryModel')}</label>
+                  <input
+                    type="text"
+                    value={llmForm.primaryModel}
+                    onChange={e => setLlmForm(prev => ({ ...prev, primaryModel: e.target.value }))}
+                    disabled={isMutating}
+                    className="adminInput"
+                    style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
+                  />
+                </div>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={savePrimary}
+                  disabled={isMutating}
+                  className="adminButton"
+                  style={{ fontSize: '12px' }}
+                >
+                  {t('admin.system.saveParam')}
+                </button>
+              </div>
+            </div>
+
+            {/* ---- Central LLM routing: failover chain ---- */}
+            <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: 'var(--cm-primary)', fontSize: '13px' }}>🔁</span>
+                <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.system.llm.fallbackTitle')}</h4>
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)', margin: 0 }}>{t('admin.system.llm.fallbackHint')}</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+                {llmForm.fallback.map((route, i) => (
+                  <div key={i} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                    <input
+                      type="text"
+                      placeholder="provider"
+                      value={route.provider}
+                      onChange={(e) => {
+                        const next = [...llmForm.fallback]
+                        next[i] = { ...next[i], provider: e.target.value }
+                        setLlmForm(prev => ({ ...prev, fallback: next }))
+                      }}
+                      disabled={isMutating}
+                      className="adminInput"
+                      style={{ flex: 1, fontSize: '12px', fontFamily: 'monospace' }}
+                    />
+                    <input
+                      type="text"
+                      placeholder="model"
+                      value={route.model}
+                      onChange={(e) => {
+                        const next = [...llmForm.fallback]
+                        const route = next[i]
+                        if (route) route.model = e.target.value
+                        setLlmForm(prev => ({ ...prev, fallback: next }))
+                      }}
+                      disabled={isMutating}
+                      className="adminInput"
+                      style={{ flex: 1, fontSize: '12px', fontFamily: 'monospace' }}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLlmForm(prev => ({ ...prev, fallback: prev.fallback.filter((_, k) => k !== i) }))
+                      }}
+                      disabled={isMutating}
+                      style={{ padding: '2px 8px', fontSize: '11px', borderRadius: '6px', border: '1px solid var(--cm-border)', background: 'transparent', color: 'var(--cm-muted-foreground)', cursor: 'pointer' }}
+                    >
+                      {t('admin.common.delete')}
+                    </button>
+                  </div>
                 ))}
-              </tbody>
-            </table>
-          </div>
+                <button
+                  type="button"
+                  onClick={() => setLlmForm(prev => ({ ...prev, fallback: [...prev.fallback, { provider: '', model: '' }] }))}
+                  disabled={isMutating}
+                  className="adminButton"
+                  style={{ fontSize: '12px', alignSelf: 'flex-start' }}
+                >
+                  {t('admin.system.newParam', { type: 'fallback' })}
+                </button>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                <button
+                  type="button"
+                  onClick={saveFallback}
+                  disabled={isMutating}
+                  className="adminButton"
+                  style={{ fontSize: '12px' }}
+                >
+                  {t('admin.system.saveParam')}
+                </button>
+              </div>
+            </div>
+
+            {/* ---- Central LLM routing: lightweight delegation ---- */}
+            <div style={{ background: 'var(--cm-background)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ color: 'var(--cm-primary)', fontSize: '13px' }}>⚡</span>
+                <h4 style={{ fontSize: '13px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.system.llm.delegationTitle')}</h4>
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)', margin: 0 }}>{t('admin.system.llm.delegationHint')}</p>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '6px' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--cm-foreground)', cursor: 'pointer', userSelect: 'none' }}>
+                  <input
+                    type="checkbox"
+                    checked={llmForm.delegationEnabled}
+                    onChange={e => setLlmForm(prev => ({ ...prev, delegationEnabled: e.target.checked }))}
+                    style={{ width: '16px', height: '16px', accentColor: 'var(--cm-primary)' }}
+                  />
+                  {t('admin.system.llm.delegationEnabled')}
+                </label>
+                <button
+                  type="button"
+                  onClick={saveDelegation}
+                  disabled={isMutating}
+                  className="adminButton"
+                  style={{ fontSize: '12px' }}
+                >
+                  {t('admin.system.saveParam')}
+                </button>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '6px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--cm-muted-foreground)', marginBottom: '4px' }}>{t('admin.system.llm.lightweightProvider')}</label>
+                  <input
+                    type="text"
+                    value={llmForm.delegationProvider}
+                    onChange={e => setLlmForm(prev => ({ ...prev, delegationProvider: e.target.value }))}
+                    disabled={isMutating}
+                    className="adminInput"
+                    style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '11px', color: 'var(--cm-muted-foreground)', marginBottom: '4px' }}>{t('admin.system.llm.lightweightModel')}</label>
+                  <input
+                    type="text"
+                    value={llmForm.delegationModel}
+                    onChange={e => setLlmForm(prev => ({ ...prev, delegationModel: e.target.value }))}
+                    disabled={isMutating}
+                    className="adminInput"
+                    style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ---- Generic llm.* parameter table ---- */}
+            {filteredLlm.length === 0 ? (
+              <div style={{ padding: '24px', textAlign: 'center', borderRadius: '8px', border: '1px dashed var(--cm-border)', background: 'color-mix(in srgb, var(--cm-background) 30%, transparent)', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
+                {t('admin.system.emptyLlm')}
+              </div>
+            ) : (
+              <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
+                <table className="adminTable">
+                  <thead>
+                    <tr>
+                      <th>{t('admin.common.key')}</th>
+                      <th>{t('admin.common.valueOrState')}</th>
+                      <th>{t('admin.common.description')}</th>
+                      <th>{t('admin.common.updatedAt')}</th>
+                      <th style={{ textAlign: 'right' }}>{t('admin.common.actions')}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filteredLlm.map(item => (
+                      <tr key={item.key}>
+                        <td style={{ fontFamily: 'monospace', fontWeight: 500, color: 'var(--cm-foreground)' }}>
+                          {item.key}
+                        </td>
+                        <td style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cm-primary)', fontWeight: 500, maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }}>
+                          {typeof item.value === 'object' ? JSON.stringify(item.value as unknown) : String(item.value)}
+                        </td>
+                        <td style={{ color: 'var(--cm-muted-foreground)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          {item.description || '—'}
+                        </td>
+                        <td style={{ color: 'var(--cm-muted-foreground)', whiteSpace: 'nowrap' }}>
+                          {formatDate(item.updated_at)}
+                        </td>
+                        <td style={{ textAlign: 'right' }}>
+                          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                            <button
+                              type="button"
+                              onClick={() => openEditConfigModal(item)}
+                              style={{ height: '28px', padding: '0 10px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: 'pointer', fontSize: '11px' }}
+                            >
+                              {t('admin.common.edit')}
+                            </button>
+                            {item.key.startsWith('llm.mask') ? (
+                              <span style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)', padding: '0 6px', borderRadius: '4px', background: 'color-mix(in srgb, var(--cm-muted-foreground) 10%, transparent)' }}>
+                                {t('admin.system.llm.maskProtected')}
+                              </span>
+                            ) : (
+                              <button
+                                type="button"
+                                onClick={() => openDeleteConfigModal(item)}
+                                style={{ height: '28px', padding: '0 10px', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', borderRadius: '6px', color: 'var(--cm-destructive)', cursor: 'pointer', fontSize: '11px' }}
+                              >
+                                {t('admin.common.delete')}
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </>
         )}
       </div>
 

@@ -9,13 +9,14 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
+import type { IncomingHttpHeaders } from 'node:http'
 import { defineTool } from '@deepseek-ai/dsh-tools'
 import type {} from '@deepseek-ai/dsh-system-prompt'
 import type {} from '@deepseek-ai/dsh-host-webserver'
 import { Config } from './config.ts'
 import { createSupervisor, type ZernioSupervisor } from './mcp.ts'
 import { OAuthFlow } from './oauth.ts'
-import { makeRoutes, ZERNIO_MCP_API } from './routes.ts'
+import { makeRoutes, ZERNIO_MCP_API, resolveCallbackUrl } from './routes.ts'
 import { ZernioMcpStore } from './store.ts'
 
 export { Config }
@@ -41,7 +42,7 @@ interface PluginContext {
   store: ZernioMcpStore
   flow: OAuthFlow
   supervisor: ZernioSupervisor
-  callbackUrl: () => string
+  callbackUrl: (requestHeaders?: IncomingHttpHeaders) => string
 }
 
 /**
@@ -52,7 +53,16 @@ interface PluginContext {
 export function apply(ctx: Context, config: Config): void {
   const store = new ZernioMcpStore(config.tenant)
   const flow = new OAuthFlow(store)
-  const callbackUrl = (): string => `http://127.0.0.1:${ctx.webServer.port ?? 0}${ZERNIO_MCP_API.oauthCallback}`
+  const callbackUrl = (requestHeaders?: IncomingHttpHeaders): string => {
+    if (requestHeaders !== undefined) {
+      return resolveCallbackUrl({ headers: requestHeaders }, ctx.webServer.port ?? 0, config.publicOrigin)
+    }
+    // Fallback for tools without request context: use configured publicOrigin or loopback
+    if (config.publicOrigin !== undefined) {
+      return `${config.publicOrigin}${ZERNIO_MCP_API.oauthCallback}`
+    }
+    return `http://127.0.0.1:${ctx.webServer.port ?? 0}${ZERNIO_MCP_API.oauthCallback}`
+  }
   const supervisor = createSupervisor(ctx, store, flow, callbackUrl)
   const context: PluginContext = { store, flow, supervisor, callbackUrl }
   let disposeTools: (() => void | Promise<void>) | undefined

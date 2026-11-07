@@ -187,9 +187,9 @@ export function AdminSystemTab() {
     try {
       const { data, error } = await (supabase.rpc as unknown as (name: string) => Promise<{ data: LlmProvider[] | null; error: { message: string } | null }>)('get_admin_llm_providers')
       if (error) throw new Error(error.message)
-      // Filter only active providers that have API keys configured
-      const activeProviders = (data || []).filter((p: LlmProvider) => p.is_active && p.has_api_key)
-      setLlmProviders(activeProviders)
+      // Show all configured providers (not just active ones with API keys)
+      // The dropdown will display status badges so admins can see which are ready
+      setLlmProviders(data || [])
     } catch (err: unknown) {
       console.error('Failed to load LLM providers:', err)
     } finally {
@@ -204,7 +204,7 @@ export function AdminSystemTab() {
       if (error) throw new Error(error.message)
       // Filter models for the selected provider that are active
       const providerModels = (data || []).filter(
-        (m: LlmModel) => m.provider_id === providerId && m.is_active && m.provider_is_active
+        (m: LlmModel) => m.provider_id === providerId && m.is_active && m.provider_is_active,
       )
       setLlmModels(providerModels)
     } catch (err: unknown) {
@@ -1227,7 +1227,7 @@ export function AdminSystemTab() {
                         <option value="">{t('admin.system.llm.selectProvider')}</option>
                         {llmProviders.map(provider => (
                           <option key={provider.id} value={provider.provider_route}>
-                            {provider.name} ({provider.provider_route})
+                            {provider.name} ({provider.provider_route}){!provider.is_active ? ' (inactive)' : ''}{!provider.has_api_key ? ' (no API key)' : ''}
                           </option>
                         ))}
                       </select>
@@ -1307,7 +1307,7 @@ export function AdminSystemTab() {
                           <option value="">{t('admin.system.llm.selectProvider')}</option>
                           {llmProviders.map(provider => (
                             <option key={provider.id} value={provider.provider_route}>
-                              {provider.name} ({provider.provider_route})
+                              {provider.name} ({provider.provider_route}){!provider.is_active ? ' (inactive)' : ''}{!provider.has_api_key ? ' (no API key)' : ''}
                             </option>
                           ))}
                         </select>
@@ -1404,7 +1404,7 @@ export function AdminSystemTab() {
                         <option value="">{t('admin.system.llm.selectProvider')}</option>
                         {llmProviders.map(provider => (
                           <option key={provider.id} value={provider.provider_route}>
-                            {provider.name} ({provider.provider_route})
+                            {provider.name} ({provider.provider_route}){!provider.is_active ? ' (inactive)' : ''}{!provider.has_api_key ? ' (no API key)' : ''}
                           </option>
                         ))}
                       </select>

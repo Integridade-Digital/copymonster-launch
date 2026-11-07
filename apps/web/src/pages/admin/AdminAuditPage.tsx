@@ -249,7 +249,19 @@ export function AdminAuditPage() {
                       {formatDateTime(log.created_at)}
                     </td>
                     <td>
-                      <span className="adminBadge">{log.action}</span>
+                      <span style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        padding: '2px 8px',
+                        borderRadius: '999px',
+                        background: 'var(--cm-primary)',
+                        color: 'var(--cm-primary-foreground)',
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        lineHeight: '16px',
+                        whiteSpace: 'nowrap',
+                        textTransform: 'capitalize',
+                      }}>{log.action}</span>
                     </td>
                     <td style={{ fontWeight: 500 }}>{log.resource_type || '-'}</td>
                     <td style={{ color: 'var(--cm-muted-foreground)', fontFamily: 'monospace', fontSize: '11px' }}>{log.resource_id ? log.resource_id.slice(0, 8) + '...' : '-'}</td>

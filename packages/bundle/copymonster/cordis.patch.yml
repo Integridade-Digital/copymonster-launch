@@ -69,3 +69,16 @@
           - primary: deepseek-official
             fallbackProvider: openrouter
             fallbackModel: openrouter/free
+
+    # Virtual-model mask: tenants see only `copy-monster-default` / "Model
+    # CopyMonster"; the alias resolves privately to the primary route at
+    # dispatch time (admin callers keep the full catalog via session-controller).
+    - id: model-mask
+      name: '@deepseek-ai/dsh-host-model-mask'
+      config:
+        virtualProvider: copymonster
+        virtualModel: copy-monster-default
+        virtualModelName: Model CopyMonster
+        primaryProvider: deepseek-official
+        primaryModel: deepseek-chat
+        applyToTenantsOnly: true

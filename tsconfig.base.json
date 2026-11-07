@@ -143,6 +143,7 @@
       "@deepseek-ai/dsh-host-brand-assets": ["./packages/host/brand-assets/src/index.ts"],
       "@deepseek-ai/dsh-host-copymonster-identity": ["./packages/host/copymonster-identity/src/index.ts"],
       "@deepseek-ai/dsh-host-llm-fallback": ["./packages/host/llm-fallback/src/index.ts"],
+      "@deepseek-ai/dsh-host-model-mask": ["./packages/host/model-mask/src/index.ts"],
       "@deepseek-ai/dsh-host-positioning-injection": ["./packages/host/positioning-injection/src/index.ts"],
       "@deepseek-ai/dsh-api-auth-http": ["./packages/api/auth-http/src/index.ts"],
       "@deepseek-ai/dsh-api-gateway": ["./packages/api/gateway/src/index.ts"],

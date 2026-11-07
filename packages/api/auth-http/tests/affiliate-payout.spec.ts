@@ -184,13 +184,6 @@ describe('Payout Executor & Affiliate Payout Lifecycle', () => {
 
   describe('getAffiliateBalance', () => {
     it('calculates credit, debit, and available balance correctly', async () => {
-      const mockQueryBuilder = {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockImplementation(function (this: any, col: string, val: unknown) {
-          return this
-        }),
-      }
-
       const mockEntries = [
         { amount: '100.00', entry_type: 'CREDIT' },
         { amount: '50.50', entry_type: 'CREDIT' },
@@ -598,7 +591,7 @@ describe('Payout Executor & Affiliate Payout Lifecycle', () => {
                     }),
                   }),
                 }),
-                update: vi.fn().mockImplementation((payload) => {
+                update: vi.fn().mockImplementation(() => {
                   updateCalls++
                   if (updateCalls === 1) {
                     return updateLockMock()

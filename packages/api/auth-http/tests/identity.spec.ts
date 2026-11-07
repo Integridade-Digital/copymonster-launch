@@ -170,7 +170,7 @@ describe('tenant access policy: owned Workspaces and Sessions', () => {
 
     const ids = bindings
       .filter(binding => binding.resource.kind === 'workspace')
-      .map(binding => binding.resource.id)
+      .map(({ resource }) => (resource as { readonly id: string }).id)
     expect(ids).toEqual(['ws-own'])
   })
 
@@ -184,7 +184,7 @@ describe('tenant access policy: owned Workspaces and Sessions', () => {
 
     const ids = bindings
       .filter(binding => binding.resource.kind === 'session')
-      .map(binding => binding.resource.id)
+      .map(({ resource }) => (resource as { readonly id: string }).id)
     expect(ids).toEqual(['s-own'])
   })
 

@@ -12,16 +12,57 @@ import type {
   ModelSelection,
 } from './types.ts'
 
+/** The CopyMonster virtual provider route advertised to masked tenants. */
+export const VIRTUAL_PROVIDER = 'copymonster'
+/** The virtual model id advertised to masked tenants. */
+export const VIRTUAL_MODEL = 'copy-monster-default'
+/** The human-readable virtual model name advertised to masked tenants. */
+export const VIRTUAL_MODEL_NAME = 'Model CopyMonster'
+/** The CopyMonster model-selection alias offered to tenants. */
+export const VIRTUAL_ALIAS = { provider: VIRTUAL_PROVIDER, model: VIRTUAL_MODEL }
+
+/** Stable description shown for the virtual CopyMonster model. */
+export const VIRTUAL_MODEL_DESCRIPTION = 'Standard CopyMonster model managed by the platform.'
+
 /**
  * Build the browser model catalog without requiring a Session.
+ *
+ * When `isAdmin` is `false` the tenant sees only the single virtual CopyMonster
+ * model and the real provider topology stays out of the catalog payload.
+ * When `isAdmin` is `true` (or omitted, preserving existing behaviour) the full
+ * real provider catalog is returned for platform administration.
  * @param ctx - Host context carrying the live LLM registry.
  * @param defaultSelection - deployment default used before a Session selects a model.
+ * @param isAdmin - whether the caller is a platform administrator; omitted keeps the full catalog.
  * @returns successful non-empty provider groups and isolated provider failures.
  */
 export async function buildModelCatalog(
   ctx: Context,
   defaultSelection: ModelSelection = ctx.agentDefaultModel.currentSelection(),
+  isAdmin?: boolean,
 ): Promise<ModelCatalog> {
+  if (isAdmin === false) {
+    return {
+      default: { ...VIRTUAL_ALIAS },
+      routableProviders: [VIRTUAL_PROVIDER],
+      groups: [
+        {
+          id: VIRTUAL_PROVIDER,
+          name: VIRTUAL_MODEL_NAME,
+          models: [
+            {
+              id: VIRTUAL_MODEL,
+              name: VIRTUAL_MODEL_NAME,
+              description: VIRTUAL_MODEL_DESCRIPTION,
+              capabilities: {},
+            },
+          ],
+        },
+      ],
+      failures: [],
+    }
+  }
+
   const providers = ctx.llm.listProviders()
 
   const catalog = await Promise.all(providers.map(async (provider) => {
@@ -87,6 +128,10 @@ export async function buildModelCatalog(
  * @returns whether the exact model is currently advertised as available.
  */
 export async function modelAvailable(ctx: Context, selection: ModelSelection): Promise<boolean> {
+  // The virtual CopyMonster alias is always available: it resolves privately to
+  // the configured primary route at dispatch time, so the real provider never
+  // enters selection validation or the wire.
+  if (selection.provider === VIRTUAL_PROVIDER && selection.model === VIRTUAL_MODEL) return true
   if (!ctx.llm.listProviders().some(provider => provider.id === selection.provider)) return false
   let models: readonly LlmModelInfo[]
   try { models = await ctx.llm.listModels(selection.provider) }

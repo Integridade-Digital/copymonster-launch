@@ -416,11 +416,18 @@ export class SessionController extends TypertRemoteService {
 
   /**
    * Describe every currently routable model for Host-generation selectors.
+   *
+   * Tenants (non-admin callers with a resolved identity) receive only the
+   * virtual CopyMonster model; platform administrators (`isAdmin`) and calls
+   * without a resolved identity keep the full real provider catalog. The
+   * caller's identity is read from the `auth` Context kind when present.
    * @returns provider-grouped models, the deployment default, and isolated provider failures.
    */
   @Remote('modelCatalog')
   modelCatalog(): Promise<ModelCatalog> {
-    return buildModelCatalog(this.ctx)
+    const identity = 'authIdentity' in this.ctx ? this.ctx.authIdentity : undefined
+    const isAdmin = identity === undefined ? undefined : identity.isAdmin === true
+    return buildModelCatalog(this.ctx, undefined, isAdmin)
   }
 
   /**

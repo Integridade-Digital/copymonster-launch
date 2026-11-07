@@ -558,6 +558,7 @@
     { "path": "./packages/host/brand-assets" },
     { "path": "./packages/host/copymonster-identity" },
     { "path": "./packages/host/llm-fallback" },
+    { "path": "./packages/host/model-mask" },
     { "path": "./packages/host/positioning-injection" },
     { "path": "./packages/host/open-in-app" },
     { "path": "./packages/host/plugin-inventory" },

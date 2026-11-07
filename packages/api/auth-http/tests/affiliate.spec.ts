@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
+import { describe, expect, it, vi, beforeEach } from 'vitest'
 import { Readable } from 'node:stream'
 import crypto from 'node:crypto'
 import type { IncomingMessage, ServerResponse } from 'node:http'
@@ -8,7 +8,6 @@ import {
   processAffiliateCommissionFromInvoice,
   processAffiliateRefundFromCharge,
   extractAffiliateIdFromInvoice,
-  getTable,
 } from '../src/affiliate-processor.ts'
 import {
   handleCheckout,

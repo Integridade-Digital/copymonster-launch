@@ -3,9 +3,12 @@ import { Context } from '@deepseek-ai/cordis'
 import type { Agent, RequestErrorAction } from '@deepseek-ai/dsh-agent'
 import type { LlmCallConfig, LlmFailure } from '@deepseek-ai/dsh-llm'
 import { apply, inject, name } from '../src/index.ts'
-import type { Config } from '../src/index.ts'
+import type { Config, FallbackRule } from '../src/index.ts'
 
-const RULE = { primary: 'deepseek-official', fallbackProvider: 'openrouter', fallbackModel: 'openrouter/free' }
+const RULE: FallbackRule = {
+  primary: 'deepseek-official',
+  fallbacks: [{ provider: 'openrouter', model: 'openrouter/free' }],
+}
 const BASE: LlmCallConfig = { provider: 'deepseek-official', model: 'deepseek-flash' }
 
 async function mount(rules: Config['rules'] = [RULE]): Promise<{ ctx: Context; agent: Agent }> {
@@ -106,5 +109,73 @@ describe('llm-fallback', () => {
       provider: 'deepseek-official', model: 'deepseek-flash', reasoningEffort: 'high',
     } as LlmCallConfig)
     expect(selected).toEqual({ provider: 'openrouter', model: 'openrouter/free' })
+  })
+
+  it('cascades through multiple fallback routes on consecutive failures', async () => {
+    const { ctx, agent } = await mount([
+      {
+        primary: 'deepseek-official',
+        fallbacks: [
+          { provider: 'openrouter', model: 'openrouter/deepseek-chat' },
+          { provider: 'groq', model: 'groq/llama-3' },
+        ],
+      },
+    ])
+    // First failure: advance to fallback 1.
+    expect(await requestError(ctx, agent)).toEqual({ kind: 'retry' })
+    expect(await request(ctx, agent, BASE)).toEqual({ provider: 'openrouter', model: 'openrouter/deepseek-chat' })
+    // Second failure: advance to fallback 2.
+    expect(await requestError(ctx, agent)).toEqual({ kind: 'retry' })
+    expect(await request(ctx, agent, BASE)).toEqual({ provider: 'groq', model: 'groq/llama-3' })
+  })
+
+  it('does not retry when the fallback chain is exhausted', async () => {
+    const { ctx, agent } = await mount([
+      {
+        primary: 'deepseek-official',
+        fallbacks: [{ provider: 'openrouter', model: 'openrouter/free' }],
+      },
+    ])
+    // First failure: advance to the only fallback.
+    expect(await requestError(ctx, agent)).toEqual({ kind: 'retry' })
+    expect(await request(ctx, agent, BASE)).toEqual({ provider: 'openrouter', model: 'openrouter/free' })
+    // Second failure on the fallback: chain exhausted, no retry.
+    expect(await requestError(ctx, agent)).toBeUndefined()
+    expect(await request(ctx, agent, BASE)).toEqual({ provider: 'openrouter', model: 'openrouter/free' })
+  })
+
+  it('returns to the primary route on a later turn after cascading', async () => {
+    const { ctx, agent } = await mount([
+      {
+        primary: 'deepseek-official',
+        fallbacks: [{ provider: 'openrouter', model: 'openrouter/free' }],
+      },
+    ])
+    await requestError(ctx, agent)
+    expect(await request(ctx, agent, BASE, 1)).toEqual({ provider: 'openrouter', model: 'openrouter/free' })
+    // A new turn re-resolves to the primary route.
+    expect(await request(ctx, agent, BASE, 2)).toEqual(BASE)
+  })
+
+  it('keeps independent fallback state per provider rule across turns', async () => {
+    const { ctx, agent } = await mount([
+      {
+        primary: 'deepseek-official',
+        fallbacks: [{ provider: 'openrouter', model: 'openrouter/free' }],
+      },
+      {
+        primary: 'anthropic',
+        fallbacks: [{ provider: 'groq', model: 'groq/llama-3' }],
+      },
+    ])
+    // deepseek-official fails over in turn 1.
+    expect(await requestError(ctx, agent, { provider: 'deepseek-official', turn: 1 })).toEqual({ kind: 'retry' })
+    expect(await request(ctx, agent, BASE, 1)).toEqual({ provider: 'openrouter', model: 'openrouter/free' })
+    // anthropic fails over independently in turn 2.
+    expect(await requestError(ctx, agent, { provider: 'anthropic', turn: 2 })).toEqual({ kind: 'retry' })
+    expect(await request(ctx, agent, { provider: 'anthropic', model: 'claude-3' }, 2)).toEqual({
+      provider: 'groq',
+      model: 'groq/llama-3',
+    })
   })
 })

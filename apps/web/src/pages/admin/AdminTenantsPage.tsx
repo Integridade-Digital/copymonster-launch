@@ -1,5 +1,5 @@
 import { formatDate } from '../../lib/format'
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '../../lib/supabase/client'
 import { t } from '../../locales'
 
@@ -12,6 +12,11 @@ interface Tenant {
   subscription_status?: string
 }
 
+interface ActionFeedback {
+  type: 'success' | 'error'
+  message: string
+}
+
 export function AdminTenantsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -19,12 +24,13 @@ export function AdminTenantsPage() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'suspended'>('all')
+  const [actionFeedback, setActionFeedback] = useState<ActionFeedback | null>(null)
 
   useEffect(() => {
     loadTenants()
   }, [])
 
-  async function loadTenants() {
+  const loadTenants = useCallback(async () => {
     try {
       setIsLoading(true)
       const { data, error } = await supabase
@@ -39,11 +45,11 @@ export function AdminTenantsPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [])
+
+  const clearActionFeedback = () => setActionFeedback(null)
 
   async function handleSuspendTenant(tenantId: string) {
-    if (!confirm(t('admin.tenants.suspendConfirm'))) return
-
     try {
       const { error } = await supabase
         .from('tenants')
@@ -51,9 +57,13 @@ export function AdminTenantsPage() {
         .eq('id', tenantId)
 
       if (error) throw error
+      setActionFeedback({ type: 'success', message: t('admin.tenants.suspendedSuccess') })
       loadTenants()
     } catch (err: unknown) {
-      alert(t('admin.tenants.suspendFailure', { reason: err instanceof Error ? err.message : String(err) }))
+      setActionFeedback({
+        type: 'error',
+        message: t('admin.tenants.suspendFailure', { reason: err instanceof Error ? err.message : String(err) }),
+      })
     }
   }
 
@@ -65,9 +75,13 @@ export function AdminTenantsPage() {
         .eq('id', tenantId)
 
       if (error) throw error
+      setActionFeedback({ type: 'success', message: t('admin.tenants.activatedSuccess') })
       loadTenants()
     } catch (err: unknown) {
-      alert(t('admin.tenants.activateFailure', { reason: err instanceof Error ? err.message : String(err) }))
+      setActionFeedback({
+        type: 'error',
+        message: t('admin.tenants.activateFailure', { reason: err instanceof Error ? err.message : String(err) }),
+      })
     }
   }
 
@@ -122,6 +136,13 @@ export function AdminTenantsPage() {
       {error && (
         <div className="adminNotice adminNoticeError">
           <span>{error}</span>
+        </div>
+      )}
+
+      {actionFeedback && (
+        <div className={`adminNotice ${actionFeedback.type === 'success' ? 'adminNoticeSuccess' : 'adminNoticeError'}`}>
+          <span>{actionFeedback.message}</span>
+          <button onClick={clearActionFeedback} className="adminNoticeDismiss" aria-label={t('common.close')}>✕</button>
         </div>
       )}
 
@@ -260,17 +281,19 @@ function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCrea
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
   const [isCreating, setIsCreating] = useState(false)
+  const [modalError, setModalError] = useState<string | null>(null)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setIsCreating(true)
+    setModalError(null)
 
     try {
       const { error } = await supabase.from('tenants').insert([{ name, slug }])
       if (error) throw error
       onCreated()
     } catch (err: unknown) {
-      alert(t('admin.tenants.createFailure', { reason: err instanceof Error ? err.message : String(err) }))
+      setModalError(t('admin.tenants.createFailure', { reason: err instanceof Error ? err.message : String(err) }))
     } finally {
       setIsCreating(false)
     }
@@ -291,6 +314,11 @@ function CreateTenantModal({ onClose, onCreated }: { onClose: () => void; onCrea
           </button>
         </div>
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {modalError && (
+            <div className="adminNotice adminNoticeError">
+              <span>{modalError}</span>
+            </div>
+          )}
           <div>
             <label className="adminFieldLabel">{t('admin.common.name')}</label>
             <input

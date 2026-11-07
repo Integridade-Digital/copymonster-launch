@@ -8,7 +8,7 @@ import { AdminSessionsTab } from '../../pages/admin/tabs/AdminSessionsTab'
 import { AdminAuditTab } from '../../pages/admin/tabs/AdminAuditTab'
 import { AdminBillingTab } from '../../pages/admin/tabs/AdminBillingTab'
 import { AdminAffiliates } from '../../pages/admin/tabs/AdminAffiliates'
-import { t } from '../../locales'
+import { t, type TranslationKey } from '../../locales'
 import css from './FooterActionsRoot.module.css'
 
 interface AdminModalProps {
@@ -55,7 +55,7 @@ export function AdminModal({ isOpen, onClose, triggerRef, isPlatformAdmin }: Adm
 
   const isAuthorized = isPlatformAdmin === true
   const activeTabConfig = ADMIN_TABS.find(t => t.key === activeTab) || ADMIN_TABS[0]
-  const activeTabTitle = activeTab === 'affiliates' ? t('admin.affiliates.title') : activeTabConfig ? t(`admin.tab.${activeTab === 'system' ? 'settings' : activeTab}` as string) : t('admin.tab.overview')
+  const activeTabTitle = activeTab === 'affiliates' ? t('admin.affiliates.title') : activeTabConfig ? t(`admin.tab.${activeTab === 'system' ? 'settings' : activeTab}` as TranslationKey) : t('admin.tab.overview')
 
   return (
     <div className={css.overlay} role="presentation">
@@ -76,7 +76,7 @@ export function AdminModal({ isOpen, onClose, triggerRef, isPlatformAdmin }: Adm
               <div className={css.railList}>
                 {ADMIN_TABS.map((tab) => {
                   const isActive = activeTab === tab.key
-                  const label = tab.key === 'affiliates' ? t('admin.affiliates.title') : t(`admin.tab.${tab.key === 'system' ? 'settings' : tab.key}` as string)
+                  const label = tab.key === 'affiliates' ? t('admin.affiliates.title') : t(`admin.tab.${tab.key === 'system' ? 'settings' : tab.key}` as TranslationKey)
                   return (
                     <button
                       key={tab.key}

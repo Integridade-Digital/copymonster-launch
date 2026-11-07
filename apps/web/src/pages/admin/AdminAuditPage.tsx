@@ -1,5 +1,5 @@
 import { formatDateTime } from '../../lib/format'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import { supabase } from '../../lib/supabase/client'
 import { t } from '../../locales'
 
@@ -15,6 +15,22 @@ interface AuditLog {
   ip_address: string | null
   user_agent: string | null
   created_at: string
+}
+
+interface AuditKPIs {
+  total: number
+  creations: number
+  updates: number
+  deletions: number
+  security: number
+}
+
+interface KPIsRow {
+  total: number
+  creations: number
+  updates: number
+  deletions: number
+  security: number
 }
 
 function AuditValueBlock({ label, value }: { label: string; value: unknown }) {
@@ -36,13 +52,43 @@ export function AdminAuditPage() {
   const [resourceFilter, setResourceFilter] = useState<string>('')
   const [page, setPage] = useState(0)
   const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null)
+  const [kpis, setKpis] = useState<AuditKPIs | null>(null)
+  const [totalCount, setTotalCount] = useState<number>(0)
   const pageSize = 25
 
-  useEffect(() => {
-    loadAuditLogs()
-  }, [actionFilter, page])
+  const loadKPIs = useCallback(async () => {
+    try {
+      const { data, error } = await (supabase.rpc as unknown as (name: string) => Promise<{ data: KPIsRow[] | null; error: unknown }>)('get_admin_audit_kpis')
+      if (error) throw error
+      if (data && data.length > 0) {
+        const row = data[0]
+        setKpis({
+          total: Number(row?.total ?? 0),
+          creations: Number(row?.creations ?? 0),
+          updates: Number(row?.updates ?? 0),
+          deletions: Number(row?.deletions ?? 0),
+          security: Number(row?.security ?? 0),
+        })
+      }
+    } catch (err: unknown) {
+      console.error('[AdminAuditPage] Error loading KPIs:', err)
+    }
+  }, [])
 
-  async function loadAuditLogs() {
+  const loadTotalCount = useCallback(async () => {
+    try {
+      const { data, error } = await (supabase.rpc as unknown as (name: string, params: { p_action: string | null; p_resource_type: string | null }) => Promise<{ data: number | null; error: unknown }>)('get_admin_audit_count', {
+        p_action: actionFilter || null,
+        p_resource_type: resourceFilter || null,
+      })
+      if (error) throw error
+      setTotalCount(Number(data ?? 0))
+    } catch (err: unknown) {
+      console.error('[AdminAuditPage] Error loading total count:', err)
+    }
+  }, [actionFilter, resourceFilter])
+
+  const loadAuditLogs = useCallback(async () => {
     try {
       setIsLoading(true)
       let query = supabase
@@ -63,21 +109,26 @@ export function AdminAuditPage() {
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [actionFilter, page])
 
-  const kpis = useMemo(() => {
-    const total = logs.length
-    const create = logs.filter(l => l.action.toLowerCase().includes('create') || l.action.toLowerCase().includes('insert')).length
-    const update = logs.filter(l => l.action.toLowerCase().includes('update')).length
-    const del = logs.filter(l => l.action.toLowerCase().includes('delete') || l.action.toLowerCase().includes('archive')).length
-    const auth = logs.filter(l => l.action.toLowerCase().includes('login') || l.action.toLowerCase().includes('auth')).length
-    return { total, create, update, del, auth }
-  }, [logs])
+  useEffect(() => {
+    loadKPIs()
+  }, [loadKPIs])
+
+  useEffect(() => {
+    loadTotalCount()
+  }, [loadTotalCount])
+
+  useEffect(() => {
+    loadAuditLogs()
+  }, [loadAuditLogs])
 
   const filteredLogs = useMemo(() => {
     if (!resourceFilter) return logs
     return logs.filter(l => (l.resource_type || '').toLowerCase().includes(resourceFilter.toLowerCase()))
   }, [logs, resourceFilter])
+
+  const totalPages = Math.max(1, Math.ceil(totalCount / pageSize))
 
   return (
     <div className="adminTabBody">
@@ -86,7 +137,7 @@ export function AdminAuditPage() {
           <div className="adminTabTitleRow">
             <p className="adminTabSubtitle">{t('admin.audit.subtitle')}</p>
             <span className="adminBadge adminBadgePrimary">
-              {t('admin.audit.pageTotal')}: {kpis.total}
+              {t('admin.audit.total')}: {kpis?.total ?? 0}
             </span>
           </div>
         </div>
@@ -100,28 +151,28 @@ export function AdminAuditPage() {
 
       <div className="adminGrid">
         <div className="adminCard">
-          <div className="adminCardLabel">{t('admin.audit.pageTotal')}</div>
-          <div className="adminCardValue">{kpis.total}</div>
-          <div className="adminCardSub">{t('admin.audit.loadedRecords')}</div>
+          <div className="adminCardLabel">{t('admin.audit.total')}</div>
+          <div className="adminCardValue">{kpis?.total ?? 0}</div>
+          <div className="adminCardSub">{t('admin.audit.totalHint')}</div>
         </div>
         <div className="adminCard">
           <div className="adminCardLabel">{t('admin.audit.creations')}</div>
-          <div className="adminCardValue" style={{ color: 'var(--cm-success)' }}>{kpis.create}</div>
+          <div className="adminCardValue" style={{ color: 'var(--cm-success)' }}>{kpis?.creations ?? 0}</div>
           <div className="adminCardSub">{t('admin.audit.creationsHint')}</div>
         </div>
         <div className="adminCard">
           <div className="adminCardLabel">{t('admin.audit.updates')}</div>
-          <div className="adminCardValue" style={{ color: 'var(--cm-primary)' }}>{kpis.update}</div>
+          <div className="adminCardValue" style={{ color: 'var(--cm-primary)' }}>{kpis?.updates ?? 0}</div>
           <div className="adminCardSub">{t('admin.audit.updatesHint')}</div>
         </div>
         <div className="adminCard">
           <div className="adminCardLabel">{t('admin.audit.deletions')}</div>
-          <div className="adminCardValue" style={{ color: 'var(--cm-destructive)' }}>{kpis.del}</div>
+          <div className="adminCardValue" style={{ color: 'var(--cm-destructive)' }}>{kpis?.deletions ?? 0}</div>
           <div className="adminCardSub">{t('admin.audit.deletionsHint')}</div>
         </div>
         <div className="adminCard">
           <div className="adminCardLabel">{t('admin.audit.security')}</div>
-          <div className="adminCardValue" style={{ color: 'var(--cm-foreground)' }}>{kpis.auth}</div>
+          <div className="adminCardValue" style={{ color: 'var(--cm-foreground)' }}>{kpis?.security ?? 0}</div>
           <div className="adminCardSub">{t('admin.audit.securityHint')}</div>
         </div>
       </div>
@@ -220,7 +271,7 @@ export function AdminAuditPage() {
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: '12px', padding: '12px 16px', borderTop: '1px solid var(--cm-border)', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
-          <div>{t('admin.common.page')} {page + 1}</div>
+          <div>{t('admin.common.page')} {page + 1} {t('admin.common.of')} {totalPages}</div>
           <div style={{ display: 'flex', gap: '8px' }}>
             <button
               onClick={() => setPage(p => Math.max(0, p - 1))}
@@ -231,10 +282,10 @@ export function AdminAuditPage() {
               {t('admin.common.previous')}
             </button>
             <button
-              onClick={() => setPage(p => p + 1)}
-              disabled={logs.length < pageSize || isLoading}
+              onClick={() => setPage(p => Math.min(totalPages - 1, p + 1))}
+              disabled={page >= totalPages - 1 || isLoading}
               className="adminRowButton"
-              style={{ opacity: (logs.length < pageSize || isLoading) ? 0.4 : 1 }}
+              style={{ opacity: (page >= totalPages - 1 || isLoading) ? 0.4 : 1 }}
             >
               {t('admin.common.next')}
             </button>

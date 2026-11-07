@@ -99,6 +99,7 @@ export function AdminSystemTab() {
   const [formPrefixType, setFormPrefixType] = useState<'feature' | 'limit' | 'quota' | 'llm' | 'other'>('feature')
   const [formError, setFormError] = useState<string | null>(null)
   const [isMutating, setIsMutating] = useState<boolean>(false)
+  const [llmSaveFeedback, setLlmSaveFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
   const handleCopyText = (text: string, key: string) => {
     if (!navigator?.clipboard?.writeText) return
@@ -227,8 +228,9 @@ export function AdminSystemTab() {
       })
       if (error) throw new Error(error.message)
       await loadData(true)
+      setLlmSaveFeedback({ type: 'success', message: t('admin.system.llm.savedSuccess') })
     } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : t('admin.system.llm.saveFailure'))
+      setLlmSaveFeedback({ type: 'error', message: err instanceof Error ? err.message : t('admin.system.llm.saveFailure') })
     } finally {
       setIsMutating(false)
     }
@@ -1065,6 +1067,12 @@ export function AdminSystemTab() {
           </div>
         ) : (
           <>
+            {llmSaveFeedback && (
+              <div className={`adminNotice ${llmSaveFeedback.type === 'success' ? 'adminNoticeSuccess' : 'adminNoticeError'}`}>
+                <span>{llmSaveFeedback.message}</span>
+                <button onClick={() => setLlmSaveFeedback(null)} className="adminNoticeDismiss" aria-label={t('common.close')}>✕</button>
+              </div>
+            )}
             {/* ---- Central LLM routing: model masking ---- */}
             <div className="adminSubCard">
               <h4 className="adminSectionTitle">{t('admin.system.llm.maskTitle')}</h4>

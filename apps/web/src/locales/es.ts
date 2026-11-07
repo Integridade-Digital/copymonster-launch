@@ -125,4 +125,13 @@ export const es = {
   'admin.tab.sessions': 'Sesiones',
   'admin.tab.audit': 'Auditoría',
   'admin.tab.billing': 'Facturación',
+  'settings.models.title': 'Model CopyMonster',
+  'settings.models.subtitle': 'Motor de copywriting y embudos de alto rendimiento con failover automatizado.',
+  'settings.models.virtual': 'Modelo virtual',
+  'settings.models.whatYouSee': 'Lo que ves',
+  'settings.models.onlyVirtualModel': 'Solo "{model}" está disponible en el seleccionador de modelos.',
+  'settings.models.realNamesHidden': 'Los nombres reales de proveedor y modelo están enmascarados; nunca llegan a tu navegador.',
+  'settings.models.failoverTransparent': 'El failover entre proveedores ocurre automáticamente sin interrumpir tu sesión.',
+  'settings.models.adminTitle': 'Configuración de administrador',
+  'settings.models.adminHint': 'La ruta primaria, cadena de failover y delegación ligera se gestionan en Admin > Configuración del sistema > Enrutamiento central de LLM.',
 } satisfies Record<keyof typeof en, string>

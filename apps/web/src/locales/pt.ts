@@ -166,6 +166,17 @@ export const pt = {
   'settings.dna.error': 'Não foi possível carregar seus DNAs. Tente novamente.',
   'settings.dna.empty': 'Nenhum DNA ainda. Crie seu primeiro mapeamento de posicionamento de marca.',
 
+  // Models (CopyMonster virtual model)
+  'settings.models.title': 'Model CopyMonster',
+  'settings.models.subtitle': 'Motor de copywriting e funis de alta conversão com failover automático.',
+  'settings.models.virtual': 'Modelo virtual',
+  'settings.models.whatYouSee': 'O que você vê',
+  'settings.models.onlyVirtualModel': 'Apenas "{model}" está disponível no seletor de modelos.',
+  'settings.models.realNamesHidden': 'Nomes reais de provedor e modelo estão mascarados; nunca chegam ao seu navegador.',
+  'settings.models.failoverTransparent': 'O failover entre provedores acontece automaticamente sem interromper sua sessão.',
+  'settings.models.adminTitle': 'Configuração do administrador',
+  'settings.models.adminHint': 'Rota primária, cadeia de failover e delegação leve são gerenciadas em Admin > Configurações do Sistema > Roteamento Central de LLM.',
+
   // Affiliate and admin affiliate workspace
   'affiliate.title': 'Programa de afiliados',
   'affiliate.subtitle': 'Acompanhe indicações, comissões e elegibilidade de saque.',

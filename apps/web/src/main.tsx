@@ -7,6 +7,7 @@ import { installImSettingsHidden } from './components/im/installImSettingsHidden
 import { ProfilePage } from './pages/ProfilePage'
 import { PlansPage } from './pages/billing/PlansPage'
 import { MyDnaPage } from './pages/settings/MyDnaPage'
+import { ModelsPage } from './pages/settings/ModelsPage'
 import { AffiliateSettings } from './pages/settings/AffiliateSettings'
 import { captureAffiliateRef } from './lib/affiliate'
 /** Browser entry for the Web client. */
@@ -300,6 +301,12 @@ const LazyWebApp = React.lazy(async () => {
               yield ctx.slots.register(
                 { name: 'settings.my-dna.item', id: 'copymonster-settings-my-dna', order: 0 },
                 MyDnaSettingsItem,
+              )
+            })
+            ctx.slots.inject('settings.models.item', function* () {
+              yield ctx.slots.register(
+                { name: 'settings.models.item', id: 'copymonster-settings-models', order: 0 },
+                () => <ModelsPage isAdmin={clientAuth.__DSH_AUTH__?.isAdmin === true} />,
               )
             })
             installDnaOnboarding(ctx)

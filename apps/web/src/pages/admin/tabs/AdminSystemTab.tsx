@@ -58,6 +58,7 @@ export function AdminSystemTab() {
   const [limitSearchQuery, setLimitSearchQuery] = useState<string>('')
   const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState<string>('')
   const [storageWsSearchQuery, setStorageWsSearchQuery] = useState<string>('')
+  const [llmSearchQuery, setLlmSearchQuery] = useState<string>('')
 
   const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false)
   const [isDeleteConfigModalOpen, setIsDeleteConfigModalOpen] = useState<boolean>(false)
@@ -69,7 +70,7 @@ export function AdminSystemTab() {
   const [formKey, setFormKey] = useState<string>('')
   const [formValueStr, setFormValueStr] = useState<string>('')
   const [formDescription, setFormDescription] = useState<string>('')
-  const [formPrefixType, setFormPrefixType] = useState<'feature' | 'limit' | 'quota' | 'other'>('feature')
+  const [formPrefixType, setFormPrefixType] = useState<'feature' | 'limit' | 'quota' | 'llm' | 'other'>('feature')
   const [formError, setFormError] = useState<string | null>(null)
   const [isMutating, setIsMutating] = useState<boolean>(false)
 
@@ -142,6 +143,18 @@ export function AdminSystemTab() {
     }).length
   }, [featureFlags])
   const totalLimitsCount = limitConfigs.length
+
+  const llmConfigs = useMemo(() => {
+    return configs.filter(c => c.key.startsWith('llm.'))
+  }, [configs])
+
+  const filteredLlm = useMemo(() => {
+    const q = llmSearchQuery.toLowerCase().trim()
+    if (!q) return llmConfigs
+    return llmConfigs.filter(
+      l => l.key.toLowerCase().includes(q) || (l.description && l.description.toLowerCase().includes(q)),
+    )
+  }, [llmConfigs, llmSearchQuery])
   const totalWorkspacesCount = workspaces.length
 
   const maskedSupabaseUrl = useMemo(() => {
@@ -155,18 +168,27 @@ export function AdminSystemTab() {
     }
   }, [])
 
-  const openCreateConfigModal = (type: 'feature' | 'limit' | 'quota') => {
+  const openCreateConfigModal = (type: 'feature' | 'limit' | 'quota' | 'llm') => {
     setSelectedConfig(null)
     setFormPrefixType(type)
-    setFormKey(type === 'feature' ? 'feature.' : type === 'limit' ? 'limit.' : 'quota.')
-    setFormValueStr(type === 'feature' ? '{"enabled": true}' : '1000')
+    setFormKey(
+      type === 'feature' ? 'feature.'
+        : type === 'limit' ? 'limit.'
+          : type === 'quota' ? 'quota.'
+            : 'llm.',
+    )
+    setFormValueStr(
+      type === 'feature' ? '{"enabled": true}'
+        : type === 'limit' || type === 'quota' ? '1000'
+          : '{"provider": "deepseek-official", "model": "deepseek-chat"}',
+    )
     setFormDescription('')
     setFormError(null)
     setIsConfigModalOpen(true)
   }
 
   const openEditConfigModal = (item: SystemConfigItem) => {
-    if (item.is_secret || item.key === 'LLM_ENCRYPTION_KEY' || item.key.startsWith('system.')) {
+    if (item.is_secret || item.key === 'LLM_ENCRYPTION_KEY' || item.key.startsWith('system.') || item.key.startsWith('llm.mask')) {
       alert(t('admin.system.protectedEdit'))
       return
     }
@@ -181,7 +203,7 @@ export function AdminSystemTab() {
   }
 
   const openDeleteConfigModal = (item: SystemConfigItem) => {
-    if (item.is_secret || item.key === 'LLM_ENCRYPTION_KEY' || item.key.startsWith('system.')) {
+    if (item.is_secret || item.key === 'LLM_ENCRYPTION_KEY' || item.key.startsWith('system.') || item.key.startsWith('llm.mask')) {
       alert(t('admin.system.protectedDelete'))
       return
     }
@@ -242,7 +264,7 @@ export function AdminSystemTab() {
       setFormError(t('admin.system.keyRequired'))
       return
     }
-    if (key === 'LLM_ENCRYPTION_KEY' || key.startsWith('system.')) {
+    if (key === 'LLM_ENCRYPTION_KEY' || key.startsWith('system.') || key.startsWith('llm.mask')) {
       setFormError(t('admin.system.reservedEdit'))
       return
     }
@@ -919,6 +941,105 @@ export function AdminSystemTab() {
             </div>
           )}
         </div>
+      </div>
+
+      <div style={{ background: 'var(--cm-card)', border: '1px solid var(--cm-border)', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span style={{ color: 'var(--cm-primary)', fontSize: '14px' }}>🤖</span>
+              <h3 style={{ fontSize: '14px', fontWeight: 600, color: 'var(--cm-foreground)', margin: 0 }}>{t('admin.system.llm.title')}</h3>
+            </div>
+            <p style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)', margin: '4px 0 0 0' }}>
+              {t('admin.system.llm.subtitle')}
+            </p>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <input
+              type="text"
+              value={llmSearchQuery}
+              onChange={e => setLlmSearchQuery(e.target.value)}
+              placeholder={t('admin.system.searchLlm')}
+              className="adminInput"
+              style={{ width: '200px', marginBottom: 0 }}
+            />
+            <button
+              type="button"
+              onClick={() => openCreateConfigModal('llm')}
+              className="adminButton"
+              style={{ fontSize: '12px' }}
+            >
+              {t('admin.system.newParam', { type: 'llm' })}
+            </button>
+          </div>
+        </div>
+
+        {isLoading ? (
+          <div style={{ padding: '24px', textAlign: 'center', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
+            <span style={{ display: 'inline-block', width: '14px', height: '14px', border: '2px solid var(--cm-border)', borderTopColor: 'var(--cm-primary)', borderRadius: '50%', marginRight: '8px', animation: 'cm-auth-spin 0.7s linear infinite' }} />
+            {t('admin.system.loadingLlm')}
+          </div>
+        ) : filteredLlm.length === 0 ? (
+          <div style={{ padding: '24px', textAlign: 'center', borderRadius: '8px', border: '1px dashed var(--cm-border)', background: 'color-mix(in srgb, var(--cm-background) 30%, transparent)', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
+            {t('admin.system.emptyLlm')}
+          </div>
+        ) : (
+          <div className="adminCard" style={{ padding: 0, overflow: 'hidden' }}>
+            <table className="adminTable">
+              <thead>
+                <tr>
+                  <th>{t('admin.common.key')}</th>
+                  <th>{t('admin.common.valueOrState')}</th>
+                  <th>{t('admin.common.description')}</th>
+                  <th>{t('admin.common.updatedAt')}</th>
+                  <th style={{ textAlign: 'right' }}>{t('admin.common.actions')}</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLlm.map(item => (
+                  <tr key={item.key}>
+                    <td style={{ fontFamily: 'monospace', fontWeight: 500, color: 'var(--cm-foreground)' }}>
+                      {item.key}
+                    </td>
+                    <td style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cm-primary)', fontWeight: 500, maxWidth: '220px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'inline-block' }}>
+                      {typeof item.value === 'object' ? JSON.stringify(item.value as unknown) : String(item.value)}
+                    </td>
+                    <td style={{ color: 'var(--cm-muted-foreground)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                      {item.description || '—'}
+                    </td>
+                    <td style={{ color: 'var(--cm-muted-foreground)', whiteSpace: 'nowrap' }}>
+                      {formatDate(item.updated_at)}
+                    </td>
+                    <td style={{ textAlign: 'right' }}>
+                      <div style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+                        <button
+                          type="button"
+                          onClick={() => openEditConfigModal(item)}
+                          style={{ height: '28px', padding: '0 10px', background: 'transparent', border: '1px solid var(--cm-border)', borderRadius: '6px', color: 'var(--cm-foreground)', cursor: 'pointer', fontSize: '11px' }}
+                        >
+                          {t('admin.common.edit')}
+                        </button>
+                        {item.key.startsWith('llm.mask') ? (
+                          <span style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)', padding: '0 6px', borderRadius: '4px', background: 'color-mix(in srgb, var(--cm-muted-foreground) 10%, transparent)' }}>
+                            {t('admin.system.llm.maskProtected')}
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            onClick={() => openDeleteConfigModal(item)}
+                            style={{ height: '28px', padding: '0 10px', background: 'color-mix(in srgb, var(--cm-destructive) 10%, transparent)', border: '1px solid color-mix(in srgb, var(--cm-destructive) 30%, transparent)', borderRadius: '6px', color: 'var(--cm-destructive)', cursor: 'pointer', fontSize: '11px' }}
+                          >
+                            {t('admin.common.delete')}
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
 
       {isConfigModalOpen && (

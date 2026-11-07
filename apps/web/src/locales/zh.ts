@@ -166,6 +166,17 @@ export const zh = {
   'settings.dna.error': '无法加载您的 DNA，请重试。',
   'settings.dna.empty': '还没有 DNA。创建您的第一个品牌定位映射。',
 
+  // Models (CopyMonster virtual model)
+  'settings.models.title': 'Model CopyMonster',
+  'settings.models.subtitle': '高性能文案和漏斗引擎，支持自动故障转移。',
+  'settings.models.virtual': '虚拟模型',
+  'settings.models.whatYouSee': '您看到的内容',
+  'settings.models.onlyVirtualModel': '模型选择器中仅提供“{model}”。',
+  'settings.models.realNamesHidden': '真实提供商和模型名称已掩码；它们永远不会到达您的浏览器。',
+  'settings.models.failoverTransparent': '提供商之间的故障转移会自动发生，不会中断您的会话。',
+  'settings.models.adminTitle': '管理员配置',
+  'settings.models.adminHint': '主路由、故障转移链和轻量级委托在 Admin > Settings (System) > Central LLM Routing 中管理。',
+
   // Affiliate and admin affiliate workspace
   'affiliate.title': '联盟计划',
   'affiliate.subtitle': '跟踪推荐、佣金和提现资格。',

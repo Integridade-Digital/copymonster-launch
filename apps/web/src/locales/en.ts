@@ -166,6 +166,17 @@ export const en = {
   'settings.dna.error': 'Could not load your DNAs. Please try again.',
   'settings.dna.empty': 'No DNA yet. Create your first brand positioning mapping.',
 
+  // Models (CopyMonster virtual model)
+  'settings.models.title': 'Model CopyMonster',
+  'settings.models.subtitle': 'High-performance copywriting and funnel engine with automated failover.',
+  'settings.models.virtual': 'Virtual model',
+  'settings.models.whatYouSee': 'What you see',
+  'settings.models.onlyVirtualModel': 'Only "{model}" is available in the model picker.',
+  'settings.models.realNamesHidden': 'Real provider and model names are masked; they never reach your browser.',
+  'settings.models.failoverTransparent': 'Failover between providers happens automatically without interrupting your session.',
+  'settings.models.adminTitle': 'Admin configuration',
+  'settings.models.adminHint': 'Primary route, fallback chain, and lightweight delegation are managed in Admin > Settings (System) > Central LLM Routing.',
+
   // Affiliate and admin affiliate workspace
   'affiliate.title': 'Affiliate program',
   'affiliate.subtitle': 'Track referrals, commissions and payout eligibility.',

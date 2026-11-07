@@ -5,6 +5,7 @@ import type {
   HostObservable, InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime,
 } from '@deepseek-ai/dsh-client-ui-slots'
 import type { PluginsSettingsLocaleKey } from './locales.ts'
+import { isPlatformAdmin } from '@deepseek-ai/dsh-client-ui-primitives'
 import css from './PluginsSettingsSection.module.css'
 
 /** One tab projected from a `settings.plugins.tab` contribution. */
@@ -33,10 +34,20 @@ export type PluginsSettingsSectionProps =
 export function PluginsSettingsSection({ t, renderSlot, useTabs }: PluginsSettingsSectionProps) {
   const tabsId = useId()
   const tabRefs = useRef<Array<HTMLButtonElement | null>>([])
-  const rows = useTabs(value => value)
+  const allRows = useTabs(value => value)
+  // Hide the CopyMonster Market tab (id: "dsh-market") for non-admin users.
+  const isAdmin = isPlatformAdmin()
+  const MARKET_TAB_ID = 'dsh-market'
+  const rows = isAdmin ? allRows : allRows.filter(row => row.id !== MARKET_TAB_ID)
   const [activeId, setActiveId] = useState<string>()
   const [visitedIds, setVisitedIds] = useState<ReadonlySet<string>>(() => new Set())
   const active = rows.find(row => row.id === activeId)?.id ?? rows[0]?.id
+  // If a non-admin user somehow has the market tab selected (e.g., via URL), redirect to first available tab.
+  useEffect(() => {
+    if (!isAdmin && activeId === MARKET_TAB_ID) {
+      setActiveId(rows[0]?.id)
+    }
+  }, [isAdmin, activeId, rows])
   const single = rows.length === 1 ? rows[0] : undefined
 
   // A tab mounts only when first selected, then stays mounted while hidden so

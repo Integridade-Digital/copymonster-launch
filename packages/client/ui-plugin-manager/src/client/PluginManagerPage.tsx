@@ -19,6 +19,7 @@ import {
   PluginArtworkDefault, PluginArtworkLoop, PluginArtworkSearch, PluginArtworkSubagent, PluginArtworkTerminal,
   SegmentedTabs, StateDot, Switch, Tag, TerminalBlock, Toast, Tooltip, useAnchoredPosition, useDismissOnOutsidePointer,
   type IconProps, type StateDotState, type TerminalBlockLabels,
+  isPlatformAdmin,
 } from '@deepseek-ai/dsh-client-ui-primitives'
 import type { InjectFace, PropsLocale, PropsRenderSlots, PropsRuntime, PropsStore } from '@deepseek-ai/dsh-client-ui-slots'
 import { EXTENSION_BUNDLES, HIDDEN_BUNDLES, MORE_BUNDLES } from '@deepseek-ai/dsh-official-bundles'
@@ -1512,13 +1513,22 @@ export function PluginManagerPage(props: PluginManagerPageProps): ReactNode {
   const ledger = props.useConfigLedger(snapshot => snapshot)
   // What is open; a package that leaves the list (uninstalled) drops back to the cards.
   const view = props.useStore(state => state.view), { setView, setTab } = props.actions
-  const tabs = props.usePluginTabs(snapshot => snapshot)
+  const allTabs = props.usePluginTabs(snapshot => snapshot)
   const bundleDetails = props.useBundleDetails(snapshot => snapshot)
   const language = props.useLocale(snapshot => snapshot.active)
   const selectedTab = props.useStore(state => state.tab)
+  // Hide the CopyMonster Market tab (id: "dsh-market") for non-admin users.
+  const isAdmin = isPlatformAdmin()
+  const MARKET_TAB_ID = 'dsh-market'
+  const tabs = isAdmin ? allTabs : allTabs.filter(t => t.id !== MARKET_TAB_ID)
   // A contributed tab that left the ledger falls back to Installed, and stays there when it returns.
+  // Also redirect non-admin users away from the market tab if they somehow have it selected.
   const tab = tabs.some(item => item.id === selectedTab) ? selectedTab : INSTALLED_TAB
-  useEffect(() => { if (tab !== selectedTab) setTab(tab) }, [tab, selectedTab, setTab])
+  useEffect(() => {
+    if (tab !== selectedTab) setTab(tab)
+    // If a non-admin user has the market tab selected (e.g., via URL), redirect to Installed.
+    else if (!isAdmin && selectedTab === MARKET_TAB_ID) setTab(INSTALLED_TAB)
+  }, [tab, selectedTab, setTab, isAdmin])
   const tabsId = useId()
   const [activation, setActivation] = useState<string | null>(null)
   const [headerRef] = useState(props.createHeaderRef)

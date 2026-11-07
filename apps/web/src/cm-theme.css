@@ -177,8 +177,12 @@ div[data-settings-section="zernio-mcp"] {
  * 12px radius, 16px inset, no shadow. Selectors name one section surface each
  * so no rule reaches nested controls or unrelated sections. */
 [data-settings-section="profile"] .cm-settings-profile-card,
+[data-settings-section="profile"] [data-slot="settings.section"] > div,
 [data-settings-section="plans"] .cm-plan-card,
+[data-settings-section="plans"] [data-slot="settings.section"] > div,
 [data-settings-section="my-dna"] .cm-settings-dna-card,
+[data-settings-section="my-dna"] [data-slot="settings.section"] > div,
+[data-settings-section="affiliate"] [data-slot="settings.section"] > div,
 [data-settings-section="scheduled-tasks"] .dsh-st-card,
 [data-settings-section="scheduled-tasks"] .dsh-st-example,
 [data-settings-section="scheduled-tasks"] .dsh-st-prompt-card,

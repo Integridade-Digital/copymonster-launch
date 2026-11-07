@@ -238,15 +238,27 @@ function ProfileSettingsItem() {
 }
 
 function PlansSettingsItem() {
-  return <PlansPage />
+  return (
+    <div className="cm-settings-page">
+      <PlansPage />
+    </div>
+  )
 }
 
 function MyDnaSettingsItem() {
-  return <MyDnaPage onClose={() => {}} />
+  return (
+    <div className="cm-settings-page">
+      <MyDnaPage onClose={() => {}} />
+    </div>
+  )
 }
 
 function AffiliateSettingsItem() {
-  return <AffiliateSettings />
+  return (
+    <div className="cm-settings-page">
+      <AffiliateSettings />
+    </div>
+  )
 }
 
 const LazyWebApp = React.lazy(async () => {

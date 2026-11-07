@@ -35,18 +35,60 @@ describe('extractText', () => {
 })
 
 describe('resolveCallbackUrl', () => {
-  it('uses the loopback Host header', () => {
+  it('uses X-Forwarded-Host and X-Forwarded-Proto when present (priority 1)', () => {
+    expect(
+      resolveCallbackUrl(
+        {
+          headers: {
+            host: '127.0.0.1:44869',
+            'x-forwarded-host': 'campaign.copymonster.co',
+            'x-forwarded-proto': 'https',
+          },
+        },
+        44869,
+        'https://campaign.copymonster.co',
+      ),
+    ).toBe('https://campaign.copymonster.co/api/dsh-zernio-mcp/oauth/callback')
+  })
+
+  it('defaults X-Forwarded-Proto to https when absent (priority 1)', () => {
+    expect(
+      resolveCallbackUrl(
+        { headers: { host: '127.0.0.1:44869', 'x-forwarded-host': 'campaign.copymonster.co' } },
+        44869,
+        undefined,
+      ),
+    ).toBe('https://campaign.copymonster.co/api/dsh-zernio-mcp/oauth/callback')
+  })
+
+  it('gives X-Forwarded-Host priority over publicOrigin and Host', () => {
+    expect(
+      resolveCallbackUrl(
+        {
+          headers: {
+            host: '127.0.0.1:44869',
+            'x-forwarded-host': 'other.example',
+            'x-forwarded-proto': 'https',
+          },
+        },
+        44869,
+        'https://campaign.copymonster.co',
+      ),
+    ).toBe('https://other.example/api/dsh-zernio-mcp/oauth/callback')
+  })
+
+  it('uses the configured public origin when no X-Forwarded headers (priority 2)', () => {
+    expect(resolveCallbackUrl({ headers: { host: '127.0.0.1:3080' } }, 3080, 'https://app.copymonster.co'))
+      .toBe('https://app.copymonster.co/api/dsh-zernio-mcp/oauth/callback')
+  })
+
+  it('uses the loopback Host header when no public origin (priority 3)', () => {
     expect(resolveCallbackUrl({ headers: { host: '127.0.0.1:3080' } }, 3080, undefined))
       .toBe('http://127.0.0.1:3080/api/dsh-zernio-mcp/oauth/callback')
   })
 
-  it('uses the configured public origin for its Host header', () => {
-    expect(resolveCallbackUrl({ headers: { host: 'app.copymonster.co' } }, 3080, 'https://app.copymonster.co'))
-      .toBe('https://app.copymonster.co/api/dsh-zernio-mcp/oauth/callback')
-  })
-
-  it('falls back to loopback for an untrusted Host header', () => {
-    expect(resolveCallbackUrl({ headers: { host: 'evil.example' } }, 3080, 'https://app.copymonster.co'))
+  it('falls back to loopback for an untrusted Host header without public origin (priority 3)', () => {
+    expect(resolveCallbackUrl({ headers: { host: 'evil.example' } }, 3080, undefined))
       .toBe('http://127.0.0.1:3080/api/dsh-zernio-mcp/oauth/callback')
   })
 })

@@ -31,6 +31,17 @@ const s = {
     fontWeight: 600,
     fontSize: '13px',
     margin: 0,
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '6px',
+  },
+  statusDot: {
+    display: 'inline-block',
+    width: '8px',
+    height: '8px',
+    borderRadius: '50%',
+    background: '#22c55e',
+    flexShrink: 0,
   },
   row: {
     display: 'flex',
@@ -168,9 +179,13 @@ export function ZernioMcpSettingsPanel({ t }: ZernioMcpSettingsPanelProps) {
   }
 
   const authorized = Boolean(view?.authorized)
+  const connected = Boolean(view?.connected)
   return (
     <div style={s.card}>
-      <p style={s.title}>{t('title')}</p>
+      <p style={s.title}>
+        {t('title')}
+        {connected && <span style={s.statusDot} aria-hidden="true" />}
+      </p>
       <p style={s.hint}>{t('description')}</p>
       <div style={s.row}>
         <button style={s.button} onClick={authorize} disabled={busy || authorized}>{t('authorize')}</button>

@@ -95,7 +95,16 @@ function isCallbackRequest(request: IncomingMessage, publicOrigin: string | unde
 
 /**
  * Resolve the callback URL the active flow should register.
- * @param request - OAuth start request (only its Host header is read).
+ *
+ * Resolution order:
+ *  1. `X-Forwarded-Host` (+ `X-Forwarded-Proto`, default `https`) — the public
+ *     origin the reverse proxy presents. This fixes `redirect_uri` being built
+ *     from the internal `Host` header when CopyMonster sits behind a proxy.
+ *  2. `publicOrigin` — configured public origin (cordis.patch.yml).
+ *  3. `Host` header — loopback or matching public origin hostname.
+ *  4. Loopback fallback — `http://127.0.0.1:<port>/...`.
+ *
+ * @param request - OAuth start request (reads Host and X-Forwarded-* headers).
  * @param port - loopback Host port.
  * @param publicOrigin - configured public origin, if any.
  * @returns an absolute callback URL.
@@ -105,6 +114,20 @@ export function resolveCallbackUrl(
   port: number,
   publicOrigin: string | undefined,
 ): string {
+  // Prioridade 1: cabeçalhos de proxy reverso (X-Forwarded-Host / X-Forwarded-Proto).
+  const forwardedHost = request.headers['x-forwarded-host']
+  if (typeof forwardedHost === 'string' && forwardedHost !== '') {
+    const proto =
+      typeof request.headers['x-forwarded-proto'] === 'string' && request.headers['x-forwarded-proto'] !== ''
+        ? request.headers['x-forwarded-proto']
+        : 'https'
+    return `${proto}://${forwardedHost}${ZERNIO_MCP_API.oauthCallback}`
+  }
+  // Prioridade 2: publicOrigin configurado.
+  if (publicOrigin !== undefined) {
+    return `${publicOrigin}${ZERNIO_MCP_API.oauthCallback}`
+  }
+  // Prioridade 3 (último recurso): Host da requisição.
   const host = request.headers.host
   if (typeof host === 'string') {
     try {

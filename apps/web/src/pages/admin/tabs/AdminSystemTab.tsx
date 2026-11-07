@@ -44,6 +44,40 @@ export interface StoragePathsData {
   }>
 }
 
+export interface LlmProvider {
+  id: string
+  name: string
+  provider_type: string
+  base_url: string | null
+  provider_route: string
+  api_key_env: string | null
+  is_active: boolean
+  allowed_plans: string[]
+  has_api_key: boolean
+  api_key_masked: string
+  created_at: string
+  updated_at: string
+}
+
+export interface LlmModel {
+  id: string
+  provider_id: string
+  provider_name: string
+  provider_type: string
+  provider_is_active: boolean
+  model_id: string
+  display_name: string
+  context_window: number
+  cost_input_1k: number
+  cost_output_1k: number
+  capabilities: Record<string, unknown>
+  is_default_for_plans: string[]
+  allowed_plans: string[]
+  is_active: boolean
+  created_at: string
+  updated_at: string
+}
+
 export function AdminSystemTab() {
   const [configs, setConfigs] = useState<SystemConfigItem[]>([])
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([])
@@ -89,6 +123,12 @@ export function AdminSystemTab() {
   const [isConfigModalOpen, setIsConfigModalOpen] = useState<boolean>(false)
   const [isDeleteConfigModalOpen, setIsDeleteConfigModalOpen] = useState<boolean>(false)
   const [isArchiveWorkspaceModalOpen, setIsArchiveWorkspaceModalOpen] = useState<boolean>(false)
+
+  // LLM Providers and Models state
+  const [llmProviders, setLlmProviders] = useState<LlmProvider[]>([])
+  const [llmModels, setLlmModels] = useState<LlmModel[]>([])
+  const [isLoadingProviders, setIsLoadingProviders] = useState<boolean>(true)
+  const [isLoadingModels, setIsLoadingModels] = useState<boolean>(false)
 
   const [selectedConfig, setSelectedConfig] = useState<SystemConfigItem | null>(null)
   const [selectedWorkspace, setSelectedWorkspace] = useState<WorkspaceItem | null>(null)
@@ -142,9 +182,52 @@ export function AdminSystemTab() {
     }
   }, [])
 
+  const loadProviders = useCallback(async () => {
+    setIsLoadingProviders(true)
+    try {
+      const { data, error } = await (supabase.rpc as unknown as (name: string) => Promise<{ data: LlmProvider[] | null; error: { message: string } | null }>)('get_admin_llm_providers')
+      if (error) throw new Error(error.message)
+      // Filter only active providers that have API keys configured
+      const activeProviders = (data || []).filter((p: LlmProvider) => p.is_active && p.has_api_key)
+      setLlmProviders(activeProviders)
+    } catch (err: unknown) {
+      console.error('Failed to load LLM providers:', err)
+    } finally {
+      setIsLoadingProviders(false)
+    }
+  }, [])
+
+  const loadModelsForProvider = useCallback(async (providerId: string) => {
+    setIsLoadingModels(true)
+    try {
+      const { data, error } = await (supabase.rpc as unknown as (name: string) => Promise<{ data: LlmModel[] | null; error: { message: string } | null }>)('get_admin_llm_models')
+      if (error) throw new Error(error.message)
+      // Filter models for the selected provider that are active
+      const providerModels = (data || []).filter(
+        (m: LlmModel) => m.provider_id === providerId && m.is_active && m.provider_is_active
+      )
+      setLlmModels(providerModels)
+    } catch (err: unknown) {
+      console.error('Failed to load LLM models:', err)
+      setLlmModels([])
+    } finally {
+      setIsLoadingModels(false)
+    }
+  }, [])
+
   useEffect(() => {
     loadData()
-  }, [loadData])
+    loadProviders()
+  }, [loadData, loadProviders])
+
+  // Load models when provider changes
+  useEffect(() => {
+    if (llmForm.primaryProvider) {
+      loadModelsForProvider(llmForm.primaryProvider)
+    } else {
+      setLlmModels([])
+    }
+  }, [llmForm.primaryProvider, loadModelsForProvider])
 
   const handleRefresh = () => {
     setIsRefreshing(true)
@@ -1125,158 +1208,222 @@ export function AdminSystemTab() {
             {/* ---- Central LLM routing: primary route ---- */}
             <div className="adminSubCard">
               <h4 className="adminSectionTitle">{t('admin.system.llm.primaryTitle')}</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '6px' }}>
-                <div>
-                  <label className="adminFieldLabel">{t('admin.system.llm.primaryProvider')}</label>
-                  <input
-                    type="text"
-                    value={llmForm.primaryProvider}
-                    onChange={e => setLlmForm(prev => ({ ...prev, primaryProvider: e.target.value }))}
-                    disabled={isMutating}
-                    className="adminInput"
-                    style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
-                  />
+              {llmProviders.length === 0 ? (
+                <div className="adminEmptyState adminEmptyStateBordered" style={{ marginTop: '12px' }}>
+                  {t('admin.system.llm.noProvidersConfigured')}
                 </div>
-                <div>
-                  <label className="adminFieldLabel">{t('admin.system.llm.primaryModel')}</label>
-                  <input
-                    type="text"
-                    value={llmForm.primaryModel}
-                    onChange={e => setLlmForm(prev => ({ ...prev, primaryModel: e.target.value }))}
-                    disabled={isMutating}
-                    className="adminInput"
-                    style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-                <button
-                  type="button"
-                  onClick={savePrimary}
-                  disabled={isMutating}
-                  className="adminButton"
-                >
-                  {t('admin.system.llm.savePrimary')}
-                </button>
-              </div>
+              ) : (
+                <>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '6px' }}>
+                    <div>
+                      <label className="adminFieldLabel">{t('admin.system.llm.primaryProvider')}</label>
+                      <select
+                        value={llmForm.primaryProvider}
+                        onChange={e => setLlmForm(prev => ({ ...prev, primaryProvider: e.target.value, primaryModel: '' }))}
+                        disabled={isMutating || isLoadingProviders}
+                        className="adminInput"
+                        style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
+                      >
+                        <option value="">{t('admin.system.llm.selectProvider')}</option>
+                        {llmProviders.map(provider => (
+                          <option key={provider.id} value={provider.provider_route}>
+                            {provider.name} ({provider.provider_route})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="adminFieldLabel">{t('admin.system.llm.primaryModel')}</label>
+                      {isLoadingModels ? (
+                        <div className="adminInput" style={{ width: '100%', fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
+                          {t('admin.system.llm.loadingModels')}
+                        </div>
+                      ) : llmModels.length === 0 ? (
+                        <select
+                          value={llmForm.primaryModel}
+                          onChange={e => setLlmForm(prev => ({ ...prev, primaryModel: e.target.value }))}
+                          disabled={isMutating || !llmForm.primaryProvider}
+                          className="adminInput"
+                          style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
+                        >
+                          <option value="">{t('admin.system.llm.selectModel')}</option>
+                        </select>
+                      ) : (
+                        <select
+                          value={llmForm.primaryModel}
+                          onChange={e => setLlmForm(prev => ({ ...prev, primaryModel: e.target.value }))}
+                          disabled={isMutating}
+                          className="adminInput"
+                          style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
+                        >
+                          <option value="">{t('admin.system.llm.selectModel')}</option>
+                          {llmModels.map(model => (
+                            <option key={model.id} value={model.model_id}>
+                              {model.display_name} ({model.model_id})
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={savePrimary}
+                      disabled={isMutating || !llmForm.primaryProvider || !llmForm.primaryModel}
+                      className="adminButton"
+                    >
+                      {t('admin.system.llm.savePrimary')}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* ---- Central LLM routing: failover chain ---- */}
             <div className="adminSubCard">
               <h4 className="adminSectionTitle">{t('admin.system.llm.fallbackTitle')}</h4>
               <p className="adminSectionHint">{t('admin.system.llm.fallbackHint')}</p>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
-                {llmForm.fallback.map((route, i) => (
-                  <div key={i} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
-                    <input
-                      type="text"
-                      placeholder="provider"
-                      value={route.provider}
-                      onChange={(e) => {
-                        const next = [...llmForm.fallback]
-                        next[i] = { ...next[i], provider: e.target.value }
-                        setLlmForm(prev => ({ ...prev, fallback: next }))
-                      }}
-                      disabled={isMutating}
-                      className="adminInput"
-                      style={{ flex: 1, fontSize: '12px', fontFamily: 'monospace' }}
-                    />
-                    <input
-                      type="text"
-                      placeholder="model"
-                      value={route.model}
-                      onChange={(e) => {
-                        const next = [...llmForm.fallback]
-                        const route = next[i]
-                        if (route) route.model = e.target.value
-                        setLlmForm(prev => ({ ...prev, fallback: next }))
-                      }}
-                      disabled={isMutating}
-                      className="adminInput"
-                      style={{ flex: 1, fontSize: '12px', fontFamily: 'monospace' }}
-                    />
+              {llmProviders.length === 0 ? (
+                <div className="adminEmptyState adminEmptyStateBordered" style={{ marginTop: '12px' }}>
+                  {t('admin.system.llm.noProvidersConfigured')}
+                </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '6px' }}>
+                    {llmForm.fallback.map((route, i) => (
+                      <div key={i} style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                        <select
+                          value={route.provider}
+                          onChange={(e) => {
+                            const next = [...llmForm.fallback]
+                            next[i] = { ...next[i], provider: e.target.value, model: '' }
+                            setLlmForm(prev => ({ ...prev, fallback: next }))
+                          }}
+                          disabled={isMutating}
+                          className="adminInput"
+                          style={{ flex: 1, fontSize: '12px', fontFamily: 'monospace' }}
+                        >
+                          <option value="">{t('admin.system.llm.selectProvider')}</option>
+                          {llmProviders.map(provider => (
+                            <option key={provider.id} value={provider.provider_route}>
+                              {provider.name} ({provider.provider_route})
+                            </option>
+                          ))}
+                        </select>
+                        <input
+                          type="text"
+                          placeholder={t('admin.system.llm.modelPlaceholder')}
+                          value={route.model}
+                          onChange={(e) => {
+                            const next = [...llmForm.fallback]
+                            const r = next[i]
+                            if (r) r.model = e.target.value
+                            setLlmForm(prev => ({ ...prev, fallback: next }))
+                          }}
+                          disabled={isMutating}
+                          className="adminInput"
+                          style={{ flex: 1, fontSize: '12px', fontFamily: 'monospace' }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setLlmForm(prev => ({ ...prev, fallback: prev.fallback.filter((_, k) => k !== i) }))
+                          }}
+                          disabled={isMutating}
+                          className="adminRowButton"
+                          style={{ color: 'var(--cm-muted-foreground)' }}
+                        >
+                          {t('admin.common.delete')}
+                        </button>
+                      </div>
+                    ))}
                     <button
                       type="button"
-                      onClick={() => {
-                        setLlmForm(prev => ({ ...prev, fallback: prev.fallback.filter((_, k) => k !== i) }))
-                      }}
+                      onClick={() => setLlmForm(prev => ({ ...prev, fallback: [...prev.fallback, { provider: '', model: '' }] }))}
                       disabled={isMutating}
-                      className="adminRowButton"
-                      style={{ color: 'var(--cm-muted-foreground)' }}
+                      className="adminButton"
+                      style={{ alignSelf: 'flex-start' }}
                     >
-                      {t('admin.common.delete')}
+                      {t('admin.system.newParam', { type: 'fallback' })}
                     </button>
                   </div>
-                ))}
-                <button
-                  type="button"
-                  onClick={() => setLlmForm(prev => ({ ...prev, fallback: [...prev.fallback, { provider: '', model: '' }] }))}
-                  disabled={isMutating}
-                  className="adminButton"
-                  style={{ alignSelf: 'flex-start' }}
-                >
-                  {t('admin.system.newParam', { type: 'fallback' })}
-                </button>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
-                <button
-                  type="button"
-                  onClick={saveFallback}
-                  disabled={isMutating}
-                  className="adminButton"
-                >
-                  {t('admin.system.llm.saveFallback')}
-                </button>
-              </div>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={saveFallback}
+                      disabled={isMutating}
+                      className="adminButton"
+                    >
+                      {t('admin.system.llm.saveFallback')}
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* ---- Central LLM routing: lightweight delegation ---- */}
             <div className="adminSubCard">
               <h4 className="adminSectionTitle">{t('admin.system.llm.delegationTitle')}</h4>
               <p className="adminSectionHint">{t('admin.system.llm.delegationHint')}</p>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '6px' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--cm-foreground)', cursor: 'pointer', userSelect: 'none' }}>
-                  <input
-                    type="checkbox"
-                    checked={llmForm.delegationEnabled}
-                    onChange={e => setLlmForm(prev => ({ ...prev, delegationEnabled: e.target.checked }))}
-                    style={{ width: '16px', height: '16px', accentColor: 'var(--cm-primary)' }}
-                  />
-                  {t('admin.system.llm.delegationEnabled')}
-                </label>
-                <button
-                  type="button"
-                  onClick={saveDelegation}
-                  disabled={isMutating}
-                  className="adminButton"
-                >
-                  {t('admin.system.llm.saveDelegation')}
-                </button>
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '6px' }}>
-                <div>
-                  <label className="adminFieldLabel">{t('admin.system.llm.lightweightProvider')}</label>
-                  <input
-                    type="text"
-                    value={llmForm.delegationProvider}
-                    onChange={e => setLlmForm(prev => ({ ...prev, delegationProvider: e.target.value }))}
-                    disabled={isMutating}
-                    className="adminInput"
-                    style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
-                  />
+              {llmProviders.length === 0 ? (
+                <div className="adminEmptyState adminEmptyStateBordered" style={{ marginTop: '12px' }}>
+                  {t('admin.system.llm.noProvidersConfigured')}
                 </div>
-                <div>
-                  <label className="adminFieldLabel">{t('admin.system.llm.lightweightModel')}</label>
-                  <input
-                    type="text"
-                    value={llmForm.delegationModel}
-                    onChange={e => setLlmForm(prev => ({ ...prev, delegationModel: e.target.value }))}
-                    disabled={isMutating}
-                    className="adminInput"
-                    style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
-                  />
-                </div>
-              </div>
+              ) : (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', marginTop: '6px' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--cm-foreground)', cursor: 'pointer', userSelect: 'none' }}>
+                      <input
+                        type="checkbox"
+                        checked={llmForm.delegationEnabled}
+                        onChange={e => setLlmForm(prev => ({ ...prev, delegationEnabled: e.target.checked }))}
+                        style={{ width: '16px', height: '16px', accentColor: 'var(--cm-primary)' }}
+                      />
+                      {t('admin.system.llm.delegationEnabled')}
+                    </label>
+                    <button
+                      type="button"
+                      onClick={saveDelegation}
+                      disabled={isMutating || !llmForm.delegationProvider || !llmForm.delegationModel}
+                      className="adminButton"
+                    >
+                      {t('admin.system.llm.saveDelegation')}
+                    </button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '6px' }}>
+                    <div>
+                      <label className="adminFieldLabel">{t('admin.system.llm.lightweightProvider')}</label>
+                      <select
+                        value={llmForm.delegationProvider}
+                        onChange={e => setLlmForm(prev => ({ ...prev, delegationProvider: e.target.value, delegationModel: '' }))}
+                        disabled={isMutating || !llmForm.delegationEnabled}
+                        className="adminInput"
+                        style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
+                      >
+                        <option value="">{t('admin.system.llm.selectProvider')}</option>
+                        {llmProviders.map(provider => (
+                          <option key={provider.id} value={provider.provider_route}>
+                            {provider.name} ({provider.provider_route})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="adminFieldLabel">{t('admin.system.llm.lightweightModel')}</label>
+                      <input
+                        type="text"
+                        placeholder={t('admin.system.llm.modelPlaceholder')}
+                        value={llmForm.delegationModel}
+                        onChange={e => setLlmForm(prev => ({ ...prev, delegationModel: e.target.value }))}
+                        disabled={isMutating || !llmForm.delegationEnabled || !llmForm.delegationProvider}
+                        className="adminInput"
+                        style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
+                      />
+                    </div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* ---- Generic llm.* parameter table ---- */}

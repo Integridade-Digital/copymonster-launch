@@ -81,17 +81,10 @@ export interface LlmModel {
 export function AdminSystemTab() {
   const [configs, setConfigs] = useState<SystemConfigItem[]>([])
   const [workspaces, setWorkspaces] = useState<WorkspaceItem[]>([])
-  const [storageData, setStorageData] = useState<StoragePathsData | null>(null)
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
 
-  const [copiedKey, setCopiedKey] = useState<string | null>(null)
-
-  const [flagSearchQuery, setFlagSearchQuery] = useState<string>('')
-  const [limitSearchQuery, setLimitSearchQuery] = useState<string>('')
-  const [workspaceSearchQuery, setWorkspaceSearchQuery] = useState<string>('')
-  const [storageWsSearchQuery, setStorageWsSearchQuery] = useState<string>('')
   const [llmSearchQuery, setLlmSearchQuery] = useState<string>('')
 
   // Editing state for the dedicated Central LLM Routing cards. Kept separate
@@ -127,6 +120,8 @@ export function AdminSystemTab() {
   // LLM Providers and Models state
   const [llmProviders, setLlmProviders] = useState<LlmProvider[]>([])
   const [llmModels, setLlmModels] = useState<LlmModel[]>([])
+  const [fallbackModels, setFallbackModels] = useState<Record<number, LlmModel[]>>({})
+  const [delegationModels, setDelegationModels] = useState<LlmModel[]>([])
   const [isLoadingProviders, setIsLoadingProviders] = useState<boolean>(true)
   const [isLoadingModels, setIsLoadingModels] = useState<boolean>(false)
 
@@ -141,35 +136,17 @@ export function AdminSystemTab() {
   const [isMutating, setIsMutating] = useState<boolean>(false)
   const [llmSaveFeedback, setLlmSaveFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
 
-  const handleCopyText = (text: string, key: string) => {
-    if (!navigator?.clipboard?.writeText) return
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedKey(key)
-      setTimeout(() => {
-        setCopiedKey(prev => (prev === key ? null : prev))
-      }, 1500)
-    }).catch((err) => {
-      console.error('Failed to copy:', err)
-    })
-  }
-
   const loadData = useCallback(async (isSilent = false) => {
     if (!isSilent) setIsLoading(true)
     setError(null)
     try {
-      const [configsRes, workspacesRes, storageRes] = await Promise.all([
+      const [configsRes, workspacesRes] = await Promise.all([
         supabase.rpc('get_admin_system_config'),
         supabase.rpc('get_admin_workspaces'),
-        supabase.rpc('get_admin_storage_paths'),
       ])
 
       if (configsRes.error) throw new Error(configsRes.error.message)
       if (workspacesRes.error) throw new Error(workspacesRes.error.message)
-      if (!storageRes.error && storageRes.data) {
-        setStorageData(storageRes.data)
-      } else if (storageRes.error) {
-        console.warn('get_admin_storage_paths ainda não disponível ou erro:', storageRes.error.message)
-      }
 
       setConfigs(configsRes.data || [])
       setWorkspaces(workspacesRes.data || [])
@@ -200,11 +177,10 @@ export function AdminSystemTab() {
   const loadModelsForProvider = useCallback(async (providerId: string) => {
     setIsLoadingModels(true)
     try {
-      const { data, error } = await (supabase.rpc as unknown as (name: string) => Promise<{ data: LlmModel[] | null; error: { message: string } | null }>)('get_admin_llm_models')
+      const { data, error } = await (supabase.rpc as unknown as (name: string, args?: unknown) => Promise<{ data: LlmModel[] | null; error: { message: string } | null }>)('get_admin_llm_models', { p_provider_id: providerId })
       if (error) throw new Error(error.message)
-      // Filter models for the selected provider that are active
       const providerModels = (data || []).filter(
-        (m: LlmModel) => m.provider_id === providerId && m.is_active && m.provider_is_active,
+        (m: LlmModel) => m.is_active && m.provider_is_active,
       )
       setLlmModels(providerModels)
     } catch (err: unknown) {
@@ -228,6 +204,54 @@ export function AdminSystemTab() {
       setLlmModels([])
     }
   }, [llmForm.primaryProvider, loadModelsForProvider])
+
+  const loadModelsForFallback = useCallback(async (index: number, providerId: string) => {
+    try {
+      const { data, error } = await (supabase.rpc as unknown as (name: string, args?: unknown) => Promise<{ data: LlmModel[] | null; error: { message: string } | null }>)('get_admin_llm_models', { p_provider_id: providerId })
+      if (error) throw new Error(error.message)
+      const providerModels = (data || []).filter(
+        (m: LlmModel) => m.is_active && m.provider_is_active,
+      )
+      setFallbackModels(prev => ({ ...prev, [index]: providerModels }))
+    } catch (err: unknown) {
+      console.error('Failed to load fallback LLM models:', err)
+      setFallbackModels(prev => ({ ...prev, [index]: [] }))
+    }
+  }, [])
+
+  const loadModelsForDelegation = useCallback(async (providerId: string) => {
+    try {
+      const { data, error } = await (supabase.rpc as unknown as (name: string, args?: unknown) => Promise<{ data: LlmModel[] | null; error: { message: string } | null }>)('get_admin_llm_models', { p_provider_id: providerId })
+      if (error) throw new Error(error.message)
+      const providerModels = (data || []).filter(
+        (m: LlmModel) => m.is_active && m.provider_is_active,
+      )
+      setDelegationModels(providerModels)
+    } catch (err: unknown) {
+      console.error('Failed to load delegation LLM models:', err)
+      setDelegationModels([])
+    }
+  }, [])
+
+  // Load fallback models when a fallback provider changes
+  useEffect(() => {
+    llmForm.fallback.forEach((route, i) => {
+      if (route.provider) {
+        loadModelsForFallback(i, route.provider)
+      } else {
+        setFallbackModels(prev => ({ ...prev, [i]: [] }))
+      }
+    })
+  }, [llmForm.fallback, loadModelsForFallback])
+
+  // Load delegation models when delegation provider changes
+  useEffect(() => {
+    if (llmForm.delegationProvider) {
+      loadModelsForDelegation(llmForm.delegationProvider)
+    } else {
+      setDelegationModels([])
+    }
+  }, [llmForm.delegationProvider, loadModelsForDelegation])
 
   const handleRefresh = () => {
     setIsRefreshing(true)
@@ -360,17 +384,6 @@ export function AdminSystemTab() {
 
   const totalWorkspacesCount = workspaces.length
 
-  const maskedSupabaseUrl = useMemo(() => {
-    const rawUrl = (import.meta.env as Record<string, string | undefined>)?.VITE_SUPABASE_URL || ''
-    if (!rawUrl) return t('admin.common.notConfigured')
-    try {
-      const url = new URL(rawUrl)
-      return `${url.protocol}//${url.hostname.slice(0, 8)}...${url.hostname.slice(-8)}`
-    } catch {
-      return 'https://***.supabase.co'
-    }
-  }, [])
-
   const openCreateConfigModal = (type: 'feature' | 'limit' | 'quota' | 'llm') => {
     setSelectedConfig(null)
     setFormPrefixType(type)
@@ -415,12 +428,6 @@ export function AdminSystemTab() {
     setIsDeleteConfigModalOpen(true)
   }
 
-  const openArchiveWorkspaceModal = (ws: WorkspaceItem) => {
-    setSelectedWorkspace(ws)
-    setFormError(null)
-    setIsArchiveWorkspaceModalOpen(true)
-  }
-
   const closeModals = () => {
     if (isMutating) return
     setIsConfigModalOpen(false)
@@ -429,33 +436,6 @@ export function AdminSystemTab() {
     setSelectedConfig(null)
     setSelectedWorkspace(null)
     setFormError(null)
-  }
-
-  const handleToggleFeatureFlag = async (item: SystemConfigItem) => {
-    if (item.is_secret || item.key.startsWith('system.')) return
-
-    let nextValue: unknown
-    if (typeof item.value === 'boolean') {
-      nextValue = !item.value
-    } else if (item.value && typeof item.value === 'object' && 'enabled' in item.value) {
-      nextValue = { ...(item.value as Record<string, unknown>), enabled: !(item.value as { enabled: boolean }).enabled }
-    } else {
-      openEditConfigModal(item)
-      return
-    }
-
-    try {
-      const { error: saveErr } = await supabase.rpc('admin_upsert_system_config', {
-        p_key: item.key,
-        p_value: nextValue,
-        p_description: item.description,
-        p_is_secret: false,
-      })
-      if (saveErr) throw new Error(saveErr.message)
-      loadData(true)
-    } catch (err: unknown) {
-      alert(err instanceof Error ? err.message : t('admin.system.flagFailure'))
-    }
   }
 
   const handleSaveConfig = async (e: React.FormEvent) => {
@@ -539,53 +519,6 @@ export function AdminSystemTab() {
     }
   }
 
-  const filteredFlags = useMemo(() => {
-    const q = flagSearchQuery.toLowerCase().trim()
-    if (!q) return featureFlags
-    return featureFlags.filter(
-      f => f.key.toLowerCase().includes(q) || (f.description && f.description.toLowerCase().includes(q)),
-    )
-  }, [featureFlags, flagSearchQuery])
-
-  const filteredLimits = useMemo(() => {
-    const q = limitSearchQuery.toLowerCase().trim()
-    if (!q) return limitConfigs
-    return limitConfigs.filter(
-      l => l.key.toLowerCase().includes(q) || (l.description && l.description.toLowerCase().includes(q)),
-    )
-  }, [limitConfigs, limitSearchQuery])
-
-  const filteredWorkspaces = useMemo(() => {
-    const q = workspaceSearchQuery.toLowerCase().trim()
-    if (!q) return workspaces
-    return workspaces.filter(
-      w =>
-        w.title.toLowerCase().includes(q) ||
-        w.workspace_id.toLowerCase().includes(q) ||
-        w.tenant_name.toLowerCase().includes(q) ||
-        (w.user_email && w.user_email.toLowerCase().includes(q)),
-    )
-  }, [workspaces, workspaceSearchQuery])
-
-  const storageWorkspaces = useMemo(() => {
-    const list = storageData?.workspaces || []
-    const q = storageWsSearchQuery.toLowerCase().trim()
-    if (!q) return list
-    return list.filter(
-      w =>
-        w.title.toLowerCase().includes(q) ||
-        w.workspace_id.toLowerCase().includes(q) ||
-        w.tenant_name.toLowerCase().includes(q) ||
-        w.relative_path.toLowerCase().includes(q) ||
-        w.full_path.toLowerCase().includes(q),
-    )
-  }, [storageData, storageWsSearchQuery])
-
-  const workspacesRootPath = storageData?.paths.workspaces_root || '/var/dsh/workspaces'
-  const uploadsRootPath = storageData?.paths.uploads_root || '/var/dsh/uploads'
-  const logsRootPath = storageData?.paths.logs_root || '/var/dsh/logs'
-  const sshExampleCommand = `ssh operador@servidor "cd ${workspacesRootPath} && ls -la"`
-
   return (
     <div className="adminTabBody">
       <div className="adminTabHeader">
@@ -643,7 +576,8 @@ export function AdminSystemTab() {
         </div>
       )}
 
-      <div className="adminSectionCard">
+      {/* Hidden per Admin > Settings scope: only Central LLM Routing + Model Masking are shown */}
+      {/* <div className="adminSectionCard">
         <div className="adminTabHeader">
           <div className="adminTabHeaderText">
             <h3 className="adminSectionTitle">{t('admin.system.environment')}</h3>
@@ -671,9 +605,10 @@ export function AdminSystemTab() {
             </span>
           </div>
         </div>
-      </div>
+      </div> */}
 
-      <div className="adminSectionCard">
+      {/* Hidden per Admin > Settings scope: only Central LLM Routing + Model Masking are shown */}
+      {/* <div className="adminSectionCard">
         <div className="adminTabHeader">
           <div className="adminTabHeaderText">
             <h3 className="adminSectionTitle">{t('admin.system.featureFlags')}</h3>
@@ -780,9 +715,10 @@ export function AdminSystemTab() {
             </table>
           </div>
         )}
-      </div>
+      </div> */}
 
-      <div className="adminSectionCard">
+      {/* Hidden per Admin > Settings scope: only Central LLM Routing + Model Masking are shown */}
+      {/* <div className="adminSectionCard">
         <div className="adminTabHeader">
           <div className="adminTabHeaderText">
             <h3 className="adminSectionTitle">{t('admin.system.globalLimits')}</h3>
@@ -869,9 +805,10 @@ export function AdminSystemTab() {
             </table>
           </div>
         )}
-      </div>
+      </div> */}
 
-      <div className="adminSectionCard">
+      {/* Hidden per Admin > Settings scope: only Central LLM Routing + Model Masking are shown */}
+      {/* <div className="adminSectionCard">
         <div className="adminTabHeader">
           <div className="adminTabHeaderText">
             <h3 className="adminSectionTitle">{t('admin.system.workspaces')}</h3>
@@ -945,9 +882,10 @@ export function AdminSystemTab() {
             </table>
           </div>
         )}
-      </div>
+      </div> */}
 
-      <div className="adminSectionCard">
+      {/* Hidden per Admin > Settings scope: only Central LLM Routing + Model Masking are shown */}
+      {/* <div className="adminSectionCard">
         <div className="adminTabHeader">
           <div className="adminTabHeaderText">
             <h3 className="adminSectionTitle">{t('admin.system.storage')}</h3>
@@ -1116,7 +1054,7 @@ export function AdminSystemTab() {
             </div>
           )}
         </div>
-      </div>
+      </div> */}
 
       <div className="adminSectionCard">
         <div className="adminTabHeader">
@@ -1311,9 +1249,7 @@ export function AdminSystemTab() {
                             </option>
                           ))}
                         </select>
-                        <input
-                          type="text"
-                          placeholder={t('admin.system.llm.modelPlaceholder')}
+                        <select
                           value={route.model}
                           onChange={(e) => {
                             const next = [...llmForm.fallback]
@@ -1321,10 +1257,17 @@ export function AdminSystemTab() {
                             if (r) r.model = e.target.value
                             setLlmForm(prev => ({ ...prev, fallback: next }))
                           }}
-                          disabled={isMutating}
+                          disabled={isMutating || !route.provider}
                           className="adminInput"
                           style={{ flex: 1, fontSize: '12px', fontFamily: 'monospace' }}
-                        />
+                        >
+                          <option value="">{t('admin.system.llm.selectModel')}</option>
+                          {(fallbackModels[i] || []).map(model => (
+                            <option key={model.id} value={model.model_id}>
+                              {model.display_name} ({model.model_id})
+                            </option>
+                          ))}
+                        </select>
                         <button
                           type="button"
                           onClick={() => {
@@ -1411,15 +1354,20 @@ export function AdminSystemTab() {
                     </div>
                     <div>
                       <label className="adminFieldLabel">{t('admin.system.llm.lightweightModel')}</label>
-                      <input
-                        type="text"
-                        placeholder={t('admin.system.llm.modelPlaceholder')}
+                      <select
                         value={llmForm.delegationModel}
                         onChange={e => setLlmForm(prev => ({ ...prev, delegationModel: e.target.value }))}
                         disabled={isMutating || !llmForm.delegationEnabled || !llmForm.delegationProvider}
                         className="adminInput"
                         style={{ width: '100%', fontSize: '12px', fontFamily: 'monospace' }}
-                      />
+                      >
+                        <option value="">{t('admin.system.llm.selectModel')}</option>
+                        {delegationModels.map(model => (
+                          <option key={model.id} value={model.model_id}>
+                            {model.display_name} ({model.model_id})
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
                 </>

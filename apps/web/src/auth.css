@@ -247,16 +247,16 @@ body.auth-bg,
   box-sizing: border-box;
   padding: 0 0.875rem;
   font-size: 0.9rem;
-  color: var(--cm-auth-card-text);
-  background: var(--cm-auth-card-input-bg);
-  border: 1px solid var(--cm-auth-card-input-border);
+  color: #181611;
+  background: #ffffff;
+  border: 1px solid #b4b2a7;
   border-radius: 8px;
   outline: none;
   transition: border-color 0.15s ease, box-shadow 0.15s ease;
 }
 
 .cm-auth-input:hover:not(:focus) {
-  border-color: var(--cm-auth-card-input-border-hover);
+  border-color: #967d45;
 }
 
 .cm-auth-input:focus {
@@ -265,7 +265,27 @@ body.auth-bg,
 }
 
 .cm-auth-input::placeholder {
-  color: var(--cm-auth-card-placeholder);
+  color: #949287;
+}
+
+/* Dark theme support (RegisterPage forces data-ds-dark-theme on <body>). */
+body[data-ds-dark-theme] .cm-auth-input {
+  color: #faf9f5;
+  background: #262624;
+  border-color: #3e3e38;
+}
+
+body[data-ds-dark-theme] .cm-auth-input:hover:not(:focus) {
+  border-color: #d0ad62;
+}
+
+body[data-ds-dark-theme] .cm-auth-input:focus {
+  border-color: var(--cm-auth-primary);
+  box-shadow: 0 0 0 3px var(--cm-auth-primary-focus-ring);
+}
+
+body[data-ds-dark-theme] .cm-auth-input::placeholder {
+  color: #b7b5a9;
 }
 
 .cm-auth-hint {

@@ -8,7 +8,8 @@
 
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
-import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
+import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context/types'
+import { supabaseAdminClient, type SupabaseClientType } from '@deepseek-ai/dsh-supabase-client'
 import { BEARER_PREFIX } from '@deepseek-ai/dsh-constants'
 import { getTable, UUID_REGEX } from './affiliate-processor.ts'
 import { createPaypalPayout } from './paypal-payout.ts'
@@ -17,6 +18,14 @@ export const AFFILIATE_PAYOUT_REQUEST_PATH = '/api/affiliate/payout/request'
 export const AFFILIATE_PAYOUT_REQUEST_ALIAS = '/api/affiliate/request-affiliate-payout'
 export const ADMIN_PAYOUT_EXECUTE_PATH = '/api/admin/affiliate/payout/execute'
 export const ADMIN_PAYOUT_EXECUTE_ALIAS = '/api/admin/admin-execute-payout'
+
+/**
+ * Tenant that identifies a platform operator.
+ *
+ * Mirrors `isPlatformAdmin` (`apps/web/src/lib/auth/platform-admin.ts`) and the
+ * database predicate `public.is_admin_or_owner()` (migration 040).
+ */
+export const PLATFORM_TENANT_ID = '00000000-0000-0000-0000-000000000001'
 
 /** Helper to extract bearer token from headers */
 function bearerToken(header: string | string[] | undefined): string | undefined {
@@ -415,6 +424,43 @@ export async function handleRequestAffiliatePayout(
 }
 
 /**
+ * Whether an identity may execute affiliate payouts.
+ *
+ * Every creator owns a personal tenant, so a bare `owner`/`admin` role says
+ * nothing about platform operations. The caller qualifies when it carries the
+ * `users.metadata.is_admin` flag or holds `owner`/`admin` in
+ * {@link PLATFORM_TENANT_ID}. Membership is read from `user_tenant_roles` for
+ * the caller's own id rather than from `identity.tenantId`, because
+ * `get_my_profile()` returns only the first membership and an operator can also
+ * be owner of a personal tenant.
+ *
+ * @param identity - resolved caller identity.
+ * @param client - Supabase client; defaults to the service-role client.
+ * @returns true only for a platform operator; false whenever the membership
+ *   lookup fails, so an unavailable database does not grant access.
+ */
+export async function isPlatformOperator(
+  identity: UserIdentity,
+  client: SupabaseClientType = supabaseAdminClient,
+): Promise<boolean> {
+  if (identity.isAdmin === true) return true
+
+  try {
+    const { data, error } = await client
+      .from('user_tenant_roles')
+      .select('role')
+      .eq('user_id', identity.userId)
+      .eq('tenant_id', PLATFORM_TENANT_ID)
+      .in('role', ['owner', 'admin'])
+      .maybeSingle<{ role: string }>()
+    if (error) return false
+    return data !== null
+  } catch {
+    return false
+  }
+}
+
+/**
  * Handle POST /api/admin/affiliate/payout/execute
  */
 export async function handleAdminExecutePayout(
@@ -439,9 +485,13 @@ export async function handleAdminExecutePayout(
     return
   }
 
-  // Operator access check: isAdmin || role in ('admin', 'owner')
-  const isOperator = identity.isAdmin === true || identity.role === 'admin' || identity.role === 'owner'
+  // Operator access is platform-scoped: the admin flag or membership in the
+  // platform tenant. A tenant-local owner/admin is not a platform operator.
+  const isOperator = await isPlatformOperator(identity)
   if (!isOperator) {
+    console.error('[payout] admin execute denied: caller is not a platform operator', {
+      userId: identity.userId,
+    })
     sendJson(res, 403, { error: 'forbidden' })
     return
   }

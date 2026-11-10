@@ -29,6 +29,7 @@ import {
   getAffiliateBalance,
   requestAffiliatePayout,
   executePayout,
+  isPlatformOperator,
   handleRequestAffiliatePayout,
   handleAdminExecutePayout,
 } from '../src/payout-executor.ts'
@@ -807,6 +808,194 @@ describe('Payout Executor & Affiliate Payout Lifecycle', () => {
       expect(data?.success).toBe(true)
       expect(data?.status).toBe('EXECUTED')
       expect(data?.batchId).toMatch(/^MOCK_/)
+    })
+
+    it('handleAdminExecutePayout rejects a personal-tenant owner without the admin flag (403)', async () => {
+      const req = createMockReq({
+        method: 'POST',
+        headers: { authorization: 'Bearer personal-owner-token' },
+        body: { payoutId: testPayoutId },
+      })
+      const res = createMockRes()
+      const ctx = {
+        auth: {
+          resolveIdentity: vi.fn().mockResolvedValue(
+            identity({ role: 'owner', isAdmin: false }),
+          ),
+        },
+      } as unknown as Context
+
+      mockSupabase.from.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              in: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }),
+          }),
+        }),
+      })
+
+      await handleAdminExecutePayout(ctx, req, res)
+      expect(res.statusCode).toBe(403)
+      expect(res.json()?.error).toBe('forbidden')
+    })
+
+    it('handleAdminExecutePayout allows a platform-tenant owner without the admin flag', async () => {
+      const req = createMockReq({
+        method: 'POST',
+        headers: { authorization: 'Bearer platform-owner-token' },
+        body: { payoutId: testPayoutId },
+      })
+      const res = createMockRes()
+      const ctx = {
+        auth: {
+          resolveIdentity: vi.fn().mockResolvedValue(
+            identity({ role: 'member', isAdmin: false }),
+          ),
+        },
+      } as unknown as Context
+
+      mockSupabase.from.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              in: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: { role: 'owner' }, error: null }),
+              }),
+            }),
+          }),
+        }),
+      })
+
+      // Setup mock Supabase for executePayout
+      let updateCount = 0
+      mockSupabase.schema.mockImplementation((schemaName: string) => ({
+        from: vi.fn().mockImplementation((tableName: string) => {
+          if (schemaName === 'finance' && tableName === 'payout_requests') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
+                    maybeSingle: vi.fn().mockResolvedValue({
+                      data: {
+                        id: testPayoutId,
+                        affiliate_id: testAffiliateId,
+                        amount: 150.00,
+                        paypal_email_snapshot: 'partner@example.com',
+                        status: 'APPROVED',
+                        active: true,
+                      },
+                    }),
+                  }),
+                }),
+              }),
+              update: vi.fn().mockImplementation(() => {
+                updateCount++
+                if (updateCount === 1) {
+                  return {
+                    eq: vi.fn().mockReturnValue({
+                      in: vi.fn().mockReturnValue({
+                        select: vi.fn().mockReturnValue({
+                          maybeSingle: vi.fn().mockResolvedValue({
+                            data: {
+                              id: testPayoutId,
+                              affiliate_id: testAffiliateId,
+                              amount: 150.00,
+                              status: 'PROCESSING',
+                            },
+                          }),
+                        }),
+                      }),
+                    }),
+                  }
+                }
+                return {
+                  eq: vi.fn().mockResolvedValue({ data: {}, error: null }),
+                }
+              }),
+            }
+          }
+          if (schemaName === 'finance' && tableName === 'ledger_entries') {
+            return {
+              insert: vi.fn().mockResolvedValue({ data: {}, error: null }),
+            }
+          }
+          if (schemaName === 'affiliate' && tableName === 'notifications') {
+            return {
+              insert: vi.fn().mockResolvedValue({ data: {}, error: null }),
+            }
+          }
+          if (schemaName === 'affiliate' && tableName === 'audit_logs') {
+            return {
+              insert: vi.fn().mockResolvedValue({ data: {}, error: null }),
+            }
+          }
+          return {}
+        }),
+      }))
+
+      await handleAdminExecutePayout(ctx, req, res)
+      expect(res.statusCode).toBe(200)
+      expect(res.json()?.success).toBe(true)
+    })
+
+    it('handleAdminExecutePayout denies access when the membership lookup fails', async () => {
+      const req = createMockReq({
+        method: 'POST',
+        headers: { authorization: 'Bearer failing-store-token' },
+        body: { payoutId: testPayoutId },
+      })
+      const res = createMockRes()
+      const ctx = {
+        auth: {
+          resolveIdentity: vi.fn().mockResolvedValue(
+            identity({ role: 'admin', isAdmin: false }),
+          ),
+        },
+      } as unknown as Context
+
+      mockSupabase.from.mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              in: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: { message: 'unavailable' } }),
+              }),
+            }),
+          }),
+        }),
+      })
+
+      await handleAdminExecutePayout(ctx, req, res)
+      expect(res.statusCode).toBe(403)
+      expect(res.json()?.error).toBe('forbidden')
+    })
+  })
+
+  describe('isPlatformOperator', () => {
+    it('accepts the admin flag without a membership lookup', async () => {
+      const client = { from: vi.fn() }
+      await expect(isPlatformOperator(identity({ isAdmin: true }), client)).resolves.toBe(true)
+      expect(client.from).not.toHaveBeenCalled()
+    })
+
+    it('rejects a caller without the flag and without a platform membership', async () => {
+      const client = {
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                in: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                }),
+              }),
+            }),
+          }),
+        }),
+      }
+      await expect(isPlatformOperator(identity({ isAdmin: false }), client)).resolves.toBe(false)
     })
   })
 })

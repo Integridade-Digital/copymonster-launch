@@ -1,5 +1,5 @@
 -- ============================================================================
--- Migration: 056_plan_stripe_price_ids_by_interval.sql
+-- Migration: 059_plan_stripe_price_ids_by_interval.sql
 -- Description: Alinha os price ids vivos do Stripe com os planos e preenche a
 --              coluna anual, que o checkout usa quando o cliente pede
 --              `interval: 'annual'`.

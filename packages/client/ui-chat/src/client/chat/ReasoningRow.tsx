@@ -38,6 +38,7 @@ function latestCompletedParagraphFirstLine(text: string): string {
  * when a paragraph's first line completes. Mode changes toggle CSS display without unmounting
  * collapsed summaries.
  * @param props.text - complete or streaming reasoning text.
+ * @param props.mask - display mask for model-facing text; absent paints the text unchanged.
  * @param props.running - whether this block is the streaming tail.
  * @param props.usePresentation - live display-policy selector for this reasoning row.
  * @param props.useDisclosure - independent open state with enclosing-Turn resets.
@@ -46,9 +47,10 @@ function latestCompletedParagraphFirstLine(text: string): string {
  * @returns the reasoning disclosure.
  */
 export const ReasoningRow = memo(function ReasoningRow({
-  text, running, textInteractionSource = false, usePresentation, useDisclosure, renderSlot, t,
+  text, running, textInteractionSource = false, mask, usePresentation, useDisclosure, renderSlot, t,
 }: {
   text: string
+  mask?: ((text: string) => string) | undefined
   running: boolean
   textInteractionSource?: boolean
   useDisclosure: UseDisclosure
@@ -56,7 +58,8 @@ export const ReasoningRow = memo(function ReasoningRow({
   t: ChatViewSlotProps['t']
 } & Pick<PropsRenderSlots<'conversation.chat.reasoning.body'>, 'renderSlot'>) {
   const { expanded, toggle } = useDisclosure()
-  const summaryText = running ? latestCompletedParagraphFirstLine(text) : firstLine(text)
+  const shown = mask === undefined ? text : mask(text)
+  const summaryText = running ? latestCompletedParagraphFirstLine(shown) : firstLine(shown)
   const summary = useMemo(() => summaryText.replaceAll('**', ''), [summaryText])
   const preview = usePresentation(policy => !expanded && summary !== ''
     && (running || policy.settledReasoningPreview))
@@ -72,9 +75,9 @@ export const ReasoningRow = memo(function ReasoningRow({
   ), [running, summary])
   const content = useMemo(() => expanded ? (
     <div className={css.thinkBody} data-text-interaction-source={textInteractionSource && !running ? '' : undefined}>
-      {renderSlot('conversation.chat.reasoning.body', { text, running })}
+      {renderSlot('conversation.chat.reasoning.body', { text: shown, running })}
     </div>
-  ) : undefined, [expanded, renderSlot, running, text, textInteractionSource])
+  ) : undefined, [expanded, renderSlot, running, shown, textInteractionSource])
 
   return (
     <div

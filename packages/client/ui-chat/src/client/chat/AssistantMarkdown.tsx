@@ -29,7 +29,7 @@ export function localPathMediaUrl(base: string, value: string): string | undefin
 
 export interface AssistantMarkdownProps extends
   Pick<PropsRenderSlots<'conversation.chat.reasoning.body' | 'conversation.chat.message.images'>, 'renderSlot'>,
-  Pick<ChatNodeOwnerProps, 'loadImage'> {
+  Pick<ChatNodeOwnerProps, 'loadImage' | 'mask'> {
   /** Render only the requested business portion, preserving original block indexes. */
   groupPart?: string | undefined
   /** Stable Hook forwarded to each independently expandable reasoning block. */
@@ -56,7 +56,7 @@ export interface AssistantMarkdownProps extends
 
 /** Renders non-blank reasoning blocks as independent disclosures alongside the response. */
 export const AssistantMarkdown = memo(function AssistantMarkdown({
-  blocks, streaming, textInteractionSource = false, interrupted, loadImage, groupPart, useDisclosure,
+  blocks, streaming, textInteractionSource = false, interrupted, loadImage, mask, groupPart, useDisclosure,
   reasoningHidden = false, usePresentation, revealProcess, mentions, renderSlot, useGroupAction, t,
 }: AssistantMarkdownProps) {
   // Stable per locale revision (t identity changes on switch): a fresh object
@@ -85,7 +85,7 @@ export const AssistantMarkdown = memo(function AssistantMarkdown({
         rendered.push(
           <MarkdownText
             key={i}
-            text={block.text}
+            text={mask === undefined ? block.text : mask(block.text)}
             streaming={streaming}
             labels={labels}
             fileMentions={mentions}
@@ -104,7 +104,8 @@ export const AssistantMarkdown = memo(function AssistantMarkdown({
             useGroupAction={useGroupAction}
           >
             <ReasoningRow text={block.text} running={streaming && i === last} usePresentation={usePresentation}
-              useDisclosure={useDisclosure} renderSlot={renderSlot} textInteractionSource={textInteractionSource} t={t} />
+              useDisclosure={useDisclosure} renderSlot={renderSlot} textInteractionSource={textInteractionSource}
+              {...mask === undefined ? {} : { mask }} t={t} />
           </ProcessReasoning>,
         )
         break

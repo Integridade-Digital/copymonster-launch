@@ -90,6 +90,25 @@ describe('AssistantMarkdown local-path images', () => {
   })
 })
 
+describe('AssistantMarkdown workspace masking', () => {
+  const mask = (text: string): string => text.replaceAll('/var/copymonster/data/tenant', '[Workspace path hidden]')
+
+  it('paints the masked reply instead of the recorded workspace path', () => {
+    const { container } = render(
+      <AssistantMarkdown renderSlot={() => null} useDisclosure={useDisclosure} useGroupAction={useSearchableHidden}
+        usePresentation={useDetailedPresentation}
+        blocks={[textBlock('I wrote /var/copymonster/data/tenant/copy.md')]}
+        streaming={false}
+        loadImage={unusedImageLoader}
+        mask={mask}
+        t={t}
+      />,
+    )
+    expect(container.textContent).toContain('[Workspace path hidden]/copy.md')
+    expect(container.textContent).not.toContain('/var/copymonster')
+  })
+})
+
 it('decodes Markdown URL escapes once before encoding the file query', () => {
   for (const [authored, path] of [
     ['/work/test%20workspace/图.png', '/work/test workspace/图.png'],

@@ -27,7 +27,7 @@ export const ChatFlow = memo(function ChatFlow({
   entries, pendingInputs, lastInputTurn, deferCollapse,
   useSession, useChat, useChatNode, useChatNodeBottom, useChatNodeProcess, useChatGroup, usePresentation, useConnectionState,
   useStore, actions, renderSlot, renderFactorySlot, t, useGroupAction, useGroupHeaderAction,
-  cwd, openFile, inspectCall, forkAt, loadImage, fileMentions,
+  cwd, mask, openFile, inspectCall, forkAt, loadImage, fileMentions,
 }: ChatFlowSlotProps) {
   const nodeStore = useChat(snapshot => snapshot.nodes)
   const running = useSession(snapshot => snapshot.running)
@@ -42,7 +42,7 @@ export const ChatFlow = memo(function ChatFlow({
   const seatProps = {
     nodeStore, useChatNode, useChatNodeBottom, useChatNodeProcess, usePresentation,
     useStore, actions, renderSlot, t, useGroupAction, deferCollapse,
-    cwd, openFile, inspectCall, forkAt, loadImage, fileMentions,
+    cwd, mask, openFile, inspectCall, forkAt, loadImage, fileMentions,
   }
   const rows = entries.map((entry) => {
     switch (entry.kind) {
@@ -68,9 +68,9 @@ export const ChatFlow = memo(function ChatFlow({
   for (const [index, item] of pendingInputs.entries()) {
     const row = isLocalSubmission(item)
       ? <PendingSubmissionBubble key={item.requestId} submission={item}
-        loadImage={loadImage} renderFactorySlot={renderFactorySlot} t={t} />
+        loadImage={loadImage} renderFactorySlot={renderFactorySlot} {...mask === undefined ? {} : { mask }} t={t} />
       : <PendingSteeringBubble key={item.id} content={item.content}
-        loadImage={loadImage} renderFactorySlot={renderFactorySlot} t={t} />
+        loadImage={loadImage} renderFactorySlot={renderFactorySlot} {...mask === undefined ? {} : { mask }} t={t} />
     if (index <= firstTranscript) leadingRows.push(row)
     else if (isTranscriptEcho(item)) openingRows.push(row)
     else pendingRows.push(row)

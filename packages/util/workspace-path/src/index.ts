@@ -4,6 +4,8 @@
  */
 import { sessionFileAddress } from './file-address.ts'
 
+export { HIDDEN_WORKSPACE_PATH, serverPathMask, workspaceMask } from './display-mask.ts'
+
 /** Whether a path uses a Windows drive or UNC prefix. */
 function isWindowsStylePath(value: string): boolean {
   return /^[A-Za-z]:[/\\]/.test(value) || value.startsWith('\\\\')

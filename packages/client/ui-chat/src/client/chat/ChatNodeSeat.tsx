@@ -49,7 +49,7 @@ function turnOf(node: ChatNode | undefined): number | undefined {
  */
 export const ChatNodeSeat = memo(function ChatNodeSeat({
   nodeKey, groupPart, useChatNode, useChatNodeProcess, usePresentation,
-  cwd, openFile, inspectCall, forkAt,
+  cwd, mask, openFile, inspectCall, forkAt,
   loadImage, fileMentions, useStore, actions, renderSlot, t, useChatNodeBottom, deferCollapse, useGroupAction,
 }: ChatNodeSeatProps) {
   const bottom = useChatNodeBottom(nodeKey)
@@ -134,6 +134,7 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
     : {
       ...groupPart === undefined ? {} : { groupPart },
       cwd,
+      ...mask === undefined ? {} : { mask },
       openFile,
       inspectCall,
       forkAt,
@@ -141,7 +142,7 @@ export const ChatNodeSeat = memo(function ChatNodeSeat({
       fileMentions,
       turnProcess,
     }, [
-    node, groupPart, cwd, openFile, inspectCall, forkAt,
+    node, groupPart, cwd, mask, openFile, inspectCall, forkAt,
     loadImage, fileMentions, turnProcess,
   ])
   if (routedNode === undefined || owner === null) return null

@@ -164,9 +164,15 @@ function TurnMaxTokensItem({ t }: {
 function UserStyleBubble({
   content, loadImage, renderFactorySlot, actions, pending = false, echo = false, batchStart = false,
   referenceLabels, skillNames, previewAttachments, facts: inputFacts = EMPTY_TEXT_FACTS, interactive = false,
+  mask,
 }: {
   content: readonly unknown[]
   renderFactorySlot: PropsRenderFactories['renderFactorySlot']
+  /**
+   * Display mask for model-facing text. Applied before the pending-facts
+   * pipeline, which slices the text by parser offsets.
+   */
+  mask?: ((text: string) => string) | undefined
   /** Optional IconActions (or similar) below the bubble; receives the joined text. */
   actions?: (text: string) => ReactNode
   /** Whether this is the Host-authoritative pre-admission steering projection. */
@@ -183,14 +189,14 @@ function UserStyleBubble({
   previewAttachments?: readonly UserContentAttachment[]
   /** Inputs used by text transforms, separate from summary and rendering props. */
   facts?: Readonly<Partial<UserTextFacts>>
-} & Pick<ChatNodeOwnerProps, 'loadImage'> & Pick<UserContentInput, 'interactive'>): ReactNode {
+} & Pick<ChatNodeOwnerProps, 'loadImage' | 'mask'> & Pick<UserContentInput, 'interactive'>): ReactNode {
   const parts = useMemo(() => contentParts(content), [content])
   const prepared = useMemo<UserContentData>(() => ({
-    text: parts.text,
+    text: mask === undefined ? parts.text : mask(parts.text),
     attachments: previewAttachments ?? parts.attachments,
     extraBlocks: parts.rest,
     ...(referenceLabels === undefined ? {} : { referenceLabels }),
-  }), [parts, previewAttachments, referenceLabels])
+  }), [mask, parts, previewAttachments, referenceLabels])
   const facts = useMemo<Readonly<Partial<UserTextFacts>>>(() => ({
     ...inputFacts,
     ...(referenceLabels === undefined ? {} : { sessionLabels: referenceLabels }),
@@ -220,16 +226,17 @@ function UserStyleBubble({
  * @param props - pending content, authorized image loader, and render seats.
  * @returns the pending steering bubble.
  */
-export function PendingSteeringBubble({ content, loadImage, renderFactorySlot, t }: {
+export function PendingSteeringBubble({ content, loadImage, renderFactorySlot, mask, t }: {
   content: readonly unknown[]
   renderFactorySlot: PropsRenderFactories['renderFactorySlot']
   t: ChatViewSlotProps['t']
-} & Pick<ChatNodeOwnerProps, 'loadImage'>): ReactNode {
+} & Pick<ChatNodeOwnerProps, 'loadImage' | 'mask'>): ReactNode {
   return (
     <UserStyleBubble
       content={content}
       renderFactorySlot={renderFactorySlot}
       loadImage={loadImage}
+      {...mask === undefined ? {} : { mask }}
       pending
       actions={text => (
         <MessageIconActions
@@ -251,11 +258,11 @@ export function PendingSteeringBubble({ content, loadImage, renderFactorySlot, t
  * @param props - the pending submission, authorized image loader, and render seats.
  * @returns the echoed user bubble.
  */
-export function PendingSubmissionBubble({ submission, loadImage, renderFactorySlot, t }: {
+export function PendingSubmissionBubble({ submission, loadImage, renderFactorySlot, mask, t }: {
   submission: PendingSubmission
   renderFactorySlot: PropsRenderFactories['renderFactorySlot']
   t: ChatViewSlotProps['t']
-} & Pick<ChatNodeOwnerProps, 'loadImage'>): ReactNode {
+} & Pick<ChatNodeOwnerProps, 'loadImage' | 'mask'>): ReactNode {
   const content = useMemo(
     () => (submission.text === '' ? [] : [{ type: 'text', text: submission.text }]),
     [submission.text],
@@ -282,6 +289,7 @@ export function PendingSubmissionBubble({ submission, loadImage, renderFactorySl
       previewAttachments={previewAttachments}
       renderFactorySlot={renderFactorySlot}
       loadImage={loadImage}
+      {...mask === undefined ? {} : { mask }}
       pending={submission.placement === 'steering'}
       echo
       actions={text => (
@@ -299,7 +307,7 @@ export function PendingSubmissionBubble({ submission, loadImage, renderFactorySl
 
 /** User and admitted-steering keyed Chat renderer. */
 export const UserMessageNodeView = memo(function UserMessageNodeView({
-  node, renderFactorySlot, loadImage, t,
+  node, renderFactorySlot, loadImage, mask, t,
 }: ChatNodeViewProps<'user' | 'steering'>) {
   const data = node.data
   return (
@@ -308,6 +316,7 @@ export const UserMessageNodeView = memo(function UserMessageNodeView({
       interactive
       renderFactorySlot={renderFactorySlot}
       loadImage={loadImage}
+      {...mask === undefined ? {} : { mask }}
       batchStart={node.kind === 'steering' && node.data.batchStart === true}
       {...data.referenceLabels === undefined ? {} : { referenceLabels: data.referenceLabels }}
       {...data.skillNames === undefined ? {} : { skillNames: data.skillNames }}

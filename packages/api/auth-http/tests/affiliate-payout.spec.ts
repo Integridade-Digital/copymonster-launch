@@ -604,6 +604,50 @@ describe('Payout Executor & Affiliate Payout Lifecycle', () => {
             if (schemaName === 'finance' && tableName === 'ledger_entries') {
               return {
                 insert: insertLedgerMock,
+                // Revalidation first reads the affiliate's balance (an array of
+                // entries) and then checks whether this payout was settled.
+                select: vi.fn().mockImplementation((columns: string) => {
+                  if (columns === 'amount, entry_type') {
+                    return {
+                      eq: vi.fn().mockReturnValue({
+                        eq: vi.fn().mockResolvedValue({
+                          data: [{ amount: 500, entry_type: 'CREDIT' }],
+                          error: null,
+                        }),
+                      }),
+                    }
+                  }
+                  return {
+                    eq: vi.fn().mockReturnValue({
+                      eq: vi.fn().mockReturnValue({
+                        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                      }),
+                    }),
+                  }
+                }),
+              }
+            }
+            if (schemaName === 'affiliate' && tableName === 'profiles') {
+              return {
+                select: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
+                    maybeSingle: vi.fn().mockResolvedValue({
+                      data: { id: testAffiliateId, paypal_email: 'partner@example.com', active: true, kyc_status: 'APPROVED' },
+                      error: null,
+                    }),
+                  }),
+                }),
+              }
+            }
+            if (schemaName === 'affiliate' && tableName === 'commission_rules') {
+              return {
+                select: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
+                    eq: vi.fn().mockReturnValue({
+                      maybeSingle: vi.fn().mockResolvedValue({ data: { min_payout_amount: 50 }, error: null }),
+                    }),
+                  }),
+                }),
               }
             }
             if (schemaName === 'affiliate' && tableName === 'notifications') {
@@ -769,6 +813,7 @@ describe('Payout Executor & Affiliate Payout Lifecycle', () => {
                               id: testPayoutId,
                               affiliate_id: testAffiliateId,
                               amount: 150.00,
+                              paypal_email_snapshot: 'partner@example.com',
                               status: 'PROCESSING',
                             },
                           }),
@@ -786,6 +831,42 @@ describe('Payout Executor & Affiliate Payout Lifecycle', () => {
           if (schemaName === 'finance' && tableName === 'ledger_entries') {
             return {
               insert: vi.fn().mockResolvedValue({ data: {}, error: null }),
+              select: vi.fn().mockImplementation((columns: string) => columns === 'amount, entry_type'
+                ? {
+                    eq: vi.fn().mockReturnValue({
+                      eq: vi.fn().mockResolvedValue({ data: [{ amount: 500, entry_type: 'CREDIT' }], error: null }),
+                    }),
+                  }
+                : {
+                    eq: vi.fn().mockReturnValue({
+                      eq: vi.fn().mockReturnValue({
+                        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                      }),
+                    }),
+                  }),
+            }
+          }
+          if (schemaName === 'affiliate' && tableName === 'profiles') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { id: testAffiliateId, paypal_email: 'partner@example.com', active: true, kyc_status: 'APPROVED' },
+                    error: null,
+                  }),
+                }),
+              }),
+            }
+          }
+          if (schemaName === 'affiliate' && tableName === 'commission_rules') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
+                    maybeSingle: vi.fn().mockResolvedValue({ data: { min_payout_amount: 50 }, error: null }),
+                  }),
+                }),
+              }),
             }
           }
           if (schemaName === 'affiliate' && tableName === 'notifications') {
@@ -903,6 +984,7 @@ describe('Payout Executor & Affiliate Payout Lifecycle', () => {
                               id: testPayoutId,
                               affiliate_id: testAffiliateId,
                               amount: 150.00,
+                              paypal_email_snapshot: 'partner@example.com',
                               status: 'PROCESSING',
                             },
                           }),
@@ -920,6 +1002,42 @@ describe('Payout Executor & Affiliate Payout Lifecycle', () => {
           if (schemaName === 'finance' && tableName === 'ledger_entries') {
             return {
               insert: vi.fn().mockResolvedValue({ data: {}, error: null }),
+              select: vi.fn().mockImplementation((columns: string) => columns === 'amount, entry_type'
+                ? {
+                    eq: vi.fn().mockReturnValue({
+                      eq: vi.fn().mockResolvedValue({ data: [{ amount: 500, entry_type: 'CREDIT' }], error: null }),
+                    }),
+                  }
+                : {
+                    eq: vi.fn().mockReturnValue({
+                      eq: vi.fn().mockReturnValue({
+                        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+                      }),
+                    }),
+                  }),
+            }
+          }
+          if (schemaName === 'affiliate' && tableName === 'profiles') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  maybeSingle: vi.fn().mockResolvedValue({
+                    data: { id: testAffiliateId, paypal_email: 'partner@example.com', active: true, kyc_status: 'APPROVED' },
+                    error: null,
+                  }),
+                }),
+              }),
+            }
+          }
+          if (schemaName === 'affiliate' && tableName === 'commission_rules') {
+            return {
+              select: vi.fn().mockReturnValue({
+                eq: vi.fn().mockReturnValue({
+                  eq: vi.fn().mockReturnValue({
+                    maybeSingle: vi.fn().mockResolvedValue({ data: { min_payout_amount: 50 }, error: null }),
+                  }),
+                }),
+              }),
             }
           }
           if (schemaName === 'affiliate' && tableName === 'notifications') {

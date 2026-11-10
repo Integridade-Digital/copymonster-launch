@@ -231,7 +231,17 @@ export async function requestAffiliatePayout(
 export interface ExecutePayoutOptions {
   adminUserId?: string
   client?: any
+  /**
+   * Hard ceiling for one payout, in USD.
+   *
+   * Enforced here as well as at request time so a request created before the
+   * ceiling was introduced cannot execute above it.
+   */
+  maxPayoutAmount?: number
 }
+
+/** Default ceiling for a single payout when the caller does not pass one. */
+export const DEFAULT_MAX_PAYOUT_AMOUNT = 5_000
 
 export interface ExecutePayoutResult {
   success: boolean
@@ -241,16 +251,84 @@ export interface ExecutePayoutResult {
   status?: string
 }
 
+/** Outcome of the pre-PayPal revalidation. */
+type RevalidationResult =
+  | { ok: true }
+  | { ok: false; reason: string }
+
+/**
+ * Recheck every rule that decides whether money may leave, immediately before
+ * the PayPal call.
+ *
+ * The request path validates the same rules at creation time; state can move
+ * between then and execution (another payout consumes the balance, the
+ * affiliate changes their PayPal e-mail, the rule raises the minimum), so the
+ * executor re-reads it instead of trusting the stored row.
+ *
+ * @param client - Supabase client.
+ * @param payout - locked payout row (`id`, `affiliate_id`, `amount`, `paypal_email_snapshot`).
+ * @param maxAmount - per-payout ceiling; defaults to {@link DEFAULT_MAX_PAYOUT_AMOUNT}.
+ * @returns ok, or the stable reason that blocks the payout.
+ */
+export async function revalidateBeforePayout(
+  client: any,
+  payout: { id: string; affiliate_id: string; amount: unknown; paypal_email_snapshot: string },
+  maxAmount: number | undefined,
+): Promise<RevalidationResult> {
+  const amount = Number(payout.amount)
+  if (!Number.isFinite(amount) || amount <= 0) return { ok: false, reason: 'invalid_amount' }
+
+  const ceiling = maxAmount ?? DEFAULT_MAX_PAYOUT_AMOUNT
+  if (amount > ceiling) return { ok: false, reason: 'above_ceiling' }
+
+  const { data: profile } = await getTable(client, 'affiliate', 'profiles')
+    .select('id, paypal_email, active, kyc_status')
+    .eq('id', payout.affiliate_id)
+    .maybeSingle()
+
+  if (profile === null || profile === undefined) return { ok: false, reason: 'profile_not_found' }
+  if (profile.active !== true) return { ok: false, reason: 'affiliate_inactive' }
+  if (profile.kyc_status !== 'APPROVED') return { ok: false, reason: 'kyc_not_approved' }
+  if (profile.paypal_email !== payout.paypal_email_snapshot) {
+    return { ok: false, reason: 'paypal_email_changed' }
+  }
+
+  const { data: rule } = await getTable(client, 'affiliate', 'commission_rules')
+    .select('min_payout_amount')
+    .eq('is_current', true)
+    .eq('active', true)
+    .maybeSingle()
+
+  const minimum = Number(rule?.min_payout_amount ?? 50)
+  if (amount < minimum) return { ok: false, reason: 'below_minimum' }
+
+  const balance = await getAffiliateBalance(payout.affiliate_id, client)
+  if (amount > balance.available) return { ok: false, reason: 'insufficient_balance' }
+
+  // A ledger entry already written for this payout means it was paid; paying
+  // again would double-debit the affiliate.
+  const { data: existingDebit } = await getTable(client, 'finance', 'ledger_entries')
+    .select('id')
+    .eq('reference_type', 'PAYOUT')
+    .eq('reference_id', payout.id)
+    .maybeSingle()
+
+  if (existingDebit !== null && existingDebit !== undefined) return { ok: false, reason: 'already_settled' }
+
+  return { ok: true }
+}
+
 /**
  * Execute an approved payout request via PayPal (called by administrator).
  *
  * Enforces:
  * 1. Payout request exists and status is REQUESTED or APPROVED.
  * 2. Optimistic concurrency lock: transitions status to 'PROCESSING'.
- * 3. PayPal Payouts API execution (real or PAYPAL_MOCK).
- * 4. On PayPal success: updates status to 'EXECUTED', sets batchId, and records
+ * 3. Revalidation of balance, ceiling, minimum, e-mail, KYC and prior settlement.
+ * 4. PayPal Payouts API execution (real or PAYPAL_MOCK), idempotent by payout id.
+ * 5. On PayPal success: updates status to 'EXECUTED', sets batchId, and records
  *    compensatory DEBIT entry in finance.ledger_entries (reference_type = 'PAYOUT').
- * 5. On PayPal failure: updates status to 'FAILED', logs audit error.
+ * 6. On PayPal failure: updates status to 'FAILED', logs audit error.
  */
 export async function executePayout(
   payoutId: string,
@@ -295,7 +373,34 @@ export async function executePayout(
     return { success: false, error: 'concurrent_lock_failed' }
   }
 
-  // 3. Dispatch to PayPal Payouts
+  // 3. Revalidate immediately before paying. The request was validated when it
+  // was created, but balances, the commission rule, and the profile can change
+  // before an operator executes it; the amount leaving the account must be
+  // checked against state read now, not then.
+  const revalidated = await revalidateBeforePayout(client, locked, options?.maxPayoutAmount)
+  if (!revalidated.ok) {
+    await getTable(client, 'finance', 'payout_requests')
+      .update({
+        status: 'FAILED',
+        rejection_reason: `revalidation_failed:${revalidated.reason}`,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', payoutId)
+
+    await getTable(client, 'affiliate', 'audit_logs').insert({
+      action: 'PAYOUT_REVALIDATION_FAILED',
+      target_type: 'payout_request',
+      target_id: payoutId,
+      admin_user_id: options?.adminUserId ?? null,
+      reason: revalidated.reason,
+      metadata: { payoutId, reason: revalidated.reason },
+    })
+
+    return { success: false, payoutId, error: `revalidation_${revalidated.reason}` }
+  }
+
+  // 4. Dispatch to PayPal Payouts. `sender_batch_id` is the payout id, so a
+  // retried attempt reuses PayPal's own idempotency key instead of paying twice.
   const paypalResult = await createPaypalPayout({
     payoutId: payout.id,
     amount: Number(payout.amount),
@@ -304,7 +409,7 @@ export async function executePayout(
     note: 'CopyMonster Affiliate Payout',
   })
 
-  // 4. Handle PayPal Failure
+  // 5. Handle PayPal Failure
   if (!paypalResult.success || !paypalResult.batchId) {
     const failureReason = paypalResult.error ?? 'paypal_execution_failed'
 

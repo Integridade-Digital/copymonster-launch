@@ -596,12 +596,23 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
 
         let planId: string | undefined
         if (priceId !== undefined) {
+          // `priceId` comes from the webhook payload; a PostgREST `.or()` string
+          // would let a value containing `,` or `)` add its own filter terms. Two
+          // equality lookups keep the value a literal operand.
           const { data: matchedPlan } = await supabaseAdminClient
             .from('plans')
             .select('id')
-            .or(`stripe_price_id_monthly.eq.${priceId},stripe_price_id_annual.eq.${priceId}`)
+            .eq('stripe_price_id_monthly', priceId)
             .maybeSingle()
-          if (matchedPlan) planId = matchedPlan.id
+          const { data: annualPlan } = matchedPlan
+            ? { data: null }
+            : await supabaseAdminClient
+                .from('plans')
+                .select('id')
+                .eq('stripe_price_id_annual', priceId)
+                .maybeSingle()
+          const plan = matchedPlan ?? annualPlan
+          if (plan) planId = plan.id
         }
 
         const updates: Database['public']['Tables']['tenants']['Update'] = {

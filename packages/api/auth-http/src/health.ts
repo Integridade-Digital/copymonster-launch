@@ -44,6 +44,29 @@ async function pingSupabase(): Promise<void> {
   if (error !== null && error !== undefined) throw new Error('supabase ping failed')
 }
 
+/**
+ * Fail-closed schema gate: migration 040 must be applied.
+ *
+ * The admin surface authorizes through `public.is_admin_or_owner()`, which
+ * migration 040 ties to platform-tenant membership or `users.metadata.is_admin`.
+ * Before 040 the same function accepted any owner of the caller's *active*
+ * tenant — and every signup owns a personal tenant — so an un-migrated database
+ * grants admin to everyone.
+ *
+ * The check is behavioural because PostgREST exposes no function source: with no
+ * JWT behind `auth.uid()`, the 040 definition returns `false`. An older
+ * definition that consults the session's current tenant can answer `true`, and
+ * either answer other than `false` blocks readiness.
+ */
+async function checkSchemaVersion(): Promise<void> {
+  const client = supabaseAnonClient as unknown as {
+    rpc(name: string): Promise<{ data: unknown; error: unknown }>
+  }
+  const { data, error } = await client.rpc('is_admin_or_owner')
+  if (error !== null && error !== undefined) throw new Error('is_admin_or_owner unavailable')
+  if (data !== false) throw new Error('migration 040 not applied: is_admin_or_owner is not platform-scoped')
+}
+
 /** Reject an absent, providerless, or modelless in-memory catalog. */
 async function checkCatalog(ctx: Context): Promise<void> {
   const llm = ctx.get('llm') as unknown as CatalogService | undefined
@@ -71,6 +94,7 @@ export async function handleHealthz(ctx: Context, req: IncomingMessage, res: Ser
   const started = Date.now()
   let supabase: CheckStatus = 'ok'
   let catalog: CheckStatus = 'ok'
+  let schema: CheckStatus = 'ok'
   try {
     await pingSupabase()
   } catch {
@@ -83,12 +107,19 @@ export async function handleHealthz(ctx: Context, req: IncomingMessage, res: Ser
     // Fail-closed: an absent or empty catalog marks the runtime down.
     catalog = 'fail'
   }
+  try {
+    await checkSchemaVersion()
+  } catch {
+    // Fail-closed: a database without migration 040 would authorize every
+    // personal-tenant owner as a platform operator.
+    schema = 'fail'
+  }
 
-  const healthy = supabase === 'ok' && catalog === 'ok'
+  const healthy = supabase === 'ok' && catalog === 'ok' && schema === 'ok'
   const body = {
     status: healthy ? 'healthy' : 'unhealthy',
     timestamp: new Date().toISOString(),
-    checks: { supabase, catalog, latency_ms: Date.now() - started },
+    checks: { supabase, catalog, schema, latency_ms: Date.now() - started },
   }
   res.writeHead(healthy ? 200 : 503, { 'content-type': 'application/json; charset=utf-8' })
   res.end(JSON.stringify(body))

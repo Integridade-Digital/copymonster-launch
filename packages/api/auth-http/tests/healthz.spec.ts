@@ -8,6 +8,7 @@ import { supabaseAnonClient } from '@deepseek-ai/dsh-supabase-client'
 vi.mock('@deepseek-ai/dsh-supabase-client', () => ({
   supabaseAnonClient: {
     from: vi.fn(),
+    rpc: vi.fn(),
   },
 }))
 
@@ -39,6 +40,8 @@ function reqDouble(method: string): IncomingMessage {
 function ping(error: unknown): void {
   const select = vi.fn().mockResolvedValue({ data: null, count: 1, error })
   ;(supabaseAnonClient.from as unknown as Mock).mockReturnValue({ select })
+  // Migration 040 applied: with no JWT behind auth.uid() the predicate is false.
+  ;(supabaseAnonClient.rpc as unknown as Mock).mockResolvedValue({ data: false, error: null })
 }
 
 function catalog(providers: readonly string[], models: readonly string[]): unknown {
@@ -104,5 +107,38 @@ describe('GET /api/healthz', () => {
     await handleHealthz(ctxWithCatalog(), reqDouble('POST'), res)
     expect(captured.status).toBe(405)
     expect(JSON.parse(captured.body).error).toBe('method-not-allowed')
+  })
+})
+
+describe('migration 040 gate', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    ping(null)
+  })
+
+  it('reports healthy when is_admin_or_owner is platform-scoped', async () => {
+    const { res, captured } = resDouble()
+    await handleHealthz(ctxWithCatalog(catalog(['p'], ['m'])), reqDouble('GET'), res)
+    expect(captured.status).toBe(200)
+    expect(JSON.parse(captured.body).checks.schema).toBe('ok')
+  })
+
+  it('fails closed when the predicate is not platform-scoped', async () => {
+    ;(supabaseAnonClient.rpc as unknown as Mock).mockResolvedValue({ data: true, error: null })
+    const { res, captured } = resDouble()
+    await handleHealthz(ctxWithCatalog(catalog(['p'], ['m'])), reqDouble('GET'), res)
+    expect(captured.status).toBe(503)
+    expect(JSON.parse(captured.body).checks.schema).toBe('fail')
+  })
+
+  it('fails closed when the predicate is missing', async () => {
+    ;(supabaseAnonClient.rpc as unknown as Mock).mockResolvedValue({
+      data: null,
+      error: { code: 'PGRST202', message: 'Could not find the function' },
+    })
+    const { res, captured } = resDouble()
+    await handleHealthz(ctxWithCatalog(catalog(['p'], ['m'])), reqDouble('GET'), res)
+    expect(captured.status).toBe(503)
+    expect(JSON.parse(captured.body).checks.schema).toBe('fail')
   })
 })

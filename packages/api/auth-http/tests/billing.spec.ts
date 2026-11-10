@@ -658,15 +658,17 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       const tenantUpdateMock = vi.fn().mockReturnThis()
       const tenantEqMock = vi.fn().mockResolvedValue({ error: null })
 
+      const plansEq = vi.fn()
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'plans') {
           return {
             select: vi.fn().mockReturnThis(),
-            or: vi.fn().mockReturnThis(),
-            maybeSingle: vi.fn().mockResolvedValue({
-              data: { id: 'plan_pro' },
-              error: null,
-            }),
+            eq: plansEq.mockImplementation((column: string) => ({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: column === 'stripe_price_id_monthly' ? { id: 'plan_pro' } : null,
+                error: null,
+              }),
+            })),
           }
         }
         if (table === 'tenants') {
@@ -698,6 +700,52 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
         }),
       )
       expect(tenantEqMock).toHaveBeenCalledWith('stripe_customer_id', 'cus_tenant_abc')
+      // The price id is a literal equality operand, never an interpolated filter.
+      expect(plansEq).toHaveBeenCalledWith('stripe_price_id_monthly', priceId)
+    })
+
+    it('should treat a price id with filter syntax as a literal and match no plan', async () => {
+      const priceId = "price_x,stripe_price_id_annual.not.is.null)"
+      const payload = JSON.stringify({
+        type: 'customer.subscription.updated',
+        data: {
+          object: {
+            customer: 'cus_tenant_inject',
+            status: 'active',
+            items: { data: [{ price: { id: priceId, recurring: { interval: 'month' } } }] },
+          },
+        },
+      })
+
+      const sig = generateStripeSignature(payload, webhookSecret)
+      const tenantUpdateMock = vi.fn().mockReturnThis()
+      const plansEq = vi.fn()
+
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'plans') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: plansEq.mockImplementation(() => ({
+              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            })),
+          }
+        }
+        if (table === 'tenants') {
+          return { update: tenantUpdateMock, eq: vi.fn().mockResolvedValue({ error: null }) }
+        }
+        return {}
+      })
+
+      const req = createMockReq({ method: 'POST', headers: { 'stripe-signature': sig }, body: payload })
+      const res = createMockRes()
+      await handleWebhook(mockContext, req, res)
+
+      expect(res.statusCode).toBe(200)
+      // Both lookups pass the raw text as a value; neither can widen the filter.
+      expect(plansEq).toHaveBeenCalledWith('stripe_price_id_monthly', priceId)
+      expect(plansEq).toHaveBeenCalledWith('stripe_price_id_annual', priceId)
+      const updated = tenantUpdateMock.mock.calls[0]?.[0] as Record<string, unknown>
+      expect(updated).not.toHaveProperty('plan_id')
     })
 
     it('should handle customer.subscription.deleted event and set status to canceled', async () => {

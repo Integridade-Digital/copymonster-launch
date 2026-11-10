@@ -9,7 +9,7 @@ kind: "package-reference"
 
 ## 概述
 
-有了 `dsh-web-fetch-http`，harness 可以通过 web 服务（`ctx.web`）抓取 HTTP(S) 页面，并在不发送凭据的情况下获得状态码与有界、解码后的内容。当组合需要 URL 校验、仅同源重定向、字节和字符上限及显式产品 `User-Agent` 时选择它。它把非 2xx 响应作为结果而非错误返回，并拒绝二进制数据与不受支持的内容类型。它不限制目标地址，因此可以访问 loopback 与内网主机。面向模型的 `web_fetch` 工具位于 `dsh-tool-web`，由它渲染本提供方的正文。
+有了 `dsh-web-fetch-http`，harness 可以通过 web 服务（`ctx.web`）抓取 HTTP(S) 页面，并在不发送凭据的情况下获得状态码与有界、解码后的内容。当组合需要 URL 校验、仅同源重定向、字节和字符上限及显式产品 `User-Agent` 时选择它。它把非 2xx 响应作为结果而非错误返回，并拒绝二进制数据与不受支持的内容类型。它拒绝非公网目标：loopback、内网、链路本地、运营商级 NAT、组播、保留地址与云元数据地址在建连前即被拒绝，并固定 DNS 解析结果，避免二次解析把连接改向其他地址。面向模型的 `web_fetch` 工具位于 `dsh-tool-web`，由它渲染本提供方的正文。
 
 ## 目录
 
@@ -130,7 +130,7 @@ const page = await ctx.web.fetch({ url: 'https://example.com' })
 
 这些限制说明提供方何时不安全或不合适。它们是当前包约束。
 
-- **可以访问私有目标**——loopback、内网与云元数据地址与其他主机一样会被抓取。需要阻止模型访问这些地址的部署必须添加 `tools/pre-execute` 策略、网络隔离，或不挂载抓取工具。
+- **代理路由在检查之外解析名称**——安装代理策略后由代理解析目标，因此公网地址检查覆盖字面 URL 及其 `Host`，而非代理自身的解析结果。`allowPrivateAddresses` 仅供在 loopback 上提供服务的测试夹具使用，任何部署配置都必须关闭。
 - **只解码文本内容**——包括 html/xhtml 与 `text/*` 加 JSON/XML 家族；缺少 `Content-Type` 或任何二进制类型都会抛出 `WEB_UNSUPPORTED_CONTENT_TYPE`，可提取文本的 PDF 解码属于明确的延期工作。
 - **charset 只来自 `Content-Type` 标头**（默认 UTF-8）——HTML `<meta charset>` 声明会被忽略；声明但无法识别的 charset 标签会抛出异常，而非回退。
 

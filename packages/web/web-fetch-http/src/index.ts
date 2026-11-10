@@ -40,6 +40,14 @@ export interface Config {
   maxRedirects?: number
   /** `User-Agent` header sent on every request. */
   userAgent?: string
+  /**
+   * Permit loopback and private destinations.
+   *
+   * Off everywhere by default and meant only for test profiles that point the
+   * provider at a local fixture server; leaving it on exposes the host's own
+   * services and the cloud metadata endpoint to model-issued fetches.
+   */
+  allowPrivateAddresses?: boolean
 }
 
 export const Config: z<Config> = z.object({
@@ -48,6 +56,7 @@ export const Config: z<Config> = z.object({
   timeoutMs: z.number().default(30_000),
   maxRedirects: z.number().default(5),
   userAgent: z.string().default(DEFAULT_USER_AGENT),
+  allowPrivateAddresses: z.boolean().default(false),
 })
 
 /** Complete config after schemastery applies every field default. */
@@ -89,6 +98,7 @@ export function apply(ctx: Context, config: Config): void {
     timeoutMs: resolved.timeoutMs,
     maxRedirects: resolved.maxRedirects,
     userAgent: resolved.userAgent,
+    allowPrivateAddresses: resolved.allowPrivateAddresses,
   }
   ctx.web.registerFetchProvider(new HttpFetchProvider(limits))
 }

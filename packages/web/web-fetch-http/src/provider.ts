@@ -6,11 +6,22 @@
  * @module @deepseek-ai/dsh-web-fetch-http/provider
  */
 
+import { lookup as dnsLookup } from 'node:dns/promises'
+import type { LookupFunction } from 'node:net'
 import { WebError } from '@deepseek-ai/dsh-web'
 import type { WebFetchBody, WebFetchProvider, WebFetchRequest, WebFetchResult } from '@deepseek-ai/dsh-web'
 import { deadline, timeoutOf } from '@deepseek-ai/dsh-timeout'
 import type { Response } from 'undici'
-import { classifyContentType, decoderForCharset, isSameOrigin, parseCharset, validateFetchUrl } from './policy.ts'
+import {
+  assertPublicDestination,
+  classifyContentType,
+  decoderForCharset,
+  isSameOrigin,
+  literalIpAddress,
+  parseCharset,
+  pinnedAddress,
+  validateFetchUrl,
+} from './policy.ts'
 
 /** Resolved provider limits (the plugin's schemastery Config supplies defaults). */
 export interface HttpFetchLimits {
@@ -24,6 +35,14 @@ export interface HttpFetchLimits {
   maxRedirects: number
   /** `User-Agent` header sent on every request. */
   userAgent: string
+  /**
+   * Permit loopback and private destinations.
+   *
+   * False in every deployed profile: a model-issued fetch must not reach the
+   * host's own services, the cloud metadata endpoint, or the private network.
+   * Only tests that point the provider at a local fixture server set it.
+   */
+  allowPrivateAddresses?: boolean
 }
 
 /** Stable id this provider registers under. */
@@ -88,6 +107,8 @@ export class HttpFetchProvider implements WebFetchProvider {
           throw error
         }
         await response.body?.cancel()
+        // The next hop is requested through `requestOnce`, which checks it
+        // against the public-destination policy before any connection.
         currentUrl = validatedTarget
         redirectsFollowed++
         continue
@@ -97,19 +118,54 @@ export class HttpFetchProvider implements WebFetchProvider {
     }
   }
 
-  /** Send one GET through the process-wide dispatcher, which applies the installed proxy policy. */
+  /** Send one GET, refusing non-public destinations and pinning the resolved address. */
   private async requestOnce(url: URL, signal: AbortSignal): Promise<Response> {
     const headers = {
       'user-agent': this.limits.userAgent,
       'accept': 'text/html,application/xhtml+xml,text/*;q=0.9,application/json;q=0.8',
     }
+    // A literal IP is refused here, before any connection. A DNS name is
+    // resolved here and the answer is pinned into the dispatcher below, so a
+    // second resolution (DNS rebinding) cannot redirect the connection to a
+    // private address after the check.
+    if (this.limits.allowPrivateAddresses !== true) assertPublicDestination(url)
     try {
-      // Keep the Node-only transport out of browser-worker startup; a real request loads it here.
-      const { fetch } = await import('undici')
-      return await fetch(url, { method: 'GET', redirect: 'manual', headers, signal })
+      const { Agent, fetch, getGlobalDispatcher } = await import('undici')
+      const dispatcher = await this.dispatcherFor(url, Agent, getGlobalDispatcher)
+      return await fetch(url, { method: 'GET', redirect: 'manual', headers, signal, dispatcher })
     } catch (error: unknown) {
+      if (error instanceof WebError) throw error
       throw translateAbortOrNetwork(error, signal)
     }
+  }
+
+  /**
+   * Build a dispatcher that connects only to the address resolved here.
+   *
+   * `connect.lookup` is what undici calls to turn the hostname into a socket
+   * address; answering from the resolved list keeps the connection on the
+   * address that was checked. When the process routes through a proxy, the
+   * global dispatcher owns that routing and the proxy resolves the name, so the
+   * (already verified) global dispatcher is used instead.
+   */
+  private async dispatcherFor(
+    url: URL,
+    Agent: typeof import('undici').Agent,
+    getGlobalDispatcher: typeof import('undici').getGlobalDispatcher,
+  ): Promise<import('undici').Dispatcher> {
+    if (this.limits.allowPrivateAddresses === true) return getGlobalDispatcher()
+    if (literalIpAddress(url.hostname) !== undefined) return getGlobalDispatcher()
+
+    const resolved = await dnsLookup(url.hostname, { all: true, order: 'verbatim' })
+    const pinned = pinnedAddress(resolved.map(entry => entry.address))
+
+    const pinnedLookup: LookupFunction = (_hostname, _options, callback) => {
+      if (typeof callback !== 'function') return
+      const family = pinned.includes(':') ? 6 : 4
+      ;(callback as (error: null, address: string, family: number) => void)(null, pinned, family)
+    }
+
+    return new Agent({ connect: { lookup: pinnedLookup } })
   }
 
   /** Read, byte-cap, classify, and decode the final response body. */

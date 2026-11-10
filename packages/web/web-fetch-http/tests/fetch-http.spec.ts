@@ -22,6 +22,8 @@ const limits: HttpFetchLimits = {
   timeoutMs: 5_000,
   maxRedirects: 5,
   userAgent: 'test-agent/1.0',
+  // The fixture server listens on loopback; only tests opt in to that.
+  allowPrivateAddresses: true,
 }
 
 type Handler = (req: IncomingMessage, res: ServerResponse) => void
@@ -383,7 +385,7 @@ describe('web-fetch-http plugin registration', () => {
   it('registers the provider into ctx.web (HMR-safe)', async () => {
     const ctx = new Context()
     await ctx.plugin(WebRuntime, { fetchProvider: LOCAL_FETCH_PROVIDER_ID })
-    const fiber = await ctx.plugin(fetchPlugin, {})
+    const fiber = await ctx.plugin(fetchPlugin, { allowPrivateAddresses: true })
     await expect(ctx.web.fetch({ url: `${base}/` }))
       .resolves.toMatchObject({ statusCode: 200 })
     await fiber.dispose()
@@ -433,7 +435,7 @@ describe('web-fetch-http plugin registration', () => {
   it('accepts maxRedirects: 0 (follow no redirects) as valid config', async () => {
     const ctx = new Context()
     await ctx.plugin(WebRuntime, { fetchProvider: LOCAL_FETCH_PROVIDER_ID })
-    const fiber = await ctx.plugin(fetchPlugin, { maxRedirects: 0 })
+    const fiber = await ctx.plugin(fetchPlugin, { maxRedirects: 0, allowPrivateAddresses: true })
     await expect(ctx.web.fetch({ url: `${base}/` }))
       .resolves.toMatchObject({ statusCode: 200 })
     await fiber.dispose()

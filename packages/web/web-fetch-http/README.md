@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-With `dsh-web-fetch-http`, the harness can fetch HTTP(S) pages through the web service (`ctx.web`) and get their status code plus bounded, decoded content without sending credentials. Choose it when a composition needs retrieval with URL validation, same-origin redirects, byte and character caps, and an explicit product `User-Agent`. It returns non-2xx responses as results rather than errors, and rejects binary data and unsupported content types. It does not restrict destination addresses, so it reaches loopback and private-network hosts. The model-facing `web_fetch` tool lives in `dsh-tool-web`, which renders this provider's bodies.
+With `dsh-web-fetch-http`, the harness can fetch HTTP(S) pages through the web service (`ctx.web`) and get their status code plus bounded, decoded content without sending credentials. Choose it when a composition needs retrieval with URL validation, same-origin redirects, byte and character caps, and an explicit product `User-Agent`. It returns non-2xx responses as results rather than errors, and rejects binary data and unsupported content types. It refuses non-public destinations: loopback, private, link-local, carrier-grade NAT, multicast, reserved, and cloud metadata addresses are rejected before any connection, and a DNS answer is pinned so a second resolution cannot redirect the socket. The model-facing `web_fetch` tool lives in `dsh-tool-web`, which renders this provider's bodies.
 
 ## Table of Contents
 
@@ -130,7 +130,7 @@ No direct invalidation; the named consumer owns any request-prefix changes.
 
 These limits define when the provider is unsafe or a poor fit. They are current package constraints.
 
-- **Private destinations are reachable** — loopback, private-network, and cloud metadata addresses are fetched like any other host. A deployment that must keep the model away from them needs a `tools/pre-execute` policy, network confinement, or no fetch tool.
+- **Proxy routing resolves names outside this check** — when a proxy policy is installed, the proxy resolves the destination, so the public-address check covers the literal URL and the `Host` it names rather than the proxy's own answer. `allowPrivateAddresses` exists for test fixtures that serve on loopback and must stay off in every deployed profile.
 - **Only textual content decodes** — html/xhtml and `text/*` plus JSON/XML families; a missing `Content-Type` or any binary type throws `WEB_UNSUPPORTED_CONTENT_TYPE`, and text-extractable PDF decoding is named deferred work.
 - **Charset comes only from the `Content-Type` header** (UTF-8 default) — an HTML `<meta charset>` declaration is ignored, and a declared-but-unrecognized charset label throws rather than falling back.
 

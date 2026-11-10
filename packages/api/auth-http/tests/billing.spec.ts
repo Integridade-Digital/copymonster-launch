@@ -215,27 +215,41 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       expect(res.json()).toEqual({ error: 'stripe_secret_key_not_configured' })
     })
 
-    it('rejects a tenant without a billable plan with 400', async () => {
+    it.each([
+      ['an unknown plan slug', { plan: 'enterprise', interval: 'monthly' }],
+      ['an unknown interval', { plan: 'pro', interval: 'weekly' }],
+      ['a price id instead of a plan', { priceId: 'price_arbitrary', interval: 'monthly' }],
+      ['a missing interval', { plan: 'pro' }],
+    ])('rejects %s with 400 before any database read', async (_label, body) => {
       resolveIdentity.mockResolvedValue(identity())
-      mockSupabase.from.mockReturnValue({
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({
-          data: { id: 'tenant-1', stripe_customer_id: null, name: 'Tenant', plan_id: null },
-          error: null,
-        }),
-      })
       const req = createMockReq({
         method: 'POST',
         headers: { authorization: 'Bearer valid_token' },
-        body: JSON.stringify({ priceId: 'price_arbitrary' }),
+        body: JSON.stringify(body),
       })
       const res = createMockRes()
       await handleCheckout(mockContext, req, res)
       expect(res.statusCode).toBe(400)
       expect(res.json()).toEqual({
-        error: 'plan_not_billable',
-        message: 'Your workspace has no billable plan yet. Choose a plan to continue.',
+        error: 'invalid_plan_request',
+        message: 'Choose a billing plan and interval to continue.',
+      })
+      expect(mockSupabase.from).not.toHaveBeenCalled()
+    })
+
+    it('rejects an unparsable body with 400', async () => {
+      resolveIdentity.mockResolvedValue(identity())
+      const req = createMockReq({
+        method: 'POST',
+        headers: { authorization: 'Bearer valid_token' },
+        body: 'not json',
+      })
+      const res = createMockRes()
+      await handleCheckout(mockContext, req, res)
+      expect(res.statusCode).toBe(400)
+      expect(res.json()).toEqual({
+        error: 'invalid_plan_request',
+        message: 'Choose a billing plan and interval to continue.',
       })
     })
 
@@ -246,18 +260,19 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
           single: vi.fn().mockResolvedValue({
-            data: { id: 'tenant-1', stripe_customer_id: null, name: 'Tenant', plan_id: 'plan-pro' },
+            data: { id: 'tenant-1', stripe_customer_id: null, name: 'Tenant' },
             error: null,
           }),
         })
         .mockReturnValueOnce({
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
-          single: vi.fn().mockResolvedValue({ data: { stripe_price_id: null }, error: null }),
+          single: vi.fn().mockResolvedValue({ data: { id: 'plan-pro', stripe_price_id_monthly: null }, error: null }),
         })
       const req = createMockReq({
         method: 'POST',
         headers: { authorization: 'Bearer valid_token' },
+        body: JSON.stringify({ plan: 'pro', interval: 'monthly' }),
       })
       const res = createMockRes()
       await handleCheckout(mockContext, req, res)
@@ -294,7 +309,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       const req = createMockReq({
         method: 'POST',
         headers: { authorization: 'Bearer valid_token' },
-        body: JSON.stringify({ priceId: 'price_test_123' }),
+        body: JSON.stringify({ plan: 'pro', interval: 'monthly' }),
       })
       const res = createMockRes()
       await handleCheckout(mockContext, req, res)
@@ -325,7 +340,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       const mockPlanSelect = {
         select: vi.fn().mockReturnThis(),
         eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: { stripe_price_id: 'price_plan_pro' }, error: null }),
+        single: vi.fn().mockResolvedValue({ data: { id: 'plan-row-1', stripe_price_id_monthly: 'price_plan_pro' }, error: null }),
       }
 
       mockSupabase.from.mockImplementation((table: string) => {
@@ -371,7 +386,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
           authorization: 'Bearer valid_token',
           host: 'copymonster.ai',
         },
-        body: JSON.stringify({ priceId: 'price_1SqRe4RiKNxooUH0tYyprM4P' }),
+        body: JSON.stringify({ plan: 'pro', interval: 'monthly' }),
       })
       const res = createMockRes()
 
@@ -391,9 +406,10 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       // Verify checkout session creation
       expect(fetchCalls[1]?.url).toContain('/checkout/sessions')
       expect(fetchCalls[1]?.body).toContain('customer=cus_created_123')
-      // The plan owns the price; the client-supplied price is ignored.
+      // The plan row owns the price; the request names only a plan and interval.
       expect(fetchCalls[1]?.body).toContain('line_items%5B0%5D%5Bprice%5D=price_plan_pro')
-      expect(fetchCalls[1]?.body).not.toContain('price_1SqRe4RiKNxooUH0tYyprM4P')
+      expect(fetchCalls[1]?.body).toContain('subscription_data%5Bmetadata%5D%5Bplan%5D=pro')
+      expect(fetchCalls[1]?.body).toContain('subscription_data%5Bmetadata%5D%5Binterval%5D=monthly')
       // Redirects always name the platform origin, never the request Host.
       expect(fetchCalls[1]?.body).toContain('success_url=https%3A%2F%2Fapp.copymonster.co%2Fbilling%2Fsuccess')
       expect(fetchCalls[1]?.body).toContain('cancel_url=https%3A%2F%2Fapp.copymonster.co%2Fbilling%2Fcancel')
@@ -407,14 +423,14 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
           return {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: { stripe_price_id: 'price_pro_annual' }, error: null }),
+            single: vi.fn().mockResolvedValue({ data: { id: 'plan-row-1', stripe_price_id_annual: 'price_pro_annual' }, error: null }),
           }
         }
         return {
           select: vi.fn().mockReturnThis(),
           eq: vi.fn().mockReturnThis(),
           single: vi.fn().mockResolvedValue({
-            data: { id: 'tenant-123', stripe_customer_id: 'cus_existing_999', plan_id: 'plan-row-1' },
+            data: { id: 'tenant-123', stripe_customer_id: 'cus_existing_999' },
             error: null,
           }),
         }
@@ -437,7 +453,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       const req = createMockReq({
         method: 'POST',
         headers: { authorization: 'Bearer valid_token' },
-        body: JSON.stringify({ priceId: 'price_pro_annual' }),
+        body: JSON.stringify({ plan: 'pro', interval: 'annual' }),
       })
       const res = createMockRes()
 
@@ -445,8 +461,69 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
 
       expect(res.statusCode).toBe(200)
       expect(res.json()?.sessionId).toBe('cs_existing_customer_session')
-      // Customer creation should NOT have been called
+      // An annual request reads the annual price column, not the monthly one;
+      // customer creation was skipped because the tenant already had one.
       expect(globalThis.fetch).toHaveBeenCalledTimes(1)
+    })
+
+    it('resolves the price from the plan row and ignores a client-supplied price id', async () => {
+      resolveIdentity.mockResolvedValue(identity({ tenantId: 'tenant-123', userId: 'user-123' }))
+
+      const plansEq = vi.fn().mockReturnThis()
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'plans') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: plansEq,
+            single: vi.fn().mockResolvedValue({
+              data: { id: 'plan-legend', stripe_price_id_annual: 'price_legend_annual_server' },
+              error: null,
+            }),
+          }
+        }
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn().mockReturnThis(),
+          single: vi.fn().mockResolvedValue({
+            data: { id: 'tenant-123', stripe_customer_id: 'cus_existing_999' },
+            error: null,
+          }),
+          update: vi.fn().mockReturnThis(),
+        }
+      })
+
+      const checkoutBodies: string[] = []
+      globalThis.fetch = vi.fn().mockImplementation(async (url: string, init?: { body?: string }) => {
+        if (url.endsWith('/checkout/sessions')) {
+          checkoutBodies.push(init?.body ?? '')
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ id: 'cs_legend', url: 'https://checkout.stripe.com/pay/cs_legend' }),
+          } as Response
+        }
+        return { ok: false, status: 500, json: async () => ({}) } as Response
+      })
+
+      const req = createMockReq({
+        method: 'POST',
+        headers: { authorization: 'Bearer valid_token' },
+        body: JSON.stringify({
+          plan: 'legend',
+          interval: 'annual',
+          priceId: 'price_attacker_supplied',
+          price_id: 'price_attacker_supplied',
+        }),
+      })
+      const res = createMockRes()
+
+      await handleCheckout(mockContext, req, res)
+
+      expect(res.statusCode).toBe(200)
+      // The plan slug and the annual column select the price; the client value never reaches Stripe.
+      expect(plansEq).toHaveBeenCalledWith('slug', 'legend')
+      expect(checkoutBodies[0]).toContain('line_items%5B0%5D%5Bprice%5D=price_legend_annual_server')
+      expect(checkoutBodies[0]).not.toContain('price_attacker_supplied')
     })
   })
 
@@ -705,7 +782,7 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
     })
 
     it('should treat a price id with filter syntax as a literal and match no plan', async () => {
-      const priceId = "price_x,stripe_price_id_annual.not.is.null)"
+      const priceId = 'price_x,stripe_price_id_annual.not.is.null)'
       const payload = JSON.stringify({
         type: 'customer.subscription.updated',
         data: {

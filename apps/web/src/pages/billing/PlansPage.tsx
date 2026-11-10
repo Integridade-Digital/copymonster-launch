@@ -295,6 +295,12 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
         throw new Error('You must be logged in to initiate checkout. Please refresh or sign in again.')
       }
 
+      const plan = PRICING_PLANS.find(item => item.monthlyPriceId === priceId || item.annualPriceId === priceId)
+      if (plan === undefined) {
+        throw new Error('This plan is not available for checkout. Please reload the page and try again.')
+      }
+      const interval = plan.annualPriceId === priceId ? 'annual' : 'monthly'
+
       const host = window.location.origin
       const response = await fetch('/api/billing/checkout', {
         method: 'POST',
@@ -303,7 +309,8 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
           'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
-          priceId,
+          plan: plan.slug,
+          interval,
           successUrl: `${host}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
           cancelUrl: `${host}/billing/cancel`,
         }),

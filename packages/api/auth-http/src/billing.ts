@@ -56,7 +56,7 @@ export function redactSecrets(text: string): string {
   return text
     .replace(/\b(sk|pk|rk)_(live|test)_[A-Za-z0-9]+/g, '$1_$2_[redacted]')
     .replace(/\bwhsec_[A-Za-z0-9]+/g, 'whsec_[redacted]')
-    .replace(/\bBearer\s+[A-Za-z0-9._-]+/gi, 'Bearer [redacted]')
+    .replace(/\bBearer\s+[\w.-]+/gi, 'Bearer [redacted]')
 }
 
 /**
@@ -209,6 +209,50 @@ function arrayField(source: Record<string, unknown>, key: string): unknown[] {
   return Array.isArray(value) ? value : []
 }
 
+/** Plan slugs a caller may check out. */
+const CHECKOUT_PLANS = ['starter', 'pro', 'legend'] as const
+
+/** The accepted plan slug. */
+type CheckoutPlan = typeof CHECKOUT_PLANS[number]
+
+/** Billing intervals a caller may check out. */
+const CHECKOUT_INTERVALS = ['monthly', 'annual'] as const
+
+/** The accepted billing interval. */
+type CheckoutInterval = typeof CHECKOUT_INTERVALS[number]
+
+/** Validated plan and interval naming one billable price. */
+interface CheckoutRequest {
+  readonly plan: CheckoutPlan
+  readonly interval: CheckoutInterval
+}
+
+/**
+ * Read the requested plan and interval from a checkout body.
+ *
+ * A caller names a plan and interval; the price id never travels from the
+ * browser. Both fields must match a known value, so an unknown slug cannot
+ * reach the price lookup at all.
+ * @param raw - the bounded request body.
+ * @returns the validated request, or undefined when the body names no accepted plan and interval.
+ */
+function parseCheckoutRequest(raw: Buffer): CheckoutRequest | undefined {
+  let payload: unknown
+  try {
+    payload = JSON.parse(raw.toString('utf8'))
+  } catch {
+    // An unparsable body names no plan; the caller receives the same refusal as
+    // a missing field rather than a parser message.
+    return undefined
+  }
+  const body = asObject(payload)
+  const plan = body['plan']
+  const interval = body['interval']
+  if (typeof plan !== 'string' || !(CHECKOUT_PLANS as readonly string[]).includes(plan)) return undefined
+  if (typeof interval !== 'string' || !(CHECKOUT_INTERVALS as readonly string[]).includes(interval)) return undefined
+  return { plan: plan as CheckoutPlan, interval: interval as CheckoutInterval }
+}
+
 /** Read a non-empty string field from a parsed payload. */
 function optionalString(source: Record<string, unknown>, key: string): string | undefined {
   const value = source[key]
@@ -353,6 +397,15 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
   const raw = await readBoundedBody(req, res)
   if (raw === undefined) return
 
+  const requested = parseCheckoutRequest(raw)
+  if (requested === undefined) {
+    sendJson(res, 400, {
+      error: 'invalid_plan_request',
+      message: 'Choose a billing plan and interval to continue.',
+    })
+    return
+  }
+
   const attribution = await resolveCheckoutAttribution({
     cookieHeader: req.headers.cookie,
     buyerUserId: identity.userId,
@@ -364,7 +417,7 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
     // 1. Check or create Stripe Customer
     const { data: tenant, error: tenantErr } = await supabaseAdminClient
       .from('tenants')
-      .select('id, stripe_customer_id, name, plan_id')
+      .select('id, stripe_customer_id, name')
       .eq('id', identity.tenantId)
       .single()
 
@@ -373,20 +426,19 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
       return
     }
 
-    // 2. The price is the tenant's plan, never a client-supplied value.
-    if (!tenant.plan_id) {
-      sendJson(res, 400, {
-        error: 'plan_not_billable',
-        message: 'Your workspace has no billable plan yet. Choose a plan to continue.',
-      })
-      return
-    }
+    // 2. The price is looked up from the requested plan and interval, never
+    // taken from the request. A caller naming a price directly would be able
+    // to check out at any price id they can guess.
+    const priceColumn = requested.interval === 'annual' ? 'stripe_price_id_annual' : 'stripe_price_id_monthly'
     const { data: plan, error: planErr } = await supabaseAdminClient
       .from('plans')
-      .select('stripe_price_id')
-      .eq('id', tenant.plan_id)
+      .select(`id, ${priceColumn}`)
+      .eq('slug', requested.plan)
+      .eq('is_active', true)
       .single()
-    const priceId = planErr === null ? plan?.stripe_price_id : undefined
+    const priceId = planErr === null && plan !== null
+      ? (plan as Record<string, string | null | undefined>)[priceColumn]
+      : undefined
     if (typeof priceId !== 'string' || priceId === '') {
       sendJson(res, 400, {
         error: 'plan_not_billable',
@@ -429,6 +481,8 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
       'metadata[tenant_id]': identity.tenantId,
       'metadata[user_id]': identity.userId,
       'subscription_data[metadata][tenant_id]': identity.tenantId,
+      'subscription_data[metadata][plan]': requested.plan,
+      'subscription_data[metadata][interval]': requested.interval,
     }
 
     if (affiliateId !== undefined) {
@@ -607,10 +661,10 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
           const { data: annualPlan } = matchedPlan
             ? { data: null }
             : await supabaseAdminClient
-                .from('plans')
-                .select('id')
-                .eq('stripe_price_id_annual', priceId)
-                .maybeSingle()
+              .from('plans')
+              .select('id')
+              .eq('stripe_price_id_annual', priceId)
+              .maybeSingle()
           const plan = matchedPlan ?? annualPlan
           if (plan) planId = plan.id
         }

@@ -687,7 +687,7 @@ describe('Affiliate Processor & Billing Integration', () => {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             single: vi.fn().mockResolvedValue({
-              data: { id: 'tenant-affiliate-1', stripe_customer_id: 'cus_affiliate_123', plan_id: 'plan_pro' },
+              data: { id: 'tenant-affiliate-1', stripe_customer_id: 'cus_affiliate_123' },
               error: null,
             }),
           }
@@ -697,7 +697,7 @@ describe('Affiliate Processor & Billing Integration', () => {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             single: vi.fn().mockResolvedValue({
-              data: { stripe_price_id: 'price_pro_monthly' },
+              data: { id: 'plan_pro', stripe_price_id_monthly: 'price_pro_monthly' },
               error: null,
             }),
           }
@@ -724,7 +724,7 @@ describe('Affiliate Processor & Billing Integration', () => {
       const req = createMockReq({
         method: 'POST',
         headers: { authorization: 'Bearer valid_token', cookie: `affiliate_ref=${cookieToken}` },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ plan: 'pro', interval: 'monthly' }),
       })
       const res = createMockRes()
 
@@ -747,7 +747,7 @@ describe('Affiliate Processor & Billing Integration', () => {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
             single: vi.fn().mockResolvedValue({
-              data: { id: 'tenant-affiliate-1', stripe_customer_id: 'cus_affiliate_123', plan_id: 'plan_pro' },
+              data: { id: 'tenant-affiliate-1', stripe_customer_id: 'cus_affiliate_123' },
               error: null,
             }),
           }
@@ -756,7 +756,7 @@ describe('Affiliate Processor & Billing Integration', () => {
           return {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnThis(),
-            single: vi.fn().mockResolvedValue({ data: { stripe_price_id: 'price_pro_monthly' }, error: null }),
+            single: vi.fn().mockResolvedValue({ data: { id: 'plan_pro', stripe_price_id_monthly: 'price_pro_monthly' }, error: null }),
           }
         }
         return {}
@@ -778,7 +778,7 @@ describe('Affiliate Processor & Billing Integration', () => {
       const req = createMockReq({
         method: 'POST',
         headers: { authorization: 'Bearer valid_token' },
-        body: JSON.stringify({ affiliateId: testAffiliateId }),
+        body: JSON.stringify({ plan: 'pro', interval: 'monthly', affiliateId: testAffiliateId }),
       })
       const res = createMockRes()
 

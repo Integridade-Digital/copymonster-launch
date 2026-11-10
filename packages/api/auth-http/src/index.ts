@@ -40,6 +40,7 @@ import {
   ADMIN_PAYOUT_EXECUTE_PATH,
   ADMIN_PAYOUT_EXECUTE_ALIAS,
 } from './payout-executor.ts'
+import { handleAffiliateReferral, AFFILIATE_REFERRAL_PATH } from './affiliate-attribution.ts'
 import z from '@deepseek-ai/schemastery'
 
 export type { AuthErrorResponse, AuthIdentityResponse } from './types.ts'
@@ -57,6 +58,17 @@ export { handleLlmTest, LLM_TEST_PATH, type LlmTestResult } from './llm-test.ts'
 export { SESSION_TOKEN_PATH, handleSessionToken } from './session-token.ts'
 export { IDENTITY_HEADER, createIdentityResolver } from './identity.ts'
 export { createTenantPolicy } from './access.ts'
+export {
+  handleAffiliateReferral,
+  AFFILIATE_REFERRAL_PATH,
+  AFFILIATE_REFERRAL_COOKIE,
+  AFFILIATE_REFERRAL_TTL_SECONDS,
+  createAttributionToken,
+  verifyAttributionToken,
+  readAttributionCookie,
+  resolveCheckoutAttribution,
+  type AttributionRejection,
+} from './affiliate-attribution.ts'
 export {
   getPaypalAccessToken,
   createPaypalPayout,
@@ -372,6 +384,16 @@ export function apply(ctx: Context, config: Config): void {
     path: ADMIN_PAYOUT_EXECUTE_ALIAS,
     handler: limited((req: IncomingMessage, res: ServerResponse) => handleAdminExecutePayout(ctx, req, res), adminPayoutLimiter),
   }), `auth-http: ${ADMIN_PAYOUT_EXECUTE_ALIAS}`)
+
+  // Public referral entry: sets the signed attribution cookie that checkout
+  // reads. Unauthenticated by design, and rate limited like the other public
+  // routes.
+  const referralLimiter = limiter()
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: AFFILIATE_REFERRAL_PATH,
+    handler: limited((req: IncomingMessage, res: ServerResponse) => handleAffiliateReferral(ctx, req, res), referralLimiter),
+  }), `auth-http: ${AFFILIATE_REFERRAL_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',

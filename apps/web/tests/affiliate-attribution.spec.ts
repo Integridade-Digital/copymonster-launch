@@ -1,15 +1,7 @@
 import { describe, expect, it } from 'vitest'
-import { captureAffiliateRef, getAffiliateRef, isValidAffiliateRef } from '../src/lib/affiliate'
+import { isValidAffiliateRef, referralAttributionUrl } from '../src/lib/affiliate'
 
 const validRef = 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11'
-
-function memoryStorage() {
-  const values = new Map<string, string>()
-  return {
-    setItem: (key: string, value: string) => values.set(key, value),
-    getItem: (key: string) => values.get(key) ?? null,
-  }
-}
 
 describe('affiliate referral attribution', () => {
   it('accepts UUID references and rejects malformed values', () => {
@@ -18,19 +10,18 @@ describe('affiliate referral attribution', () => {
     expect(isValidAffiliateRef(null)).toBe(false)
   })
 
-  it('captures valid ?ref values and ignores invalid ones', () => {
-    const storage = memoryStorage()
-    captureAffiliateRef(`?ref=${validRef}`, storage)
-    expect(getAffiliateRef(storage)).toBe(validRef)
-    captureAffiliateRef('?ref=javascript%3Aalert(1)', storage)
-    expect(getAffiliateRef(storage)).toBe(validRef)
+  it('builds the cookie-issuing URL for a valid referral', () => {
+    expect(referralAttributionUrl(validRef, 'https://app.copymonster.co/register'))
+      .toBe(`/api/affiliate/referral?ref=${validRef}&next=https%3A%2F%2Fapp.copymonster.co%2Fregister`)
   })
 
-  it('normalizes the saved identifier and does not return corrupted storage', () => {
-    const storage = memoryStorage()
-    storage.setItem('affiliate_ref', validRef.toUpperCase())
-    expect(getAffiliateRef(storage)).toBe(validRef)
-    storage.setItem('affiliate_ref', 'broken')
-    expect(getAffiliateRef(storage)).toBeNull()
+  it('normalizes the referral id to lower case', () => {
+    expect(referralAttributionUrl(validRef.toUpperCase(), 'https://app.copymonster.co/'))
+      .toBe(`/api/affiliate/referral?ref=${validRef}&next=https%3A%2F%2Fapp.copymonster.co%2F`)
+  })
+
+  it('returns null so an invalid referral is never sent to the server', () => {
+    expect(referralAttributionUrl('javascript:alert(1)', 'https://app.copymonster.co/')).toBeNull()
+    expect(referralAttributionUrl(null, 'https://app.copymonster.co/')).toBeNull()
   })
 })

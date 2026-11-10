@@ -1,8 +1,8 @@
 import {
   processAffiliateCommissionFromInvoice,
   processAffiliateRefundFromCharge,
-  UUID_REGEX,
 } from './affiliate-processor.ts'
+import { resolveCheckoutAttribution } from './affiliate-attribution.ts'
 /**
  * CopyMonster Stripe Billing and Webhook handlers.
  * Runs on ctx.webServer using native fetch and node:crypto (zero external dependencies).
@@ -318,19 +318,19 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
     return
   }
 
-  // The body is caller-supplied; parse it to read optional affiliate tracking
-  // and enforce the byte cap.
+  // The body is caller-supplied; parse it only to enforce the byte cap. The
+  // affiliate is never read from here: a client could name any profile id and
+  // redirect another affiliate's commission. Only the signed attribution
+  // cookie from GET /api/affiliate/referral names the affiliate.
   const raw = await readBoundedBody(req, res)
   if (raw === undefined) return
 
-  const parsedBody = parseJsonObject(raw)
-  const affiliateIdCandidate = optionalString(parsedBody ?? {}, 'affiliateId')
-    ?? optionalString(parsedBody ?? {}, 'affiliate_id')
-  if (affiliateIdCandidate !== undefined && !UUID_REGEX.test(affiliateIdCandidate)) {
-    sendJson(res, 400, { error: 'invalid_affiliate_id', message: 'affiliateId must be a valid UUID' })
-    return
-  }
-  const affiliateId = affiliateIdCandidate !== undefined ? affiliateIdCandidate.toLowerCase() : undefined
+  const attribution = await resolveCheckoutAttribution({
+    cookieHeader: req.headers.cookie,
+    buyerUserId: identity.userId,
+    secret: process.env.COPYMONSTER_AFFILIATE_SECRET,
+  })
+  const affiliateId = attribution.ok ? attribution.affiliateId : undefined
 
   try {
     // 1. Check or create Stripe Customer

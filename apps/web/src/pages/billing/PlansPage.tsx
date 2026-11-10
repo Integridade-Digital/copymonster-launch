@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../lib/supabase/client'
-import { getAffiliateRef } from '../../lib/affiliate'
 import './billing.css'
 
 export type BillingCycle = 'monthly' | 'annual'
@@ -307,7 +306,6 @@ export function PlansPage({ currentUser }: PlansPageProps = {}) {
           priceId,
           successUrl: `${host}/billing/success?session_id={CHECKOUT_SESSION_ID}`,
           cancelUrl: `${host}/billing/cancel`,
-          affiliateId: getAffiliateRef(window.localStorage),
         }),
       })
 

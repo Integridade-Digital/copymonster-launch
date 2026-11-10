@@ -9,7 +9,8 @@ import { PlansPage } from './pages/billing/PlansPage'
 import { MyDnaPage } from './pages/settings/MyDnaPage'
 import { ModelsPage } from './pages/settings/ModelsPage'
 import { AffiliateSettings } from './pages/settings/AffiliateSettings'
-import { captureAffiliateRef } from './lib/affiliate'
+import { referralAttributionUrl } from './lib/affiliate'
+
 /** Browser entry for the Web client. */
 import React from 'react'
 import { createRoot } from 'react-dom/client'
@@ -31,7 +32,15 @@ import './cm-theme.css'
 import './auth.css'
 
 installShellLocaleBridge()
-if (typeof window !== 'undefined') captureAffiliateRef(window.location.search, window.localStorage)
+if (typeof window !== 'undefined') {
+  // A referral link is exchanged for a signed HttpOnly cookie before routing,
+  // so the id never reaches checkout as a caller-supplied value.
+  const attributionUrl = referralAttributionUrl(
+    new URLSearchParams(window.location.search).get('ref'),
+    window.location.href,
+  )
+  if (attributionUrl !== null) window.location.replace(attributionUrl)
+}
 
 interface DesktopBootGlobal {
   dshDesktopBoot?: {

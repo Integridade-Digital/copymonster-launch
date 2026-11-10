@@ -58,7 +58,13 @@ export function productWebBundleIsolation(repository: string, webRoot: string): 
             name: 'dsh-worker-build-inputs',
             generateBundle: {
               order: 'post',
-              handler(_options, bundle) { inputs.workerBundle(bundle, this.getWatchFiles()) },
+              handler(_options, bundle) {
+                // Rollup's plugin context exposes `getWatchFiles`; the rolldown
+                // context that replaced it does not, so the call is optional and
+                // an absent implementation contributes no watched inputs.
+                const context = this as { getWatchFiles?: () => string[] }
+                inputs.workerBundle(bundle, context.getWatchFiles?.() ?? [])
+              },
             },
           }],
         },

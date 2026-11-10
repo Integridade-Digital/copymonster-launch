@@ -32,6 +32,34 @@ const MAIN_APP_URL = process.env.COPYMONSTER_MAIN_APP_URL ?? 'https://app.copymo
 const PUBLIC_APP_URL = process.env.COPYMONSTER_PUBLIC_URL ?? 'https://app.copymonster.co'
 
 /**
+ * Log one billing failure, keeping the detail server-side.
+ *
+ * Stripe, Supabase, and PayPal errors carry request ids, keys, amounts, and
+ * customer data. The client receives only a stable code; the operator gets the
+ * code plus a redacted message and error name.
+ *
+ * @param code - stable public error code returned to the caller.
+ * @param err - the thrown value.
+ */
+function logBillingFailure(code: string, err: unknown): void {
+  const name = err instanceof Error ? err.name : typeof err
+  const detail = err instanceof Error ? redactSecrets(err.message) : ''
+  console.error(JSON.stringify({ level: 'error', scope: 'billing', code, name, detail }))
+}
+
+/**
+ * Remove credential-shaped substrings from a log line.
+ * @param text - candidate message.
+ * @returns the message with key-like tokens masked.
+ */
+export function redactSecrets(text: string): string {
+  return text
+    .replace(/\b(sk|pk|rk)_(live|test)_[A-Za-z0-9]+/g, '$1_$2_[redacted]')
+    .replace(/\bwhsec_[A-Za-z0-9]+/g, 'whsec_[redacted]')
+    .replace(/\bBearer\s+[A-Za-z0-9._-]+/gi, 'Bearer [redacted]')
+}
+
+/**
  * Forward one billing request to the main app unchanged.
  *
  * The body is read as raw bytes so a Stripe signature still verifies upstream,
@@ -412,8 +440,8 @@ export async function handleCheckout(ctx: Context, req: IncomingMessage, res: Se
 
     sendJson(res, 200, { url: session.url, sessionId: session.id })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    sendJson(res, 500, { error: message || 'failed_to_create_checkout_session' })
+    logBillingFailure('BILLING_CHECKOUT_FAILED', err)
+    sendJson(res, 500, { error: 'BILLING_CHECKOUT_FAILED' })
   }
 }
 
@@ -470,8 +498,8 @@ export async function handlePortal(ctx: Context, req: IncomingMessage, res: Serv
 
     sendJson(res, 200, { url: portal.url })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    sendJson(res, 500, { error: message || 'failed_to_create_portal_session' })
+    logBillingFailure('BILLING_PORTAL_FAILED', err)
+    sendJson(res, 500, { error: 'BILLING_PORTAL_FAILED' })
   }
 }
 
@@ -662,8 +690,8 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
 
     sendJson(res, 200, { received: true })
   } catch (err: unknown) {
-    const message = err instanceof Error ? err.message : String(err)
-    sendJson(res, 500, { error: message || 'webhook_processing_failed' })
+    logBillingFailure('BILLING_WEBHOOK_FAILED', err)
+    sendJson(res, 500, { error: 'BILLING_WEBHOOK_FAILED' })
   }
 }
 

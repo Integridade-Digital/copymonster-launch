@@ -205,7 +205,15 @@ export async function requestAffiliatePayout(
     .single()
 
   if (insertError || !inserted) {
-    return { success: false, error: insertError?.message ?? 'insert_failed' }
+    // The driver message can name columns, constraints, and values; log it and
+    // return a stable code, matching the other payout failures.
+    console.error(JSON.stringify({
+      level: 'error',
+      scope: 'payout',
+      code: 'PAYOUT_REQUEST_INSERT_FAILED',
+      detail: insertError?.code ?? 'unknown',
+    }))
+    return { success: false, error: 'payout_request_failed' }
   }
 
   // 6. Notify affiliate

@@ -38,6 +38,30 @@ export const SESSION_TOKEN_PATH = '/api/auth/session-token'
 /** Lifetime of a signed session cookie, matching the cookie `Max-Age`. */
 export const SESSION_MAX_AGE_SECONDS = 2592000
 
+/**
+ * Emit one structured, PII-free line for the session exchange.
+ *
+ * A rejected exchange must be diagnosable from the log without carrying the
+ * identity that failed: the JWT claims, the user id, the e-mail, the tenant, the
+ * profile object, and upstream error bodies are all excluded. Only a stable
+ * code and fixed numeric fields (an upstream HTTP status) are recorded.
+ *
+ * @param code - stable `SESSION_TOKEN_*` code describing the failure.
+ * @param fields - fixed, non-identifying fields; defaults to none.
+ */
+export function logSessionFailure(code: string, fields: Record<string, string | number> = {}): void {
+  console.error(JSON.stringify({ level: 'error', scope: 'session-token', code, ...fields }))
+}
+
+/**
+ * Emit one structured, PII-free line for a session-exchange event that is not a
+ * failure.
+ * @param code - stable `SESSION_TOKEN_*` code describing the event.
+ */
+export function logSessionEvent(code: string): void {
+  console.log(JSON.stringify({ level: 'info', scope: 'session-token', code }))
+}
+
 interface SessionTokenResponse {
   success: boolean
   error?: string
@@ -250,8 +274,8 @@ async function verifyToken(token: string, secret: string | undefined, supabaseUr
   let algorithm: string
   try {
     algorithm = decodeProtectedHeader(token).alg ?? ''
-  } catch (err) {
-    console.error('[session-token] decodeProtectedHeader falhou:', err)
+  } catch {
+    logSessionFailure('SESSION_TOKEN_HEADER_INVALID')
     return null
   }
 
@@ -264,20 +288,20 @@ async function verifyToken(token: string, secret: string | undefined, supabaseUr
           issuer: `${supabaseUrl}/auth/v1`,
         })
         return payload.sub ? payload : null
-      } catch (jwtErr) {
-        console.error('[session-token] jwtVerify com SUPABASE_JWT_SECRET falhou:', jwtErr instanceof Error ? jwtErr.message : jwtErr)
+      } catch {
+        logSessionFailure('SESSION_TOKEN_SIGNATURE_INVALID')
         return null
       }
     }
 
     const payload = decodeJwt(token)
     if (!hasAuthenticatedAudience(payload) || !payload.sub) {
-      console.error('[session-token] decodeJwt falhou na validação de aud ou sub:', { aud: payload.aud, sub: payload.sub })
+      logSessionFailure('SESSION_TOKEN_CLAIMS_INVALID')
       return null
     }
     return payload
-  } catch (err) {
-    console.error('[session-token] verifyToken erro inesperado:', err)
+  } catch {
+    logSessionFailure('SESSION_TOKEN_VERIFY_FAILED')
     return null
   }
 }
@@ -298,8 +322,12 @@ async function fetchSupabaseUser(token: string): Promise<SupabaseUserResponse['u
     })
 
     if (!response.ok) {
-      const errBody = typeof response.text === 'function' ? await response.text().catch(() => '') : ''
-      console.error(`[session-token] fetchSupabaseUser HTTP ${response.status}:`, errBody)
+      // The upstream body can echo the token or the account's own record, so
+      // only the status is logged.
+      await response.body?.cancel().catch(() => {
+        // Draining an unread error body is best-effort cleanup.
+      })
+      logSessionFailure('SESSION_TOKEN_USER_LOOKUP_FAILED', { status: response.status })
       return null
     }
 
@@ -309,13 +337,13 @@ async function fetchSupabaseUser(token: string): Promise<SupabaseUserResponse['u
     const user = data.user ?? data
 
     if (!user || typeof user.id !== 'string') {
-      console.error('[session-token] fetchSupabaseUser resposta sem usuário válido:', data)
+      logSessionFailure('SESSION_TOKEN_USER_PAYLOAD_INVALID')
       return null
     }
 
     return user
-  } catch (err) {
-    console.error('[session-token] fetchSupabaseUser erro de rede ou conexão:', err)
+  } catch {
+    logSessionFailure('SESSION_TOKEN_USER_LOOKUP_UNREACHABLE')
     return null
   }
 }
@@ -338,14 +366,16 @@ async function fetchProfile(token: string): Promise<SupabaseProfile | null> {
     })
 
     if (!response.ok) {
-      const errBody = typeof response.text === 'function' ? await response.text().catch(() => '') : ''
-      console.error(`[session-token] fetchProfile get_my_profile HTTP ${response.status}:`, errBody)
+      await response.body?.cancel().catch(() => {
+        // Draining an unread error body is best-effort cleanup.
+      })
+      logSessionFailure('SESSION_TOKEN_PROFILE_LOOKUP_FAILED', { status: response.status })
       return null
     }
 
     return await response.json() as SupabaseProfile
-  } catch (err) {
-    console.error('[session-token] fetchProfile erro de conexão:', err)
+  } catch {
+    logSessionFailure('SESSION_TOKEN_PROFILE_LOOKUP_UNREACHABLE')
     return null
   }
 }
@@ -451,7 +481,7 @@ function sendJson(res: ServerResponse, status: number, body: SessionTokenRespons
  * @returns a promise that settles after the response ends.
  */
 export async function handleSessionToken(_ctx: Context, req: IncomingMessage, res: ServerResponse): Promise<void> {
-  console.log('[session-token] Recebida requisição de troca de sessão SSO')
+  logSessionEvent('SESSION_TOKEN_REQUEST_RECEIVED')
   if (req.method !== 'POST') {
     sendJson(res, 405, { success: false, error: 'method-not-allowed' })
     return
@@ -459,7 +489,7 @@ export async function handleSessionToken(_ctx: Context, req: IncomingMessage, re
 
   const token = bearerToken(req.headers.authorization)
   if (!token) {
-    console.error('[session-token] Cabeçalho Authorization Bearer ausente ou vazio')
+    logSessionFailure('SESSION_TOKEN_MISSING')
     sendJson(res, 401, { success: false, error: 'missing-token' })
     return
   }
@@ -480,34 +510,34 @@ export async function handleSessionToken(_ctx: Context, req: IncomingMessage, re
 
   const payload = await verifyToken(token, config.SUPABASE_JWT_SECRET, config.SUPABASE_URL)
   if (!payload || !payload.sub) {
-    console.error('[session-token] verifyToken failed — alg check, sub:', payload?.sub, 'aud:', payload?.aud, 'exp:', payload?.exp)
+    logSessionFailure('SESSION_TOKEN_INVALID')
     sendJson(res, 401, { success: false, error: 'invalid-or-expired-token' })
     return
   }
 
   const supabaseUser = await fetchSupabaseUser(token)
   if (!supabaseUser) {
-    console.error('[session-token] fetchSupabaseUser returned null — Supabase /auth/v1/user rejected the token')
+    logSessionFailure('SESSION_TOKEN_USER_REJECTED')
     sendJson(res, 401, { success: false, error: 'invalid-or-expired-token' })
     return
   }
 
   if (payload.sub !== supabaseUser.id) {
-    console.error('[session-token] Divergência de sub:', { payloadSub: payload.sub, supabaseUserId: supabaseUser.id })
+    logSessionFailure('SESSION_TOKEN_SUBJECT_MISMATCH')
     sendJson(res, 403, { success: false, error: 'token-user-mismatch' })
     return
   }
 
   const profile = await fetchProfile(token)
   if (!profile || profile.user?.id !== supabaseUser.id) {
-    console.error('[session-token] Perfil ausente ou ID divergente do usuário Supabase')
+    logSessionFailure('SESSION_TOKEN_PROFILE_MISMATCH')
     sendJson(res, 403, { success: false, error: 'profile-user-mismatch' })
     return
   }
 
   const tenantSlug = profile.tenant?.slug
   if (typeof tenantSlug !== 'string' || tenantSlug === '') {
-    console.error('[session-token] Tenant slug não atribuído no perfil:', profile)
+    logSessionFailure('SESSION_TOKEN_TENANT_UNASSIGNED')
     sendJson(res, 403, { success: false, error: 'tenant-not-assigned' })
     return
   }

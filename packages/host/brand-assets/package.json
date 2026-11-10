@@ -35,6 +35,6 @@
     "@deepseek-ai/cordis": "workspace:^",
     "@types/node": "^22.0.0",
     "typescript": "^6.0.3",
-    "vitest": "^1.0.0"
+    "vitest": "^4.1.11"
   }
 }

@@ -30,6 +30,11 @@ overrides:
   'body-parser@>=2.0.0 <2.4.0': '2.4.0'
   'follow-redirects@<1.16.2': '1.16.2'
   'happy-dom@>=17.0.0 <=21.0.3': '21.0.4'
+  # Dev-only advisories (SEC-021): a prototype-pollution RCE in the test pool and
+  # a DOMPurify bypass reachable through the docs toolchain.
+  'tinypool@<=2.1.0': '2.1.2'
+  'tinypool@>=2.1.1 <2.1.2': '2.1.2'
+  'dompurify@>=3.4.4 <=3.4.16': '3.4.17'
 
 peerDependencyRules:
   allowedVersions:

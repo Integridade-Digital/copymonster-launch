@@ -692,6 +692,7 @@ describe('Payout Executor & Affiliate Payout Lifecycle', () => {
           target_type: 'payout_request',
           target_id: testPayoutId,
           admin_user_id: 'admin-user-007',
+          metadata: { payoutId: testPayoutId, batchId: expect.stringMatching(/^MOCK_/), amount: 120, affiliate_id: testAffiliateId },
         }),
       )
     })

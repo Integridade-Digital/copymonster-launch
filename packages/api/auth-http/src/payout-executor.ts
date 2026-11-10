@@ -475,7 +475,7 @@ export async function executePayout(
     target_id: payoutId,
     admin_user_id: options?.adminUserId ?? null,
     reason: `PayPal batch ${batchId} executed successfully`,
-    metadata: { payoutId, batchId, amount: payout.amount, email: payout.paypal_email_snapshot },
+    metadata: { payoutId, batchId, amount: payout.amount, affiliate_id: payout.affiliate_id },
   })
 
   return {

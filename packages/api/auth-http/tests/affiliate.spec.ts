@@ -8,7 +8,6 @@ import {
   processAffiliateCommissionFromInvoice,
   processAffiliateRefundFromCharge,
   extractAffiliateIdFromInvoice,
-  customerHasEarlierInvoice,
 } from '../src/affiliate-processor.ts'
 import {
   handleCheckout,
@@ -110,60 +109,6 @@ describe('Affiliate Processor & Billing Integration', () => {
     vi.clearAllMocks()
   })
 
-  describe('customerHasEarlierInvoice', () => {
-    it('creates no commission when the Stripe key is missing', async () => {
-      const saved = process.env.STRIPE_SECRET_KEY
-      delete process.env.STRIPE_SECRET_KEY
-      try {
-        expect(await customerHasEarlierInvoice('cus_1', 'in_1')).toBe(true)
-      } finally {
-        if (saved !== undefined) process.env.STRIPE_SECRET_KEY = saved
-      }
-    })
-
-    it('treats an earlier paid invoice as an existing attribution', async () => {
-      const saved = process.env.STRIPE_SECRET_KEY
-      process.env.STRIPE_SECRET_KEY = 'sk_test_key'
-      const fetchFn = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ data: [{ id: 'in_old', paid: true }, { id: 'in_1', paid: true }] }),
-      } as Response)
-      try {
-        expect(await customerHasEarlierInvoice('cus_1', 'in_1', fetchFn as unknown as typeof fetch)).toBe(true)
-      } finally {
-        if (saved !== undefined) process.env.STRIPE_SECRET_KEY = saved
-        else delete process.env.STRIPE_SECRET_KEY
-      }
-    })
-
-    it('accepts the first paid invoice of a customer', async () => {
-      const saved = process.env.STRIPE_SECRET_KEY
-      process.env.STRIPE_SECRET_KEY = 'sk_test_key'
-      const fetchFn = vi.fn().mockResolvedValue({
-        ok: true,
-        json: async () => ({ data: [{ id: 'in_1', paid: true }, { id: 'in_void', paid: false }] }),
-      } as Response)
-      try {
-        expect(await customerHasEarlierInvoice('cus_1', 'in_1', fetchFn as unknown as typeof fetch)).toBe(false)
-      } finally {
-        if (saved !== undefined) process.env.STRIPE_SECRET_KEY = saved
-        else delete process.env.STRIPE_SECRET_KEY
-      }
-    })
-
-    it('fails closed when the Stripe lookup fails', async () => {
-      const saved = process.env.STRIPE_SECRET_KEY
-      process.env.STRIPE_SECRET_KEY = 'sk_test_key'
-      const fetchFn = vi.fn().mockResolvedValue({ ok: false, json: async () => ({}) } as Response)
-      try {
-        expect(await customerHasEarlierInvoice('cus_1', 'in_1', fetchFn as unknown as typeof fetch)).toBe(true)
-      } finally {
-        if (saved !== undefined) process.env.STRIPE_SECRET_KEY = saved
-        else delete process.env.STRIPE_SECRET_KEY
-      }
-    })
-  })
-
   describe('extractAffiliateIdFromInvoice', () => {
     it('returns undefined if no metadata is present', () => {
       expect(extractAffiliateIdFromInvoice({})).toBeUndefined()
@@ -211,12 +156,18 @@ describe('Affiliate Processor & Billing Integration', () => {
       expect(mockSupabase.from).not.toHaveBeenCalled()
     })
 
-    it('skips a renewal invoice as outside the attribution window', async () => {
+    it('creates a commission for a monthly renewal invoice', async () => {
+      const inserted = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: { id: 'comm-renewal' }, error: null }),
+        }),
+      })
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }),
+            insert: inserted,
           }
         }
         if (table === 'affiliate.profiles') {
@@ -230,7 +181,17 @@ describe('Affiliate Processor & Billing Integration', () => {
             }),
           }
         }
-        if (table === 'affiliate.audit_logs') {
+        if (table === 'affiliate.commission_rules') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { percentage: 30, retention_days: 35 },
+              error: null,
+            }),
+          }
+        }
+        if (table === 'affiliate.notifications') {
           return { insert: vi.fn().mockResolvedValue({ error: null }) }
         }
         return {}
@@ -244,15 +205,30 @@ describe('Affiliate Processor & Billing Integration', () => {
         metadata: { affiliate_id: testAffiliateId },
       }
       const result = await processAffiliateCommissionFromInvoice(invoice, testEventId, mockSupabase)
-      expect(result).toEqual({ status: 'outside_attribution_window' })
+      expect(result).toEqual({ status: 'commission_created', commissionId: 'comm-renewal' })
+      expect(inserted).toHaveBeenCalledWith(expect.objectContaining({
+        status: 'HOLDING',
+        stripe_invoice_id: testInvoiceId,
+        amount_gross: 200,
+        commission_amount: 60,
+      }))
     })
 
-    it('skips an invoice of a customer that already has a paid invoice', async () => {
+    it('records no notification when a duplicate delivery loses the unique constraint', async () => {
+      const notify = vi.fn()
       mockSupabase.from.mockImplementation((table: string) => {
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),
             eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }),
+            insert: vi.fn().mockReturnValue({
+              select: vi.fn().mockReturnValue({
+                single: vi.fn().mockResolvedValue({
+                  data: null,
+                  error: { code: '23505', message: 'duplicate key value violates unique constraint' },
+                }),
+              }),
+            }),
           }
         }
         if (table === 'affiliate.profiles') {
@@ -266,29 +242,99 @@ describe('Affiliate Processor & Billing Integration', () => {
             }),
           }
         }
-        if (table === 'affiliate.audit_logs') {
+        if (table === 'affiliate.commission_rules') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { percentage: 30, retention_days: 35 },
+              error: null,
+            }),
+          }
+        }
+        if (table === 'affiliate.notifications') return { insert: notify }
+        return {}
+      })
+
+      const invoice = {
+        id: testInvoiceId,
+        customer: 'cus_tenant_affiliate',
+        amount_paid: 20000,
+        billing_reason: 'subscription_cycle',
+        metadata: { affiliate_id: testAffiliateId },
+      }
+      const result = await processAffiliateCommissionFromInvoice(invoice, testEventId, mockSupabase)
+      expect(result).toEqual({ status: 'already_processed_event' })
+      expect(notify).not.toHaveBeenCalled()
+    })
+
+    it('creates a commission for an annual renewal after earlier paid invoices', async () => {
+      const inserted = vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          single: vi.fn().mockResolvedValue({ data: { id: 'comm-annual' }, error: null }),
+        }),
+      })
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'affiliate.commissions') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnValue({ maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }) }),
+            insert: inserted,
+          }
+        }
+        if (table === 'affiliate.profiles') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: { id: testAffiliateId, active: true, kyc_status: 'APPROVED' },
+                error: null,
+              }),
+            }),
+          }
+        }
+        if (table === 'affiliate.commission_rules') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: vi.fn().mockReturnThis(),
+            maybeSingle: vi.fn().mockResolvedValue({
+              data: { percentage: 30, retention_days: 35 },
+              error: null,
+            }),
+          }
+        }
+        if (table === 'affiliate.notifications') {
           return { insert: vi.fn().mockResolvedValue({ error: null }) }
         }
         return {}
       })
 
+      // Stripe still reports the customer's earlier paid invoices; a renewal
+      // now earns regardless, so the Stripe invoice history is never consulted.
       const saved = process.env.STRIPE_SECRET_KEY
       process.env.STRIPE_SECRET_KEY = 'sk_test_key'
       const previousFetch = globalThis.fetch
-      globalThis.fetch = vi.fn().mockResolvedValue({
+      const invoiceLookup = vi.fn().mockResolvedValue({
         ok: true,
         json: async () => ({ data: [{ id: 'in_previous', paid: true }] }),
       } as Response)
+      globalThis.fetch = invoiceLookup
       try {
         const invoice = {
           id: testInvoiceId,
           customer: 'cus_tenant_affiliate',
-          amount_paid: 20000,
-          billing_reason: 'subscription_create',
+          amount_paid: 92400,
+          billing_reason: 'subscription_cycle',
           metadata: { affiliate_id: testAffiliateId },
         }
         const result = await processAffiliateCommissionFromInvoice(invoice, testEventId, mockSupabase)
-        expect(result).toEqual({ status: 'already_attributed' })
+        expect(result).toEqual({ status: 'commission_created', commissionId: 'comm-annual' })
+        expect(inserted).toHaveBeenCalledWith(expect.objectContaining({
+          status: 'HOLDING',
+          amount_gross: 924,
+          commission_amount: 277.2,
+        }))
+        expect(invoiceLookup).not.toHaveBeenCalled()
       } finally {
         globalThis.fetch = previousFetch
         if (saved !== undefined) process.env.STRIPE_SECRET_KEY = saved

@@ -69,63 +69,19 @@ export function extractAffiliateIdFromInvoice(invoice: Record<string, unknown>):
 }
 
 /**
- * Stripe's reason for issuing this invoice, as reported on the invoice object.
- * @param invoice - Stripe invoice object.
- * @returns the billing reason, or undefined when the invoice omits it.
- */
-function reportBillingReason(invoice: Record<string, unknown>): string | undefined {
-  return optionalString(invoice, 'billing_reason')
-}
-
-/**
- * Whether this customer already had a paid invoice before this one.
- *
- * Read from the Stripe API with the deployment's secret key, so the answer is
- * Stripe's own history rather than anything the caller supplied. A missing key
- * or a failed lookup fails closed: no commission is created.
- *
- * @param customerId - Stripe customer id from the invoice.
- * @param invoiceId - current invoice id, excluded from the comparison.
- * @param fetchFn - fetch implementation; tests inject a stub.
- * @returns true when an earlier paid invoice exists, or when the check cannot run.
- */
-export async function customerHasEarlierInvoice(
-  customerId: string | undefined,
-  invoiceId: string | undefined,
-  fetchFn: typeof fetch = fetch,
-): Promise<boolean> {
-  if (customerId === undefined) return true
-  const key = process.env.STRIPE_SECRET_KEY
-  if (key === undefined || key === '') return true
-
-  try {
-    const params = new URLSearchParams({ customer: customerId, limit: '20' })
-    const response = await fetchFn(`https://api.stripe.com/v1/invoices?${params.toString()}`, {
-      headers: { authorization: `Bearer ${key}` },
-    })
-    if (!response.ok) return true
-
-    const body = (await response.json()) as { data?: Array<Record<string, unknown>> }
-    const invoices = Array.isArray(body.data) ? body.data : []
-    return invoices.some((other) => {
-      const id = optionalString(other, 'id')
-      return id !== invoiceId && other['paid'] === true
-    })
-  } catch {
-    return true
-  }
-}
-
-/**
  * Process affiliate commission when an invoice is paid (`invoice.paid` / `invoice.payment_succeeded`).
  *
  * 1. Checks for `affiliate_id` metadata. Returns early if missing or invalid.
  * 2. Enforces idempotency via `stripe_event_id` and `stripe_invoice_id`.
  * 3. Verifies partner status (must be active and KYC approved).
- * 4. Applies the attribution window: only the customer's first paid invoice earns.
- * 5. Resolves the active commission rule (percentage and retention days).
- * 6. Calculates commission and records it in `affiliate.commissions` with status `HOLDING`.
- * 7. Generates in-app notification in `affiliate.notifications`.
+ * 4. Resolves the active commission rule (percentage and retention days).
+ * 5. Calculates commission and records it in `affiliate.commissions` with status `HOLDING`.
+ * 6. Generates in-app notification in `affiliate.notifications`.
+ *
+ * Every paid invoice earns its own commission while the subscription stays
+ * active, including monthly and annual renewals. Each invoice is paid once, so
+ * the invoice-id idempotency check below both prevents duplicate events and
+ * keeps one renewal from colliding with the next.
  *
  * @param invoice - Stripe invoice object.
  * @param stripeEventId - Unique Stripe event identifier for idempotency.
@@ -189,34 +145,6 @@ export async function processAffiliateCommissionFromInvoice(
     return { status: 'rejected_unauthorized' }
   }
 
-  // 2b. Attribution window: only the customer's first paid invoice earns a
-  // commission. A later invoice on the same subscription is a renewal, and an
-  // invoice from a customer that already produced a commission belongs to a
-  // prior attribution.
-  const billingReason = reportBillingReason(invoice)
-  if (billingReason !== 'subscription_create') {
-    await getTable(client, 'affiliate', 'audit_logs').insert({
-      action: 'COMMISSION_REJECTED_OUTSIDE_WINDOW',
-      target_type: 'affiliate_profile',
-      target_id: affiliateId,
-      reason: `billing_reason:${billingReason ?? 'unknown'}`,
-      metadata: { invoiceId, eventId: stripeEventId },
-    })
-    return { status: 'outside_attribution_window' }
-  }
-
-  const alreadyAttributed = await customerHasEarlierInvoice(optionalString(invoice, 'customer'), invoiceId)
-  if (alreadyAttributed) {
-    await getTable(client, 'affiliate', 'audit_logs').insert({
-      action: 'COMMISSION_REJECTED_ALREADY_ATTRIBUTED',
-      target_type: 'affiliate_profile',
-      target_id: affiliateId,
-      reason: 'customer_has_earlier_invoice',
-      metadata: { invoiceId, eventId: stripeEventId },
-    })
-    return { status: 'already_attributed' }
-  }
-
   // 3. Resolve active commission rule
   const { data: rule } = await getTable(client, 'affiliate', 'commission_rules')
     .select('percentage, retention_days')
@@ -238,8 +166,12 @@ export async function processAffiliateCommissionFromInvoice(
 
   const eligibleAt = new Date(Date.now() + retentionDays * 24 * 60 * 60 * 1000).toISOString()
 
-  // 5. Persist commission record in HOLDING
-  const { data: insertedCommission } = await getTable(client, 'affiliate', 'commissions')
+  // 5. Persist commission record in HOLDING. Stripe sends `invoice.paid` and
+  // `invoice.payment_succeeded` as separate events for one invoice, so the two
+  // deliveries can pass the idempotency checks above together. The unique
+  // constraint on `stripe_event_id` then settles the race; a lost insert means
+  // the other delivery owns this commission, and nothing else is recorded.
+  const { data: insertedCommission, error: insertError } = await getTable(client, 'affiliate', 'commissions')
     .insert({
       affiliate_id: profile.id,
       stripe_event_id: stripeEventId,
@@ -251,6 +183,10 @@ export async function processAffiliateCommissionFromInvoice(
     })
     .select('id')
     .single()
+
+  if (insertError) {
+    return { status: 'already_processed_event' }
+  }
 
   const commissionId = insertedCommission?.id
 

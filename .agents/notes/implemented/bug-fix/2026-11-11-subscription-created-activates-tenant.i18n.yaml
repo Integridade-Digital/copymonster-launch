@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-11-subscription-created-activates-tenant.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/implemented/bug-fix/2026-11-11-subscription-created-activates-tenant.md
+/agent-note-customer-subscription-created-activates-the-tenant:
+  en: 05ff8d4c3787ad6d
+  zh: 6c65530ba4b4fe6d
+/agent-note-customer-subscription-created-activates-the-tenant/problem:
+  en: 9c9924fce9134f02
+  zh: c73b412ef1fa10fe
+/agent-note-customer-subscription-created-activates-the-tenant/decision:
+  en: 8c62c5017374d693
+  zh: c1421b02ac17166d
+/agent-note-customer-subscription-created-activates-the-tenant/verification:
+  en: 144f465cc6ef51e7
+  zh: 21d70b7f977cde08
+/agent-note-customer-subscription-created-activates-the-tenant/consequences:
+  en: 5d8ed5ddba699e70
+  zh: f1f6ea97d9dd5cd2
+/agent-note-customer-subscription-created-activates-the-tenant/alternatives-considered:
+  en: 7dfe708ba17ffbc1
+  zh: 4c295df12d791448

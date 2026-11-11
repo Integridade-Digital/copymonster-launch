@@ -781,6 +781,203 @@ describe('Stripe Billing & Webhooks Integration Tests', () => {
       expect(plansEq).toHaveBeenCalledWith('stripe_price_id_monthly', priceId)
     })
 
+    /** Stub the plans and tenants lookups a subscription event makes. */
+    const stubSubscriptionTables = (plan: { id: string } | null): {
+      tenantUpdate: ReturnType<typeof vi.fn>
+      tenantEq: ReturnType<typeof vi.fn>
+      plansEq: ReturnType<typeof vi.fn>
+    } => {
+      const tenantUpdate = vi.fn().mockReturnThis()
+      const tenantEq = vi.fn().mockResolvedValue({ error: null })
+      const plansEq = vi.fn()
+      mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'plans') {
+          return {
+            select: vi.fn().mockReturnThis(),
+            eq: plansEq.mockImplementation((column: string) => ({
+              maybeSingle: vi.fn().mockResolvedValue({
+                data: column === 'stripe_price_id_monthly' ? plan : null,
+                error: null,
+              }),
+            })),
+          }
+        }
+        if (table === 'tenants') return { update: tenantUpdate, eq: tenantEq }
+        return {}
+      })
+      return { tenantUpdate, tenantEq, plansEq }
+    }
+
+    /** Deliver one signed webhook payload and return the mock response. */
+    const deliver = async (event: Record<string, unknown>): Promise<MockResponse> => {
+      const payload = JSON.stringify(event)
+      const req = createMockReq({
+        method: 'POST',
+        headers: { 'stripe-signature': generateStripeSignature(payload, webhookSecret) },
+        body: payload,
+      })
+      const res = createMockRes()
+      await handleWebhook(mockContext, req, res)
+      return res
+    }
+
+    it('should activate the tenant on customer.subscription.created and record the subscription id', async () => {
+      const { tenantUpdate, tenantEq, plansEq } = stubSubscriptionTables({ id: 'plan_pro' })
+      const res = await deliver({
+        type: 'customer.subscription.created',
+        data: {
+          object: {
+            id: 'sub_active_123',
+            customer: 'cus_tenant_abc',
+            status: 'active',
+            cancel_at_period_end: false,
+            items: {
+              data: [{ quantity: 1, price: { id: 'price_pro_month', recurring: { interval: 'month' } } }],
+            },
+          },
+        },
+      })
+
+      expect(res.statusCode).toBe(200)
+      expect(res.json()).toEqual({ received: true })
+      expect(tenantUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          subscription_status: 'active',
+          stripe_subscription_id: 'sub_active_123',
+          subscription_interval: 'month',
+          plan_id: 'plan_pro',
+        }),
+      )
+      expect(tenantEq).toHaveBeenCalledWith('stripe_customer_id', 'cus_tenant_abc')
+      expect(plansEq).toHaveBeenCalledWith('stripe_price_id_monthly', 'price_pro_month')
+    })
+
+    it('should read the current period end from the subscription item', async () => {
+      const { tenantUpdate } = stubSubscriptionTables({ id: 'plan_pro' })
+      await deliver({
+        type: 'customer.subscription.created',
+        data: {
+          object: {
+            id: 'sub_active_123',
+            customer: 'cus_tenant_abc',
+            status: 'active',
+            items: {
+              data: [{
+                quantity: 1,
+                current_period_end: 1735689600,
+                price: { id: 'price_pro_month', recurring: { interval: 'month' } },
+              }],
+            },
+          },
+        },
+      })
+
+      expect(tenantUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ current_period_end: '2025-01-01T00:00:00.000Z' }),
+      )
+    })
+
+    it('should fall back to the subscription-level period end on an older payload', async () => {
+      const { tenantUpdate } = stubSubscriptionTables({ id: 'plan_pro' })
+      await deliver({
+        type: 'customer.subscription.created',
+        data: {
+          object: {
+            id: 'sub_active_123',
+            customer: 'cus_tenant_abc',
+            status: 'active',
+            current_period_end: 1735689600,
+            items: {
+              data: [{ quantity: 1, price: { id: 'price_pro_month', recurring: { interval: 'month' } } }],
+            },
+          },
+        },
+      })
+
+      expect(tenantUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ current_period_end: '2025-01-01T00:00:00.000Z' }),
+      )
+    })
+
+    it('should take the period end from the latest billed item, not an unbilled one', async () => {
+      const { tenantUpdate } = stubSubscriptionTables({ id: 'plan_pro' })
+      await deliver({
+        type: 'customer.subscription.created',
+        data: {
+          object: {
+            id: 'sub_active_123',
+            customer: 'cus_tenant_abc',
+            status: 'active',
+            items: {
+              data: [
+                {
+                  quantity: 0,
+                  current_period_end: 1796932834,
+                  price: { id: 'price_pro_year', recurring: { interval: 'year' } },
+                },
+                {
+                  quantity: 1,
+                  current_period_end: 1735689600,
+                  price: { id: 'price_pro_month', recurring: { interval: 'month' } },
+                },
+              ],
+            },
+          },
+        },
+      })
+
+      expect(tenantUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ current_period_end: '2025-01-01T00:00:00.000Z' }),
+      )
+    })
+
+    it('should map the plan from a subscription carrying an unbilled first item', async () => {
+      const { tenantUpdate, plansEq } = stubSubscriptionTables({ id: 'plan_pro' })
+      await deliver({
+        type: 'customer.subscription.created',
+        data: {
+          object: {
+            id: 'sub_active_123',
+            customer: 'cus_tenant_abc',
+            status: 'active',
+            items: {
+              data: [
+                { quantity: 0, price: { id: 'price_pro_year', recurring: { interval: 'year' } } },
+                { quantity: 1, price: { id: 'price_pro_month', recurring: { interval: 'month' } } },
+              ],
+            },
+          },
+        },
+      })
+
+      expect(plansEq).toHaveBeenCalledWith('stripe_price_id_monthly', 'price_pro_month')
+      expect(plansEq).not.toHaveBeenCalledWith('stripe_price_id_monthly', 'price_pro_year')
+      expect(tenantUpdate).toHaveBeenCalledWith(
+        expect.objectContaining({ plan_id: 'plan_pro', subscription_interval: 'month' }),
+      )
+    })
+
+    it('should leave the stored period end untouched when the payload carries none', async () => {
+      const { tenantUpdate } = stubSubscriptionTables({ id: 'plan_pro' })
+      await deliver({
+        type: 'customer.subscription.created',
+        data: {
+          object: {
+            id: 'sub_active_123',
+            customer: 'cus_tenant_abc',
+            status: 'active',
+            items: {
+              data: [{ quantity: 1, price: { id: 'price_pro_month', recurring: { interval: 'month' } } }],
+            },
+          },
+        },
+      })
+
+      const updated = tenantUpdate.mock.calls[0]?.[0] as Record<string, unknown>
+      expect(updated).not.toHaveProperty('current_period_end')
+      expect(updated).toMatchObject({ subscription_status: 'active' })
+    })
+
     it('should treat a price id with filter syntax as a literal and match no plan', async () => {
       const priceId = 'price_x,stripe_price_id_annual.not.is.null)'
       const payload = JSON.stringify({

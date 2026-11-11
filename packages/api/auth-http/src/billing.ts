@@ -102,6 +102,93 @@ async function forwardToMainApp(
   }
 }
 
+/** Billing intervals a Stripe subscription item can bill on. */
+const SUBSCRIPTION_INTERVALS = ['month', 'year'] as const
+
+/**
+ * Read the billing interval of a Stripe price object.
+ * @param price - the `price` member of a subscription item.
+ * @returns the interval, or undefined when it is absent or not billable.
+ */
+function subscriptionInterval(price: Record<string, unknown>): string | undefined {
+  const interval = optionalString(objectField(price, 'recurring'), 'interval')
+  return interval !== undefined && (SUBSCRIPTION_INTERVALS as readonly string[]).includes(interval)
+    ? interval
+    : undefined
+}
+
+/**
+ * Resolve the end of the current billing period in the API version Stripe
+ * signs its webhooks with.
+ *
+ * Stripe API versions from `2025-04-30.basil` report `current_period_end` on
+ * each subscription item and omit it from the subscription itself. An older
+ * or overridden payload still carries the subscription-level timestamp.
+ * @param subscription - the `customer.subscription.*` event object.
+ * @param items - the subscription items, already filtered to billed quantities.
+ * @returns an ISO 8601 timestamp, or undefined when the payload carries none.
+ */
+function resolveCurrentPeriodEnd(
+  subscription: Record<string, unknown>,
+  items: readonly Record<string, unknown>[],
+): string | undefined {
+  const ends = items
+    .map(item => parseTimestampToIso(item['current_period_end']))
+    .filter((end): end is string => end !== undefined)
+  if (ends.length > 0) return ends.reduce((latest, end) => (end > latest ? end : latest))
+  return parseTimestampToIso(subscription['current_period_end'])
+}
+
+/**
+ * Resolve the billed subscription items, preferring the line item a plan is
+ * meant to be sold under.
+ *
+ * A subscription can carry several items; the free annual line a plan upgrade
+ * leaves at quantity 0 must not shadow the paid one. When more than one item
+ * is billed, a monthly line wins because the checkout sells `month` or `year`
+ * under that same name.
+ * @param subscription - the `customer.subscription.*` event object.
+ * @returns the billed items, monthly first.
+ */
+function billedSubscriptionItems(subscription: Record<string, unknown>): Record<string, unknown>[] {
+  const billed = arrayField(objectField(subscription, 'items'), 'data')
+    .map(asObject)
+    .filter((item) => {
+      const quantity = item['quantity']
+      return typeof quantity !== 'number' || quantity > 0
+    })
+  return billed.sort((left, right) => {
+    const rank = (item: Record<string, unknown>): number =>
+      subscriptionInterval(objectField(item, 'price')) === 'month' ? 0 : 1
+    return rank(left) - rank(right)
+  })
+}
+
+/**
+ * Map a Stripe price id to the plan that sells it.
+ *
+ * Both interval columns are consulted so a retimed or overridden event still
+ * resolves. Each lookup is an equality operand: a PostgREST `.or()` string
+ * would let a value containing `,` or `)` add its own filter terms.
+ * @param priceId - the price id carried by the subscription item.
+ * @returns the matching plan id, or undefined when no plan sells that price.
+ */
+async function resolvePlanId(priceId: string | undefined): Promise<string | undefined> {
+  if (priceId === undefined) return undefined
+  const { data: monthlyPlan } = await supabaseAdminClient
+    .from('plans')
+    .select('id')
+    .eq('stripe_price_id_monthly', priceId)
+    .maybeSingle()
+  if (monthlyPlan) return monthlyPlan.id
+  const { data: annualPlan } = await supabaseAdminClient
+    .from('plans')
+    .select('id')
+    .eq('stripe_price_id_annual', priceId)
+    .maybeSingle()
+  return annualPlan?.id ?? undefined
+}
+
 /** Helper to extract bearer token from headers. */
 function bearerToken(header: string | string[] | undefined): string | undefined {
   const value = Array.isArray(header) ? header[0] : header
@@ -643,31 +730,12 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
         break
       }
 
+      case 'customer.subscription.created':
       case 'customer.subscription.updated': {
-        const [firstItem] = arrayField(objectField(object, 'items'), 'data')
+        const items = billedSubscriptionItems(object)
+        const [firstItem] = items
         const price = objectField(asObject(firstItem), 'price')
-        const priceId = optionalString(price, 'id')
-
-        let planId: string | undefined
-        if (priceId !== undefined) {
-          // `priceId` comes from the webhook payload; a PostgREST `.or()` string
-          // would let a value containing `,` or `)` add its own filter terms. Two
-          // equality lookups keep the value a literal operand.
-          const { data: matchedPlan } = await supabaseAdminClient
-            .from('plans')
-            .select('id')
-            .eq('stripe_price_id_monthly', priceId)
-            .maybeSingle()
-          const { data: annualPlan } = matchedPlan
-            ? { data: null }
-            : await supabaseAdminClient
-              .from('plans')
-              .select('id')
-              .eq('stripe_price_id_annual', priceId)
-              .maybeSingle()
-          const plan = matchedPlan ?? annualPlan
-          if (plan) planId = plan.id
-        }
+        const planId = await resolvePlanId(optionalString(price, 'id'))
 
         const updates: Database['public']['Tables']['tenants']['Update'] = {
           updated_at: new Date().toISOString(),
@@ -676,11 +744,13 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
         if (status !== undefined) updates.subscription_status = status
         const cancelAtPeriodEnd = optionalBoolean(object, 'cancel_at_period_end')
         if (cancelAtPeriodEnd !== undefined) updates.cancel_at_period_end = cancelAtPeriodEnd
-        const interval = optionalString(objectField(price, 'recurring'), 'interval')
+        const interval = subscriptionInterval(price)
         if (interval !== undefined) updates.subscription_interval = interval
         if (planId !== undefined) updates.plan_id = planId
+        const subscriptionId = optionalString(object, 'id')
+        if (subscriptionId !== undefined) updates.stripe_subscription_id = subscriptionId
 
-        const currentPeriodEnd = parseTimestampToIso(object['current_period_end'])
+        const currentPeriodEnd = resolveCurrentPeriodEnd(object, items)
         if (currentPeriodEnd !== undefined) {
           updates.current_period_end = currentPeriodEnd
         }

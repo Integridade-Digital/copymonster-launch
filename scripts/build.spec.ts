@@ -2,6 +2,7 @@ import { spawnSync } from 'node:child_process'
 import { resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 import { buildGates, parseBuildArguments } from './build.ts'
+import { DEFAULT_TSC_MAX_OLD_SPACE_MIB } from './tsc-heap.ts'
 
 const root = resolve(import.meta.dirname, '..')
 
@@ -60,10 +61,12 @@ describe('repository build CLI', () => {
 })
 
 describe('repository build steps', () => {
-  it.each(['complete', 'check', 'typecheck'] as const)('gives Host compilers an 8 GiB heap in %s scope', (scope) => {
+  it.each(['complete', 'check', 'typecheck'] as const)('gives Host compilers a bounded heap in %s scope', (scope) => {
     const gates = buildGates(root, scope)
     for (const gate of gates.filter(gate => gate.id === 'host-src' || gate.id === 'host-check')) {
-      expect(gate.args[0]).toBe('--max-old-space-size=8192')
+      const limit = Number(/^--max-old-space-size=(\d+)$/.exec(gate.args[0] ?? '')?.[1])
+      expect(limit).toBeGreaterThan(2048)
+      expect(limit).toBeLessThanOrEqual(DEFAULT_TSC_MAX_OLD_SPACE_MIB)
     }
     for (const gate of gates.filter(gate => gate.id === 'client-src' || gate.id === 'client-check')) {
       expect(gate.args.some(arg => arg.startsWith('--max-old-space-size'))).toBe(false)

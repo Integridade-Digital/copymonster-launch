@@ -1,0 +1,22 @@
+# Bilingual-pair consistency record for 2026-11-16-waimao-global-config-path.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write .agents/notes/proposed/bug-fix/2026-11-16-waimao-global-config-path.md
+/agent-note-dsh-waimao-stores-state-outside-the-dsh-home:
+  en: 3a5fd7d6626156ac
+  zh: 8bddafc6cd73ad52
+/agent-note-dsh-waimao-stores-state-outside-the-dsh-home/problem:
+  en: 01dd62b096fcd834
+  zh: 8d345eedc6ed1c4e
+/agent-note-dsh-waimao-stores-state-outside-the-dsh-home/proposal:
+  en: d2e12f20f6aa19cf
+  zh: ed41fe636adbe050
+/agent-note-dsh-waimao-stores-state-outside-the-dsh-home/alternatives-considered:
+  en: eebaca22cacf307f
+  zh: eb652ddffeca16df
+/agent-note-dsh-waimao-stores-state-outside-the-dsh-home/acceptance-criteria:
+  en: 4729635d355adada
+  zh: e2eff6c9507e902e
+/agent-note-dsh-waimao-stores-state-outside-the-dsh-home/risks:
+  en: c5a5f7bc614de6a1
+  zh: f1c86f28c13ccf42

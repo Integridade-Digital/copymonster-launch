@@ -5,7 +5,7 @@ import type { SendPulseMcpLocaleKey } from './en.ts'
 /** Japanese dictionary. */
 export const ja: Record<SendPulseMcpLocaleKey, string> = {
   title: 'SendPulse MCP',
-  description: 'SendPulse アカウントを接続して、メール配信・チャットボット・CRM を管理します。',
+  description: 'SendPulse アカウントを接続して、メールマーケティング・CRM・チャットボットを管理します。',
   authorize: '認証',
   refreshToken: 'トークンを更新',
   testConnection: '接続をテスト',
@@ -24,6 +24,9 @@ export const ja: Record<SendPulseMcpLocaleKey, string> = {
   statusFailed: 'ステータスを読み取れませんでした: {error}',
   actionFailed: '操作に失敗しました: {error}',
   connectionSuccessful: '接続に成功しました。',
+  authorizationFailed: '認証に失敗しました。',
+  tokenExpired: 'トークンの有効期限が切れました。',
+  connecting: '接続中…',
   ok: '[ok] ',
   failed: '[失敗] ',
 }

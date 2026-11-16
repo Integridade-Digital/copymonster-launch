@@ -5,7 +5,7 @@ import type { SendPulseMcpLocaleKey } from './en.ts'
 /** Russian dictionary. */
 export const ru: Record<SendPulseMcpLocaleKey, string> = {
   title: 'SendPulse MCP',
-  description: 'Подключите аккаунт SendPulse для управления email-кампаниями, чат-ботами и CRM.',
+  description: 'Подключите аккаунт SendPulse для управления email-маркетингом, CRM и чат-ботами.',
   authorize: 'Авторизовать',
   refreshToken: 'Обновить токен',
   testConnection: 'Проверить подключение',
@@ -24,6 +24,9 @@ export const ru: Record<SendPulseMcpLocaleKey, string> = {
   statusFailed: 'Не удалось прочитать состояние: {error}',
   actionFailed: 'Действие не выполнено: {error}',
   connectionSuccessful: 'Подключение успешно.',
+  authorizationFailed: 'Не удалось выполнить авторизацию.',
+  tokenExpired: 'Срок действия токена истёк.',
+  connecting: 'Подключение…',
   ok: '[ok] ',
   failed: '[ошибка] ',
 }

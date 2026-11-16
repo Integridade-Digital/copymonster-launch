@@ -3,7 +3,7 @@
 /** English copy, the fallback dictionary. */
 export const en = {
   title: 'SendPulse MCP',
-  description: 'Connect your SendPulse account to manage email campaigns, chatbots and CRM.',
+  description: 'Connect your SendPulse account to manage email marketing, CRM and chatbots.',
   authorize: 'Authorize',
   refreshToken: 'Refresh token',
   testConnection: 'Test connection',
@@ -22,6 +22,9 @@ export const en = {
   statusFailed: 'Could not read status: {error}',
   actionFailed: 'Action failed: {error}',
   connectionSuccessful: 'Connection successful.',
+  authorizationFailed: 'Authorization failed.',
+  tokenExpired: 'Token expired.',
+  connecting: 'Connecting…',
   ok: '[ok] ',
   failed: '[failed] ',
 } as const

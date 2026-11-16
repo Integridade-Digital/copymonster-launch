@@ -135,7 +135,7 @@ export function SendPulseMcpSettingsPanel({ t }: SendPulseMcpSettingsPanelProps)
     void run(async () => {
       const result = await api.oauthStart()
       if (!result.ok || result.authorizeUrl === undefined) {
-        return t('failed') + (result.error ?? '')
+        return t('authorizationFailed') + (result.error === undefined || result.error === '' ? '' : ' ' + result.error)
       }
       window.open(result.authorizeUrl, '_blank', 'noopener')
       return t('opened')
@@ -155,7 +155,10 @@ export function SendPulseMcpSettingsPanel({ t }: SendPulseMcpSettingsPanelProps)
     void run(async () => {
       const result = await api.oauthRefresh()
       setView(result.view)
-      return (result.ok ? t('ok') : t('failed')) + result.message
+      if (result.ok) return t('ok') + result.message
+      return /expired|invalid_grant/i.test(result.message)
+        ? t('tokenExpired') + ' ' + result.message
+        : t('failed') + result.message
     })
   }
 
@@ -211,7 +214,7 @@ export function SendPulseMcpSettingsPanel({ t }: SendPulseMcpSettingsPanelProps)
           {t('toolsDiscovered', { count: tools.length, tools: tools.slice(0, 12).join(', ') + (tools.length > 12 ? '…' : '') })}
         </div>
       )}
-      {msg !== '' && <div style={s.msg}>{msg}</div>}
+      {busy ? <div style={s.msg}>{t('connecting')}</div> : msg !== '' && <div style={s.msg}>{msg}</div>}
     </div>
   )
 }

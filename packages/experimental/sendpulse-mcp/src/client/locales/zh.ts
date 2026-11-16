@@ -5,7 +5,7 @@ import type { SendPulseMcpLocaleKey } from './en.ts'
 /** Simplified Chinese dictionary. */
 export const zh: Record<SendPulseMcpLocaleKey, string> = {
   title: 'SendPulse MCP',
-  description: '连接 SendPulse 账户以管理电子邮件营销、聊天机器人和 CRM。',
+  description: '连接 SendPulse 账户以管理电子邮件营销、CRM 和聊天机器人。',
   authorize: '授权',
   refreshToken: '刷新令牌',
   testConnection: '测试连接',
@@ -24,6 +24,9 @@ export const zh: Record<SendPulseMcpLocaleKey, string> = {
   statusFailed: '无法读取状态：{error}',
   actionFailed: '操作失败：{error}',
   connectionSuccessful: '连接成功。',
+  authorizationFailed: '授权失败。',
+  tokenExpired: '令牌已过期。',
+  connecting: '连接中…',
   ok: '[成功] ',
   failed: '[失败] ',
 }

@@ -1,6 +1,6 @@
 ---
 description: "Connect a SendPulse account through OAuth and expose its tools as mcp__sendpulse__*."
-kind: "package-reference"
+kind: "package-bundle"
 ---
 
 # @deepseek-ai/dsh-experimental-sendpulse-mcp
@@ -17,6 +17,7 @@ Connect the SendPulse MCP server through OAuth 2.1 with PKCE. After authorizatio
 - [Understand the implementation](#understand-the-implementation)
 - [Model Experience](#model-experience)
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 -----
 
@@ -72,3 +73,17 @@ An unchanged catalog preserves its tool-definition prefix. Results append to his
 - SendPulse controls access-token and refresh-token lifetimes; when a refresh fails, the card requires a new authorization.
 - The plugin implements only the OAuth path. SendPulse also documents static `X-SP-ID` and `X-SP-SECRET` headers for clients without OAuth; configuring those headers is not supported.
 - The plugin trusts its loopback and configured public origin fences. It does not add authentication beyond the Host's existing surfaces.
+
+-----
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Maintainer details — click to expand</summary>
+
+- The plugin mirrors `zernio-mcp`: a Host entry under `src/`, a Client settings card under `src/client/`, and the `cordis.patch.yml` bundle row.
+- The card order (322) keeps the MCP settings cards adjacent: Zernio 321, SendPulse 322, LeadLovers 323.
+- The requested scope is `rest`, the single entry in the server's `scopes_supported`.
+
+</details>

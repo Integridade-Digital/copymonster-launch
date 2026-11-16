@@ -3,17 +3,17 @@
 # After editing either side, bring the other along and re-record with:
 #   pnpm run verify-translation-pairing --write packages/experimental/zernio-mcp/README.md
 /:
-  en: addc6a7540d732b5
-  zh: 3a1904c8005dcf92
+  en: 7ac1f96bf3ac8bb9
+  zh: b4134cd142860e70
 /deepseek-ai-dsh-experimental-zernio-mcp:
   en: c297c304025b20da
   zh: 665cef28b3d9a69e
 /deepseek-ai-dsh-experimental-zernio-mcp/summary:
   en: 0852cbe9bb02c56d
-  zh: c5fe5998a0f0a42b
+  zh: 4f47b242cc133dce
 /deepseek-ai-dsh-experimental-zernio-mcp/table-of-contents:
-  en: 3460b3e585e0c020
-  zh: dbcba484257e92e8
+  en: 76368b6b1da79c80
+  zh: a4255ddc7ae942eb
 /deepseek-ai-dsh-experimental-zernio-mcp/use-this-package:
   en: 56c73f4070b02d7e
   zh: 1bd9258292dfa34c
@@ -36,5 +36,8 @@
   en: d38ee9e9ca20ea68
   zh: b429847e54bdc85f
 /deepseek-ai-dsh-experimental-zernio-mcp/known-limitations-and-deferred-work:
-  en: 18ad680c79ec79b4
-  zh: d14b68c5640364a7
+  en: fb5dddbe897451a3
+  zh: 62f311794491efed
+/deepseek-ai-dsh-experimental-zernio-mcp/known-limitations-and-deferred-work/dev-note:
+  en: c9f57fa911b149a1
+  zh: fc161821bb7e1336

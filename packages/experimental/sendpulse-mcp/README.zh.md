@@ -1,22 +1,23 @@
 ---
 description: "通过 OAuth 连接 SendPulse 账户，并以 mcp__sendpulse__* 形式提供其工具。"
-kind: "package-reference"
+kind: "package-bundle"
 ---
 
 # @deepseek-ai/dsh-experimental-sendpulse-mcp
 
 [English](README.md) | 中文
 
-## Summary
+## 概述
 
 通过 OAuth 2.1（PKCE）连接 SendPulse MCP 服务器。授权后，服务器工具以 `mcp__sendpulse__*` 注册，并由设置卡片提供授权、刷新、测试和清除操作。令牌保存在 `~/.dsh/dsh-sendpulse-mcp.json`，权限为 0600。
 
-## Table of Contents
+## 目录
 
 - [使用此包](#use-this-package)
 - [了解实现](#understand-the-implementation)
 - [模型体验](#model-experience)
 - [已知限制与后续工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 -----
 
@@ -72,3 +73,17 @@ kind: "package-reference"
 - SendPulse 控制访问令牌和刷新令牌的有效期；刷新失败时，卡片会要求重新授权。
 - 插件仅实现 OAuth 路径。SendPulse 还为不支持 OAuth 的客户端提供静态 `X-SP-ID` 和 `X-SP-SECRET` 请求头；本插件不支持配置这些请求头。
 - 插件信任其回环和已配置的公共来源围栏，不增加 Host 现有界面之外的身份验证。
+
+-----
+
+<a id="dev-note"></a>
+### 开发备注
+
+<details>
+<summary>维护者细节 — 点击展开</summary>
+
+- 本插件与 `zernio-mcp` 结构相同：`src/` 下的 Host 入口、`src/client/` 下的 Client 设置卡片，以及 `cordis.patch.yml` 中的 bundle 行。
+- 卡片顺序（322）使 MCP 设置卡片相邻：Zernio 321、SendPulse 322、LeadLovers 323。
+- 请求的 scope 为 `rest`，即服务器 `scopes_supported` 中的唯一项。
+
+</details>

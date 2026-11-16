@@ -1,6 +1,6 @@
 ---
 description: "Connect a Zernio account through OAuth and expose its tools as mcp__zernio__*."
-kind: "package-reference"
+kind: "package-bundle"
 ---
 
 # @deepseek-ai/dsh-experimental-zernio-mcp
@@ -17,6 +17,7 @@ Connect the Zernio MCP server through OAuth 2.1 with PKCE. After authorization, 
 - [Understand the implementation](#understand-the-implementation)
 - [Model Experience](#model-experience)
 - [Known Limitations and Deferred Work](#known-limitations-and-deferred-work)
+- [Dev Note](#dev-note)
 
 -----
 
@@ -71,3 +72,16 @@ An unchanged catalog preserves its tool-definition prefix. Results append to his
 - The loopback callback requires the browser to reach the Host's loopback address. Deployments behind a reverse proxy set `publicOrigin` or use the manual code paste.
 - Access tokens expire after one hour and refresh tokens after 30 days, as Zernio documents; an expired refresh token requires a new authorization.
 - The plugin trusts its loopback and configured public origin fences. It does not add authentication beyond the Host's existing surfaces.
+
+-----
+
+<a id="dev-note"></a>
+### Dev Note
+
+<details>
+<summary>Maintainer details — click to expand</summary>
+
+- The plugin owns a Host entry under `src/`, a Client settings card under `src/client/`, and the `cordis.patch.yml` bundle row; `sendpulse-mcp` and `leadlovers-mcp` reuse its structure.
+- The card order (321) keeps the MCP settings cards adjacent: Zernio 321, SendPulse 322, LeadLovers 323.
+
+</details>

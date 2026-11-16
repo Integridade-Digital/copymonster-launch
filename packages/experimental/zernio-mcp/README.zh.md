@@ -1,22 +1,23 @@
 ---
 description: "通过 OAuth 连接 Zernio 账户，并以 mcp__zernio__* 形式提供其工具。"
-kind: "package-reference"
+kind: "package-bundle"
 ---
 
 # @deepseek-ai/dsh-experimental-zernio-mcp
 
 [English](README.md) | 中文
 
-## Summary
+## 概述
 
 通过 OAuth 2.1（PKCE）连接 Zernio MCP 服务器。授权后，服务器工具以 `mcp__zernio__*` 注册，并由设置卡片提供授权、刷新、测试和清除操作。令牌保存在 `~/.dsh/dsh-zernio-mcp.json`，权限为 0600。
 
-## Table of Contents
+## 目录
 
 - [使用此包](#use-this-package)
 - [了解实现](#understand-the-implementation)
 - [模型体验](#model-experience)
 - [已知限制与后续工作](#known-limitations-and-deferred-work)
+- [开发备注](#dev-note)
 
 -----
 
@@ -71,3 +72,16 @@ kind: "package-reference"
 - 回环回调要求浏览器能访问 Host 的回环地址。反向代理部署应设置 `publicOrigin` 或使用手动代码粘贴。
 - 按 Zernio 文档，访问令牌一小时后过期，刷新令牌 30 天后过期；刷新令牌过期后需要重新授权。
 - 插件信任其回环和已配置的公共来源围栏，不增加 Host 现有界面之外的身份验证。
+
+-----
+
+<a id="dev-note"></a>
+### 开发备注
+
+<details>
+<summary>维护者细节 — 点击展开</summary>
+
+- 本插件拥有 `src/` 下的 Host 入口、`src/client/` 下的 Client 设置卡片，以及 `cordis.patch.yml` 中的 bundle 行；`sendpulse-mcp` 与 `leadlovers-mcp` 复用其结构。
+- 卡片顺序（321）使 MCP 设置卡片相邻：Zernio 321、SendPulse 322、LeadLovers 323。
+
+</details>

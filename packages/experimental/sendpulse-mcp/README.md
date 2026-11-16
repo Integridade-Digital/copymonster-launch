@@ -83,7 +83,7 @@ An unchanged catalog preserves its tool-definition prefix. Results append to his
 <summary>Maintainer details — click to expand</summary>
 
 - The plugin mirrors `zernio-mcp`: a Host entry under `src/`, a Client settings card under `src/client/`, and the `cordis.patch.yml` bundle row.
-- The card order (322) keeps the MCP settings cards adjacent: Zernio 321, SendPulse 322, WhatsApp Business 323, LeadLovers 324.
+- The card order (322) keeps the MCP settings cards adjacent: Zernio 321, SendPulse 322, LeadLovers 323.
 - The requested scope is `rest`, the single entry in the server's `scopes_supported`.
 
 </details>

@@ -83,7 +83,7 @@ kind: "package-bundle"
 <summary>维护者细节 — 点击展开</summary>
 
 - 本插件与 `zernio-mcp` 结构相同：`src/` 下的 Host 入口、`src/client/` 下的 Client 设置卡片，以及 `cordis.patch.yml` 中的 bundle 行。
-- 卡片顺序（322）使 MCP 设置卡片相邻：Zernio 321、SendPulse 322、WhatsApp Business 323、LeadLovers 324。
+- 卡片顺序（322）使 MCP 设置卡片相邻：Zernio 321、SendPulse 322、LeadLovers 323。
 - 请求的 scope 为 `rest`，即服务器 `scopes_supported` 中的唯一项。
 
 </details>

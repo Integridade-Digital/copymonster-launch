@@ -1,6 +1,0 @@
-{
-  "meta": {
-    "title": "WhatsApp Business MCP",
-    "description": "OAuth で WhatsApp Business アカウントを接続し、そのツールを mcp__whatsapp__* として公開します。"
-  }
-}

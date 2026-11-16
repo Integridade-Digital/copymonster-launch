@@ -1,6 +1,0 @@
-{
-  "meta": {
-    "title": "WhatsApp Business MCP",
-    "description": "Conecta una cuenta de WhatsApp Business mediante OAuth y expone sus herramientas como mcp__whatsapp__*."
-  }
-}

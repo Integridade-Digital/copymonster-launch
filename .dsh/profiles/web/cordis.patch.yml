@@ -189,7 +189,3 @@
   name: "@deepseek-ai/dsh-experimental-leadlovers-mcp"
   config:
     publicOrigin: https://app.copymonster.co
-- id: whatsapp-mcp
-  name: "@deepseek-ai/dsh-experimental-whatsapp-mcp"
-  config:
-    publicOrigin: https://app.copymonster.co

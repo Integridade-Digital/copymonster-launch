@@ -321,9 +321,6 @@ importers:
       dsh-image-gen:
         specifier: ^0.11.2
         version: 0.11.2(@deepseek-ai/cordis@4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6))(react@18.3.1)
-      dsh-plugin-bulkpublish:
-        specifier: ^0.1.1
-        version: 0.1.1(@deepseek-ai/cordis@4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6))(@deepseek-ai/dsh-mcp-client@packages+mcp+mcp-client)
       dsh-plugin-pose-studio:
         specifier: github:yang0/dsh-handraw-style
         version: https://codeload.github.com/yang0/dsh-handraw-style/tar.gz/4e959966464e0b3b7aa8fb39ef535946b5362ff1
@@ -336,9 +333,6 @@ importers:
       dsh-vercel-mcp:
         specifier: github:zhengjy01/dsh-vercel-mcp
         version: https://codeload.github.com/zhengjy01/dsh-vercel-mcp/tar.gz/7d8745bf70e5a34853baabffc86b84ca70deb100(@deepseek-ai/cordis@4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6))(@deepseek-ai/dsh-client-connection@0.2.1-rc.3(@deepseek-ai/cordis@4.0.5)(@deepseek-ai/dsh-scope@0.2.1-rc.3(@deepseek-ai/cordis@4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6))))(@deepseek-ai/dsh-host-webserver@0.2.1-rc.3(@deepseek-ai/cordis@4.0.5)(supports-color@9.4.0))(@deepseek-ai/dsh-system-prompt@0.2.1-rc.3(@deepseek-ai/cordis@4.0.5)(@deepseek-ai/dsh-llm@0.2.1-rc.3(@deepseek-ai/cordis@4.0.5))(@deepseek-ai/dsh-scope@0.2.1-rc.3(@deepseek-ai/cordis@4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6))))(@deepseek-ai/dsh-tools@0.2.1-rc.3(e8f54396d4432f82cdba40fb75a9e787))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@9.4.0)
-      dsh-waimao:
-        specifier: github:shine-233/dsh-waimao
-        version: https://codeload.github.com/shine-233/dsh-waimao/tar.gz/4fa797a2c9fdd58ec8eeacb9436f3f8ca020cdc8
       dshmarket:
         specifier: ^1.73.1
         version: 1.73.1(@deepseek-ai/cordis@4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6))(@deepseek-ai/dsh-settings@0.2.1-rc.3(aaf23c102b945efa5d3beda3b6dcf82b))
@@ -25566,13 +25560,6 @@ packages:
       react:
         optional: true
 
-  dsh-plugin-bulkpublish@0.1.1:
-    resolution: {integrity: sha512-ztkg5kHK53GA+HMTzQWbNGmXHCdcDFssQM1BHiF/TH/DT6dxnNfUbWIqdys/ErNtHXGnfeXrITvgyeXdSYHu3w==}
-    engines: {node: '>=20'}
-    peerDependencies:
-      '@deepseek-ai/cordis': '>=4.0.1-rc.1'
-      '@deepseek-ai/dsh-mcp-client': '>=0.0.1-rc.1'
-
   dsh-plugin-pose-studio@https://codeload.github.com/yang0/dsh-handraw-style/tar.gz/4e959966464e0b3b7aa8fb39ef535946b5362ff1:
     resolution: {gitHosted: true, integrity: sha512-afu1zraZnsWNceFw5cqI/J4KfKCM6asdOPeOD4ORkSJLJCff3Idp7HIvbouxXCizVoZHO6AwpD1NqgK5pHKM4A==, tarball: https://codeload.github.com/yang0/dsh-handraw-style/tar.gz/4e959966464e0b3b7aa8fb39ef535946b5362ff1}
     version: 0.7.9
@@ -25603,11 +25590,6 @@ packages:
       '@deepseek-ai/dsh-tools': ^0.1.0-rc.6 || ^0.1.1-rc.1 || ^0.1.2-alpha.1 || ^0.1.5-rc.1 || ^0.2.0-rc.2
       react: ^18.2.0
       react-dom: ^18.2.0
-
-  dsh-waimao@https://codeload.github.com/shine-233/dsh-waimao/tar.gz/4fa797a2c9fdd58ec8eeacb9436f3f8ca020cdc8:
-    resolution: {gitHosted: true, integrity: sha512-Ni8PLZJElVvwsZGXEK9Jk9dDUaNkSpzevmXoxgr+zpnIoti9DNMj/OTu9/hvZGrGNlG51q6JsBZWK1LjIMbV7A==, tarball: https://codeload.github.com/shine-233/dsh-waimao/tar.gz/4fa797a2c9fdd58ec8eeacb9436f3f8ca020cdc8}
-    version: 0.8.0
-    engines: {node: '>=22.13'}
 
   dshmarket@1.73.1:
     resolution: {integrity: sha512-mnDEDq743YH2xuLU2qgmssnSiuet5VxS8Bsbggnyez2OfzSnOtIhmnufpe+fA/m+UQr7qI6PkHGCnzW/550tfQ==}
@@ -37717,11 +37699,6 @@ snapshots:
       '@deepseek-ai/cordis': 4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6)
       react: 18.3.1
 
-  dsh-plugin-bulkpublish@0.1.1(@deepseek-ai/cordis@4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6))(@deepseek-ai/dsh-mcp-client@packages+mcp+mcp-client):
-    dependencies:
-      '@deepseek-ai/cordis': 4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6)
-      '@deepseek-ai/dsh-mcp-client': link:packages/mcp/mcp-client
-
   dsh-plugin-pose-studio@https://codeload.github.com/yang0/dsh-handraw-style/tar.gz/4e959966464e0b3b7aa8fb39ef535946b5362ff1: {}
 
   dsh-plugin-smooth-stream@1.6.3(@deepseek-ai/dsh@0.2.1-rc.3(14876e4d8755dbe3fb58f18bfd277903)):
@@ -37746,8 +37723,6 @@ snapshots:
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - supports-color
-
-  dsh-waimao@https://codeload.github.com/shine-233/dsh-waimao/tar.gz/4fa797a2c9fdd58ec8eeacb9436f3f8ca020cdc8: {}
 
   dshmarket@1.73.1(@deepseek-ai/cordis@4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6))(@deepseek-ai/dsh-settings@0.2.1-rc.3(aaf23c102b945efa5d3beda3b6dcf82b)):
     dependencies:

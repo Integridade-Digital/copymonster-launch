@@ -13,7 +13,7 @@ describe('shouldCheck', () => {
   it('admits package source files', () => {
     expect(shouldCheck('packages/core/agent/src/index.ts')).toBe(true)
     expect(shouldCheck('packages/client/ui-chat/src/client/view.tsx')).toBe(true)
-    expect(shouldCheck('scripts/apply-waimao-rebrand.ts')).toBe(true)
+    expect(shouldCheck('scripts/apply-dsh-plugins-rebrand.ts')).toBe(true)
   })
 
   it('leaves every test program to the CI lane', () => {

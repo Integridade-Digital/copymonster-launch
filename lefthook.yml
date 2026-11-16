@@ -1,7 +1,6 @@
 # Git hooks (lefthook). Keep these local checkpoints fast; CI owns the full
 # repository-wide gate matrix.
 # Install: `node scripts/install-lefthook.mjs` (runs automatically via postinstall).
-
 pre-commit:
   jobs:
     - name: translation pairing (staged records)
@@ -45,5 +44,20 @@ pre-merge-commit:
 
 pre-push:
   jobs:
-    - name: typecheck
-      run: pnpm run typecheck
+    # Package-scoped typecheck, not `pnpm run typecheck`.
+    #
+    # The aggregate programs the CI lane compiles (tsconfig.host.json,
+    # tsconfig.client.json) currently carry errors the repository has not
+    # adopted yet: ~170 Client and ~18 Host errors across test files, plus Vite 8
+    # plugin-typing drift in apps/web/katex-fonts.ts and
+    # apps/web/product-isolation.ts. Running them here failed every push
+    # regardless of what the push changed, and a full Host compile needs several
+    # GiB and minutes.
+    #
+    # scripts/typecheck-changed.ts maps each changed source file to the package
+    # that owns it and compiles that package's own tsconfig, so a push that
+    # breaks a package's source still fails. Test programs and the two drift
+    # files stay with the CI typecheck lane
+    # (.github/workflows/ci-master.yml), which remains the authoritative gate.
+    - name: typecheck (changed packages)
+      run: node_modules/.bin/tsx scripts/typecheck-changed.ts

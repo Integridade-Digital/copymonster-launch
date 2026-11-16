@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "WhatsApp Business MCP",
+    "description": "Verbinde ein WhatsApp-Business-Konto per OAuth und stelle seine Werkzeuge als mcp__whatsapp__* bereit."
+  }
+}

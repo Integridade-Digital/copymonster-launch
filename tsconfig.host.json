@@ -294,6 +294,7 @@
     { "path": "./packages/experimental/zernio-mcp/tsconfig.host.json" },
     { "path": "./packages/experimental/sendpulse-mcp/tsconfig.host.json" },
     { "path": "./packages/experimental/leadlovers-mcp/tsconfig.host.json" },
+    { "path": "./packages/experimental/whatsapp-mcp/tsconfig.host.json" },
     { "path": "./packages/experimental/browser-use-chrome-devtools-mcp" },
     { "path": "./packages/experimental/browser-use-stagehand-native" },
     { "path": "./packages/api/terminal-controller/tsconfig.host.json" },

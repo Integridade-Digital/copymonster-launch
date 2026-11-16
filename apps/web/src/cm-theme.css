@@ -156,7 +156,8 @@ div[data-settings-section="scheduled-tasks"],
 div[data-settings-section="vercel-mcp"],
 div[data-settings-section="zernio-mcp"],
 div[data-settings-section="sendpulse-mcp"],
-div[data-settings-section="leadlovers-mcp"] {
+div[data-settings-section="leadlovers-mcp"],
+div[data-settings-section="whatsapp-mcp"] {
   padding-top: 16px !important;
 }
 
@@ -192,7 +193,8 @@ div[data-settings-section="leadlovers-mcp"] {
 [data-settings-section="vercel-mcp"] [data-slot="settings.section"] > div,
 [data-settings-section="zernio-mcp"] [data-slot="settings.section"] > div,
 [data-settings-section="sendpulse-mcp"] [data-slot="settings.section"] > div,
-[data-settings-section="leadlovers-mcp"] [data-slot="settings.section"] > div {
+[data-settings-section="leadlovers-mcp"] [data-slot="settings.section"] > div,
+[data-settings-section="whatsapp-mcp"] [data-slot="settings.section"] > div {
   box-sizing: border-box !important;
   background: var(--cm-card) !important;
   border: 1px solid var(--cm-border) !important;
@@ -318,11 +320,13 @@ div[data-settings-section="leadlovers-mcp"] {
   box-shadow: none !important;
 }
 
-/* Vercel, Zernio, SendPulse and LeadLovers MCP render one inline-styled card each in host DOM. */
+/* The Vercel, Zernio, SendPulse, LeadLovers and WhatsApp Business MCP cards each
+ * render one inline-styled surface in host DOM. */
 [data-settings-section="vercel-mcp"] [data-slot="settings.section"] > div,
 [data-settings-section="zernio-mcp"] [data-slot="settings.section"] > div,
 [data-settings-section="sendpulse-mcp"] [data-slot="settings.section"] > div,
-[data-settings-section="leadlovers-mcp"] [data-slot="settings.section"] > div {
+[data-settings-section="leadlovers-mcp"] [data-slot="settings.section"] > div,
+[data-settings-section="whatsapp-mcp"] [data-slot="settings.section"] > div {
   width: 100% !important;
   max-width: none !important;
 }
@@ -333,7 +337,8 @@ div[data-settings-section="leadlovers-mcp"] {
 [data-settings-section="vercel-mcp"] button,
 [data-settings-section="zernio-mcp"] button,
 [data-settings-section="sendpulse-mcp"] button,
-[data-settings-section="leadlovers-mcp"] button {
+[data-settings-section="leadlovers-mcp"] button,
+[data-settings-section="whatsapp-mcp"] button {
   min-height: 44px !important;
   padding: 0 14px !important;
   border: none !important;
@@ -347,16 +352,18 @@ div[data-settings-section="leadlovers-mcp"] {
 [data-settings-section="vercel-mcp"] button:disabled,
 [data-settings-section="zernio-mcp"] button:disabled,
 [data-settings-section="sendpulse-mcp"] button:disabled,
-[data-settings-section="leadlovers-mcp"] button:disabled {
+[data-settings-section="leadlovers-mcp"] button:disabled,
+[data-settings-section="whatsapp-mcp"] button:disabled {
   opacity: 0.5 !important;
 }
 
-/* The Zernio, SendPulse and LeadLovers cards carry a description line the
- * Vercel card omits. It takes the card's own text size and color so every card
- * reads as one recipe. */
+/* The Zernio, SendPulse, LeadLovers and WhatsApp Business cards carry a
+ * description line the Vercel card omits. It takes the card's own text size and
+ * color so every card reads as one recipe. */
 [data-settings-section="zernio-mcp"] [data-slot="settings.section"] > div > p + p,
 [data-settings-section="sendpulse-mcp"] [data-slot="settings.section"] > div > p + p,
-[data-settings-section="leadlovers-mcp"] [data-slot="settings.section"] > div > p + p {
+[data-settings-section="leadlovers-mcp"] [data-slot="settings.section"] > div > p + p,
+[data-settings-section="whatsapp-mcp"] [data-slot="settings.section"] > div > p + p {
   margin: 0 !important;
   font-size: 13px !important;
   opacity: 1 !important;

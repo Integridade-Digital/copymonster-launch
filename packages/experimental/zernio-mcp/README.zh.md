@@ -82,6 +82,6 @@ kind: "package-bundle"
 <summary>维护者细节 — 点击展开</summary>
 
 - 本插件拥有 `src/` 下的 Host 入口、`src/client/` 下的 Client 设置卡片，以及 `cordis.patch.yml` 中的 bundle 行；`sendpulse-mcp` 与 `leadlovers-mcp` 复用其结构。
-- 卡片顺序（321）使 MCP 设置卡片相邻：Zernio 321、SendPulse 322、LeadLovers 323。
+- 卡片顺序（321）使 MCP 设置卡片相邻：Zernio 321、SendPulse 322、WhatsApp Business 323、LeadLovers 324。
 
 </details>

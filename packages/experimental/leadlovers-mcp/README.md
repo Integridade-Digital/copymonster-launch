@@ -45,7 +45,7 @@ Open Settings, select **LeadLovers MCP** directly below **SendPulse MCP**, and c
 - `src/oauth.ts` implements the MCP SDK's `OAuthClientProvider` and the two-phase flow (authorize URL, then code exchange).
 - `src/mcp.ts` supervises the Streamable HTTP connection, registers tools as `mcp__leadlovers__<rawName>`, and re-syncs on tool-list changes.
 - `src/routes.ts` serves `/api/dsh-leadlovers-mcp/*` behind a loopback and trusted-host fence.
-- `src/client/index.ts` registers the `settings.section` entry with `order: 323`, immediately after the SendPulse MCP entry at `order: 322`.
+- `src/client/index.ts` registers the `settings.section` entry with `order: 324`, immediately after the WhatsApp Business MCP entry at `order: 323`.
 
 <a id="model-experience"></a>
 ## Model Experience
@@ -83,7 +83,7 @@ An unchanged catalog preserves its tool-definition prefix. Results append to his
 <summary>Maintainer details — click to expand</summary>
 
 - The plugin mirrors `zernio-mcp` and `sendpulse-mcp`: a Host entry under `src/`, a Client settings card under `src/client/`, and the `cordis.patch.yml` bundle row.
-- The card order (323) keeps the MCP settings cards adjacent: Zernio 321, SendPulse 322, LeadLovers 323.
+- The card order (324) keeps the MCP settings cards adjacent: Zernio 321, SendPulse 322, WhatsApp Business 323, LeadLovers 324.
 - The requested scopes are `read write`, both listed in the server's `scopes_supported`; the server advertises S256 only, so no `plain` PKCE fallback is available.
 
 </details>

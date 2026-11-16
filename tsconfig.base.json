@@ -95,6 +95,8 @@
       "@deepseek-ai/dsh-experimental-zernio-mcp/client": ["./packages/experimental/zernio-mcp/src/client/index.ts"],
       "@deepseek-ai/dsh-experimental-sendpulse-mcp": ["./packages/experimental/sendpulse-mcp/src/index.ts"],
       "@deepseek-ai/dsh-experimental-sendpulse-mcp/client": ["./packages/experimental/sendpulse-mcp/src/client/index.ts"],
+      "@deepseek-ai/dsh-experimental-leadlovers-mcp": ["./packages/experimental/leadlovers-mcp/src/index.ts"],
+      "@deepseek-ai/dsh-experimental-leadlovers-mcp/client": ["./packages/experimental/leadlovers-mcp/src/client/index.ts"],
       "@deepseek-ai/dsh-experimental-browser-use-chrome-devtools-mcp": ["./packages/experimental/browser-use-chrome-devtools-mcp/src/index.ts"],
       "@deepseek-ai/dsh-experimental-browser-use-stagehand-native": ["./packages/experimental/browser-use-stagehand-native/src/index.ts"],
       "@deepseek-ai/dsh-experimental-browser-use-runtime/mcp": ["./packages/experimental/browser-use-runtime/src/mcp.ts"],

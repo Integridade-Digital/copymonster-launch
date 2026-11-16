@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "LeadLovers MCP",
+    "description": "OAuth で LeadLovers アカウントを接続し、そのツールを mcp__leadlovers__* として公開します。"
+  }
+}

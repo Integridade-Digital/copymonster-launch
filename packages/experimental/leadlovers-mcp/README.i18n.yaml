@@ -1,0 +1,43 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/experimental/leadlovers-mcp/README.md
+/:
+  en: ffa74c1b3670cf0d
+  zh: e08a0abf50ed1569
+/deepseek-ai-dsh-experimental-leadlovers-mcp:
+  en: f49a5baddbb0a4c6
+  zh: 8c4bcac067e462e5
+/deepseek-ai-dsh-experimental-leadlovers-mcp/summary:
+  en: 94f9f693efd98e6a
+  zh: d761dec87c513817
+/deepseek-ai-dsh-experimental-leadlovers-mcp/table-of-contents:
+  en: 76368b6b1da79c80
+  zh: a4255ddc7ae942eb
+/deepseek-ai-dsh-experimental-leadlovers-mcp/use-this-package:
+  en: aae22218d8381478
+  zh: 8ac6611381b9ffef
+/deepseek-ai-dsh-experimental-leadlovers-mcp/understand-the-implementation:
+  en: bd3cd43e64179792
+  zh: 429cfe683065f4ac
+/deepseek-ai-dsh-experimental-leadlovers-mcp/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-experimental-leadlovers-mcp/model-experience/leadlovers-tool-catalog:
+  en: 84487ceade44653f
+  zh: e819431932930d86
+/deepseek-ai-dsh-experimental-leadlovers-mcp/model-experience/leadlovers-tool-catalog/what-the-model-sees:
+  en: 029dad72f148c57a
+  zh: 11e01ca2d3d6e159
+/deepseek-ai-dsh-experimental-leadlovers-mcp/model-experience/leadlovers-tool-catalog/token-effect:
+  en: a69c94bc54c7f2ba
+  zh: bb9f41ed1d2df792
+/deepseek-ai-dsh-experimental-leadlovers-mcp/model-experience/leadlovers-tool-catalog/kv-cache-effect:
+  en: d38ee9e9ca20ea68
+  zh: b429847e54bdc85f
+/deepseek-ai-dsh-experimental-leadlovers-mcp/known-limitations-and-deferred-work:
+  en: 767ed355be69f5f7
+  zh: 44db8796c0265549
+/deepseek-ai-dsh-experimental-leadlovers-mcp/known-limitations-and-deferred-work/dev-note:
+  en: e1f7089338142f2b
+  zh: dba1ef09cdd6ea04

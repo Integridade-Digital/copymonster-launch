@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "LeadLovers MCP",
+    "description": "Connectez un compte LeadLovers via OAuth et exposez ses outils sous mcp__leadlovers__*."
+  }
+}

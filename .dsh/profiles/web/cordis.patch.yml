@@ -185,3 +185,7 @@
   name: "@deepseek-ai/dsh-experimental-sendpulse-mcp"
   config:
     publicOrigin: https://app.copymonster.co
+- id: leadlovers-mcp
+  name: "@deepseek-ai/dsh-experimental-leadlovers-mcp"
+  config:
+    publicOrigin: https://app.copymonster.co

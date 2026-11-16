@@ -4,8 +4,6 @@ import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-client-locale/client'
 import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-client-ui-settings/client'
-// Type-only: the Plugins page's SlotMap merge (the 'plugins.row.config' entry).
-import type {} from '@deepseek-ai/dsh-client-ui-plugin-manager/client'
 import type {} from '@deepseek-ai/dsh-client-ui-slots'
 import { KiwifyMcpSettingsPanel } from './KiwifyPanel.tsx'
 import { de, en, es, fr, ja, pt, ru, zh, type KiwifyMcpLocaleKey } from './locales/index.ts'
@@ -27,18 +25,20 @@ export const NS = 'settings.kiwifyMcp'
 export const inject = ['slots', 'locale'] as const
 
 /**
- * Register the Kiwify MCP card on the Plugins page, under the row of the
- * package's own entry in the profile patch.
+ * Register the Kiwify MCP settings page directly below the SendPulse MCP page.
  * @param ctx - the browser plugin context.
  */
 export function apply(ctx: Context): void {
+  const t = ctx.locale.bind(NS)
   ctx.effect(
     () => ctx.locale.register(NS, { en, pt, zh, es, fr, de, ru, ja }),
     'dsh-experimental-kiwify-mcp: dictionaries',
   )
-  ctx.slots.inject('plugins.row.config', () => ctx.slots.register({
-    name: 'plugins.row.config',
-    key: '@deepseek-ai/dsh-experimental-kiwify-mcp#kiwify-mcp',
+  ctx.slots.inject('settings.section', () => ctx.slots.register({
+    name: 'settings.section',
+    id: 'kiwify-mcp',
+    order: 323,
+    label: () => t('title'),
     locale: NS,
   }, KiwifyMcpSettingsPanel))
 }

@@ -9,7 +9,7 @@ kind: "package-bundle"
 
 ## 概述
 
-以公共客户端身份，通过 OAuth 2.1（PKCE S256）连接 Kiwify 的 MCP 服务器。授权后，服务器工具以 `mcp__kiwify__*` 注册，并由插件页（Plugins）中的卡片提供授权、刷新、测试和清除操作。令牌保存在 `~/.dsh/dsh-kiwify-mcp.json`，权限为 0600。
+以公共客户端身份，通过 OAuth 2.1（PKCE S256）连接 Kiwify 的 MCP 服务器。授权后，服务器工具以 `mcp__kiwify__*` 注册，并由设置卡片提供授权、刷新、测试和清除操作。令牌保存在 `~/.dsh/dsh-kiwify-mcp.json`，权限为 0600。
 
 ## 目录
 
@@ -36,7 +36,7 @@ kind: "package-bundle"
 
 `publicOrigin` 可选。当反向代理呈现该来源时，OAuth 启动路由会注册 `https://<origin>/api/dsh-kiwify-mcp/oauth/callback`；未设置时使用回环回调，并通过卡片中的手动代码粘贴完成。
 
-在侧边栏打开 **插件**，打开 **Kiwify MCP** 行，然后点击 **授权**。插件读取 Kiwify 的 OAuth 元数据，而不是硬编码端点：
+打开设置，选择紧挨在 **LeadLovers MCP** 下方的 **Kiwify MCP**，然后点击 **授权**。插件读取 Kiwify 的 OAuth 元数据，而不是硬编码端点：
 
 1. MCP 端点 `https://mcp.kiwify.com/mcp` 返回 `401`，并带有 `WWW-Authenticate: Bearer ..., resource_metadata="https://mcp.kiwify.com/.well-known/oauth-protected-resource/mcp"`。
 2. 该受保护资源文档指明授权服务器为 `https://mcp.kiwify.com`。
@@ -51,7 +51,7 @@ MCP SDK 执行上述发现，在 `/oauth/register` 注册公共客户端，并�
 - `src/oauth.ts` 实现 MCP SDK 的 `OAuthClientProvider`、两阶段流程（授权 URL，然后代码交换）以及请求的 scope 列表。
 - `src/mcp.ts` 监督 Streamable HTTP 连接，以 `mcp__kiwify__<rawName>` 注册工具，并在工具列表变化时重新同步。
 - `src/routes.ts` 在回环和受信任主机围栏后提供 `/api/dsh-kiwify-mcp/*`。
-- `src/client/index.ts` 注册 `plugins.row.config` 条目（键为 `@deepseek-ai/dsh-experimental-kiwify-mcp#kiwify-mcp`），卡片因此渲染在该包自己的插件页行下。
+- `src/client/index.ts` 注册 `settings.section` 条目，`order: 323`，紧跟在 `order: 322` 的 LeadLovers MCP 条目之后。
 
 <a id="model-experience"></a>
 ## 模型体验
@@ -90,7 +90,7 @@ MCP SDK 执行上述发现，在 `/oauth/register` 注册公共客户端，并�
 <summary>维护者细节 — 点击展开</summary>
 
 - 本插件与 `zernio-mcp`、`sendpulse-mcp`、`leadlovers-mcp` 结构相同：`src/` 下的 Host 入口、`src/client/` 下的 Client 设置卡片，以及 `cordis.patch.yml` 中的 bundle 行。
-- 每张卡片渲染在各自包的行下，因此 MCP 卡片不再依赖共享的设置区顺序。
+- 卡片顺序（323）使 MCP 设置卡片相邻：Zernio 321、SendPulse 322、Kiwify 323、LeadLovers 324。
 - 不硬编码任何 Kiwify 端点：客户端只发送服务器 URL，SDK 从 `401` 挑战中解析受保护资源与授权服务器文档。
 - `auth()` 显式接收 `KIWIFY_SCOPE_STRING`。否则 SDK 会回退到全部 `scopes_supported`，从而授权卡片从未使用的删除与退款操作。
 - 刷新授权可用，因为 Kiwify 的授权服务器发布了 `grant_types_supported: ["authorization_code", "refresh_token"]`。

@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Connect the LeadLovers MCP server through OAuth 2.1 with PKCE. After authorization, the server's tools are registered as `mcp__leadlovers__*` and a card on the Plugins page drives authorize, refresh, test, and clear. The token lives in `~/.dsh/dsh-leadlovers-mcp.json` with mode 0600.
+Connect the LeadLovers MCP server through OAuth 2.1 with PKCE. After authorization, the server's tools are registered as `mcp__leadlovers__*` and a Settings card drives authorize, refresh, test, and clear. The token lives in `~/.dsh/dsh-leadlovers-mcp.json` with mode 0600.
 
 ## Table of Contents
 
@@ -36,7 +36,7 @@ Mount the package in a profile that supplies tools, system prompts, and the Web 
 
 `publicOrigin` is optional. When the reverse proxy presents that origin, the OAuth start route registers `https://<origin>/api/dsh-leadlovers-mcp/oauth/callback`; without it, the flow uses the loopback callback and the card's manual code paste.
 
-In the sidebar open **Plugins**, open the **LeadLovers MCP** row, and click **Authorize**. LeadLovers publishes its authorization server metadata at `https://mcp.leadlovers.com/.well-known/oauth-authorization-server` (issuer `https://mcp.leadlovers.com/`, dynamic client registration at `/register`, authorization at `/authorize`, token at `/token`, revocation at `/revoke`, scopes `read` and `write`, PKCE S256) and its protected-resource metadata at `https://mcp.leadlovers.com/.well-known/oauth-protected-resource/mcp`; the MCP endpoint's `401` response names that document in its `WWW-Authenticate` header.
+Open Settings, select **LeadLovers MCP** directly below **SendPulse MCP**, and click **Authorize**. LeadLovers publishes its authorization server metadata at `https://mcp.leadlovers.com/.well-known/oauth-authorization-server` (issuer `https://mcp.leadlovers.com/`, dynamic client registration at `/register`, authorization at `/authorize`, token at `/token`, revocation at `/revoke`, scopes `read` and `write`, PKCE S256) and its protected-resource metadata at `https://mcp.leadlovers.com/.well-known/oauth-protected-resource/mcp`; the MCP endpoint's `401` response names that document in its `WWW-Authenticate` header.
 
 <a id="understand-the-implementation"></a>
 ## Understand the implementation
@@ -45,7 +45,7 @@ In the sidebar open **Plugins**, open the **LeadLovers MCP** row, and click **Au
 - `src/oauth.ts` implements the MCP SDK's `OAuthClientProvider` and the two-phase flow (authorize URL, then code exchange).
 - `src/mcp.ts` supervises the Streamable HTTP connection, registers tools as `mcp__leadlovers__<rawName>`, and re-syncs on tool-list changes.
 - `src/routes.ts` serves `/api/dsh-leadlovers-mcp/*` behind a loopback and trusted-host fence.
-- `src/client/index.ts` registers the `plugins.row.config` entry keyed `@deepseek-ai/dsh-experimental-leadlovers-mcp#leadlovers-mcp`, so the card renders on the Plugins page under this package's own row.
+- `src/client/index.ts` registers the `settings.section` entry with `order: 324`, immediately after the Kiwify MCP entry at `order: 323`.
 
 <a id="model-experience"></a>
 ## Model Experience
@@ -83,7 +83,7 @@ An unchanged catalog preserves its tool-definition prefix. Results append to his
 <summary>Maintainer details — click to expand</summary>
 
 - The plugin mirrors `zernio-mcp` and `sendpulse-mcp`: a Host entry under `src/`, a Client settings card under `src/client/`, and the `cordis.patch.yml` bundle row.
-- Each card renders under its own package row on the Plugins page, so the MCP cards no longer depend on a shared Settings section order.
+- The card order (324) keeps the MCP settings cards adjacent: Zernio 321, SendPulse 322, Kiwify 323, LeadLovers 324.
 - The requested scopes are `read write`, both listed in the server's `scopes_supported`; the server advertises S256 only, so no `plain` PKCE fallback is available.
 
 </details>

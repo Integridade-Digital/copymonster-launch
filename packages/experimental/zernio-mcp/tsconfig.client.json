@@ -23,9 +23,6 @@
     },
     {
       "path": "../../client/ui-slots"
-    },
-    {
-      "path": "../../client/ui-plugin-manager/tsconfig.client.json"
     }
   ]
 }

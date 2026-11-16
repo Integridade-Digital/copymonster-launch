@@ -30,7 +30,8 @@
         "dsh-image-gen",
         "dsh-plugin-pose-studio",
         "@nagi-ovo/dsh-visualize",
-        "dsh-plugin-bulkpublish"
+        "dsh-plugin-bulkpublish",
+        "dsh-waimao"
       ],
       "patchReload": "live"
     }
@@ -55,9 +56,10 @@
     "dsh-plugin-smooth-stream": "^1.6.3",
     "dsh-preview-plugin": "github:RaulLazaro/dsh-preview-plugin",
     "dsh-vercel-mcp": "github:zhengjy01/dsh-vercel-mcp",
+    "dsh-waimao": "github:shine-233/dsh-waimao",
     "dshmarket": "^1.73.1"
   },
   "scripts": {
-    "postinstall": "node ../../../../copymonster-launch/scripts/apply-dsh-im-rebrand.mjs && node ../../../../copymonster-launch/scripts/apply-dshmarket-rebrand.mjs && node ../../../../copymonster-launch/scripts/apply-dsh-plugins-rebrand.mjs && node ../../../../copymonster-launch/scripts/apply-localization-rebrand.mjs"
+    "postinstall": "node ../../../../copymonster-launch/scripts/apply-dsh-im-rebrand.mjs && node ../../../../copymonster-launch/scripts/apply-dshmarket-rebrand.mjs && node ../../../../copymonster-launch/scripts/apply-dsh-plugins-rebrand.mjs && node ../../../../copymonster-launch/scripts/apply-localization-rebrand.mjs && node ../../../../copymonster-launch/scripts/apply-waimao-rebrand.mjs"
   }
 }

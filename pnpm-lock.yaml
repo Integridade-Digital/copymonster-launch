@@ -336,6 +336,9 @@ importers:
       dsh-vercel-mcp:
         specifier: github:zhengjy01/dsh-vercel-mcp
         version: https://codeload.github.com/zhengjy01/dsh-vercel-mcp/tar.gz/7d8745bf70e5a34853baabffc86b84ca70deb100(@deepseek-ai/cordis@4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6))(@deepseek-ai/dsh-client-connection@0.2.1-rc.3(@deepseek-ai/cordis@4.0.5)(@deepseek-ai/dsh-scope@0.2.1-rc.3(@deepseek-ai/cordis@4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6))))(@deepseek-ai/dsh-host-webserver@0.2.1-rc.3(@deepseek-ai/cordis@4.0.5)(supports-color@9.4.0))(@deepseek-ai/dsh-system-prompt@0.2.1-rc.3(@deepseek-ai/cordis@4.0.5)(@deepseek-ai/dsh-llm@0.2.1-rc.3(@deepseek-ai/cordis@4.0.5))(@deepseek-ai/dsh-scope@0.2.1-rc.3(@deepseek-ai/cordis@4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6))))(@deepseek-ai/dsh-tools@0.2.1-rc.3(e8f54396d4432f82cdba40fb75a9e787))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)(supports-color@9.4.0)
+      dsh-waimao:
+        specifier: github:shine-233/dsh-waimao
+        version: https://codeload.github.com/shine-233/dsh-waimao/tar.gz/4fa797a2c9fdd58ec8eeacb9436f3f8ca020cdc8
       dshmarket:
         specifier: ^1.73.1
         version: 1.73.1(@deepseek-ai/cordis@4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6))(@deepseek-ai/dsh-settings@0.2.1-rc.3(aaf23c102b945efa5d3beda3b6dcf82b))
@@ -25601,6 +25604,11 @@ packages:
       react: ^18.2.0
       react-dom: ^18.2.0
 
+  dsh-waimao@https://codeload.github.com/shine-233/dsh-waimao/tar.gz/4fa797a2c9fdd58ec8eeacb9436f3f8ca020cdc8:
+    resolution: {gitHosted: true, integrity: sha512-Ni8PLZJElVvwsZGXEK9Jk9dDUaNkSpzevmXoxgr+zpnIoti9DNMj/OTu9/hvZGrGNlG51q6JsBZWK1LjIMbV7A==, tarball: https://codeload.github.com/shine-233/dsh-waimao/tar.gz/4fa797a2c9fdd58ec8eeacb9436f3f8ca020cdc8}
+    version: 0.8.0
+    engines: {node: '>=22.13'}
+
   dshmarket@1.73.1:
     resolution: {integrity: sha512-mnDEDq743YH2xuLU2qgmssnSiuet5VxS8Bsbggnyez2OfzSnOtIhmnufpe+fA/m+UQr7qI6PkHGCnzW/550tfQ==}
     peerDependencies:
@@ -37738,6 +37746,8 @@ snapshots:
     transitivePeerDependencies:
       - '@cfworker/json-schema'
       - supports-color
+
+  dsh-waimao@https://codeload.github.com/shine-233/dsh-waimao/tar.gz/4fa797a2c9fdd58ec8eeacb9436f3f8ca020cdc8: {}
 
   dshmarket@1.73.1(@deepseek-ai/cordis@4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6))(@deepseek-ai/dsh-settings@0.2.1-rc.3(aaf23c102b945efa5d3beda3b6dcf82b)):
     dependencies:

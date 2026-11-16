@@ -37,7 +37,7 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'kiwify-mcp',
-    order: 324,
+    order: 323,
     label: () => t('title'),
     locale: NS,
   }, KiwifyMcpSettingsPanel))

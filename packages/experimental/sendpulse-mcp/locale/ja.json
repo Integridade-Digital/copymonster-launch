@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "SendPulse MCP",
+    "description": "OAuth で SendPulse アカウントを接続し、そのツールを mcp__sendpulse__* として公開します。"
+  }
+}

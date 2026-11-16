@@ -181,3 +181,7 @@
   name: "@deepseek-ai/dsh-experimental-zernio-mcp"
   config:
     publicOrigin: https://app.copymonster.co
+- id: sendpulse-mcp
+  name: "@deepseek-ai/dsh-experimental-sendpulse-mcp"
+  config:
+    publicOrigin: https://app.copymonster.co

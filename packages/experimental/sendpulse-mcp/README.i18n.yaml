@@ -1,0 +1,40 @@
+# Bilingual-pair consistency record for README.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write packages/experimental/sendpulse-mcp/README.md
+/:
+  en: 7f441efebff09ae7
+  zh: 6ddb90bd01161daa
+/deepseek-ai-dsh-experimental-sendpulse-mcp:
+  en: 89872503ee635c5f
+  zh: d67f9edc5aed30c4
+/deepseek-ai-dsh-experimental-sendpulse-mcp/summary:
+  en: 0ef4a0ed22e99de8
+  zh: f7751fa4601f53b6
+/deepseek-ai-dsh-experimental-sendpulse-mcp/table-of-contents:
+  en: 3460b3e585e0c020
+  zh: dbcba484257e92e8
+/deepseek-ai-dsh-experimental-sendpulse-mcp/use-this-package:
+  en: 6447889ad12c6cec
+  zh: 549e27597c66761c
+/deepseek-ai-dsh-experimental-sendpulse-mcp/understand-the-implementation:
+  en: 20da5ddd00198364
+  zh: c2472ad4858d0ff1
+/deepseek-ai-dsh-experimental-sendpulse-mcp/model-experience:
+  en: 215e7ba838619b7b
+  zh: a311da3843709f90
+/deepseek-ai-dsh-experimental-sendpulse-mcp/model-experience/sendpulse-tool-catalog:
+  en: 7780436230ee5b17
+  zh: 1e79caccf3cb5eb9
+/deepseek-ai-dsh-experimental-sendpulse-mcp/model-experience/sendpulse-tool-catalog/what-the-model-sees:
+  en: a84aa88c8c5bd0d7
+  zh: ac38682baa8b8c92
+/deepseek-ai-dsh-experimental-sendpulse-mcp/model-experience/sendpulse-tool-catalog/token-effect:
+  en: 3e048903d402d3fd
+  zh: ac634afb8acc31c6
+/deepseek-ai-dsh-experimental-sendpulse-mcp/model-experience/sendpulse-tool-catalog/kv-cache-effect:
+  en: d38ee9e9ca20ea68
+  zh: b429847e54bdc85f
+/deepseek-ai-dsh-experimental-sendpulse-mcp/known-limitations-and-deferred-work:
+  en: 454dbc1002986a55
+  zh: 0ec90319c54513a4

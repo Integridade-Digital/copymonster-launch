@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "SendPulse MCP",
+    "description": "Conecte uma conta SendPulse via OAuth e exponha suas ferramentas como mcp__sendpulse__*."
+  }
+}

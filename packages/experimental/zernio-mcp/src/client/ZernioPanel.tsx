@@ -1,6 +1,6 @@
 /**
- * Zernio MCP settings card — rendered inside the Web settings page
- * (`settings.section` entry). Drives the OAuth authorize flow (popup + manual
+ * Zernio MCP settings card — rendered on the Web Plugins page
+ * (`plugins.row.config` entry). Drives the OAuth authorize flow (popup + manual
  * code paste), shows the registered MCP tool count, and offers one-click
  * test / refresh / clear. The inline styles mirror the Vercel MCP card so both
  * panels share one visual recipe.
@@ -85,7 +85,7 @@ const s = {
 
 /** Props the renderer binds for the Zernio MCP section. */
 export type ZernioMcpSettingsPanelProps =
-  & PropsRuntime<'settings.section'>
+  & PropsRuntime<'plugins.row.config'>
   & PropsLocale<'settings.zernioMcp'>
 
 /**

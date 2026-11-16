@@ -9,7 +9,7 @@ English | [中文](README.zh.md)
 
 ## Summary
 
-Connect Kiwify's MCP server through OAuth 2.1 with PKCE S256 as a public client. After authorization, the server's tools are registered as `mcp__kiwify__*` and a Settings card drives authorize, refresh, test, and clear. The token lives in `~/.dsh/dsh-kiwify-mcp.json` with mode 0600.
+Connect Kiwify's MCP server through OAuth 2.1 with PKCE S256 as a public client. After authorization, the server's tools are registered as `mcp__kiwify__*` and a card on the Plugins page drives authorize, refresh, test, and clear. The token lives in `~/.dsh/dsh-kiwify-mcp.json` with mode 0600.
 
 ## Table of Contents
 
@@ -36,7 +36,7 @@ Mount the package in a profile that supplies tools, system prompts, and the Web 
 
 `publicOrigin` is optional. When the reverse proxy presents that origin, the OAuth start route registers `https://<origin>/api/dsh-kiwify-mcp/oauth/callback`; without it, the flow uses the loopback callback and the card's manual code paste.
 
-Open Settings, select **Kiwify MCP** directly below **LeadLovers MCP**, and click **Authorize**. The plugin reads Kiwify's OAuth metadata rather than hardcoding endpoints:
+In the sidebar open **Plugins**, open the **Kiwify MCP** row, and click **Authorize**. The plugin reads Kiwify's OAuth metadata rather than hardcoding endpoints:
 
 1. The MCP endpoint `https://mcp.kiwify.com/mcp` answers `401` with `WWW-Authenticate: Bearer ..., resource_metadata="https://mcp.kiwify.com/.well-known/oauth-protected-resource/mcp"`.
 2. That protected-resource document names the authorization server `https://mcp.kiwify.com`.
@@ -51,7 +51,7 @@ The MCP SDK performs that discovery, registers a public client at `/oauth/regist
 - `src/oauth.ts` implements the MCP SDK's `OAuthClientProvider`, the two-phase flow (authorize URL, then code exchange), and the requested scope list.
 - `src/mcp.ts` supervises the Streamable HTTP connection, registers tools as `mcp__kiwify__<rawName>`, and re-syncs on tool-list changes.
 - `src/routes.ts` serves `/api/dsh-kiwify-mcp/*` behind a loopback and trusted-host fence.
-- `src/client/index.ts` registers the `settings.section` entry with `order: 323`, immediately after the LeadLovers MCP entry at `order: 322`.
+- `src/client/index.ts` registers the `plugins.row.config` entry keyed `@deepseek-ai/dsh-experimental-kiwify-mcp#kiwify-mcp`, so the card renders on the Plugins page under this package's own row.
 
 <a id="model-experience"></a>
 ## Model Experience
@@ -90,7 +90,7 @@ An unchanged catalog preserves its tool-definition prefix. Results append to his
 <summary>Maintainer details — click to expand</summary>
 
 - The plugin mirrors `zernio-mcp`, `sendpulse-mcp`, and `leadlovers-mcp`: a Host entry under `src/`, a Client settings card under `src/client/`, and the `cordis.patch.yml` bundle row.
-- The card order (323) keeps the MCP settings cards adjacent: Zernio 321, SendPulse 322, Kiwify 323, LeadLovers 324.
+- Each card renders under its own package row on the Plugins page, so the MCP cards no longer depend on a shared Settings section order.
 - No Kiwify endpoint is hardcoded: the client sends the server URL only, and the SDK resolves the protected-resource and authorization-server documents from the `401` challenge.
 - `auth()` receives `KIWIFY_SCOPE_STRING` explicitly. Without it the SDK falls back to every `scopes_supported` entry, which would authorize deletes and refunds the card never uses.
 - The refresh grant works because Kiwify's authorization server publishes `grant_types_supported: ["authorization_code", "refresh_token"]`.

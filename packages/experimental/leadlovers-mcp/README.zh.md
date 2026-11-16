@@ -9,7 +9,7 @@ kind: "package-bundle"
 
 ## 概述
 
-通过 OAuth 2.1（PKCE）连接 LeadLovers MCP 服务器。授权后，服务器工具以 `mcp__leadlovers__*` 注册，并由设置卡片提供授权、刷新、测试和清除操作。令牌保存在 `~/.dsh/dsh-leadlovers-mcp.json`，权限为 0600。
+通过 OAuth 2.1（PKCE）连接 LeadLovers MCP 服务器。授权后，服务器工具以 `mcp__leadlovers__*` 注册，并由插件页（Plugins）中的卡片提供授权、刷新、测试和清除操作。令牌保存在 `~/.dsh/dsh-leadlovers-mcp.json`，权限为 0600。
 
 ## 目录
 
@@ -36,7 +36,7 @@ kind: "package-bundle"
 
 `publicOrigin` 可选。当反向代理呈现该来源时，OAuth 启动路由会注册 `https://<origin>/api/dsh-leadlovers-mcp/oauth/callback`；未设置时使用回环回调，并通过卡片中的手动代码粘贴完成。
 
-打开设置，选择紧挨在 **SendPulse MCP** 下方的 **LeadLovers MCP**，然后点击 **授权**。LeadLovers 在 `https://mcp.leadlovers.com/.well-known/oauth-authorization-server` 发布授权服务器元数据（issuer 为 `https://mcp.leadlovers.com/`，动态客户端注册位于 `/register`，授权位于 `/authorize`，令牌位于 `/token`，撤销位于 `/revoke`，scope 为 `read` 和 `write`，PKCE S256），并在 `https://mcp.leadlovers.com/.well-known/oauth-protected-resource/mcp` 发布受保护资源元数据；MCP 端点的 `401` 响应通过 `WWW-Authenticate` 头指向该文档。
+在侧边栏打开 **插件**，打开 **LeadLovers MCP** 行，然后点击 **授权**。LeadLovers 在 `https://mcp.leadlovers.com/.well-known/oauth-authorization-server` 发布授权服务器元数据（issuer 为 `https://mcp.leadlovers.com/`，动态客户端注册位于 `/register`，授权位于 `/authorize`，令牌位于 `/token`，撤销位于 `/revoke`，scope 为 `read` 和 `write`，PKCE S256），并在 `https://mcp.leadlovers.com/.well-known/oauth-protected-resource/mcp` 发布受保护资源元数据；MCP 端点的 `401` 响应通过 `WWW-Authenticate` 头指向该文档。
 
 <a id="understand-the-implementation"></a>
 ## 了解实现
@@ -45,7 +45,7 @@ kind: "package-bundle"
 - `src/oauth.ts` 实现 MCP SDK 的 `OAuthClientProvider` 以及两阶段流程（授权 URL，然后代码交换）。
 - `src/mcp.ts` 监督 Streamable HTTP 连接，以 `mcp__leadlovers__<rawName>` 注册工具，并在工具列表变化时重新同步。
 - `src/routes.ts` 在回环和受信任主机围栏后提供 `/api/dsh-leadlovers-mcp/*`。
-- `src/client/index.ts` 注册 `settings.section` 条目，`order: 324`，紧跟在 `order: 323` 的 Kiwify MCP 条目之后。
+- `src/client/index.ts` 注册 `plugins.row.config` 条目（键为 `@deepseek-ai/dsh-experimental-leadlovers-mcp#leadlovers-mcp`），卡片因此渲染在该包自己的插件页行下。
 
 <a id="model-experience"></a>
 ## 模型体验
@@ -83,7 +83,7 @@ kind: "package-bundle"
 <summary>维护者细节 — 点击展开</summary>
 
 - 本插件与 `zernio-mcp`、`sendpulse-mcp` 结构相同：`src/` 下的 Host 入口、`src/client/` 下的 Client 设置卡片，以及 `cordis.patch.yml` 中的 bundle 行。
-- 卡片顺序（324）使 MCP 设置卡片相邻：Zernio 321、SendPulse 322、Kiwify 323、LeadLovers 324。
+- 每张卡片渲染在各自包的行下，因此 MCP 卡片不再依赖共享的设置区顺序。
 - 请求的 scope 为 `read write`，两者都在服务器的 `scopes_supported` 中；服务器仅声明 S256，因此没有 `plain` PKCE 回退。
 
 </details>

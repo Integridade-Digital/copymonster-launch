@@ -26,7 +26,9 @@
         "@deepseek-ai/dsh-experimental-inspector-profile",
         "@deepseek-ai/dsh-experimental-cot-translation-bundle",
         "@deepseek-ai/dsh-experimental-session-titles-bundle",
-        "@deepseek-ai/dsh-copymonster"
+        "@deepseek-ai/dsh-copymonster",
+        "dsh-image-gen",
+        "dsh-plugin-pose-studio"
       ],
       "patchReload": "live"
     }
@@ -43,6 +45,8 @@
     "@deepseek-ai/dsh-web-app": "workspace:*",
     "@michengai/dsh-automation": "0.1.66",
     "@xmanrui/dsh-im": "^5.6.0",
+    "dsh-image-gen": "^0.11.2",
+    "dsh-plugin-pose-studio": "github:yang0/dsh-handraw-style",
     "dsh-preview-plugin": "github:RaulLazaro/dsh-preview-plugin",
     "dsh-vercel-mcp": "github:zhengjy01/dsh-vercel-mcp",
     "dshmarket": "^1.73.1"

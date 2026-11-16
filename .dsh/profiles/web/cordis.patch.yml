@@ -189,3 +189,7 @@
   name: "@deepseek-ai/dsh-experimental-leadlovers-mcp"
   config:
     publicOrigin: https://app.copymonster.co
+- id: kiwify-mcp
+  name: "@deepseek-ai/dsh-experimental-kiwify-mcp"
+  config:
+    publicOrigin: https://app.copymonster.co

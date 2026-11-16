@@ -88,6 +88,7 @@ kind: "package-group"
 | [`browser-use-runtime`](browser-use-runtime/README.zh.md) | 实验性提供方共享的 Session 浏览器资源 | — |
 | [`sendpulse-mcp`](sendpulse-mcp/README.zh.md) | 通过 OAuth 连接的 SendPulse 邮件、CRM 和聊天机器人 MCP 工具 | — |
 | [`leadlovers-mcp`](leadlovers-mcp/README.zh.md) | 通过 OAuth 连接的 LeadLovers 联系人、项目和营销活动 MCP 工具 | — |
+| [`kiwify-mcp`](kiwify-mcp/README.zh.md) | 通过 OAuth 连接的 Kiwify 产品、销售、联盟和财务 MCP 工具 | — |
 | [`inspector`](inspector/README.zh.md) | 用于 Host 调试、Client Runtime 检查、网络采集与 Cordis 树的跨 realm CDP hub | `ctx.inspector` |
 | [`session-inspector`](session-inspector/README.zh.md) | 展示原始 Session 日志与 Chat 节点的 Sidebar 表格 | — |
 | [`inspector-profile`](inspector-profile/README.zh.md) | 用于 Session 日志与 Chat 节点检查的可选 Web 组合包 | — |

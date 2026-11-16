@@ -88,6 +88,7 @@ Promotion requires a named product role, documented public behavior and limitati
 | [`browser-use-runtime`](browser-use-runtime/README.md) | Session-owned browser resources shared by experimental providers | — |
 | [`sendpulse-mcp`](sendpulse-mcp/README.md) | SendPulse email, CRM, and chatbot tools over OAuth-backed MCP | — |
 | [`leadlovers-mcp`](leadlovers-mcp/README.md) | LeadLovers contacts, projects, and campaign tools over OAuth-backed MCP | — |
+| [`kiwify-mcp`](kiwify-mcp/README.md) | Kiwify products, sales, affiliates, and finance tools over OAuth-backed MCP | — |
 | [`inspector`](inspector/README.md) | Cross-realm CDP hub for Host debugging, Client Runtime inspection, network capture, and Cordis trees | `ctx.inspector` |
 | [`session-inspector`](session-inspector/README.md) | Sidebar tables for raw Session logs and Chat nodes | — |
 | [`inspector-profile`](inspector-profile/README.md) | Optional Web bundle for Session log and Chat node inspection | — |

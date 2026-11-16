@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Kiwify MCP",
+    "description": "Conecte uma conta Kiwify via OAuth e exponha suas ferramentas como mcp__kiwify__*."
+  }
+}

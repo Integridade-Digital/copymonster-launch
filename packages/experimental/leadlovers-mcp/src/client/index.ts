@@ -25,7 +25,7 @@ export const NS = 'settings.leadloversMcp'
 export const inject = ['slots', 'locale'] as const
 
 /**
- * Register the LeadLovers MCP settings page directly below the SendPulse MCP page.
+ * Register the LeadLovers MCP settings page directly below the Kiwify MCP page.
  * @param ctx - the browser plugin context.
  */
 export function apply(ctx: Context): void {
@@ -37,7 +37,7 @@ export function apply(ctx: Context): void {
   ctx.slots.inject('settings.section', () => ctx.slots.register({
     name: 'settings.section',
     id: 'leadlovers-mcp',
-    order: 323,
+    order: 324,
     label: () => t('title'),
     locale: NS,
   }, LeadLoversMcpSettingsPanel))

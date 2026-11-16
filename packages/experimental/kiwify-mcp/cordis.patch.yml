@@ -1,0 +1,11 @@
+# dsh-experimental-kiwify-mcp bundle patch: inserts the plugin row into the
+# profile roster. Applied as a profile bundle layer (declared by the
+# `dsh.bundle.patch` manifest field in package.json). Activate with:
+#
+#   dsh plugin --profile web add link:/path/to/kiwify-mcp
+- insert:
+    - id: kiwify-mcp
+      name: '@deepseek-ai/dsh-experimental-kiwify-mcp'
+      config:
+        announceToAgent: true   # announce the plugin and its tool namespace to the model
+        enabled: true           # plugin master switch

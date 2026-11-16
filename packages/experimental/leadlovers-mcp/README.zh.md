@@ -45,7 +45,7 @@ kind: "package-bundle"
 - `src/oauth.ts` 实现 MCP SDK 的 `OAuthClientProvider` 以及两阶段流程（授权 URL，然后代码交换）。
 - `src/mcp.ts` 监督 Streamable HTTP 连接，以 `mcp__leadlovers__<rawName>` 注册工具，并在工具列表变化时重新同步。
 - `src/routes.ts` 在回环和受信任主机围栏后提供 `/api/dsh-leadlovers-mcp/*`。
-- `src/client/index.ts` 注册 `settings.section` 条目，`order: 323`，紧跟在 `order: 322` 的 SendPulse MCP 条目之后。
+- `src/client/index.ts` 注册 `settings.section` 条目，`order: 324`，紧跟在 `order: 323` 的 Kiwify MCP 条目之后。
 
 <a id="model-experience"></a>
 ## 模型体验
@@ -83,7 +83,7 @@ kind: "package-bundle"
 <summary>维护者细节 — 点击展开</summary>
 
 - 本插件与 `zernio-mcp`、`sendpulse-mcp` 结构相同：`src/` 下的 Host 入口、`src/client/` 下的 Client 设置卡片，以及 `cordis.patch.yml` 中的 bundle 行。
-- 卡片顺序（323）使 MCP 设置卡片相邻：Zernio 321、SendPulse 322、LeadLovers 323。
+- 卡片顺序（324）使 MCP 设置卡片相邻：Zernio 321、SendPulse 322、Kiwify 323、LeadLovers 324。
 - 请求的 scope 为 `read write`，两者都在服务器的 `scopes_supported` 中；服务器仅声明 S256，因此没有 `plain` PKCE 回退。
 
 </details>

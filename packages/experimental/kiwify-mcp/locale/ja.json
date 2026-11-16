@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Kiwify MCP",
+    "description": "OAuth で Kiwify アカウントを接続し、そのツールを mcp__kiwify__* として公開します。"
+  }
+}

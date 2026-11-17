@@ -410,6 +410,24 @@ describe('SettingsPanel navigation', () => {
     expect(screen.getByRole('button', { name: 'Models' })).toBeTruthy()
   })
 
+  it('keeps a long section roster inside a scrollable rail', () => {
+    const rows = Array.from({ length: 30 }, (_, i) => ({
+      id: `section-${i}`,
+      order: i,
+      label: `Section ${i}`,
+    }))
+    mount({ rows })
+    openPanel()
+    const last = screen.getByRole('button', { name: 'Section 29' })
+    // The rail's cell stack owns the scroll, so a roster taller than the panel
+    // stays reachable instead of being clipped by the panel's overflow: hidden.
+    const railList = last.parentElement
+    expect(railList).not.toBeNull()
+    expect(railList?.tagName).toBe('DIV')
+    expect(railList?.parentElement?.tagName).toBe('NAV')
+    expect(railList?.contains(screen.getByRole('button', { name: 'Section 0' }))).toBe(true)
+  })
+
   it('gives every section a nav glyph, distinct for the ids the shell knows', () => {
     mount({
       rows: [

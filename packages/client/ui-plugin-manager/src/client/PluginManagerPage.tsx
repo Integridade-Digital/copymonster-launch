@@ -1546,7 +1546,10 @@ export function PluginManagerPage(props: PluginManagerPageProps): ReactNode {
 
   // The page omits profile bundles and persistent terminals. Other installed or offered bundles and
   // unreadable selections remain manageable; Settings' Plugin list inspects the full Host inventory.
+  // The CopyMonster Market bundle (dshmarket) is an admin tool: non-admins never see it in any list.
+  const ADMIN_ONLY_BUNDLES: ReadonlySet<string> = new Set(['dshmarket'])
   const listed = state.packages.filter(pkg => !HIDDEN_BUNDLES.has(pkg.name)
+    && (isAdmin || !ADMIN_ONLY_BUNDLES.has(pkg.name))
     && (pkg.listedByDefault !== false || pkg.enabled || pkg.installed)
     && (pkg.installed || pkg.official || pkg.error !== undefined))
   const mine = listed.filter(pkg => !pkg.official)

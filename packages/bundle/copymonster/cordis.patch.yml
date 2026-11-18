@@ -83,4 +83,10 @@
         virtualModelName: Model CopyMonster
         primaryProvider: deepseek-official
         primaryModel: deepseek-chat
+        fallbackProvider: openrouter
+        fallbackModel: openrouter/free
+        fallbackPolicy:
+          enabled: true
+          maxAttempts: 2
+          timeoutMs: 30000
         applyToTenantsOnly: true

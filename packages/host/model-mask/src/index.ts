@@ -1,5 +1,5 @@
 /**
- * CopyMonster virtual-model mask for the Host.
+ * CopyMonster virtual-model mask for the Host with streaming failover.
  *
  * Tenants see exactly one selectable model — `copy-monster-default` / "Model
  * CopyMonster" — in the browser model catalog. The underlying provider and
@@ -15,8 +15,11 @@
  * This plugin registers an adapter for the virtual provider route. When the
  * Agent loop dispatches a request whose provider/model is the virtual alias,
  * this adapter's `stream` reissues the call on the primary route through
- * `ctx.llm.stream`. The logged `request/header` keeps the virtual alias, so
- * the real topology stays out of the durable log.
+ * `ctx.llm.stream`. If the primary route fails with an eligible transient error
+ * (e.g. 429, 5xx, timeout, transport) BEFORE any chunk is emitted to the
+ * client, it safely fails over to the configured contingency route.
+ * Once any chunk has been emitted, failover is strictly forbidden to prevent
+ * corrupted or mixed generation outputs.
  *
  * No `packages/core/` or `packages/llm/` code is touched; routing happens
  * purely through the public `llm` service API.
@@ -24,6 +27,8 @@
  */
 
 import type { Context } from '@deepseek-ai/cordis'
+import { Service } from '@deepseek-ai/cordis'
+import z from '@deepseek-ai/schemastery'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 
@@ -55,8 +60,18 @@ export interface VirtualModelAlias {
 /** The virtual alias selection tenants are offered. */
 export const VIRTUAL_ALIAS: VirtualModelAlias = { provider: VIRTUAL_PROVIDER, model: VIRTUAL_MODEL }
 
-/** Plugin configuration: the virtual alias and the primary route it resolves to. */
-export interface Config {
+/** Configuration for failover policy. */
+export interface FallbackPolicyConfig {
+  /** Whether automatic failover is enabled. @default true */
+  readonly enabled?: boolean
+  /** Maximum retry/failover attempts. @default 2 */
+  readonly maxAttempts?: number
+  /** Timeout in ms before failing over. @default 30000 */
+  readonly timeoutMs?: number
+}
+
+/** Central model routing policy. */
+export interface LlmRoutingPolicy {
   /** Virtual provider route advertised in the masked catalog. @default 'copymonster' */
   readonly virtualProvider?: string
   /** Virtual model id advertised in the masked catalog. @default 'copy-monster-default' */
@@ -67,11 +82,18 @@ export interface Config {
   readonly primaryProvider: string
   /** Real model id the virtual alias resolves to at dispatch time. */
   readonly primaryModel: string
+  /** Optional fallback provider route when primary experiences transient failure. */
+  readonly fallbackProvider?: string
+  /** Optional fallback model id when primary experiences transient failure. */
+  readonly fallbackModel?: string
+  /** Failover policy options. */
+  readonly fallbackPolicy?: FallbackPolicyConfig
   /** Whether masking applies only to non-admin callers. @default true */
   readonly applyToTenantsOnly?: boolean
 }
 
-import z from '@deepseek-ai/schemastery'
+/** Plugin configuration: the virtual alias, primary route, and optional fallback. */
+export type Config = LlmRoutingPolicy
 
 /** Loader schema for {@link Config}. */
 export const Config: z<Config> = z.object({
@@ -80,82 +102,280 @@ export const Config: z<Config> = z.object({
   virtualModelName: z.string().default(VIRTUAL_MODEL_NAME),
   primaryProvider: z.string().min(1),
   primaryModel: z.string().min(1),
+  fallbackProvider: z.string(),
+  fallbackModel: z.string(),
+  fallbackPolicy: z.object({
+    enabled: z.boolean().default(true),
+    maxAttempts: z.number().default(2),
+    timeoutMs: z.number().default(30000),
+  }).default({ enabled: true, maxAttempts: 2, timeoutMs: 30000 }),
   applyToTenantsOnly: z.boolean().default(true),
 })
+
+/**
+ * Determine whether a model execution failure is an eligible transient error
+ * that warrants attempting failover to a contingency route.
+ *
+ * Eligible:
+ * - HTTP status 429 (rate limit), 500, 502, 503, 504 (server error / gateway).
+ * - Standard failure codes: RATE_LIMIT, SERVER, TIMEOUT, TRANSPORT.
+ * - Network timeouts and connection resets (ECONNRESET, ETIMEDOUT).
+ *
+ * Ineligible (fail-fast):
+ * - HTTP 400 (bad request), 401 (unauthorized / missing key), 403 (forbidden).
+ * - Codes containing AUTH, KEY, or INVALID_REQUEST.
+ *
+ * @param error - the failure thrown by the primary stream attempt.
+ * @returns true if failover should be attempted.
+ */
+export function isEligibleFailoverError(error: unknown): boolean {
+  if (!error) return false
+
+  // Check for HTTP status codes
+  const status = typeof error === 'object' && error !== null && 'status' in error
+    ? Number((error as { status?: unknown }).status)
+    : undefined
+  if (status !== undefined) {
+    // 401, 403, 400 are NOT eligible for failover
+    if (status === 401 || status === 403 || status === 400) return false
+    // 429, 500, 502, 503, 504 are eligible
+    if (status === 429 || (status >= 500 && status <= 504)) return true
+  }
+
+  // Check for failure code
+  const code = typeof error === 'object' && error !== null && 'code' in error
+    ? String((error as { code?: unknown }).code)
+    : ''
+  if (code) {
+    const upperCode = code.toUpperCase()
+    if (upperCode.includes('AUTH') || upperCode.includes('KEY') || upperCode.includes('INVALID_REQUEST')) {
+      return false
+    }
+    if (
+      upperCode === 'RATE_LIMIT' ||
+      upperCode === 'SERVER' ||
+      upperCode === 'TIMEOUT' ||
+      upperCode === 'TRANSPORT' ||
+      upperCode.includes('TIMEOUT') ||
+      upperCode.includes('OVERLOAD')
+    ) {
+      return true
+    }
+  }
+
+  // Check error message for transient indicators
+  const msg = String(error instanceof Error ? error.message : error).toLowerCase()
+  if (
+    msg.includes('rate limit') ||
+    msg.includes('429') ||
+    msg.includes('econnreset') ||
+    msg.includes('etimedout') ||
+    msg.includes('timeout') ||
+    msg.includes('500') ||
+    msg.includes('502') ||
+    msg.includes('503') ||
+    msg.includes('504') ||
+    msg.includes('server error') ||
+    msg.includes('bad gateway') ||
+    msg.includes('service unavailable')
+  ) {
+    return true
+  }
+
+  return false
+}
 
 /** One masked Adapter registration for the virtual provider route. */
 export interface VirtualAdapterDeps {
   readonly ctx: Context
-  readonly primaryProvider: string
-  readonly primaryModel: string
+  readonly primaryProvider?: string
+  readonly primaryModel?: string
+  readonly getPolicy?: () => LlmRoutingPolicy
 }
 
 /**
  * Build the adapter that serves the virtual provider route. Its `stream`
- * reissues the call on the configured primary route; every other method
- * reports virtual-model metadata so catalog and resolution paths succeed.
- * @param deps - plugin context and the primary route to delegate to.
- * @returns an `LlmAdapter` whose `stream` delegates to `ctx.llm.stream` on the primary route.
+ * reissues the call on the configured primary route with streaming failover;
+ * every other method reports virtual-model metadata so catalog and resolution
+ * paths succeed.
+ * @param deps - plugin context and routing policy provider.
+ * @returns an `LlmAdapter` whose `stream` executes routing and contingency failover.
  */
 export function buildVirtualAdapter(deps: VirtualAdapterDeps): LlmAdapter {
-  const { ctx, primaryProvider, primaryModel } = deps
+  const { ctx } = deps
+  const resolvePolicy = (): LlmRoutingPolicy => {
+    if (deps.getPolicy) return deps.getPolicy()
+    return {
+      primaryProvider: deps.primaryProvider ?? 'deepseek-official',
+      primaryModel: deps.primaryModel ?? 'deepseek-chat',
+    }
+  }
+
   return new (class VirtualLlmAdapter extends LlmAdapter {
     override providerInfo() {
-      return { id: VIRTUAL_PROVIDER, name: VIRTUAL_MODEL_NAME }
-    }
-    override async listModels() {
-      return [
-        { provider: VIRTUAL_PROVIDER, id: VIRTUAL_MODEL, name: VIRTUAL_MODEL_NAME },
-      ]
-    }
-    override async resolveModel(_provider: string, model: string) {
+      const policy = resolvePolicy()
       return {
-        provider: VIRTUAL_PROVIDER,
+        id: policy.virtualProvider ?? VIRTUAL_PROVIDER,
+        name: policy.virtualModelName ?? VIRTUAL_MODEL_NAME,
+      }
+    }
+
+    override async listModels() {
+      const policy = resolvePolicy()
+      const provider = policy.virtualProvider ?? VIRTUAL_PROVIDER
+      const model = policy.virtualModel ?? VIRTUAL_MODEL
+      const name = policy.virtualModelName ?? VIRTUAL_MODEL_NAME
+      return [{ provider, id: model, name }]
+    }
+
+    override async resolveModel(_provider: string, model: string) {
+      const policy = resolvePolicy()
+      const provider = policy.virtualProvider ?? VIRTUAL_PROVIDER
+      const name = policy.virtualModelName ?? VIRTUAL_MODEL_NAME
+      return {
+        provider,
         id: model,
-        name: VIRTUAL_MODEL_NAME,
+        name,
         description: VIRTUAL_MODEL_DESCRIPTION,
       }
     }
+
     override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
-      // Reissue on the primary route, hiding the real provider/model from the
-      // request that the loop logs and the client observes.
-      const real = {
-        ...options,
-        provider: primaryProvider,
-        model: primaryModel,
-      } as GenerateOptions
-      const inner = await ctx.llm.stream(real)
-      yield* inner
+      // 1. Snapshot policy at the start of generation (immutable for this turn)
+      const policy = resolvePolicy()
+      const primary = { provider: policy.primaryProvider, model: policy.primaryModel }
+      const hasFallback = Boolean(
+        policy.fallbackProvider &&
+        policy.fallbackModel &&
+        policy.fallbackPolicy?.enabled !== false,
+      )
+      const fallback = hasFallback
+        ? { provider: policy.fallbackProvider!, model: policy.fallbackModel! }
+        : undefined
+
+      let chunkCount = 0
+      let primaryStream: AsyncIterable<StreamChunk> | undefined
+
+      // 2. Attempt primary stream initialization
+      try {
+        const primaryOptions = {
+          ...options,
+          provider: primary.provider,
+          model: primary.model,
+        } as GenerateOptions
+        primaryStream = await ctx.llm.stream(primaryOptions)
+      } catch (error) {
+        if (fallback && isEligibleFailoverError(error) && chunkCount === 0) {
+          ctx.logger.warn(
+            'model-mask: primary route "%s/%s" failed before stream (%s); failing over to "%s/%s"',
+            primary.provider,
+            primary.model,
+            String(error),
+            fallback.provider,
+            fallback.model,
+          )
+          const fallbackOptions = {
+            ...options,
+            provider: fallback.provider,
+            model: fallback.model,
+          } as GenerateOptions
+          const fallbackStream = await ctx.llm.stream(fallbackOptions)
+          yield* fallbackStream
+          return
+        }
+        throw error
+      }
+
+      // 3. Pull initial chunk before yielding to verify primary stream health
+      const iterator = primaryStream[Symbol.asyncIterator]()
+      let firstResult: IteratorResult<StreamChunk>
+      try {
+        firstResult = await iterator.next()
+      } catch (error) {
+        if (fallback && isEligibleFailoverError(error) && chunkCount === 0) {
+          ctx.logger.warn(
+            'model-mask: primary route "%s/%s" failed on initial chunk (%s); failing over to "%s/%s"',
+            primary.provider,
+            primary.model,
+            String(error),
+            fallback.provider,
+            fallback.model,
+          )
+          const fallbackOptions = {
+            ...options,
+            provider: fallback.provider,
+            model: fallback.model,
+          } as GenerateOptions
+          const fallbackStream = await ctx.llm.stream(fallbackOptions)
+          yield* fallbackStream
+          return
+        }
+        throw error
+      }
+
+      // 4. Once the first chunk is emitted, failover is STRICTLY FORBIDDEN
+      if (!firstResult.done) {
+        chunkCount++
+        yield firstResult.value
+        while (true) {
+          const nextResult = await iterator.next()
+          if (nextResult.done) break
+          chunkCount++
+          yield nextResult.value
+        }
+      }
     }
   })()
+}
+
+/**
+ * Service managing live model routing policy on the Host.
+ */
+export class ModelMaskService extends Service {
+  private activePolicy: LlmRoutingPolicy
+
+  constructor(ctx: Context, initialConfig: Config) {
+    super(ctx, 'modelMask')
+    this.activePolicy = { ...Config(initialConfig) }
+  }
+
+  getPolicy(): LlmRoutingPolicy {
+    return { ...this.activePolicy }
+  }
+
+  updatePolicy(next: Partial<LlmRoutingPolicy>): LlmRoutingPolicy {
+    this.activePolicy = Config({ ...this.activePolicy, ...next })
+    return { ...this.activePolicy }
+  }
+}
+
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    /** Host service managing CopyMonster model mask and routing policy. */
+    modelMask: ModelMaskService
+  }
 }
 
 /**
  * Register the virtual adapter and participate in the `agent/request`
  * waterfall so the alias is admitted for the loop.
  *
- * The alias itself is left intact on the config: the `agent/request`
- * validation compares the proposed config against the recorded selection,
- * which is also the alias. The real route is applied by the virtual adapter
- * at `stream` time, after step preparation has fixed the selection.
  * @param ctx - plugin Context that owns the listener and registration lifetime.
  * @param config - validated mask configuration.
  */
 export function apply(ctx: Context, config: Config): void {
-  const resolved = Config(config)
-  const { primaryProvider, primaryModel, virtualProvider } = resolved
-  if (
-    typeof primaryProvider !== 'string'
-    || typeof primaryModel !== 'string'
-    || typeof virtualProvider !== 'string'
-  ) {
-    throw new Error('model-mask: primaryProvider, primaryModel, and virtualProvider are required')
-  }
+  const service = new ModelMaskService(ctx, config)
+  const resolved = service.getPolicy()
+  const virtualProvider = resolved.virtualProvider ?? VIRTUAL_PROVIDER
+
   const adapter = buildVirtualAdapter({
     ctx,
-    primaryProvider,
-    primaryModel,
+    getPolicy: () => service.getPolicy(),
   })
 
   ctx.llm.registerAdapter([virtualProvider], adapter)
+
+  ctx.inject(['settings'], (child) => {
+    child.effect(() => child.settings.configure({ auto: false }, ctx.fiber))
+  })
 }

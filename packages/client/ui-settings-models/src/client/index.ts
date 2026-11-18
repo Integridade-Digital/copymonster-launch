@@ -17,6 +17,8 @@ import type {} from '@deepseek-ai/dsh-client-ui-renderer/client'
 import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import { isPlatformAdmin, whenPlatformAdmin } from '@deepseek-ai/dsh-client-ui-primitives'
 import { ModelsSection } from './ModelsSection.tsx'
+import { PlatformRoutingCard } from './PlatformRoutingCard.tsx'
+import type { PlatformRoutingCardInjected } from './PlatformRoutingCard.tsx'
 import type { ModelsSectionInjected } from './ModelsSection.tsx'
 import { DeepSeekOnboardingDialog } from './DeepSeekOnboardingDialog.tsx'
 import type { DeepSeekOnboardingInjected } from './DeepSeekOnboardingDialog.tsx'
@@ -32,6 +34,8 @@ import { en, zh, type ModelsKey } from './locales.ts'
 import { WELCOME_NOTICE_SETTINGS_NAMESPACE } from '../onboarding-copy.ts'
 
 export type { ModelsSectionInjected, ModelsSectionProps } from './ModelsSection.tsx'
+export { PlatformRoutingCard } from './PlatformRoutingCard.tsx'
+export type { PlatformRoutingCardInjected, PlatformRoutingCardProps } from './PlatformRoutingCard.tsx'
 export type { ModelsFooterOwnerProps, ProviderCardExtrasOwnerProps } from './slot-contract.ts'
 export type { ModelsKey } from './locales.ts'
 
@@ -101,6 +105,12 @@ export function apply(ctx: ClientContext): void {
     schema,
     t,
   })
+  const routingCardInjected = (): PlatformRoutingCardInjected => ({
+    controller,
+    hooks: { snapshot: controller.store },
+    operations,
+    t,
+  })
   // The scope's own memory mode is what keeps a remote browser process-local,
   // so the store needs no isLoopback branch of its own.
   const welcomeController = new WelcomeNoticeStore(ctx.configForms.get<Record<string, unknown>>(WELCOME_NOTICE_SETTINGS_NAMESPACE))
@@ -165,6 +175,12 @@ export function apply(ctx: ClientContext): void {
           'settings.models.footer': { kind: 'list', scope: 'root' },
         },
       }, ModelsSection)),
+      ctx.slots.inject('settings.models.footer', () => ctx.slots.register({
+        name: 'settings.models.footer',
+        id: 'platform-routing',
+        order: 10,
+        inject: routingCardInjected,
+      }, PlatformRoutingCard)),
       ctx.slots.inject('settings.onboarding', () => ctx.slots.register({
         name: 'settings.onboarding',
         id: 'deepseek-official',

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from '../../../lib/supabase/client'
 import { t } from '../../../locales'
+import { MODEL_MASK_STATUS_PATH } from '../../../lib/model-mask-status'
 
 export interface SystemConfigItem {
   key: string
@@ -10,6 +11,19 @@ export interface SystemConfigItem {
   updated_at: string
   updated_by: string | null
   updated_by_email: string | null
+}
+
+/** The mask's resolved routes, as reported by the Host. */
+export interface ModelMaskRoute {
+  provider: string
+  model: string
+}
+
+/** Read-only masks status: the tenant alias and the real routes behind it. */
+export interface ModelMaskStatus {
+  alias: ModelMaskRoute
+  primaryRoute: ModelMaskRoute | null
+  fallbackChain: ModelMaskRoute[]
 }
 
 export interface WorkspaceItem {
@@ -31,6 +45,34 @@ export function AdminSystemTab() {
   const [isLoading, setIsLoading] = useState<boolean>(true)
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false)
   const [error, setError] = useState<string | null>(null)
+  const [maskStatus, setMaskStatus] = useState<ModelMaskStatus | null>(null)
+  const [maskError, setMaskError] = useState<string | null>(null)
+
+  /**
+   * Read the mask's resolved routes. This is display-only: the operator never
+   * chooses a provider or model here, because the mask follows whatever
+   * Settings > Models has active.
+   */
+  const loadMaskStatus = useCallback(async () => {
+    setMaskError(null)
+    try {
+      const { data } = await supabase.auth.getSession()
+      const token = data.session?.access_token
+      if (token === undefined) {
+        setMaskStatus(null)
+        return
+      }
+      const response = await fetch(MODEL_MASK_STATUS_PATH, {
+        headers: { Authorization: `Bearer ${token}` },
+      })
+      if (!response.ok) throw new Error(`model mask status: ${response.status}`)
+      setMaskStatus(await response.json() as ModelMaskStatus)
+    } catch (err: unknown) {
+      console.error('Failed to load model mask status:', err)
+      setMaskStatus(null)
+      setMaskError(t('admin.system.llm.maskStatusFailure'))
+    }
+  }, [])
 
   const loadData = useCallback(async (isSilent = false) => {
     if (!isSilent) setIsLoading(true)
@@ -39,6 +81,7 @@ export function AdminSystemTab() {
       const [configsRes, workspacesRes] = await Promise.all([
         supabase.rpc('get_admin_system_config'),
         supabase.rpc('get_admin_workspaces'),
+        loadMaskStatus(),
       ])
 
       if (configsRes.error) throw new Error(configsRes.error.message)
@@ -53,7 +96,7 @@ export function AdminSystemTab() {
       if (!isSilent) setIsLoading(false)
       setIsRefreshing(false)
     }
-  }, [])
+  }, [loadMaskStatus])
 
   useEffect(() => {
     loadData()
@@ -182,9 +225,33 @@ export function AdminSystemTab() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px', marginTop: '14px' }}>
             <div style={{ padding: '10px 12px', borderRadius: 'var(--cm-radius-md)', border: '1px solid var(--cm-border)', background: 'var(--cm-background)' }}>
-              <div className="adminFieldLabel" style={{ marginBottom: '4px' }}>{t('admin.system.llm.virtualModelName')}</div>
+              <div className="adminFieldLabel" style={{ marginBottom: '4px' }}>{t('admin.system.llm.maskedAs')}</div>
               <div style={{ fontWeight: 600, color: 'var(--cm-foreground)', fontSize: '13px' }}>Model CopyMonster</div>
               <div style={{ fontFamily: 'monospace', fontSize: '11px', color: 'var(--cm-primary)', marginTop: '2px' }}>copymonster/copy-monster-default</div>
+            </div>
+
+            <div style={{ padding: '10px 12px', borderRadius: 'var(--cm-radius-md)', border: '1px solid var(--cm-border)', background: 'var(--cm-background)' }}>
+              <div className="adminFieldLabel" style={{ marginBottom: '4px' }}>{t('admin.system.llm.activeModel')}</div>
+              {maskStatus === null
+                ? (
+                  <div style={{ fontSize: '12px', color: 'var(--cm-muted-foreground)' }}>
+                    {maskError ?? t('admin.system.llm.activeModelLoading')}
+                  </div>
+                )
+                : (
+                  <>
+                    <div style={{ fontWeight: 600, color: 'var(--cm-foreground)', fontSize: '13px' }}>
+                      {maskStatus.primaryRoute === null
+                        ? t('admin.system.llm.activeModelNone')
+                        : `${maskStatus.primaryRoute.provider} / ${maskStatus.primaryRoute.model}`}
+                    </div>
+                    <div style={{ fontSize: '11px', color: 'var(--cm-muted-foreground)', marginTop: '2px' }}>
+                      {maskStatus.fallbackChain.length === 0
+                        ? t('admin.system.llm.noFallback')
+                        : t('admin.system.llm.fallbackCount').replace('{count}', String(maskStatus.fallbackChain.length))}
+                    </div>
+                  </>
+                )}
             </div>
 
             <div style={{ padding: '10px 12px', borderRadius: 'var(--cm-radius-md)', border: '1px solid var(--cm-border)', background: 'var(--cm-background)' }}>
@@ -206,6 +273,9 @@ export function AdminSystemTab() {
           <h4 className="adminSectionTitle">{t('admin.system.llm.howToManageTitle')}</h4>
           <p className="adminSectionHint" style={{ marginTop: '4px', lineHeight: 1.5 }}>
             {t('admin.system.llm.howToManageDesc')}
+          </p>
+          <p className="adminSectionHint" style={{ marginTop: '4px', lineHeight: 1.5 }}>
+            {t('admin.system.llm.automaticRoutingHint')}
           </p>
         </div>
       </div>

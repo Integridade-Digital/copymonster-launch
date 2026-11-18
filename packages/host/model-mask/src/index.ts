@@ -5,21 +5,30 @@
  * CopyMonster" — in the browser model catalog. The underlying provider and
  * model id never reach the client payload, error messages, the session log,
  * or the wire. The alias is admitted by `modelAvailable()` (owned by the
- * session-controller) and resolved privately to the configured primary route
- * at model-request time, so the Agent turn executes on the real provider
- * without exposing it.
+ * session-controller) and resolved privately at model-request time, so the
+ * Agent turn executes on a real provider without exposing it.
  *
  * Platform administrators (`isAdmin === true`) keep the full real provider
  * catalog; that branch is owned by the session-controller's `buildModelCatalog`.
  *
- * This plugin registers an adapter for the virtual provider route. When the
- * Agent loop dispatches a request whose provider/model is the virtual alias,
- * this adapter's `stream` reissues the call on the primary route through
- * `ctx.llm.stream`. If the primary route fails with an eligible transient error
- * (e.g. 429, 5xx, timeout, transport) BEFORE any chunk is emitted to the
- * client, it safely fails over to the configured contingency route.
- * Once any chunk has been emitted, failover is strictly forbidden to prevent
- * corrupted or mixed generation outputs.
+ * The alias is an alias, not a model: it has no provider and no key of its own
+ * and never appears in a picker. This plugin registers an adapter for the
+ * virtual provider route. When the Agent loop dispatches a request whose
+ * provider/model is the virtual alias, this adapter's `stream` resolves the
+ * route chain from the live `ctx.llm` registry and reissues the call through
+ * `ctx.llm.stream`.
+ *
+ * Resolution: every model advertised by `ctx.llm.listProviders()` /
+ * `ctx.llm.listModels()` is a candidate. The deployment default from
+ * `ctx.agentDefaultModel` is primary when it matches a candidate; otherwise the
+ * first candidate is primary, and the remaining candidates form the ordered
+ * fallback chain. Adding a provider in `Settings > Models` therefore changes the
+ * mask's routing on the next request without any administrator configuration.
+ *
+ * Failover: a route that fails with an eligible transient error BEFORE any
+ * chunk is emitted falls over to the next chain route, up to
+ * `fallbackPolicy.maxAttempts`. Once any chunk has been emitted, failover is
+ * strictly forbidden to prevent corrupted or mixed generation outputs.
  *
  * No `packages/core/` or `packages/llm/` code is touched; routing happens
  * purely through the public `llm` service API.
@@ -35,11 +44,29 @@ import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import type { SettingsForms } from '@deepseek-ai/dsh-settings'
 
+/**
+ * The one `agentDefaultModel` member this plugin reads.
+ *
+ * Declared structurally instead of importing `@deepseek-ai/dsh-agent-default-model`,
+ * which would add a core dependency edge for a single read.
+ */
+interface AgentDefaultModelSelection {
+  /** Deployment default selection applied to fresh Agents. */
+  currentSelection(): { readonly provider: string; readonly model: string }
+}
+
+declare module '@deepseek-ai/cordis' {
+  interface Context {
+    /** Deployment default model selection, provided by its own core plugin. */
+    agentDefaultModel: AgentDefaultModelSelection
+  }
+}
+
 /** Stable Cordis plugin name. */
 export const name = 'model-mask'
 
-/** The plugin consumes the live `llm` registry to register the virtual adapter. */
-export const inject = ['llm'] as const
+/** The plugin consumes the live `llm` registry and the deployment default selection. */
+export const inject = ['llm', 'agentDefaultModel'] as const
 
 /** The virtual provider route under which the alias is advertised. */
 export const VIRTUAL_PROVIDER = 'copymonster'
@@ -63,17 +90,23 @@ export interface VirtualModelAlias {
 /** The virtual alias selection tenants are offered. */
 export const VIRTUAL_ALIAS: VirtualModelAlias = { provider: VIRTUAL_PROVIDER, model: VIRTUAL_MODEL }
 
+/** One provider/model route. */
+export interface Route {
+  readonly provider: string
+  readonly model: string
+}
+
 /** Configuration for failover policy. */
 export interface FallbackPolicyConfig {
-  /** Whether automatic failover is enabled. @default true */
+  /** Whether automatic failover across the chain is enabled. @default true */
   readonly enabled?: boolean
-  /** Maximum retry/failover attempts. @default 2 */
+  /** Maximum routes one turn may attempt, primary included. @default 3 */
   readonly maxAttempts?: number
   /** Timeout in ms before failing over. @default 30000 */
   readonly timeoutMs?: number
 }
 
-/** Central model routing policy. */
+/** Mask identity and failover policy, without the routes resolved from the registry. */
 export interface LlmRoutingPolicy {
   /** Virtual provider route advertised in the masked catalog. @default 'copymonster' */
   readonly virtualProvider?: string
@@ -81,21 +114,21 @@ export interface LlmRoutingPolicy {
   readonly virtualModel?: string
   /** Human-readable virtual model name. @default 'Model CopyMonster' */
   readonly virtualModelName?: string
-  /** Real provider route the virtual alias resolves to at dispatch time. */
-  readonly primaryProvider: string
-  /** Real model id the virtual alias resolves to at dispatch time. */
-  readonly primaryModel: string
-  /** Optional fallback provider route when primary experiences transient failure. */
-  readonly fallbackProvider?: string
-  /** Optional fallback model id when primary experiences transient failure. */
-  readonly fallbackModel?: string
   /** Failover policy options. */
   readonly fallbackPolicy?: FallbackPolicyConfig
   /** Whether masking applies only to non-admin callers. @default true */
   readonly applyToTenantsOnly?: boolean
 }
 
-/** Plugin configuration: the virtual alias, primary route, and optional fallback. */
+/** Resolved mask identity, routing chain, and failover policy for one turn. */
+export interface ResolvedRoutingPolicy extends LlmRoutingPolicy {
+  /** Real route the alias dispatches to first. */
+  readonly primaryRoute: Route
+  /** Ordered real routes tried after the primary on eligible transient failure. */
+  readonly fallbackChain: readonly Route[]
+}
+
+/** Plugin configuration: mask identity and failover policy. No route is pinned. */
 export interface Config {
   /** Virtual provider route advertised in the masked catalog. */
   virtualProvider: Volatile<string>
@@ -103,36 +136,10 @@ export interface Config {
   virtualModel: Volatile<string>
   /** Human-readable virtual model name. */
   virtualModelName: Volatile<string>
-  /** Real provider route the virtual alias resolves to at dispatch time. */
-  primaryProvider: Volatile<string>
-  /** Real model id the virtual alias resolves to at dispatch time. */
-  primaryModel: Volatile<string>
-  /** Optional fallback provider route when the primary fails transiently. */
-  fallbackProvider: Volatile<string | undefined>
-  /** Optional fallback model id when the primary fails transiently. */
-  fallbackModel: Volatile<string | undefined>
   /** Failover policy options. */
   fallbackPolicy: Volatile<FallbackPolicyConfig | undefined>
   /** Whether masking applies only to non-admin callers. */
   applyToTenantsOnly: Volatile<boolean>
-}
-
-/** Project a plugin Config to its plain values, dropping the live references. */
-function plain(config: Config): LlmRoutingPolicy {
-  const fallbackProvider = config.fallbackProvider.get()
-  const fallbackModel = config.fallbackModel.get()
-  const fallbackPolicy = config.fallbackPolicy.get()
-  return {
-    virtualProvider: config.virtualProvider.get(),
-    virtualModel: config.virtualModel.get(),
-    virtualModelName: config.virtualModelName.get(),
-    primaryProvider: config.primaryProvider.get(),
-    primaryModel: config.primaryModel.get(),
-    ...fallbackProvider === undefined ? {} : { fallbackProvider },
-    ...fallbackModel === undefined ? {} : { fallbackModel },
-    ...fallbackPolicy === undefined ? {} : { fallbackPolicy },
-    applyToTenantsOnly: config.applyToTenantsOnly.get(),
-  }
 }
 
 /** Loader schema for {@link Config}. */
@@ -140,17 +147,25 @@ export const Config = z.object({
   virtualProvider: z.string().default(VIRTUAL_PROVIDER).volatile(),
   virtualModel: z.string().default(VIRTUAL_MODEL).volatile(),
   virtualModelName: z.string().default(VIRTUAL_MODEL_NAME).volatile(),
-  primaryProvider: z.string().min(1).volatile(),
-  primaryModel: z.string().min(1).volatile(),
-  fallbackProvider: z.string().volatile(),
-  fallbackModel: z.string().volatile(),
   fallbackPolicy: z.object({
     enabled: z.boolean().default(true),
-    maxAttempts: z.number().default(2),
+    maxAttempts: z.number().default(3),
     timeoutMs: z.number().default(30000),
-  }).default({ enabled: true, maxAttempts: 2, timeoutMs: 30000 }).volatile(),
+  }).default({ enabled: true, maxAttempts: 3, timeoutMs: 30000 }).volatile(),
   applyToTenantsOnly: z.boolean().default(true).volatile(),
 })
+
+/** Project a plugin Config to its plain identity values, dropping the live references. */
+function plain(config: Config): LlmRoutingPolicy {
+  const fallbackPolicy = config.fallbackPolicy.get()
+  return {
+    virtualProvider: config.virtualProvider.get(),
+    virtualModel: config.virtualModel.get(),
+    virtualModelName: config.virtualModelName.get(),
+    ...fallbackPolicy === undefined ? {} : { fallbackPolicy },
+    applyToTenantsOnly: config.applyToTenantsOnly.get(),
+  }
+}
 
 /**
  * Determine whether a model execution failure is an eligible transient error
@@ -162,7 +177,7 @@ export const Config = z.object({
  * - Network timeouts and connection resets (ECONNRESET, ETIMEDOUT).
  *
  * Also eligible: HTTP 401 and auth/key rejections, so a route with a dead key falls
- * over to the configured fallback route.
+ * over to the next available route.
  *
  * Ineligible (fail-fast):
  * - HTTP 400 (bad request), 403 (forbidden), codes containing INVALID_REQUEST.
@@ -179,7 +194,7 @@ export function isEligibleFailoverError(error: unknown): boolean {
     : undefined
   if (status !== undefined) {
     // 401: the route's own key was rejected. A stale or revoked platform key must not
-    // take every tenant down while a configured fallback route can still serve the turn.
+    // take every tenant down while another configured route can still serve the turn.
     if (status === 401) return true
     // 400 and 403 describe the request or its permissions, not the route: fail fast.
     if (status === 400 || status === 403) return false
@@ -233,35 +248,73 @@ export function isEligibleFailoverError(error: unknown): boolean {
   return false
 }
 
+/**
+ * Resolve the ordered route chain from the live LLM registry.
+ *
+ * Every model advertised by a registered provider is a candidate; a provider
+ * whose model lookup fails is skipped rather than failing the whole turn. The
+ * deployment default selection is primary when it matches a candidate, and the
+ * first candidate otherwise; the remaining candidates are the fallback chain in
+ * registry order.
+ * @param ctx - Host context carrying the live `llm` and `agentDefaultModel` services.
+ * @returns the primary route and the ordered fallback chain.
+ */
+export async function resolveRouteChain(ctx: Context): Promise<{ primaryRoute: Route; fallbackChain: Route[] }> {
+  const defaultSelection = ctx.agentDefaultModel.currentSelection()
+  const candidates: Route[] = []
+  for (const provider of ctx.llm.listProviders()) {
+    try {
+      const models = await ctx.llm.listModels(provider.id)
+      for (const model of models) candidates.push({ provider: provider.id, model: model.id })
+    } catch (error: unknown) {
+      // One provider's catalog failure must not remove the other routes from
+      // the mask; the tenant still forwards the turn to a working provider.
+      ctx.logger.warn('model-mask: provider "%s" catalog unavailable (%s)', provider.id, String(error))
+    }
+  }
+  const primaryIndex = candidates.findIndex(
+    route => route.provider === defaultSelection.provider && route.model === defaultSelection.model,
+  )
+  // A deployment with no advertised model cannot serve a tenant turn. The
+  // sentinel names that state so the failure reaches the caller instead of
+  // silently dispatching to an unrelated route.
+  if (candidates.length === 0) {
+    return { primaryRoute: { provider: 'none', model: 'none' }, fallbackChain: [] }
+  }
+  // `candidates` is non-empty here, so the selected entry always exists.
+  const primary = candidates[primaryIndex === -1 ? 0 : primaryIndex]
+  if (primary === undefined) throw new Error('model-mask: route resolution produced no primary route')
+  return {
+    primaryRoute: primary,
+    fallbackChain: candidates.filter(route => route !== primary),
+  }
+}
+
 /** One masked Adapter registration for the virtual provider route. */
 export interface VirtualAdapterDeps {
   readonly ctx: Context
-  readonly primaryProvider?: string
-  readonly primaryModel?: string
-  readonly getPolicy?: () => LlmRoutingPolicy
+  /**
+   * Current mask identity. The adapter resolves the real routes itself from the
+   * live registry for every turn, so a provider added in `Settings > Models`
+   * participates without an administrator write.
+   */
+  readonly getPolicy: () => LlmRoutingPolicy
 }
 
 /**
  * Build the adapter that serves the virtual provider route. Its `stream`
- * reissues the call on the configured primary route with streaming failover;
- * every other method reports virtual-model metadata so catalog and resolution
- * paths succeed.
- * @param deps - plugin context and routing policy provider.
+ * reissues the call on the resolved primary route, failing over down the chain
+ * before the first emitted chunk; every other method reports virtual-model
+ * metadata so catalog and resolution paths succeed without naming a real route.
+ * @param deps - plugin context and the resolved routing policy provider.
  * @returns an `LlmAdapter` whose `stream` executes routing and contingency failover.
  */
 export function buildVirtualAdapter(deps: VirtualAdapterDeps): LlmAdapter {
-  const { ctx } = deps
-  const resolvePolicy = (): LlmRoutingPolicy => {
-    if (deps.getPolicy) return deps.getPolicy()
-    return {
-      primaryProvider: deps.primaryProvider ?? 'deepseek-official',
-      primaryModel: deps.primaryModel ?? 'deepseek-chat',
-    }
-  }
+  const { ctx, getPolicy } = deps
 
   return new (class VirtualLlmAdapter extends LlmAdapter {
     override providerInfo() {
-      const policy = resolvePolicy()
+      const policy = getPolicy()
       return {
         id: policy.virtualProvider ?? VIRTUAL_PROVIDER,
         name: policy.virtualModelName ?? VIRTUAL_MODEL_NAME,
@@ -269,7 +322,7 @@ export function buildVirtualAdapter(deps: VirtualAdapterDeps): LlmAdapter {
     }
 
     override async listModels() {
-      const policy = resolvePolicy()
+      const policy = getPolicy()
       const provider = policy.virtualProvider ?? VIRTUAL_PROVIDER
       const model = policy.virtualModel ?? VIRTUAL_MODEL
       const name = policy.virtualModelName ?? VIRTUAL_MODEL_NAME
@@ -277,7 +330,7 @@ export function buildVirtualAdapter(deps: VirtualAdapterDeps): LlmAdapter {
     }
 
     override async resolveModel(_provider: string, model: string) {
-      const policy = resolvePolicy()
+      const policy = getPolicy()
       const provider = policy.virtualProvider ?? VIRTUAL_PROVIDER
       const name = policy.virtualModelName ?? VIRTUAL_MODEL_NAME
       return {
@@ -289,106 +342,91 @@ export function buildVirtualAdapter(deps: VirtualAdapterDeps): LlmAdapter {
     }
 
     override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
-      // 1. Snapshot policy at the start of generation (immutable for this turn)
-      const policy = resolvePolicy()
-      const primary = { provider: policy.primaryProvider, model: policy.primaryModel }
-      const hasFallback = policy.fallbackProvider !== undefined
-        && policy.fallbackProvider !== ''
-        && policy.fallbackModel !== undefined
-        && policy.fallbackModel !== ''
-        && policy.fallbackPolicy?.enabled !== false
-      const fallback = hasFallback
-        ? { provider: policy.fallbackProvider, model: policy.fallbackModel }
-        : undefined
+      // 1. Snapshot the mask identity and resolve the live route chain for this turn
+      const policy = getPolicy()
+      const { primaryRoute, fallbackChain } = await resolveRouteChain(ctx)
+      const fallbackPolicy = policy.fallbackPolicy ?? {}
+      const chain = [primaryRoute, ...fallbackChain]
+        .slice(0, fallbackPolicy.enabled === false ? 1 : Math.max(1, fallbackPolicy.maxAttempts ?? 3))
 
       let chunkCount = 0
-      let primaryStream: AsyncIterable<StreamChunk> | undefined
+      let lastError: unknown
 
-      // 2. Attempt primary stream initialization
-      try {
-        const primaryOptions = {
-          ...options,
-          provider: primary.provider,
-          model: primary.model,
-        } as GenerateOptions
-        primaryStream = await ctx.llm.stream(primaryOptions)
-      } catch (error) {
-        if (fallback && isEligibleFailoverError(error) && chunkCount === 0) {
-          ctx.logger.warn(
-            'model-mask: primary route "%s/%s" failed before stream (%s); failing over to "%s/%s"',
-            primary.provider,
-            primary.model,
-            String(error),
-            fallback.provider,
-            fallback.model,
-          )
-          const fallbackOptions = {
-            ...options,
-            provider: fallback.provider,
-            model: fallback.model,
-          } as GenerateOptions
-          const fallbackStream = await ctx.llm.stream(fallbackOptions)
-          yield* fallbackStream
-          return
+      // 2. Try each route in turn until one produces its first chunk
+      for (const [index, route] of chain.entries()) {
+        const hasNextRoute = index < chain.length - 1
+        const routeOptions = { ...options, provider: route.provider, model: route.model } satisfies GenerateOptions
+        let iterator: AsyncIterator<StreamChunk>
+        let firstResult: IteratorResult<StreamChunk>
+        try {
+          iterator = (await ctx.llm.stream(routeOptions))[Symbol.asyncIterator]()
+          firstResult = await iterator.next()
+        } catch (error: unknown) {
+          // Failover stays available only before any chunk reached the client:
+          // a partial generation cannot be replaced by another route.
+          if (hasNextRoute && chunkCount === 0 && isEligibleFailoverError(error)) {
+            lastError = error
+            ctx.logger.warn(
+              'model-mask: route "%s/%s" failed before output (%s); trying the next available route',
+              route.provider,
+              route.model,
+              String(error),
+            )
+            continue
+          }
+          throw error
         }
-        throw error
-      }
 
-      // 3. Pull initial chunk before yielding to verify primary stream health
-      const iterator = primaryStream[Symbol.asyncIterator]()
-      let firstResult: IteratorResult<StreamChunk>
-      try {
-        firstResult = await iterator.next()
-      } catch (error) {
-        if (fallback && isEligibleFailoverError(error) && chunkCount === 0) {
-          ctx.logger.warn(
-            'model-mask: primary route "%s/%s" failed on initial chunk (%s); failing over to "%s/%s"',
-            primary.provider,
-            primary.model,
-            String(error),
-            fallback.provider,
-            fallback.model,
-          )
-          const fallbackOptions = {
-            ...options,
-            provider: fallback.provider,
-            model: fallback.model,
-          } as GenerateOptions
-          const fallbackStream = await ctx.llm.stream(fallbackOptions)
-          yield* fallbackStream
-          return
-        }
-        throw error
-      }
-
-      // 4. Once the first chunk is emitted, failover is STRICTLY FORBIDDEN
-      if (!firstResult.done) {
+        // 3. Once the first chunk is emitted, failover is STRICTLY FORBIDDEN
+        if (firstResult.done) return
         chunkCount++
         yield firstResult.value
         while (true) {
           const nextResult = await iterator.next()
-          if (nextResult.done) break
+          if (nextResult.done) return
           chunkCount++
           yield nextResult.value
         }
       }
+
+      // 4. Every route in the chain failed before producing output
+      throw lastError ?? new Error('model-mask: every available route failed before producing output')
     }
   })()
 }
 
 /**
- * Service managing live model routing policy on the Host.
+ * Service exposing the live mask identity and its last resolved route chain.
+ *
+ * The adapter itself re-resolves the chain for every turn, so a provider added
+ * in `Settings > Models` participates on the next request. This service keeps a
+ * snapshot for display and refreshes it when the registry or the deployment
+ * default changes.
  */
 export class ModelMaskService extends Service {
-  private activePolicy: LlmRoutingPolicy
+  private identity: LlmRoutingPolicy
+  private routes: { readonly primaryRoute: Route; readonly fallbackChain: readonly Route[] } =
+    { primaryRoute: { provider: 'none', model: 'none' }, fallbackChain: [] }
 
-  constructor(ctx: Context, initialConfig: Config) {
+  constructor(ctx: Context, config: Config) {
     super(ctx, 'modelMask')
-    this.activePolicy = plain(initialConfig)
+    this.identity = plain(config)
   }
 
+  /**
+   * Current mask identity.
+   * @returns the virtual provider, model, name, and failover policy.
+   */
   getPolicy(): LlmRoutingPolicy {
-    return { ...this.activePolicy }
+    return { ...this.identity }
+  }
+
+  /**
+   * Last resolved routes, refreshed by {@link refresh}.
+   * @returns the primary route and ordered fallback chain.
+   */
+  currentRoutes(): { readonly primaryRoute: Route; readonly fallbackChain: readonly Route[] } {
+    return this.routes
   }
 
   /**
@@ -396,26 +434,24 @@ export class ModelMaskService extends Service {
    * @param config - the plugin Config whose references were just updated.
    */
   reload(config: Config): void {
-    this.activePolicy = plain(config)
+    this.identity = plain(config)
   }
 
-  updatePolicy(next: Partial<LlmRoutingPolicy>): LlmRoutingPolicy {
-    this.activePolicy = { ...this.activePolicy, ...next }
-    return { ...this.activePolicy }
+  /** Re-read the route chain from the live LLM registry. */
+  async refresh(): Promise<void> {
+    this.routes = await resolveRouteChain(this.ctx)
   }
 }
 
 declare module '@deepseek-ai/cordis' {
   interface Context {
-    /** Host service managing CopyMonster model mask and routing policy. */
+    /** Host service managing the CopyMonster model mask and its routing policy. */
     modelMask: ModelMaskService
   }
 }
 
 /**
- * Register the virtual adapter and participate in the `agent/request`
- * waterfall so the alias is admitted for the loop.
- *
+ * Register the virtual adapter for the mask and keep its display snapshot current.
  * @param ctx - plugin Context that owns the listener and registration lifetime.
  * @param config - validated mask configuration.
  */
@@ -424,14 +460,24 @@ export function apply(ctx: Context, config: Config): void {
   // Volatile fields update in place without remounting the plugin, so the
   // running policy must re-read the Config when the profile is saved.
   ctx.on('loader/volatile-update', () => { service.reload(config) })
-  const resolved = service.getPolicy()
-  const virtualProvider = resolved.virtualProvider ?? VIRTUAL_PROVIDER
+  // Any provider or model change re-resolves the display snapshot, so a
+  // provider added in Settings > Models appears without an admin write.
+  ctx.on('llm/adapters-updated', () => { void service.refresh().catch((error: unknown) => {
+    ctx.logger.warn('model-mask: route chain refresh failed (%s)', String(error))
+  }) })
+  ctx.on('settings/document-updated', () => { void service.refresh().catch((error: unknown) => {
+    ctx.logger.warn('model-mask: route chain refresh failed (%s)', String(error))
+  }) })
+  void service.refresh().catch((error: unknown) => {
+    ctx.logger.warn('model-mask: initial route chain resolution failed (%s)', String(error))
+  })
 
   const adapter = buildVirtualAdapter({
     ctx,
-    getPolicy: () => service.getPolicy(),
+    getPolicy: () => ({ ...service.getPolicy(), ...service.currentRoutes() }),
   })
 
+  const virtualProvider = config.virtualProvider.get() ?? VIRTUAL_PROVIDER
   ctx.llm.registerAdapter([virtualProvider], adapter)
 
   // `settings` is optional for this plugin: the mask works without a settings

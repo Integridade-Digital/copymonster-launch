@@ -31,6 +31,7 @@ import { AUTOMATION_RPC_CHANNEL, guardAutomationModel } from './automation-model
 import { SESSION_TOKEN_PATH, handleSessionToken } from './session-token.ts'
 import { createIdentityResolver } from './identity.ts'
 import { createTenantPolicy } from './access.ts'
+import { MODEL_MASK_STATUS_PATH, handleModelMaskStatus } from './model-mask-status.ts'
 import { clientKey, createRateLimiter, type RateLimiter } from './rate-limit.ts'
 import {
   handleRequestAffiliatePayout,
@@ -58,6 +59,7 @@ export { handleLlmTest, LLM_TEST_PATH, type LlmTestResult } from './llm-test.ts'
 export { SESSION_TOKEN_PATH, handleSessionToken } from './session-token.ts'
 export { IDENTITY_HEADER, createIdentityResolver } from './identity.ts'
 export { createTenantPolicy } from './access.ts'
+export { MODEL_MASK_STATUS_PATH, handleModelMaskStatus } from './model-mask-status.ts'
 export {
   handleAffiliateReferral,
   AFFILIATE_REFERRAL_PATH,
@@ -394,6 +396,15 @@ export function apply(ctx: Context, config: Config): void {
     path: AFFILIATE_REFERRAL_PATH,
     handler: limited((req: IncomingMessage, res: ServerResponse) => handleAffiliateReferral(ctx, req, res), referralLimiter),
   }), `auth-http: ${AFFILIATE_REFERRAL_PATH}`)
+
+  // Read-only operator view of the tenant mask: which real provider and model
+  // the alias currently resolves to. The mask itself takes no configuration.
+  const modelMaskLimiter = limiter()
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: MODEL_MASK_STATUS_PATH,
+    handler: limited((req: IncomingMessage, res: ServerResponse) => handleModelMaskStatus(ctx, req, res), modelMaskLimiter),
+  }), `auth-http: ${MODEL_MASK_STATUS_PATH}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',

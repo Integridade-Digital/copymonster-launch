@@ -132,6 +132,16 @@ export interface ModelCatalogFailure {
   readonly message: string
 }
 
+/** Host-generation catalog for administrators, with the mask's resolved routes. */
+export interface ModelMaskStatus {
+  /** The virtual alias tenants use, always `copymonster/copy-monster-default`. */
+  readonly alias: ModelSelection
+  /** Real route the alias currently dispatches to first, or null before resolution. */
+  readonly primaryRoute: ModelSelection | null
+  /** Ordered real routes tried after the primary on eligible transient failure. */
+  readonly fallbackChain: readonly ModelSelection[]
+}
+
 /** Host-generation model catalog and the default used by unconfigured Sessions. */
 export interface ModelCatalog {
   readonly default: ModelSelection

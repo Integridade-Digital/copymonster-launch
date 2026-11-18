@@ -48,6 +48,8 @@ const MEMBER_DENIED: ReadonlySet<string> = new Set([
   'settings/recordTokenUsage',
   'credentials/set',
   'credentials/unset',
+  // Reports the real provider and model behind the tenant mask.
+  'session/modelMaskStatus',
 ])
 
 /**

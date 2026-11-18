@@ -42,6 +42,9 @@ export async function buildModelCatalog(
   isAdmin?: boolean,
 ): Promise<ModelCatalog> {
   if (isAdmin === false) {
+    // Tenants see only the mask. The alias is not a routable real model in the
+    // picker, so it is the sole entry for every tenant and the runtime resolves
+    // it privately against the live catalog in `dsh-host-model-mask`.
     return {
       default: { ...VIRTUAL_ALIAS },
       routableProviders: [VIRTUAL_PROVIDER],

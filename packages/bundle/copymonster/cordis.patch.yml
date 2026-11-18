@@ -73,22 +73,19 @@
                 model: openrouter/free
 
     # Virtual-model mask: tenants see only `copy-monster-default` / "Model
-    # CopyMonster"; the alias resolves privately to the primary route at
-    # dispatch time (admin callers keep the full catalog via session-controller).
-    # The primary is the route the platform credential pays for; the tenant's
-    # stored key never reaches it.
+    # CopyMonster". The alias resolves automatically at dispatch time to the
+    # first model available in the live catalog (`ctx.llm.listModels`), falling
+    # back down the chain of remaining available models on transient failure.
+    # Admins keep the full catalog via session-controller. No provider or model
+    # is pinned here: whatever `Settings > Models` has active is used.
     - id: model-mask
       name: '@deepseek-ai/dsh-host-model-mask'
       config:
         virtualProvider: copymonster
         virtualModel: copy-monster-default
         virtualModelName: Model CopyMonster
-        primaryProvider: openrouter
-        primaryModel: deepseek/deepseek-chat
-        fallbackProvider: openrouter
-        fallbackModel: openrouter/free
         fallbackPolicy:
           enabled: true
-          maxAttempts: 2
+          maxAttempts: 3
           timeoutMs: 30000
         applyToTenantsOnly: true

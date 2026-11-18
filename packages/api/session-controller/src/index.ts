@@ -32,12 +32,13 @@ import { SessionControlController } from './control.ts'
 import { SessionHistoryController } from './history.ts'
 import { SessionFileReferences } from './file-references.ts'
 import { ApiSessionList } from './list.ts'
-import { buildModelCatalog, hasProviderApiKey } from './catalog.ts'
+import { buildModelCatalog, hasProviderApiKey, VIRTUAL_MODEL, VIRTUAL_PROVIDER } from './catalog.ts'
 import { SessionSkillCatalog } from './skill-catalog.ts'
 import { SessionMediaReferences } from './media-references.ts'
 import { ArchivedSessionGate } from './archived-session-gate.ts'
 import type {
   ModelCatalog,
+  ModelMaskStatus,
   SessionWorkspacePathApplication,
   SessionAddress,
   SessionAttachmentRequest,
@@ -412,6 +413,29 @@ export class SessionController extends TypertRemoteService {
       ...model.reasoning?.defaultEffort === undefined ? {} : { reasoningEffort: ReasoningEffortId(model.reasoning.defaultEffort) },
     }
     await this.ctx.agentDefaultModel.saveSelection(selection)
+  }
+
+  /**
+   * Report the mask's currently resolved real routes for platform administration.
+   *
+   * Administrators see which real provider and model the tenant alias resolves
+   * to, and the ordered fallback chain, so a newly configured provider can be
+   * verified without editing any mask setting. Tenants never reach this method:
+   * it is the administrator's read-only view of the mask, which itself has no
+   * configurable route.
+   * @returns the virtual alias, its primary real route, and the fallback chain.
+   */
+  @Remote('modelMaskStatus')
+  modelMaskStatus(): ModelMaskStatus {
+    const routes = this.ctx.get('modelMask')?.currentRoutes()
+    const toSelection = (route: { readonly provider: string; readonly model: string }): ModelSelection =>
+      ({ provider: route.provider, model: route.model })
+    const primary = routes === undefined ? undefined : routes.primaryRoute
+    return {
+      alias: { provider: VIRTUAL_PROVIDER, model: VIRTUAL_MODEL },
+      primaryRoute: primary === undefined || primary.provider === 'none' ? null : toSelection(primary),
+      fallbackChain: routes === undefined ? [] : routes.fallbackChain.map(toSelection),
+    }
   }
 
   /**

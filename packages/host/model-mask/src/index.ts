@@ -26,11 +26,14 @@
  * @module @deepseek-ai/dsh-host-model-mask
  */
 
-import type { Context } from '@deepseek-ai/cordis'
+import type { Context, Volatile } from '@deepseek-ai/cordis'
 import { Service } from '@deepseek-ai/cordis'
+// Type-only: declares the `loader/volatile-update` event this plugin listens to.
+import type {} from '@deepseek-ai/cordis-plugin-loader'
 import z from '@deepseek-ai/schemastery'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
+import type { SettingsForms } from '@deepseek-ai/dsh-settings'
 
 /** Stable Cordis plugin name. */
 export const name = 'model-mask'
@@ -93,23 +96,60 @@ export interface LlmRoutingPolicy {
 }
 
 /** Plugin configuration: the virtual alias, primary route, and optional fallback. */
-export type Config = LlmRoutingPolicy
+export interface Config {
+  /** Virtual provider route advertised in the masked catalog. */
+  virtualProvider: Volatile<string>
+  /** Virtual model id advertised in the masked catalog. */
+  virtualModel: Volatile<string>
+  /** Human-readable virtual model name. */
+  virtualModelName: Volatile<string>
+  /** Real provider route the virtual alias resolves to at dispatch time. */
+  primaryProvider: Volatile<string>
+  /** Real model id the virtual alias resolves to at dispatch time. */
+  primaryModel: Volatile<string>
+  /** Optional fallback provider route when the primary fails transiently. */
+  fallbackProvider: Volatile<string | undefined>
+  /** Optional fallback model id when the primary fails transiently. */
+  fallbackModel: Volatile<string | undefined>
+  /** Failover policy options. */
+  fallbackPolicy: Volatile<FallbackPolicyConfig | undefined>
+  /** Whether masking applies only to non-admin callers. */
+  applyToTenantsOnly: Volatile<boolean>
+}
+
+/** Project a plugin Config to its plain values, dropping the live references. */
+function plain(config: Config): LlmRoutingPolicy {
+  const fallbackProvider = config.fallbackProvider.get()
+  const fallbackModel = config.fallbackModel.get()
+  const fallbackPolicy = config.fallbackPolicy.get()
+  return {
+    virtualProvider: config.virtualProvider.get(),
+    virtualModel: config.virtualModel.get(),
+    virtualModelName: config.virtualModelName.get(),
+    primaryProvider: config.primaryProvider.get(),
+    primaryModel: config.primaryModel.get(),
+    ...fallbackProvider === undefined ? {} : { fallbackProvider },
+    ...fallbackModel === undefined ? {} : { fallbackModel },
+    ...fallbackPolicy === undefined ? {} : { fallbackPolicy },
+    applyToTenantsOnly: config.applyToTenantsOnly.get(),
+  }
+}
 
 /** Loader schema for {@link Config}. */
-export const Config: z<Config> = z.object({
-  virtualProvider: z.string().default(VIRTUAL_PROVIDER),
-  virtualModel: z.string().default(VIRTUAL_MODEL),
-  virtualModelName: z.string().default(VIRTUAL_MODEL_NAME),
-  primaryProvider: z.string().min(1),
-  primaryModel: z.string().min(1),
-  fallbackProvider: z.string(),
-  fallbackModel: z.string(),
+export const Config = z.object({
+  virtualProvider: z.string().default(VIRTUAL_PROVIDER).volatile(),
+  virtualModel: z.string().default(VIRTUAL_MODEL).volatile(),
+  virtualModelName: z.string().default(VIRTUAL_MODEL_NAME).volatile(),
+  primaryProvider: z.string().min(1).volatile(),
+  primaryModel: z.string().min(1).volatile(),
+  fallbackProvider: z.string().volatile(),
+  fallbackModel: z.string().volatile(),
   fallbackPolicy: z.object({
     enabled: z.boolean().default(true),
     maxAttempts: z.number().default(2),
     timeoutMs: z.number().default(30000),
-  }).default({ enabled: true, maxAttempts: 2, timeoutMs: 30000 }),
-  applyToTenantsOnly: z.boolean().default(true),
+  }).default({ enabled: true, maxAttempts: 2, timeoutMs: 30000 }).volatile(),
+  applyToTenantsOnly: z.boolean().default(true).volatile(),
 })
 
 /**
@@ -244,13 +284,13 @@ export function buildVirtualAdapter(deps: VirtualAdapterDeps): LlmAdapter {
       // 1. Snapshot policy at the start of generation (immutable for this turn)
       const policy = resolvePolicy()
       const primary = { provider: policy.primaryProvider, model: policy.primaryModel }
-      const hasFallback = Boolean(
-        policy.fallbackProvider &&
-        policy.fallbackModel &&
-        policy.fallbackPolicy?.enabled !== false,
-      )
+      const hasFallback = policy.fallbackProvider !== undefined
+        && policy.fallbackProvider !== ''
+        && policy.fallbackModel !== undefined
+        && policy.fallbackModel !== ''
+        && policy.fallbackPolicy?.enabled !== false
       const fallback = hasFallback
-        ? { provider: policy.fallbackProvider!, model: policy.fallbackModel! }
+        ? { provider: policy.fallbackProvider, model: policy.fallbackModel }
         : undefined
 
       let chunkCount = 0
@@ -336,15 +376,23 @@ export class ModelMaskService extends Service {
 
   constructor(ctx: Context, initialConfig: Config) {
     super(ctx, 'modelMask')
-    this.activePolicy = { ...Config(initialConfig) }
+    this.activePolicy = plain(initialConfig)
   }
 
   getPolicy(): LlmRoutingPolicy {
     return { ...this.activePolicy }
   }
 
+  /**
+   * Adopt the current values of a volatile Config without rebuilding the plugin.
+   * @param config - the plugin Config whose references were just updated.
+   */
+  reload(config: Config): void {
+    this.activePolicy = plain(config)
+  }
+
   updatePolicy(next: Partial<LlmRoutingPolicy>): LlmRoutingPolicy {
-    this.activePolicy = Config({ ...this.activePolicy, ...next })
+    this.activePolicy = { ...this.activePolicy, ...next }
     return { ...this.activePolicy }
   }
 }
@@ -365,6 +413,9 @@ declare module '@deepseek-ai/cordis' {
  */
 export function apply(ctx: Context, config: Config): void {
   const service = new ModelMaskService(ctx, config)
+  // Volatile fields update in place without remounting the plugin, so the
+  // running policy must re-read the Config when the profile is saved.
+  ctx.on('loader/volatile-update', () => { service.reload(config) })
   const resolved = service.getPolicy()
   const virtualProvider = resolved.virtualProvider ?? VIRTUAL_PROVIDER
 
@@ -375,7 +426,11 @@ export function apply(ctx: Context, config: Config): void {
 
   ctx.llm.registerAdapter([virtualProvider], adapter)
 
+  // `settings` is optional for this plugin: the mask works without a settings
+  // page, so read it through `ctx.get` instead of widening `inject`.
   ctx.inject(['settings'], (child) => {
-    child.effect(() => child.settings.configure({ auto: false }, ctx.fiber))
+    const settings: SettingsForms | undefined = child.get('settings')
+    if (settings === undefined) return
+    child.effect(() => settings.configure({ auto: false }, ctx.fiber))
   })
 }

@@ -13,7 +13,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { InjectFace, PropsRuntime } from '@deepseek-ai/dsh-client-ui-slots'
 import type { ModelsOperations } from './operations.ts'
-import type { ModelsSettingsState, ModelsSettingsStore, ProviderRow } from './store.ts'
+import type { ModelsSettingsState, ModelsSettingsStore } from './store.ts'
+import type { SnapshotStore } from '@deepseek-ai/dsh-client-store'
 import type { en } from './locales.ts'
 import styles from './PlatformRoutingCard.module.css'
 
@@ -29,7 +30,7 @@ const POPULAR_MODELS: Record<string, readonly string[]> = {
 export interface PlatformRoutingCardInjected {
   readonly controller: ModelsSettingsStore
   readonly hooks: {
-    readonly snapshot: () => ModelsSettingsState
+    readonly snapshot: SnapshotStore<ModelsSettingsState>
   }
   readonly operations: ModelsOperations
   readonly t: (key: keyof typeof en) => string
@@ -51,8 +52,8 @@ interface MaskSettingsConfig {
 }
 
 export function PlatformRoutingCard(props: PlatformRoutingCardProps): ReactNode {
-  const { hooks, operations, t } = props
-  const state = hooks.snapshot()
+  const { useSnapshot, operations, t } = props
+  const state = useSnapshot(snapshot => snapshot)
 
   // Read model-mask from described namespaces
   const maskNamespace = state.namespaces.get('model-mask')
@@ -110,8 +111,8 @@ export function PlatformRoutingCard(props: PlatformRoutingCardProps): ReactNode 
         [
           { op: 'set', path: ['primaryProvider'], value: primaryProvider },
           { op: 'set', path: ['primaryModel'], value: primaryModel },
-          { op: 'set', path: ['fallbackProvider'], value: fallbackProvider || undefined },
-          { op: 'set', path: ['fallbackModel'], value: fallbackModel || undefined },
+          { op: 'set', path: ['fallbackProvider'], value: fallbackProvider === '' ? null : fallbackProvider },
+          { op: 'set', path: ['fallbackModel'], value: fallbackModel === '' ? null : fallbackModel },
           { op: 'set', path: ['fallbackPolicy', 'enabled'], value: fallbackEnabled },
         ],
         maskNamespace?.revision,

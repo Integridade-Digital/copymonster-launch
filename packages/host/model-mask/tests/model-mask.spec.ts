@@ -5,16 +5,16 @@ import type { GenerateOptions, LlmAdapter, StreamChunk } from '@deepseek-ai/dsh-
 import {
   apply,
   buildVirtualAdapter,
+  Config,
   inject,
   name,
-  type Config,
   type VirtualAdapterDeps,
   VIRTUAL_MODEL,
   VIRTUAL_MODEL_NAME,
   VIRTUAL_PROVIDER,
 } from '../src/index.ts'
 
-async function mount(config: Config): Promise<Context> {
+async function mount(config: Record<string, unknown>): Promise<Context> {
   const ctx = new Context()
   // The `llm` service must be mounted so `ctx.llm` and adapter registration work.
   await ctx.plugin({
@@ -27,6 +27,7 @@ async function mount(config: Config): Promise<Context> {
   const plugin = {
     inject,
     name,
+    Config,
     apply: (inner: Context, cfg: Config) => {
       apply(inner, cfg)
     },

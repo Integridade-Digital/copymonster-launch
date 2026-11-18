@@ -19,8 +19,10 @@ Mounted through the CopyMonster bundle patch (`cordis.patch.yml`) like the sibli
     virtualProvider: copymonster
     virtualModel: copy-monster-default
     virtualModelName: Model CopyMonster
-    primaryProvider: deepseek-official
-    primaryModel: deepseek-chat
+    primaryProvider: openrouter
+    primaryModel: deepseek/deepseek-chat
+    fallbackProvider: openrouter
+    fallbackModel: openrouter/free
     applyToTenantsOnly: true
 ```
 

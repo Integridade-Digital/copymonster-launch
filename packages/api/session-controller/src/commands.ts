@@ -2,7 +2,7 @@ import { upsertSessionIndex } from './session-db-sync.ts'
 import { createUserClient } from '@deepseek-ai/dsh-supabase-client'
 /** Session commands whose activation policy is explicit at each Remote method. */
 
-import { modelAvailable } from './catalog.ts'
+import { modelAvailable, VIRTUAL_ALIAS } from './catalog.ts'
 import { randomUUID } from 'node:crypto'
 import type { Context } from '@deepseek-ai/cordis'
 import { brandString } from '@deepseek-ai/dsh-brand'
@@ -70,6 +70,22 @@ const QUOTA_EXCEEDED_MESSAGE = 'Limite de tokens do plano atingido. Faça upgrad
 
 /** Fail-closed refusal when the quota RPC cannot answer. */
 const QUOTA_UNAVAILABLE_MESSAGE = 'Não foi possível validar sua cota de tokens no momento. Tente novamente.'
+
+/**
+ * The model selection a non-admin tenant must run on.
+ *
+ * Tenant turns are billed to the platform credential through the virtual
+ * CopyMonster route. A session that recorded a real provider while the profile
+ * still carried the operator's selection would keep calling a route the tenant
+ * cannot pay for, so every tenant entry point pins the alias the platform owns.
+ * Platform administrators keep their real selection.
+ * @param identity - authenticated caller, when the entry point resolved one.
+ * @returns the virtual alias, or undefined for administrators and non-tenant callers.
+ */
+export function tenantModelSelection(identity?: UserIdentity): AgentModelSelection | undefined {
+  if (identity === undefined || identity.tenantId === '' || identity.isAdmin === true) return undefined
+  return { ...VIRTUAL_ALIAS }
+}
 
 /** One `check_tenant_quota` row. */
 interface TenantQuotaRow {
@@ -583,6 +599,16 @@ export class SessionCommandController {
     }
     if (hasPromptRequest(agent, request.requestId)) return { accepted: true }
     await this.assertTenantQuota(identity, 'session.prompt', token)
+    // Existing Sessions persisted a real provider before the platform route was
+    // fixed; re-pin the tenant on every turn so a resumed conversation cannot
+    // keep calling a route the tenant is not served on.
+    const enforced = tenantModelSelection(identity)
+    if (enforced !== undefined) {
+      const current = agent.model.current()
+      if (current === undefined || current.provider !== enforced.provider || current.model !== enforced.model) {
+        agent.model.select(enforced)
+      }
+    }
     const selection = agent.model.current()
     if (selection !== undefined && !await modelAvailable(this.ctx, selection)) {
       throw new RemoteError(

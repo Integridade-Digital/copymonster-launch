@@ -179,7 +179,7 @@ body.auth-bg,
 .auth-logo {
   display: block;
   margin: 0 auto 20px;
-  max-width: 180px;
+  max-width: 220px;
   width: 100%;
   height: auto;
   object-fit: contain;
@@ -268,15 +268,15 @@ body.auth-bg,
   color: #949287;
 }
 
-/* Dark theme support (RegisterPage forces data-ds-dark-theme on <body>). */
+/* Dark theme support (auth cards stay light against the background, so inputs retain white background and dark text for clear contrast). */
 body[data-ds-dark-theme] .cm-auth-input {
-  color: #faf9f5;
-  background: #262624;
-  border-color: #3e3e38;
+  color: #181611;
+  background: #ffffff;
+  border-color: #b4b2a7;
 }
 
 body[data-ds-dark-theme] .cm-auth-input:hover:not(:focus) {
-  border-color: #d0ad62;
+  border-color: #967d45;
 }
 
 body[data-ds-dark-theme] .cm-auth-input:focus {
@@ -285,7 +285,7 @@ body[data-ds-dark-theme] .cm-auth-input:focus {
 }
 
 body[data-ds-dark-theme] .cm-auth-input::placeholder {
-  color: #b7b5a9;
+  color: #949287;
 }
 
 .cm-auth-hint {

@@ -634,11 +634,13 @@ describe('ConversationRoot resident composer', () => {
     expect(b.view.queryByText('探索未至之境')).toBeNull()
   })
 
-  it('settling phase: a summary that does not prove the session blank hides the composer while it opens', () => {
+  it('settling phase: the composer and its send button stay in the tree while the session opens', () => {
     const b = mount(sessionSnapshotOf({ blank: true, openState: 'loading' }))
     const root = b.view.container.querySelector('[data-phase]')
     expect(root?.getAttribute('data-phase')).toBe('settling')
     expect(b.view.queryByTestId('hero-headline')).toBeNull()
+    // The seat is mounted and visible so no control blinks out during replay.
+    expect(root?.querySelector('[class*="composerSeat"]')).not.toBeNull()
   })
 
   it('settling phase: a session the list has no row for settles conservatively', () => {

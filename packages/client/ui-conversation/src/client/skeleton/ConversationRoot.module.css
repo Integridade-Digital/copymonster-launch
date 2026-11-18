@@ -608,16 +608,15 @@
 }
 
 /* Hero: the composer sits inside the session scroll body; center there so
-   the tree seat matches active (sticky footer) without a Root remount. */
+   the tree seat matches active (sticky footer) without a Root remount.
+   Settling starts from this same resting place: a session opened cold is blank
+   until its replay lands, so centering is where it is about to be. The composer
+   stays visible while settling — hiding it made the composer and its send
+   button blink out for the whole replay, reading as a broken control. */
 .root[data-phase='hero'] .scrollBody,
-.embeddedBody[data-content-phase='hero'] .scrollBody {
+.embeddedBody[data-content-phase='hero'] .scrollBody,
+.root[data-phase='settling'] .scrollBody,
+.embeddedBody[data-content-phase='settling'] .scrollBody {
   justify-content: center;
   overflow-y: auto;
-}
-
-/* Settling (session replaying, hero/docked unknown): keep the composer seat
-   mounted but invisible so no wrong layout flashes before the phase lands. */
-.root[data-phase='settling'] .composerSeat,
-.embeddedBody[data-content-phase='settling'] .composerSeat {
-  visibility: hidden;
 }

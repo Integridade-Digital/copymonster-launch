@@ -161,9 +161,11 @@ export const Config = z.object({
  * - Standard failure codes: RATE_LIMIT, SERVER, TIMEOUT, TRANSPORT.
  * - Network timeouts and connection resets (ECONNRESET, ETIMEDOUT).
  *
+ * Also eligible: HTTP 401 and auth/key rejections, so a route with a dead key falls
+ * over to the configured fallback route.
+ *
  * Ineligible (fail-fast):
- * - HTTP 400 (bad request), 401 (unauthorized / missing key), 403 (forbidden).
- * - Codes containing AUTH, KEY, or INVALID_REQUEST.
+ * - HTTP 400 (bad request), 403 (forbidden), codes containing INVALID_REQUEST.
  *
  * @param error - the failure thrown by the primary stream attempt.
  * @returns true if failover should be attempted.
@@ -176,8 +178,11 @@ export function isEligibleFailoverError(error: unknown): boolean {
     ? Number((error as { status?: unknown }).status)
     : undefined
   if (status !== undefined) {
-    // 401, 403, 400 are NOT eligible for failover
-    if (status === 401 || status === 403 || status === 400) return false
+    // 401: the route's own key was rejected. A stale or revoked platform key must not
+    // take every tenant down while a configured fallback route can still serve the turn.
+    if (status === 401) return true
+    // 400 and 403 describe the request or its permissions, not the route: fail fast.
+    if (status === 400 || status === 403) return false
     // 429, 500, 502, 503, 504 are eligible
     if (status === 429 || (status >= 500 && status <= 504)) return true
   }
@@ -188,9 +193,8 @@ export function isEligibleFailoverError(error: unknown): boolean {
     : ''
   if (code) {
     const upperCode = code.toUpperCase()
-    if (upperCode.includes('AUTH') || upperCode.includes('KEY') || upperCode.includes('INVALID_REQUEST')) {
-      return false
-    }
+    if (upperCode.includes('INVALID_REQUEST')) return false
+    if (upperCode.includes('AUTH') || upperCode.includes('KEY')) return true
     if (
       upperCode === 'RATE_LIMIT' ||
       upperCode === 'SERVER' ||
@@ -203,9 +207,13 @@ export function isEligibleFailoverError(error: unknown): boolean {
     }
   }
 
-  // Check error message for transient indicators
+  // Check error message for transient and key-rejection indicators
   const msg = String(error instanceof Error ? error.message : error).toLowerCase()
   if (
+    msg.includes('api key is invalid') ||
+    msg.includes('invalid api key') ||
+    msg.includes('unauthorized') ||
+    msg.includes('authentication') ||
     msg.includes('rate limit') ||
     msg.includes('429') ||
     msg.includes('econnreset') ||

@@ -7,6 +7,7 @@ import {
   buildVirtualAdapter,
   Config,
   inject,
+  isEligibleFailoverError,
   name,
   type VirtualAdapterDeps,
   VIRTUAL_MODEL,
@@ -219,15 +220,18 @@ describe('model-mask failover', () => {
     expect((chunks[0] as { text?: string }).text).toBe('recovered')
   })
 
-  it('does NOT fail over on 401 unauthorized / auth error', async () => {
+  it('fails over on 401 when the primary route key is rejected and a fallback is configured', async () => {
     const attempts: string[] = []
     const mockContext = {
       llm: {
         stream: async function * (opts: GenerateOptions): AsyncIterable<StreamChunk> {
           attempts.push(`${opts.provider}/${opts.model}`)
-          const err = new Error('Invalid API key')
-          ;(err as unknown as { status: number }).status = 401
-          throw err
+          if (opts.provider === 'primary-provider') {
+            const err = new Error('API key is invalid')
+            ;(err as unknown as { status: number }).status = 401
+            throw err
+          }
+          yield { type: 'text', text: 'recovered' } as unknown as StreamChunk
         },
       },
       logger: { debug: () => {}, warn: () => {}, error: () => {} },
@@ -243,22 +247,24 @@ describe('model-mask failover', () => {
       }),
     })
 
-    let caught: unknown
-    try {
-      for await (const _ of adapter.stream({
-        provider: VIRTUAL_PROVIDER,
-        model: VIRTUAL_MODEL,
-        messages: [{ role: 'user', content: [{ type: 'text', text: 'test' }] }],
-        signal: new AbortController().signal,
-      })) {
-        // do nothing
-      }
-    } catch (e) {
-      caught = e
+    const chunks: unknown[] = []
+    for await (const chunk of adapter.stream({
+      provider: VIRTUAL_PROVIDER,
+      model: VIRTUAL_MODEL,
+    } as GenerateOptions)) {
+      chunks.push(chunk)
     }
 
-    expect(caught).toBeDefined()
-    expect(attempts).toEqual(['primary-provider/primary-model'])
+    expect(attempts).toEqual(['primary-provider/primary-model', 'fallback-provider/fallback-model'])
+    expect((chunks[0] as { text?: string }).text).toBe('recovered')
+  })
+
+  it('still fails fast on 403 and 400 without a fallback attempt', () => {
+    for (const status of [400, 403]) {
+      const err = Object.assign(new Error('forbidden'), { status })
+      expect(isEligibleFailoverError(err)).toBe(false)
+    }
+    expect(isEligibleFailoverError(Object.assign(new Error('x'), { status: 401 }))).toBe(true)
   })
 
   it('does NOT fail over once the first chunk has been emitted', async () => {

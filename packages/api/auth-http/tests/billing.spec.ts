@@ -102,7 +102,7 @@ function generateStripeSignature(payload: string | Buffer, secret: string, times
 
 describe('Stripe Billing & Webhooks Integration Tests', () => {
   const originalEnv = process.env
-  const resolveIdentity = vi.fn<[token: string], Promise<UserIdentity | undefined>>()
+  const resolveIdentity = vi.fn<(token: string) => Promise<UserIdentity | undefined>>()
   let mockContext: Context
   let originalFetch: typeof globalThis.fetch
 

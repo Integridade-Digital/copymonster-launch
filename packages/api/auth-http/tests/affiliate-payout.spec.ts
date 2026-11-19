@@ -3,6 +3,7 @@ import { Readable } from 'node:stream'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import type { UserIdentity } from '@deepseek-ai/dsh-api-auth-context/types'
+import type { SupabaseClientType } from '@deepseek-ai/dsh-supabase-client'
 
 // Mock Supabase admin client
 const mockSupabase = vi.hoisted(() => {
@@ -834,17 +835,17 @@ describe('Payout Executor & Affiliate Payout Lifecycle', () => {
               insert: vi.fn().mockResolvedValue({ data: {}, error: null }),
               select: vi.fn().mockImplementation((columns: string) => columns === 'amount, entry_type'
                 ? {
-                    eq: vi.fn().mockReturnValue({
-                      eq: vi.fn().mockResolvedValue({ data: [{ amount: 500, entry_type: 'CREDIT' }], error: null }),
-                    }),
-                  }
+                  eq: vi.fn().mockReturnValue({
+                    eq: vi.fn().mockResolvedValue({ data: [{ amount: 500, entry_type: 'CREDIT' }], error: null }),
+                  }),
+                }
                 : {
+                  eq: vi.fn().mockReturnValue({
                     eq: vi.fn().mockReturnValue({
-                      eq: vi.fn().mockReturnValue({
-                        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-                      }),
+                      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
                     }),
                   }),
+                }),
             }
           }
           if (schemaName === 'affiliate' && tableName === 'profiles') {
@@ -1005,17 +1006,17 @@ describe('Payout Executor & Affiliate Payout Lifecycle', () => {
               insert: vi.fn().mockResolvedValue({ data: {}, error: null }),
               select: vi.fn().mockImplementation((columns: string) => columns === 'amount, entry_type'
                 ? {
-                    eq: vi.fn().mockReturnValue({
-                      eq: vi.fn().mockResolvedValue({ data: [{ amount: 500, entry_type: 'CREDIT' }], error: null }),
-                    }),
-                  }
+                  eq: vi.fn().mockReturnValue({
+                    eq: vi.fn().mockResolvedValue({ data: [{ amount: 500, entry_type: 'CREDIT' }], error: null }),
+                  }),
+                }
                 : {
+                  eq: vi.fn().mockReturnValue({
                     eq: vi.fn().mockReturnValue({
-                      eq: vi.fn().mockReturnValue({
-                        maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
-                      }),
+                      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
                     }),
                   }),
+                }),
             }
           }
           if (schemaName === 'affiliate' && tableName === 'profiles') {
@@ -1095,7 +1096,7 @@ describe('Payout Executor & Affiliate Payout Lifecycle', () => {
 
   describe('isPlatformOperator', () => {
     it('accepts the admin flag without a membership lookup', async () => {
-      const client = { from: vi.fn() }
+      const client = { from: vi.fn() } as unknown as SupabaseClientType
       await expect(isPlatformOperator(identity({ isAdmin: true }), client)).resolves.toBe(true)
       expect(client.from).not.toHaveBeenCalled()
     })
@@ -1113,7 +1114,7 @@ describe('Payout Executor & Affiliate Payout Lifecycle', () => {
             }),
           }),
         }),
-      }
+      } as unknown as SupabaseClientType
       await expect(isPlatformOperator(identity({ isAdmin: false }), client)).resolves.toBe(false)
     })
   })

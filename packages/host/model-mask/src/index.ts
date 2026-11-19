@@ -227,9 +227,8 @@ export function isEligibleFailoverError(error: unknown): boolean {
     ? Number((error as { status?: unknown }).status)
     : undefined
   if (status !== undefined) {
-    // 401: the route's own key was rejected. A stale or revoked platform key must not
-    // take every tenant down while another configured route can still serve the turn.
-    if (status === 401) return true
+    // 401: dead key, 402: payment required / insufficient credits.
+    if (status === 401 || status === 402) return true
     // 400 and 403 describe the request or its permissions, not the route: fail fast.
     if (status === 400 || status === 403) return false
     // 429, 500, 502, 503, 504 are eligible
@@ -243,7 +242,15 @@ export function isEligibleFailoverError(error: unknown): boolean {
   if (code) {
     const upperCode = code.toUpperCase()
     if (upperCode.includes('INVALID_REQUEST')) return false
-    if (upperCode.includes('AUTH') || upperCode.includes('KEY')) return true
+    if (
+      upperCode.includes('AUTH') ||
+      upperCode.includes('KEY') ||
+      upperCode.includes('CREDIT') ||
+      upperCode.includes('PAYMENT') ||
+      upperCode.includes('BILLING') ||
+      upperCode.includes('QUOTA') ||
+      upperCode.includes('BALANCE')
+    ) return true
     if (
       upperCode === 'RATE_LIMIT' ||
       upperCode === 'SERVER' ||
@@ -263,6 +270,16 @@ export function isEligibleFailoverError(error: unknown): boolean {
     msg.includes('invalid api key') ||
     msg.includes('unauthorized') ||
     msg.includes('authentication') ||
+    msg.includes('payment required') ||
+    msg.includes('402') ||
+    msg.includes('insufficient_quota') ||
+    msg.includes('insufficient quota') ||
+    msg.includes('insufficient balance') ||
+    msg.includes('insufficient credits') ||
+    msg.includes('out of credits') ||
+    msg.includes('no credits') ||
+    msg.includes('credits exhausted') ||
+    msg.includes('billing') ||
     msg.includes('rate limit') ||
     msg.includes('429') ||
     msg.includes('econnreset') ||
@@ -353,9 +370,13 @@ function sameRoute(left: Route, right: Route): boolean {
 async function listCatalog(ctx: Context): Promise<Route[]> {
   const candidates: Route[] = []
   for (const provider of ctx.llm.listProviders()) {
+    if (provider.id === VIRTUAL_PROVIDER) continue
     try {
       const models = await ctx.llm.listModels(provider.id)
-      for (const model of models) candidates.push({ provider: provider.id, model: model.id })
+      for (const model of models) {
+        if (model.id === VIRTUAL_MODEL) continue
+        candidates.push({ provider: provider.id, model: model.id })
+      }
     } catch (error: unknown) {
       // One provider's catalog failure must not remove the other routes from
       // the mask; the tenant still forwards the turn to a working provider.

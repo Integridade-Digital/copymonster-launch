@@ -290,6 +290,11 @@ export class SessionCommandController {
         )
       }
     }
+    try {
+      (this.ctx.get("remoteAccess") as { invalidate?: () => void } | undefined)?.invalidate?.()
+    } catch {
+      // Best-effort invalidation
+    }
     return { sessionId, ...(created.agentPreset === undefined ? {} : { agentPreset: created.agentPreset }) }
   }
 

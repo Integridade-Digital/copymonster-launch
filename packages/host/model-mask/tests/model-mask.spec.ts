@@ -199,6 +199,18 @@ describe('resolveRouteChain', () => {
     expect(fallbackChain).toEqual([])
   })
 
+  it('excludes the virtual mask provider from candidate routes', async () => {
+    const { primaryRoute, fallbackChain } = await resolveRouteChain(ctxWith(
+      [
+        { id: VIRTUAL_PROVIDER, name: VIRTUAL_MODEL_NAME, models: [VIRTUAL_MODEL] },
+        { id: 'real-provider', name: 'Real Provider', models: ['real-model'] },
+      ],
+      { provider: 'real-provider', model: 'real-model' },
+    ))
+    expect(primaryRoute).toEqual({ provider: 'real-provider', model: 'real-model' })
+    expect(fallbackChain).toEqual([])
+  })
+
   it('returns the sentinel when no model is advertised', async () => {
     const { primaryRoute, fallbackChain } = await resolveRouteChain(ctxWith([], { provider: 'x', model: 'y' }))
     expect(primaryRoute).toEqual({ provider: 'none', model: 'none' })
@@ -336,6 +348,9 @@ describe('model-mask failover', () => {
     ['429 rate limit', Object.assign(new Error('Rate limit exceeded'), { status: 429 })],
     ['503 gateway', Object.assign(new Error('Service Unavailable'), { status: 503 })],
     ['401 rejected key', Object.assign(new Error('API key is invalid'), { status: 401 })],
+    ['402 payment required / out of credits', Object.assign(new Error('Payment Required'), { status: 402 })],
+    ['insufficient quota message', new Error('insufficient_quota: You exceeded your current quota')],
+    ['insufficient balance message', new Error('User has insufficient balance or credits')],
   ])('fails over to the next model on %s before the first chunk', async (_label, failure) => {
     const { adapter, attempts } = failoverAdapter({
       providers: twoProviders,

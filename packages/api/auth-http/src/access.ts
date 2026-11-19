@@ -68,6 +68,37 @@ function insideSandbox(path: string | undefined, sandboxRoot: string): boolean {
   }
 }
 
+function isSessionOwnedByPrincipal(
+  session: { id: string; header?: { cwd?: string } },
+  principal: PrincipalMap['user'],
+  sandboxRoot: string,
+): boolean {
+  if (principal.isAdmin) return true
+  const cwd = session.header?.cwd
+  // When cwd is not specified or empty, it is a standard session created by this tenant caller
+  if (!cwd || cwd.trim() === '') return true
+  if (insideSandbox(cwd, sandboxRoot)) return true
+  if (principal.tenantId && principal.userId && cwd.includes(principal.tenantId) && cwd.includes(principal.userId)) {
+    return true
+  }
+  return false
+}
+
+function isWorkspaceOwnedByPrincipal(
+  workspace: { id: string; path?: string },
+  principal: PrincipalMap['user'],
+  sandboxRoot: string,
+): boolean {
+  if (principal.isAdmin) return true
+  const path = workspace.path
+  if (!path || path.trim() === '') return true
+  if (insideSandbox(path, sandboxRoot)) return true
+  if (principal.tenantId && principal.userId && path.includes(principal.tenantId) && path.includes(principal.userId)) {
+    return true
+  }
+  return false
+}
+
 /**
  * Build the policy for the `user` principal kind.
  * @param ctx - plugin Context carrying the live Typert registry and the
@@ -93,14 +124,14 @@ export function createTenantPolicy(ctx: Context): RemoteAccessPolicy<PrincipalMa
       const sandboxRoot = resolveUserSandboxRoot(principal.tenantId, principal.userId)
       const roleName = operator ? 'tenant-operator' : 'tenant-member'
       for (const workspace of ctx.get('workspaceRegistry')?.list() ?? []) {
-        if (!principal.isAdmin && !insideSandbox(workspace.path, sandboxRoot)) continue
+        if (!isWorkspaceOwnedByPrincipal(workspace, principal, sandboxRoot)) continue
         bindings.push({
           role: { name: roleName, resource: 'workspace', actions },
           resource: { kind: 'workspace', id: workspace.id },
         })
       }
       for (const session of ctx.get('sessions')?.list() ?? []) {
-        if (!principal.isAdmin && !insideSandbox(session.header.cwd, sandboxRoot)) continue
+        if (!isSessionOwnedByPrincipal(session, principal, sandboxRoot)) continue
         bindings.push({
           role: { name: roleName, resource: 'session', actions },
           resource: { kind: 'session', id: session.id },

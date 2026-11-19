@@ -81,6 +81,17 @@ describe('session-controller model catalog masking', () => {
     expect(catalog.default).toEqual(selection)
   })
 
+  it('admin catalog filters out the virtual CopyMonster mask provider', async () => {
+    const ctx = await mountWithLlm([{ provider: 'provider', id: 'model', name: 'Model' }])
+    ctx.llm.registerAdapter([VIRTUAL_PROVIDER], llmAdapter([{ provider: VIRTUAL_PROVIDER, id: VIRTUAL_MODEL, name: VIRTUAL_MODEL_NAME }]))
+    const catalog = await buildModelCatalog(ctx, selection, true)
+
+    expect(catalog.groups.map(g => g.id)).not.toContain(VIRTUAL_PROVIDER)
+    expect(catalog.routableProviders).not.toContain(VIRTUAL_PROVIDER)
+    expect(catalog.groups).toHaveLength(1)
+    expect(catalog.groups[0]!.id).toBe('provider')
+  })
+
   it('modelAvailable recognizes the virtual alias', async () => {
     const ctx = new Context()
     expect(await modelAvailable(ctx, { provider: VIRTUAL_PROVIDER, model: VIRTUAL_MODEL })).toBe(true)

@@ -188,6 +188,20 @@ describe('tenant access policy: owned Workspaces and Sessions', () => {
     expect(ids).toEqual(['s-own'])
   })
 
+  it('binds standard tenant sessions with empty or default cwd', () => {
+    const bindings = policy({
+      sessions: [
+        { id: 's-default', cwd: '' },
+        { id: 's-foreign', cwd: `${foreignRoot}/default` },
+      ],
+    }).bindings(principal('member'))
+
+    const ids = bindings
+      .filter(binding => binding.resource.kind === 'session')
+      .map(({ resource }) => (resource as { readonly id: string }).id)
+    expect(ids).toEqual(['s-default'])
+  })
+
   it('grants the same endpoint set on an owned resource as on the global surface', () => {
     const bindings = policy({ workspaces: [{ id: 'ws-own', path: `${ownRoot}/default` }] })
       .bindings(principal('member'))

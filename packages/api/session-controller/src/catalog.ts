@@ -30,7 +30,8 @@ export const VIRTUAL_MODEL_DESCRIPTION = 'Standard CopyMonster model managed by 
  * When `isAdmin` is `false` the tenant sees only the single virtual CopyMonster
  * model and the real provider topology stays out of the catalog payload.
  * When `isAdmin` is `true` (or omitted, preserving existing behaviour) the full
- * real provider catalog is returned for platform administration.
+ * real provider catalog is returned for platform administration, and the virtual
+ * mask alias is filtered out so administrators only manage real routes.
  * @param ctx - Host context carrying the live LLM registry.
  * @param defaultSelection - deployment default used before a Session selects a model.
  * @param isAdmin - whether the caller is a platform administrator; omitted keeps the full catalog.
@@ -66,13 +67,15 @@ export async function buildModelCatalog(
     }
   }
 
-  const providers = ctx.llm.listProviders()
+  // Filter out the virtual mask provider from the administrator view so admins
+  // select from actual provider infrastructure without masked dummy entries.
+  const providers = ctx.llm.listProviders().filter(provider => provider.id !== VIRTUAL_PROVIDER)
 
   const catalog = await Promise.all(providers.map(async (provider) => {
     try {
       const models = await ctx.llm.listModels(provider.id)
 
-      const entries = await Promise.all(models.map(async (model) => {
+      const entries = await Promise.all(models.filter(m => m.id !== VIRTUAL_MODEL).map(async (model) => {
         const resolved = await ctx.llm.resolveModelInfo(provider.id, model.id)
         const reasoning: ModelReasoning | undefined = resolved.reasoning === undefined
           ? undefined
@@ -116,8 +119,20 @@ export async function buildModelCatalog(
   }))
   const groups = catalog.flatMap(item => item.kind === 'group' ? [item.group] : [])
     .filter(group => group.models.length > 0)
+
+  let effectiveDefault = { ...defaultSelection }
+  if (effectiveDefault.provider === VIRTUAL_PROVIDER) {
+    const maskService = ctx.get('modelMask') as { currentRoutes?: () => { primaryRoute?: { provider: string; model: string } } } | undefined
+    const realRoute = maskService?.currentRoutes?.()?.primaryRoute
+    if (realRoute && realRoute.provider !== 'none' && realRoute.provider !== VIRTUAL_PROVIDER) {
+      effectiveDefault = { provider: realRoute.provider, model: realRoute.model }
+    } else if (groups.length > 0 && groups[0]?.models[0]) {
+      effectiveDefault = { provider: groups[0].id, model: groups[0].models[0].id }
+    }
+  }
+
   return {
-    default: { ...defaultSelection },
+    default: effectiveDefault,
     routableProviders: groups.map(group => group.id),
     groups,
     failures: catalog.flatMap(item => item.kind === 'failure' ? [item.failure] : []),

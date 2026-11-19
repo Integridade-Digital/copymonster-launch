@@ -117,4 +117,13 @@ apps/web/dist/
 worktrees/
 .agents/worktrees/
 .typert-*/
+
+# Live per-profile runtime state. The profile's cordis.patch.yml holds operator
+# configuration and stays tracked; everything below is written by running
+# plugins, so committing it would let a deploy overwrite what the Settings UI
+# saved (a saved routing pin must survive a pull).
+.dsh/profiles/*/settings.yaml
+.dsh/profiles/*/package.json.bak*
+.dsh/profiles/*/.dsh-market/
+.dsh/profiles/*/.plugin-manager/
 native/system/test/bin/

@@ -20,7 +20,14 @@ const t: PlatformRoutingCardInjected['t'] = key => en[key]
 
 const CATALOG: readonly RoutingCatalogProvider[] = [
   { id: 'deepseek-official', name: 'DeepSeek', models: [{ id: 'deepseek-chat', name: 'deepseek-chat' }, { id: 'deepseek-reasoner', name: 'deepseek-reasoner' }] },
-  { id: 'openrouter', name: 'OpenRouter', models: [{ id: 'openrouter/free', name: 'openrouter/free' }] },
+  {
+    id: 'openrouter',
+    name: 'OpenRouter',
+    models: [
+      { id: 'deepseek/deepseek-chat', name: 'DeepSeek Chat' },
+      { id: 'openrouter/free', name: 'openrouter/free' },
+    ],
+  },
 ]
 
 /** The model-mask namespace as the Host describes it. */
@@ -102,8 +109,29 @@ describe('PlatformRoutingCard', () => {
     expect(provider.options[0]?.textContent).toBe(en.routingAutomatic)
     expect(screen.getByText(en.routingPrimaryAuto)).toBeTruthy()
     expect(screen.getByText(en.routingFallbackAuto)).toBeTruthy()
+    expect(provider.disabled).toBe(false)
     expect(screen.getByLabelText<HTMLSelectElement>(en.routingPrimaryModel).disabled).toBe(true)
     expect(screen.getByRole('button', { name: en.routingSave })).toHaveProperty('disabled', true)
+  })
+
+  it('pins openrouter and deepseek-chat from the real catalog', async () => {
+    const { mutate } = await mount({})
+    const provider = screen.getByLabelText<HTMLSelectElement>(en.routingPrimaryProvider)
+    await waitFor(() => { expect(provider.querySelectorAll('option')).toHaveLength(3) })
+
+    fireEvent.change(provider, { target: { value: 'openrouter' } })
+    const model = screen.getByLabelText<HTMLSelectElement>(en.routingPrimaryModel)
+    fireEvent.change(model, { target: { value: 'deepseek/deepseek-chat' } })
+    expect(model.value).toBe('deepseek/deepseek-chat')
+
+    await act(async () => { fireEvent.click(screen.getByRole('button', { name: en.routingSave })) })
+    expect(mutate).toHaveBeenCalledWith('model-mask', [
+      { op: 'set', path: ['primaryProvider'], value: 'openrouter' },
+      { op: 'set', path: ['primaryModel'], value: 'deepseek/deepseek-chat' },
+      { op: 'set', path: ['fallbackProvider'], value: '' },
+      { op: 'set', path: ['fallbackModel'], value: '' },
+      { op: 'set', path: ['fallbackPolicy', 'enabled'], value: true },
+    ], 2)
   })
 
   it('writes the chosen provider and model for both routes', async () => {

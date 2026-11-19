@@ -420,10 +420,9 @@ export class SessionController extends TypertRemoteService {
    * Report the mask's currently resolved real routes for platform administration.
    *
    * Administrators see which real provider and model the tenant alias resolves
-   * to, and the ordered fallback chain, so a newly configured provider can be
-   * verified without editing any mask setting. Tenants never reach this method:
-   * it is the administrator's read-only view of the mask, which itself has no
-   * configurable route.
+   * to, and the ordered fallback chain, so a provider pinned from the Admin
+   * routing card can be verified without inspecting the tenant. Tenants never
+   * reach this method: it is the administrator's read-only view of the mask.
    * @returns the virtual alias, its primary real route, and the fallback chain.
    */
   @Remote('modelMaskStatus')

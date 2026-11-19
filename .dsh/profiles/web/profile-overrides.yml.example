@@ -1,0 +1,4 @@
+# Operator overrides for this profile, applied last by the `--patch` overlay
+# named in the service unit. Copy to `profile-overrides.yml` (untracked) so a
+# deploy cannot revert choices saved through the Settings UI.
+[]

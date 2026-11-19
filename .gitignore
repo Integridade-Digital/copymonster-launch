@@ -126,4 +126,7 @@ worktrees/
 .dsh/profiles/*/package.json.bak*
 .dsh/profiles/*/.dsh-market/
 .dsh/profiles/*/.plugin-manager/
+# Operator overrides layered above the profile patch by `--patch`; the tracked
+# `.example` seeds a new environment.
+.dsh/profiles/*/profile-overrides.yml
 native/system/test/bin/

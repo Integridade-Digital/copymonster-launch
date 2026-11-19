@@ -39,6 +39,7 @@ import { ArchivedSessionGate } from './archived-session-gate.ts'
 import type {
   ModelCatalog,
   ModelMaskStatus,
+  ModelSelection,
   SessionWorkspacePathApplication,
   SessionAddress,
   SessionAttachmentRequest,

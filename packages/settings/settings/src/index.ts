@@ -308,7 +308,9 @@ export class SettingsForms extends Service {
       const form = volatileForm(schema)
       if (form === undefined) return []
       active.add(entry.id)
-      const raw = JSON.stringify([entry.fiber.uid, schema.toJSON(), entry.options.config ?? {}])
+      // The fingerprint covers what the form shows and saves. The fiber uid is left out:
+      // a plugin restart reassigns it without any edit, which must not invalidate a card's read.
+      const raw = JSON.stringify([schema.toJSON(), entry.options.config ?? {}])
       const autoGenerate = this.presentations.get(entry.fiber)?.auto ?? true
       const previous = this.revisions.get(entry.id)
       const revision = previous === undefined ? 0 : previous.revision + Number(previous.raw !== raw)

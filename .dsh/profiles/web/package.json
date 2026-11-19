@@ -28,7 +28,6 @@
         "@deepseek-ai/dsh-experimental-session-titles-bundle",
         "@deepseek-ai/dsh-copymonster",
         "dsh-image-gen",
-        "dsh-plugin-pose-studio",
         "@nagi-ovo/dsh-visualize"
       ],
       "patchReload": "live"
@@ -49,7 +48,6 @@
     "@xmanrui/dsh-im": "^5.6.0",
     "dsh-book": "^0.0.1",
     "dsh-image-gen": "^0.11.2",
-    "dsh-plugin-pose-studio": "github:yang0/dsh-handraw-style",
     "dsh-plugin-smooth-stream": "^1.6.3",
     "dsh-preview-plugin": "github:RaulLazaro/dsh-preview-plugin",
     "dsh-vercel-mcp": "github:zhengjy01/dsh-vercel-mcp",

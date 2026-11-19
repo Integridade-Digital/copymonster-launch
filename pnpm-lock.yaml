@@ -321,9 +321,6 @@ importers:
       dsh-image-gen:
         specifier: ^0.11.2
         version: 0.11.2(@deepseek-ai/cordis@4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6))(react@18.3.1)
-      dsh-plugin-pose-studio:
-        specifier: github:yang0/dsh-handraw-style
-        version: https://codeload.github.com/yang0/dsh-handraw-style/tar.gz/4e959966464e0b3b7aa8fb39ef535946b5362ff1
       dsh-plugin-smooth-stream:
         specifier: ^1.6.3
         version: 1.6.3(@deepseek-ai/dsh@0.2.1-rc.3(14876e4d8755dbe3fb58f18bfd277903))
@@ -25554,10 +25551,6 @@ packages:
       react:
         optional: true
 
-  dsh-plugin-pose-studio@https://codeload.github.com/yang0/dsh-handraw-style/tar.gz/4e959966464e0b3b7aa8fb39ef535946b5362ff1:
-    resolution: {gitHosted: true, integrity: sha512-afu1zraZnsWNceFw5cqI/J4KfKCM6asdOPeOD4ORkSJLJCff3Idp7HIvbouxXCizVoZHO6AwpD1NqgK5pHKM4A==, tarball: https://codeload.github.com/yang0/dsh-handraw-style/tar.gz/4e959966464e0b3b7aa8fb39ef535946b5362ff1}
-    version: 0.7.9
-
   dsh-plugin-smooth-stream@1.6.3:
     resolution: {integrity: sha512-YWtT7Wi5iTgaX6PeZHUGkDiwGFSuoe60US07fWcCSa1nYJ/bytCgTxKIGBx4OkurHeiERn2GhBcdXmiVwNwBVw==}
     engines: {dsh: '>=0.2.0-rc.2 <0.3.0-0 || 0.2.1-rc.2 || 0.2.1-rc.5 || 0.2.2-rc.1 || 0.2.2-rc.3'}
@@ -37692,8 +37685,6 @@ snapshots:
     optionalDependencies:
       '@deepseek-ai/cordis': 4.0.5(@deepseek-ai/cordis-plugin-include@1.0.10)(@deepseek-ai/cordis-plugin-loader@1.0.6)
       react: 18.3.1
-
-  dsh-plugin-pose-studio@https://codeload.github.com/yang0/dsh-handraw-style/tar.gz/4e959966464e0b3b7aa8fb39ef535946b5362ff1: {}
 
   dsh-plugin-smooth-stream@1.6.3(@deepseek-ai/dsh@0.2.1-rc.3(14876e4d8755dbe3fb58f18bfd277903)):
     dependencies:

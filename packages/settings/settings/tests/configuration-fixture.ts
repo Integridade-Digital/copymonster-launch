@@ -6,13 +6,19 @@ import { onTestFinished } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import z from '@deepseek-ai/schemastery'
 import Timer from '@deepseek-ai/cordis-plugin-timer'
-import { boot, initProfile, readProfilePatches, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
+import { boot, initProfile, loadOverlayPatches, readProfilePatches, type ProfileContext } from '@deepseek-ai/dsh-app-boot'
 import ConfigEditor from '@deepseek-ai/dsh-config-editor'
 import Hmr from '@deepseek-ai/dsh-hmr'
 import DefaultModel from '@deepseek-ai/dsh-agent-default-model'
 import Settings from '../src/index.ts'
 
-export async function configurationFixture(options: { schema?: z; apply?: (ctx: Context, config: unknown) => void; hmr?: boolean } = {}) {
+export async function configurationFixture(options: {
+  schema?: z
+  apply?: (ctx: Context, config: unknown) => void
+  hmr?: boolean
+  /** Seed an overlay file applied above the profile patch, as a `--patch` launch does. */
+  overlay?: readonly unknown[]
+} = {}) {
   const home = realpathSync(mkdtempSync(join(tmpdir(), 'settings-config-')))
   const dir = join(home, 'profiles', 'test')
   onTestFinished(() => { rmSync(home, { recursive: true, force: true }) })
@@ -29,17 +35,28 @@ export async function configurationFixture(options: { schema?: z; apply?: (ctx: 
     { id: 'second', name: 'cordis:probe', config: { ordinary: 'second' } },
   ] }]))
   writeFileSync(join(dir, 'cordis.yml'), '[]\n')
+  const overlayPath = join(dir, 'profile-overrides.yml')
+  const overlayPatches = options.overlay ?? []
+  if (options.overlay !== undefined) writeFileSync(overlayPath, JSON.stringify(overlayPatches))
   const profile: ProfileContext = {
     name: 'test', startedBundles: ['test-bundle'], dir, patchPath: join(dir, 'cordis.patch.yml'),
-    installAnchor: join(home, 'package.json'), cwd: home, home, overlays: [], telemetryDisabledEnv: undefined,
+    installAnchor: join(home, 'package.json'), cwd: home, home,
+    overlays: overlayPatches as never[],
+    ...options.overlay === undefined ? {} : { overlayPaths: [overlayPath] },
+    telemetryDisabledEnv: undefined,
   }
   const Probe = {
     Config: options.schema ?? z.object({ ordinary: z.string().required(), count: z.number().min(1).default(2).volatile(), token: z.string().role('secret').volatile(), list: z.array(z.object({ name: z.string().required(), token: z.string().role('secret') })).volatile() }),
     apply: options.apply ?? (() => {}),
   }
   const start = async (): Promise<Context> => {
-    const ctx = await boot('test', join(dir, 'cordis.yml'), readProfilePatches('test', profile), (ctx) => {
-      ctx.provide('profileContext', profile)
+    // A real launch re-reads `--patch` files at boot, so an edit written to the
+    // overlay surfaces on the next start instead of reusing the seeded list.
+    const context: ProfileContext = options.overlay === undefined
+      ? profile
+      : { ...profile, overlays: loadOverlayPatches('test', overlayPath) }
+    const ctx = await boot('test', join(dir, 'cordis.yml'), readProfilePatches('test', context), (ctx) => {
+      ctx.provide('profileContext', context)
       ctx.provide('appReady', { onReady: (listener: () => void) => { listener(); return () => {} } })
       Object.assign(ctx.loader.builtins, {
         editor: ConfigEditor, settings: Settings, model: DefaultModel, probe: Probe,

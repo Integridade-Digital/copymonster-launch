@@ -354,3 +354,27 @@ it('describes an entry whose required field only the profile supplies, and repor
   const failures = (): unknown[] => restored.logger.buffer.filter(message => message.type === 'error').map((message): unknown => message.args[0])
   await vi.waitFor(() => { expect(failures()).toContainEqual(expect.objectContaining({ message: 'refresh failed' })) })
 })
+
+it('writes an operator edit to the overlay that a --patch launch layers above the profile', async () => {
+  const { ctx, profile, start } = await fixture({ overlay: [{ id: 'default-model', config: { provider: 'test', model: 'pinned' } }] })
+  const overlayPath = profile.overlayPaths![0]!
+  expect(ctx.agentDefaultModel.currentSelection()).toEqual({ provider: 'test', model: 'pinned' })
+  await ctx.settings.mutate('default-model', [{ op: 'set', path: ['model'], value: 'overridden' }])
+  // The edit lands in the overlay, so a deployment that replaces the tracked
+  // profile patch cannot revert it.
+  expect(parse(readFileSync(overlayPath, 'utf8'))).toContainEqual({ id: 'default-model', config: { provider: 'test', model: 'overridden' } })
+  expect(parse(readFileSync(profile.patchPath, 'utf8'))).not.toContainEqual(expect.objectContaining({ id: 'default-model' }))
+  expect(ctx.agentDefaultModel.currentSelection()).toEqual({ provider: 'test', model: 'overridden' })
+  await ctx.fiber.dispose()
+  const restored = await start()
+  expect(restored.agentDefaultModel.currentSelection()).toEqual({ provider: 'test', model: 'overridden' })
+})
+
+it('restores the overlay when the edit cannot be reconciled', async () => {
+  const { ctx, profile } = await fixture({ overlay: [{ id: 'default-model', config: { provider: 'test', model: 'pinned' } }] })
+  const overlayPath = profile.overlayPaths![0]!
+  const before = readFileSync(overlayPath, 'utf8')
+  await expect(ctx.settings.update('default-model', { model: 42 as unknown as string })).rejects.toThrow()
+  expect(readFileSync(overlayPath, 'utf8')).toBe(before)
+  expect(ctx.agentDefaultModel.currentSelection()).toEqual({ provider: 'test', model: 'pinned' })
+})

@@ -206,6 +206,8 @@ interface ComposedProfile {
   resolution: RuntimeResolution
   /** Command-line overlay contents, frozen for this invocation. */
   overlays: PatchOptions[]
+  /** Absolute `--patch` overlay paths, in application order. */
+  overlayPaths: string[]
 }
 
 /**
@@ -232,7 +234,7 @@ async function composeProfile(
   const resolutionOptions = { installAnchor: resolvedProfile?.installAnchor ?? INSTALL_ANCHOR, profile }
   const resolution = await createRuntimeResolution(resolutionOptions)
   const overlays = patchFiles.flatMap(file => loadOverlayPatches(NAME, resolve(file)))
-  return { profile, resolution, overlays }
+  return { profile, resolution, overlays, overlayPaths: patchFiles.map(file => resolve(file)) }
 }
 
 /** An application-owned profile and its independent installation fallback. */
@@ -318,7 +320,7 @@ export async function runProfile(options: RunProfileOptions): Promise<{ ctx: Con
       installAnchor: options.resolvedProfile?.installAnchor ?? INSTALL_ANCHOR,
       startedBundles: composed.profile.layers.map(layer => layer.packageName),
       cwd: process.cwd(), home: resolveDshHome(),
-      overlays: composed.overlays, telemetryDisabledEnv: process.env.DSH_TELEMETRY_DISABLED,
+      overlays: composed.overlays, overlayPaths: composed.overlayPaths, telemetryDisabledEnv: process.env.DSH_TELEMETRY_DISABLED,
     }
     const ctx = await boot(NAME, rootConfig, readProfilePatches(NAME, profileContext, composed.profile), async (hostCtx) => {
       app.current = hostCtx

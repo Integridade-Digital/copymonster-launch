@@ -25,6 +25,14 @@ export interface ProfileContext {
   readonly startedBundles: readonly string[]
   /** Parsed command-line overlays, applied above profile and home patches. */
   readonly overlays: readonly PatchOptions[]
+  /**
+   * Absolute paths of the `--patch` overlays, in application order.
+   *
+   * Absent for a launch without overlays and for callers that build a
+   * context without them. The Config editor writes to the last entry when the
+   * path is writable, so operator choices land above every static layer.
+   */
+  readonly overlayPaths?: readonly string[]
   /** Launch-time DSH_TELEMETRY_DISABLED value; any non-empty value opts out. */
   readonly telemetryDisabledEnv: string | undefined
 }

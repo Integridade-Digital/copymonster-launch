@@ -30,8 +30,18 @@ export class ConfigEditor extends Service {
     super(ownerContext, 'configEditor')
   }
 
-  /** The profile patch edited by this service. */
-  get documentPath(): string { return this.ownerContext.profileContext.patchPath }
+  /**
+   * The patch file this service edits.
+   *
+   * The last `--patch` overlay wins when the launch supplied one, so operator
+   * choices land above every static layer: a deployment that replaces the
+   * tracked profile patch cannot revert them. A launch without overlays keeps
+   * writing the profile patch itself.
+   */
+  get documentPath(): string {
+    const overlay = this.ownerContext.profileContext.overlayPaths?.at(-1)
+    return overlay ?? this.ownerContext.profileContext.patchPath
+  }
 
   /** Addressable profile rows; nested Includes have independent configuration ownership.
    * @returns Active entries with unique profile patch ids.
@@ -133,7 +143,12 @@ export class ConfigEditor extends Service {
         } })
         const profile = this.ownerContext.profileContext
         const loaded = loadProfileDirectory('dsh', profile.dir, profile.installAnchor)
-        const patches = readProfilePatches('dsh', profile, { ...loaded, patches: yaml.load(String(document), { schema: entryListSchema }) as PatchOptions[] })
+        const written = yaml.load(String(document), { schema: entryListSchema }) as PatchOptions[]
+        // The edited document replaces only its own layer: the profile patch when
+        // no overlay was supplied, otherwise the last overlay that was just written.
+        const patches = this.documentPath === profile.patchPath
+          ? readProfilePatches('dsh', profile, { ...loaded, patches: written })
+          : readProfilePatches('dsh', { ...profile, overlays: [...profile.overlays.slice(0, -1), ...written] }, loaded)
         const effective = flatten(composeEntries([patches])).find(row => row.id === entry.options.id)
         if (!isDeepStrictEqual(effective?.config ?? {}, next)) {
           throw new Error(`Configuration for "${entry.options.id}" is overridden by a home patch or command-line overlay`)

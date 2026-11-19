@@ -204,6 +204,77 @@ describe('resolveRouteChain', () => {
     expect(primaryRoute).toEqual({ provider: 'none', model: 'none' })
     expect(fallbackChain).toEqual([])
   })
+
+  const twoProviders = [
+    { id: 'deepseek-official', name: 'DeepSeek', models: ['deepseek-chat', 'deepseek-reasoner'] },
+    { id: 'openrouter', name: 'OpenRouter', models: ['openrouter/free'] },
+  ]
+
+  it('leads with the administrator-pinned primary route', async () => {
+    const { primaryRoute, fallbackChain } = await resolveRouteChain(
+      ctxWith(twoProviders, { provider: 'deepseek-official', model: 'deepseek-chat' }),
+      { primaryProvider: 'openrouter', primaryModel: 'openrouter/free' },
+    )
+    expect(primaryRoute).toEqual({ provider: 'openrouter', model: 'openrouter/free' })
+    expect(fallbackChain).toEqual([
+      { provider: 'deepseek-official', model: 'deepseek-chat' },
+      { provider: 'deepseek-official', model: 'deepseek-reasoner' },
+    ])
+  })
+
+  it('puts the administrator-pinned contingency route first in the fallback chain', async () => {
+    const { primaryRoute, fallbackChain } = await resolveRouteChain(
+      ctxWith(twoProviders, { provider: 'deepseek-official', model: 'deepseek-chat' }),
+      {
+        primaryProvider: 'deepseek-official',
+        primaryModel: 'deepseek-chat',
+        fallbackProvider: 'openrouter',
+        fallbackModel: 'openrouter/free',
+      },
+    )
+    expect(primaryRoute).toEqual({ provider: 'deepseek-official', model: 'deepseek-chat' })
+    expect(fallbackChain).toEqual([
+      { provider: 'openrouter', model: 'openrouter/free' },
+      { provider: 'deepseek-official', model: 'deepseek-reasoner' },
+    ])
+  })
+
+  it('falls back to the live catalog when the pin is incomplete', async () => {
+    const { primaryRoute } = await resolveRouteChain(
+      ctxWith(twoProviders, { provider: 'openrouter', model: 'openrouter/free' }),
+      { primaryProvider: 'deepseek-official', primaryModel: '' },
+    )
+    expect(primaryRoute).toEqual({ provider: 'openrouter', model: 'openrouter/free' })
+  })
+
+  it('ignores a pin the catalog does not advertise', async () => {
+    const { primaryRoute, fallbackChain } = await resolveRouteChain(
+      ctxWith(twoProviders, { provider: 'openrouter', model: 'openrouter/free' }),
+      { primaryProvider: 'removed-provider', primaryModel: 'gone', fallbackProvider: 'removed', fallbackModel: 'gone' },
+    )
+    expect(primaryRoute).toEqual({ provider: 'openrouter', model: 'openrouter/free' })
+    expect(fallbackChain).toEqual([
+      { provider: 'deepseek-official', model: 'deepseek-chat' },
+      { provider: 'deepseek-official', model: 'deepseek-reasoner' },
+    ])
+  })
+
+  it('keeps the default chain when the pin equals the default route', async () => {
+    const { primaryRoute, fallbackChain } = await resolveRouteChain(
+      ctxWith(twoProviders, { provider: 'deepseek-official', model: 'deepseek-chat' }),
+      {
+        primaryProvider: 'deepseek-official',
+        primaryModel: 'deepseek-chat',
+        fallbackProvider: 'deepseek-official',
+        fallbackModel: 'deepseek-chat',
+      },
+    )
+    expect(primaryRoute).toEqual({ provider: 'deepseek-official', model: 'deepseek-chat' })
+    expect(fallbackChain).toEqual([
+      { provider: 'deepseek-official', model: 'deepseek-reasoner' },
+      { provider: 'openrouter', model: 'openrouter/free' },
+    ])
+  })
 })
 
 describe('model-mask routing', () => {

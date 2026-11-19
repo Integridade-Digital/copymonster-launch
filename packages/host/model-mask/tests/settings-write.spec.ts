@@ -70,11 +70,44 @@ it('accepts the failover policy write the Settings page performs', async () => {
     .toMatchObject({ fallbackPolicy: { enabled: false } })
 })
 
-it('names the pinned route as the reason a route write is refused', async () => {
+it('accepts the pinned route and failover policy writes the Admin card performs', async () => {
   const ctx = await fixture()
-  const before = ctx.settings.describe().find(row => row.ns === 'model-mask')!.value
-  await expect(ctx.settings.mutate('model-mask', [
+  await ctx.settings.mutate('model-mask', [
     { op: 'set', path: ['primaryProvider'], value: 'deepseek-official' },
-  ])).rejects.toThrow('"primaryProvider" is not volatile')
-  expect(ctx.settings.describe().find(row => row.ns === 'model-mask')!.value).toEqual(before)
+    { op: 'set', path: ['primaryModel'], value: 'deepseek-chat' },
+    { op: 'set', path: ['fallbackProvider'], value: 'openrouter' },
+    { op: 'set', path: ['fallbackModel'], value: 'openrouter/free' },
+    { op: 'set', path: ['fallbackPolicy', 'enabled'], value: true },
+  ])
+  expect(ctx.settings.describe().find(row => row.ns === 'model-mask')!.value).toMatchObject({
+    primaryProvider: 'deepseek-official',
+    primaryModel: 'deepseek-chat',
+    fallbackProvider: 'openrouter',
+    fallbackModel: 'openrouter/free',
+    fallbackPolicy: { enabled: true },
+  })
+  expect(ctx.modelMask.getPolicy()).toMatchObject({
+    primaryProvider: 'deepseek-official',
+    primaryModel: 'deepseek-chat',
+  })
+})
+
+it('clears the pins so the mask follows the live catalog again', async () => {
+  const ctx = await fixture()
+  await ctx.settings.mutate('model-mask', [
+    { op: 'set', path: ['primaryProvider'], value: 'deepseek-official' },
+    { op: 'set', path: ['primaryModel'], value: 'deepseek-chat' },
+  ])
+  await ctx.settings.mutate('model-mask', [
+    { op: 'set', path: ['primaryProvider'], value: '' },
+    { op: 'set', path: ['primaryModel'], value: '' },
+  ])
+  // No real provider is mounted here, so the catalog holds only the mask's own
+  // alias; what matters is that the cleared pins leave no stored route behind.
+  expect(ctx.modelMask.getPolicy()).toMatchObject({ primaryProvider: '', primaryModel: '' })
+  expect(ctx.settings.describe().find(row => row.ns === 'model-mask')!.value).toMatchObject({
+    primaryProvider: '',
+    primaryModel: '',
+  })
+  expect(ctx.modelMask.currentRoutes().primaryRoute.provider).not.toBe('deepseek-official')
 })

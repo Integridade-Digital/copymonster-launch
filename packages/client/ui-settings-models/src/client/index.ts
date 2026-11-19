@@ -18,7 +18,7 @@ import type {} from '@deepseek-ai/dsh-api-remotes/client'
 import { isPlatformAdmin, whenPlatformAdmin } from '@deepseek-ai/dsh-client-ui-primitives'
 import { ModelsSection } from './ModelsSection.tsx'
 import { PlatformRoutingCard } from './PlatformRoutingCard.tsx'
-import type { PlatformRoutingCardInjected } from './PlatformRoutingCard.tsx'
+import type { PlatformRoutingCardInjected, RoutingCatalogProvider } from './PlatformRoutingCard.tsx'
 import type { ModelsSectionInjected } from './ModelsSection.tsx'
 import { DeepSeekOnboardingDialog } from './DeepSeekOnboardingDialog.tsx'
 import type { DeepSeekOnboardingInjected } from './DeepSeekOnboardingDialog.tsx'
@@ -109,6 +109,18 @@ export function apply(ctx: ClientContext): void {
     controller,
     hooks: { snapshot: controller.store },
     operations,
+    catalog: async (): Promise<readonly RoutingCatalogProvider[]> => {
+      const response = await ctx.remote.session.modelCatalog()
+      if (!response.ok) throw new Error(response.error.message)
+      return response.value.groups
+        // The virtual alias is the mask itself, never a route a pin may name.
+        .filter(group => group.id !== 'copymonster')
+        .map(group => ({
+          id: group.id,
+          name: group.name,
+          models: group.models.map(model => ({ id: model.id, name: model.name })),
+        }))
+    },
     t,
   })
   // The scope's own memory mode is what keeps a remote browser process-local,

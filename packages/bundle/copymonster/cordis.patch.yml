@@ -73,17 +73,22 @@
                 model: openrouter/free
 
     # Virtual-model mask: tenants see only `copy-monster-default` / "Model
-    # CopyMonster". The alias resolves automatically at dispatch time to the
-    # first model available in the live catalog (`ctx.llm.listModels`), falling
-    # back down the chain of remaining available models on transient failure.
-    # Admins keep the full catalog via session-controller. No provider or model
-    # is pinned here: whatever `Settings > Models` has active is used.
+    # CopyMonster". The Admin provider manager (`PlatformRoutingCard` in
+    # `Settings > Models`) pins the primary and contingency routes below by
+    # writing these volatile fields; an empty pin follows the live catalog
+    # (`ctx.llm.listModels`) and falls over down the remaining available models
+    # on transient failure. Admins keep the full catalog via
+    # session-controller. Settings > Models itself is unchanged.
     - id: model-mask
       name: '@deepseek-ai/dsh-host-model-mask'
       config:
         virtualProvider: copymonster
         virtualModel: copy-monster-default
         virtualModelName: Model CopyMonster
+        primaryProvider: ''
+        primaryModel: ''
+        fallbackProvider: ''
+        fallbackModel: ''
         fallbackPolicy:
           enabled: true
           maxAttempts: 3

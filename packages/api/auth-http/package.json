@@ -18,7 +18,7 @@
     },
     "./billing": {
       "types": "./lib/types/billing.d.ts",
-      "default": "./lib/billing.js"
+      "default": "./lib/types/billing.js"
     },
     "./src/*": "./src/*",
     "./package.json": "./package.json"

@@ -51,7 +51,7 @@ async function bench(runtime: 'web' | 'desktop' = 'desktop', platform: ShortcutP
   locale.setLocale('en')
   ctx.provide('locale', locale)
   const navigation = {
-    startSession: vi.fn(), forkSession: vi.fn(async () => 'fork-child' as SessionId), archiveSession: vi.fn(async (_sessionId: SessionId) => {}),
+    startSession: vi.fn(), forkSession: vi.fn(async () => {}), archiveSession: vi.fn(async (_sessionId: SessionId) => {}),
   }
   const controls = createWorkspaceShortcutControls()
   const reportForkFailure = vi.fn()

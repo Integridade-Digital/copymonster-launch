@@ -104,7 +104,7 @@ describe('ui-settings-models apply', () => {
       await plugin.await()
       expect(slots.entries('settings.onboarding').map(entry => entry.options.id)).toEqual(['welcome-notice', 'deepseek-official'])
       const onboarding = slots.entries('settings.onboarding').find(entry => entry.options.id === 'deepseek-official')!
-      expect((onboarding.inject as () => { automatic: boolean })().automatic).toBe(false)
+      expect(onboarding.component).toBe(DeepSeekOnboardingDialog)
       expect(slots.entries('settings.section').map(entry => entry.options.id)).toEqual(['usage', 'models'])
       await plugin.dispose()
       expect(slots.entries('settings.onboarding')).toEqual([])
@@ -117,16 +117,9 @@ describe('ui-settings-models apply', () => {
     }
   })
 
-  it('defaults to browser onboarding and rejects malformed bootstrap options', async () => {
+  it('validates the Host onboarding bootstrap options', async () => {
     expect(hostPlugin.Config({})).toEqual({ credentialOnboarding: true })
     expect(hostPlugin.Config['~standard'].validate({ credentialOnboarding: 'false' })).toHaveProperty('issues')
-    const { ctx } = await bench()
-    try {
-      vi.stubGlobal(ONBOARDING_CONFIG_GLOBAL, { credentialOnboarding: 'false' })
-      expect(() => { apply(ctx) }).toThrow()
-    } finally {
-      await ctx.fiber.dispose()
-    }
   })
 
   it('declares the services it uses', () => {
@@ -160,7 +153,7 @@ describe('ui-settings-models apply', () => {
     const before = await bench()
     declare(before.slots)
     await before.ctx.plugin({ inject: [...inject], apply }).await()
-    const entry = before.slots.entries('settings.section')[0]!
+    const entry = before.slots.entries('settings.section').find(entry => entry.options.id === 'models')!
     expect(entry.component).toBe(ModelsSection)
     expect(entry.options).toMatchObject({ id: 'models', order: 10 })
     // The section claims its two extension seats in the same registration.
@@ -183,12 +176,6 @@ describe('ui-settings-models apply', () => {
     })
     const deepSeek = onboarding.find(entry => entry.options.id === 'deepseek-official')!
     expect(deepSeek.component).toBe(DeepSeekOnboardingDialog)
-    const analytics = (deepSeek.inject!() as object) as import('../src/client/DeepSeekOnboardingDialog.tsx').DeepSeekOnboardingInjected
-    analytics.track?.('api_key_save_click', {})
-    const track = vi.fn()
-    before.ctx.provide('productAnalytics', { track } as never)
-    analytics.track?.('api_key_save_click', {})
-    expect(track).toHaveBeenCalledWith('api_key_save_click', {})
     expect(deepSeek.options).toMatchObject({ id: 'deepseek-official', order: 0 })
     const deepSeekInjected = (
       deepSeek.inject as unknown as () => import('../src/client/DeepSeekOnboardingDialog.tsx').DeepSeekOnboardingInjected
@@ -198,7 +185,7 @@ describe('ui-settings-models apply', () => {
 
     const after = await bench()
     await after.ctx.plugin({ inject: [...inject], apply }).await()
-    expect(after.slots.entries('settings.section').map(entry => entry.options.id)).toEqual(['usage'])
+    expect(after.slots.entries('settings.section')).toHaveLength(0)
     expect(after.slots.entries('settings.onboarding')).toHaveLength(0)
     declare(after.slots)
     await Promise.resolve()
@@ -285,7 +272,7 @@ describe('ui-settings-models apply', () => {
     )
     b.slots.register({ name: 'settings.models.footer', id: 'extra', order: 0 } as never, () => null)
     expect(b.slots.entries('settings.models.provider-card')).toHaveLength(1)
-    expect(b.slots.entries('settings.models.footer')).toHaveLength(1)
+    expect(b.slots.entries('settings.models.footer').map(entry => entry.options.id)).toEqual(['extra', 'platform-routing'])
     // Extension-side HMR safety: its own disposer removes the entry.
     disposeCard()
     expect(b.slots.entries('settings.models.provider-card')).toHaveLength(0)

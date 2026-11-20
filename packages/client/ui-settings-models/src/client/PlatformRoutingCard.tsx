@@ -134,7 +134,8 @@ export function PlatformRoutingCard(props: PlatformRoutingCardProps): ReactNode 
   const canEdit = state.writable && maskNamespace !== undefined
   const stale = !sameDraft(draft, storedDraft)
   const incomplete = [draft.primary, draft.fallback].some(route => (route.provider === AUTOMATIC) !== (route.model === AUTOMATIC))
-  const saveDisabled = isSaving || !canEdit || incomplete || !stale
+  // Saving the current selection also publishes it to tenants after an upgrade.
+  const saveDisabled = isSaving || !canEdit || incomplete
 
   const updateRoute = useCallback((which: 'primary' | 'fallback', patch: Partial<RouteDraft>): void => {
     setStatusMessage(null)

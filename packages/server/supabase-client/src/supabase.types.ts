@@ -333,6 +333,14 @@ export interface Database {
     }
     Views: Record<string, never>
     Functions: {
+      save_platform_model_routing: {
+        Args: { p_policy: Json }
+        Returns: undefined
+      }
+      read_platform_model_routing: {
+        Args: Record<string, never>
+        Returns: Json
+      }
       get_current_user_id: {
         Args: Record<string, never>
         Returns: string

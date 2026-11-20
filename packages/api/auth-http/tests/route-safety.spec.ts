@@ -11,6 +11,7 @@ interface Mounted {
 }
 
 async function mount(options: {
+  path?: string
   trustRejection?: () => 401 | 403 | undefined
   resolveIdentity?: () => Promise<never>
 } = {}): Promise<Mounted> {
@@ -38,7 +39,7 @@ async function mount(options: {
     trustedProxyAddresses: [],
   })
   await fiber.await()
-  const route = routes.get('/api/auth/me')
+  const route = routes.get(options.path ?? '/api/auth/me')
   if (route === undefined) throw new Error('route not registered')
   return { route, dispose: () => fiber.dispose() }
 }
@@ -73,6 +74,21 @@ describe('auth-http exact routes', () => {
       const out = response()
       mounted.route(request(), out.res)
       expect(out.status()).toBe(403)
+    } finally {
+      await mounted.dispose()
+    }
+  })
+
+  it('rejects unsigned reads of the platform routing policy', async () => {
+    const path = '/api/internal/platform-model-routing'
+    const mounted = await mount({ path })
+    try {
+      const req = request()
+      req.url = path
+      const out = response()
+      mounted.route(req, out.res)
+      expect(out.status()).toBe(403)
+      expect(out.body()).not.toContain('policy')
     } finally {
       await mounted.dispose()
     }

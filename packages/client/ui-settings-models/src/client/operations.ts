@@ -84,7 +84,9 @@ export function createModelsOperations(ctx: ClientContext): ModelsOperations {
       return response.ok ? undefined : response.error.message
     },
     writeSettings: async (ns, ops, expectedRevision) => {
-      const response = await ctx.remote.settings.mutate(ns, ops, expectedRevision)
+      const response = ns === 'model-mask'
+        ? await ctx.remote.settings.savePlatformRouting(ops, expectedRevision)
+        : await ctx.remote.settings.mutate(ns, ops, expectedRevision)
       if (response.ok) return { kind: 'written', view: response.value }
       const { code, message } = response.error
       return code === 'settings/conflict' ? { kind: 'conflict', message } : { kind: 'refused', message }

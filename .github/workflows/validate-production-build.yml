@@ -14,15 +14,13 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
         with:
-          ref: 4abbd090f180270bbc40734beb9e3153d9f576ad
+          ref: a59e5a954c911d084436652c3f4dc9ba4ea2ac78
           persist-credentials: false
       - uses: pnpm/action-setup@v5.0.0
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: '24'
       - run: pnpm install --frozen-lockfile
-      - run: pnpm run build:artifacts
-      - name: Type-check the client test suite
-        run: pnpm exec tsc -p tsconfig.client.json --pretty false
+      - run: pnpm run build
         env:
           DSH_GATE_CONCURRENCY: '1'

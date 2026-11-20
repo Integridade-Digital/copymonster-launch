@@ -5,18 +5,18 @@
   "private": true,
   "type": "module",
   "description": "CopyMonster Supabase clients (anon + service role) for the Harness host",
-  "main": "lib/index.js",
+  "main": "lib/types/index.js",
   "types": "lib/types/index.d.ts",
   "exports": {
     ".": {
       "types": "./lib/types/index.d.ts",
-      "import": "./src/index.ts",
-      "default": "./src/index.ts"
+      "import": "./lib/types/index.js",
+      "default": "./lib/types/index.js"
     },
     "./types": {
       "types": "./lib/types/supabase.types.d.ts",
-      "import": "./src/supabase.types.ts",
-      "default": "./src/supabase.types.ts"
+      "import": "./lib/types/supabase.types.js",
+      "default": "./lib/types/supabase.types.js"
     },
     "./src/*": "./src/*",
     "./package.json": "./package.json"

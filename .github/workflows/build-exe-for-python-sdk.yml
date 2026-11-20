@@ -265,7 +265,7 @@ jobs:
         env:
           DSH_BUILD_CLIENT_PROFILE: official
         run: >-
-          pnpm exec tsx scripts/build-exe-for-python-sdk.ts --targets=${{ matrix.target }}
+          node --import tsx/esm scripts/build-exe-for-python-sdk.ts --targets=${{ matrix.target }}
           ${{ inputs.ci && github.event_name == 'pull_request' && '--build-artifacts' || '' }}
 
       - name: Resolve platform outputs (POSIX)

@@ -5,6 +5,8 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
+  fontkit@2.0.4>@swc/helpers: 0.5.23
+  '@swc/helpers@0.5.23>tslib': 2.8.1
   extract-zip>yauzl: 3.4.0
   '@deepseek-ai/cosmokit': link:vendor/cosmokit
   '@deepseek-ai/schemastery': link:vendor/schemastery
@@ -17655,6 +17657,9 @@ importers:
       '@deepseek-ai/dsh-anonymous-user-id':
         specifier: workspace:*
         version: link:../../packages/identity/anonymous-user-id
+      '@deepseek-ai/dsh-api-auth-context':
+        specifier: workspace:*
+        version: link:../../packages/api/auth-context
       '@deepseek-ai/dsh-api-gateway':
         specifier: workspace:*
         version: link:../../packages/api/gateway
@@ -17754,6 +17759,9 @@ importers:
       '@deepseek-ai/dsh-home-paths':
         specifier: workspace:*
         version: link:../../packages/util/home-paths
+      '@deepseek-ai/dsh-host-model-mask':
+        specifier: workspace:*
+        version: link:../../packages/host/model-mask
       '@deepseek-ai/dsh-host-plugin-inventory':
         specifier: workspace:*
         version: link:../../packages/host/plugin-inventory
@@ -17937,6 +17945,9 @@ importers:
       '@deepseek-ai/dsh-subprocess-local':
         specifier: workspace:*
         version: link:../../packages/subprocess/subprocess-local
+      '@deepseek-ai/dsh-supabase-client':
+        specifier: workspace:*
+        version: link:../../packages/server/supabase-client
       '@deepseek-ai/dsh-system-prompt':
         specifier: workspace:*
         version: link:../../packages/core/system-prompt

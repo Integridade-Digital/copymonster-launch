@@ -10,7 +10,7 @@ afterEach(() => {
 describe('createWebConnectionRpc authorization', () => {
   it('sends the published Supabase bearer token', async () => {
     ;(globalThis as AuthGlobal).__DSH_AUTH__ = { accessToken: 'supabase-token' }
-    const send = vi.fn(async (_input: URL, init: RequestInit) => {
+    const send = vi.fn(async (_input: string | URL, init: RequestInit) => {
       const body = JSON.parse(String(init.body)) as { rpcId: string }
       return Response.json({
         type: 'server-response',
@@ -28,7 +28,7 @@ describe('createWebConnectionRpc authorization', () => {
   })
 
   it('omits authorization when no session token is published', async () => {
-    const send = vi.fn(async (_input: URL, init: RequestInit) => {
+    const send = vi.fn(async (_input: string | URL, init: RequestInit) => {
       const body = JSON.parse(String(init.body)) as { rpcId: string }
       return Response.json({
         type: 'server-response',

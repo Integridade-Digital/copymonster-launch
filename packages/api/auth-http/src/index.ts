@@ -17,6 +17,8 @@
  * @module @deepseek-ai/dsh-api-auth-http
  */
 
+import { createHmac, timingSafeEqual } from 'node:crypto'
+import { supabaseAdminClient } from '@deepseek-ai/dsh-supabase-client'
 import type { IncomingMessage, ServerResponse } from 'node:http'
 import type { Context } from '@deepseek-ai/cordis'
 import type {} from '@deepseek-ai/dsh-host-webserver'
@@ -405,6 +407,38 @@ export function apply(ctx: Context, config: Config): void {
     path: MODEL_MASK_STATUS_PATH,
     handler: limited((req: IncomingMessage, res: ServerResponse) => handleModelMaskStatus(ctx, req, res), modelMaskLimiter),
   }), `auth-http: ${MODEL_MASK_STATUS_PATH}`)
+
+  const platformRoutingPath = '/api/internal/platform-model-routing'
+  const platformRoutingLimiter = limiter()
+  ctx.effect(() => ctx.webServer.register({
+    kind: 'exact',
+    path: platformRoutingPath,
+    handler: limited(async (req: IncomingMessage, res: ServerResponse) => {
+      const secret = process.env.SESSION_SECRET
+      const issued = firstHeader(req.headers['x-dsh-routing-issued'])
+      const signature = firstHeader(req.headers['x-dsh-routing-signature'])
+      if (req.method !== 'GET' || !secret || secret.length < 32
+        || issued === undefined || !/^\d{13}$/.test(issued)
+        || Math.abs(Date.now() - Number(issued)) > 30_000
+        || signature === undefined || !/^[a-f0-9]{64}$/.test(signature)) {
+        sendJson(res, 403, { error: 'forbidden' })
+        return
+      }
+      const expected = createHmac('sha256', secret).update(`GET ${platformRoutingPath}\n${issued}`).digest()
+      if (!timingSafeEqual(expected, Buffer.from(signature, 'hex'))) {
+        sendJson(res, 403, { error: 'forbidden' })
+        return
+      }
+      try {
+        const { data, error } = await supabaseAdminClient.rpc('read_platform_model_routing', {})
+        res.setHeader('cache-control', 'no-store')
+        if (error) sendJson(res, 503, { error: 'routing-unavailable' })
+        else sendJson(res, 200, { policy: data })
+      } catch {
+        sendJson(res, 503, { error: 'routing-unavailable' })
+      }
+    }, platformRoutingLimiter),
+  }), `auth-http: ${platformRoutingPath}`)
 
   ctx.effect(() => ctx.webServer.register({
     kind: 'exact',

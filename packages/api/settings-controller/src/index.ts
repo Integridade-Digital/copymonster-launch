@@ -39,6 +39,18 @@ export type * from './types.ts'
 
 const settingsNamespaceRequestSchema = z.object({ ns: z.string().min(1) })
 
+const platformRoutingSchema = z.object({
+  primaryProvider: z.string().max(256).default(''),
+  primaryModel: z.string().max(256).default(''),
+  fallbackProvider: z.string().max(256).default(''),
+  fallbackModel: z.string().max(256).default(''),
+  fallbackPolicy: z.object({
+    enabled: z.boolean().default(true),
+    maxAttempts: z.number().int().positive().default(3),
+    timeoutMs: z.number().int().positive().default(30000),
+  }).default({ enabled: true, maxAttempts: 3, timeoutMs: 30000 }),
+})
+
 /** Read abort state afresh after an awaited provider or opener call. */
 function isAborted(signal: AbortSignal): boolean {
   return signal.aborted
@@ -470,6 +482,23 @@ export class SettingsController extends TypertRemoteService {
       throw new RemoteError('gateway/internal', `settings namespace "${ns}" was disposed after the ${mode}`, {})
     }
     return namespaceView(descriptor)
+  }
+
+  /** Apply and publish provider routing under the authenticated platform administrator. */
+  @RemoteScope('auth', 'savePlatformRouting')
+  async savePlatformRouting(ops: SettingsPathOpView[], expectedRevision: number | undefined): Promise<SettingsNamespaceView> {
+    const client = requireUserClient(this.ctx)
+    const { data: allowed, error: accessError } = await client.rpc('is_admin_or_owner', {})
+    if (accessError) throw new RemoteError('gateway/internal', 'Não foi possível verificar o acesso à rota da plataforma.', {})
+    if (!allowed) throw new RemoteError('settings/forbidden', 'Apenas administradores da plataforma podem publicar rotas.', { ns: 'model-mask' })
+
+    const view = await this.write('model-mask', 'mutate', ops, expectedRevision)
+    const policy = platformRoutingSchema.parse(view.value)
+    const { error } = await client.rpc('save_platform_model_routing', { p_policy: policy })
+    if (error) {
+      throw new RemoteError('gateway/internal', 'Não foi possível publicar a rota para os tenants. Recarregue e salve novamente.', {})
+    }
+    return view
   }
 
   /** Resolve the optional provider or report how to supply it. */

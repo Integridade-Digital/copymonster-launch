@@ -67,6 +67,7 @@ function scripted(value: Record<string, JsonValue>, overrides: {
         value: { writable: overrides.writable ?? true, hasDocument: false, namespaces: [namespace] },
       })),
       mutate,
+      savePlatformRouting: (ops: unknown, revision: number) => mutate('model-mask', ops, revision),
     },
     credentials: {
       describe: vi.fn((refs: string[]): Promise<RemoteResult<Record<string, { configured: boolean }>>> =>
@@ -111,7 +112,7 @@ describe('PlatformRoutingCard', () => {
     expect(screen.getByText(en.routingFallbackAuto)).toBeTruthy()
     expect(provider.disabled).toBe(false)
     expect(screen.getByLabelText<HTMLSelectElement>(en.routingPrimaryModel).disabled).toBe(true)
-    expect(screen.getByRole('button', { name: en.routingSave })).toHaveProperty('disabled', true)
+    expect(screen.getByRole('button', { name: en.routingSave })).toHaveProperty('disabled', false)
   })
 
   it('pins openrouter and deepseek-chat from the real catalog', async () => {
@@ -199,7 +200,7 @@ describe('PlatformRoutingCard', () => {
     await waitFor(() => { expect(provider.querySelectorAll('option')).toHaveLength(3) })
     expect(provider.value).toBe('deepseek-official')
     expect(screen.getByLabelText<HTMLSelectElement>(en.routingPrimaryModel).value).toBe('deepseek-chat')
-    expect(screen.getByRole('button', { name: en.routingSave })).toHaveProperty('disabled', true)
+    expect(screen.getByRole('button', { name: en.routingSave })).toHaveProperty('disabled', false)
 
     fireEvent.change(provider, { target: { value: '' } })
     await act(async () => { fireEvent.click(screen.getByRole('button', { name: en.routingSave })) })

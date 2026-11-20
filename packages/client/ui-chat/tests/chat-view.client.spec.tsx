@@ -553,20 +553,20 @@ describe('Chat node rendering', () => {
 
   it('formatRunDuration localizes units and floors partial seconds', () => {
     const t = makeTranslate(zh, commonZh)
-    expect(formatRunDuration(0, t)).toBe('0秒')
-    expect(formatRunDuration(-500, t)).toBe('0秒')
-    expect(formatRunDuration(15_999, t)).toBe('15秒')
-    expect(formatRunDuration(125_000, t)).toBe('2分05秒')
+    expect(formatRunDuration(0, t).map(part => part.text).join('')).toBe('0秒')
+    expect(formatRunDuration(-500, t).map(part => part.text).join('')).toBe('0秒')
+    expect(formatRunDuration(15_999, t).map(part => part.text).join('')).toBe('15秒')
+    expect(formatRunDuration(125_000, t).map(part => part.text).join('')).toBe('2分5秒')
     // The hour rolls at exactly 3600s, never at 60 displayed minutes.
-    expect(formatRunDuration(3_599_999, t)).toBe('59分59秒')
-    expect(formatRunDuration(3_600_000, t)).toBe('1小时00分00秒')
-    expect(formatRunDuration(3_903_000, t)).toBe('1小时05分03秒')
-    expect(formatRunDuration(7_261_000, t)).toBe('2小时01分01秒')
+    expect(formatRunDuration(3_599_999, t).map(part => part.text).join('')).toBe('59分59秒')
+    expect(formatRunDuration(3_600_000, t).map(part => part.text).join('')).toBe('1小时0分0秒')
+    expect(formatRunDuration(3_903_000, t).map(part => part.text).join('')).toBe('1小时5分3秒')
+    expect(formatRunDuration(7_261_000, t).map(part => part.text).join('')).toBe('2小时1分1秒')
   })
 
   it('formatRunDuration uses the English hour template', () => {
     const t = makeTranslate(en, commonEn)
-    expect(formatRunDuration(3_903_000, t)).toBe('1h 05m 03s')
+    expect(formatRunDuration(3_903_000, t).map(part => part.text).join('')).toBe('1h 5m 3s')
   })
 
 })
@@ -1875,7 +1875,7 @@ describe('ChatView', () => {
     })
     const view = render(<h.ChatView {...h.props} />)
     expect(view.container.querySelector('[data-turn-tail="1"]')?.textContent)
-      .toContain('用时 1小时05分03秒')
+      .toContain('用时 1小时5分3秒')
   })
 
   it('the settled footer exposes ttft, decode throughput, and usage as the details trigger', () => {

@@ -7,7 +7,6 @@ import { describe, expect, vi } from 'vitest'
 import type { SessionId } from '@deepseek-ai/dsh-api-remotes/client'
 import { SessionSeq } from '@deepseek-ai/dsh-session/types'
 import { RemoteError } from '@deepseek-ai/dsh-typert-protocol'
-import type { SessionControlFrame } from '@deepseek-ai/dsh-api-session-controller/types'
 import { ok, type RemoteMock } from '@deepseek-ai/dsh-remote-mock'
 import {
   createClientTest, type ClientTestFixtures, webApp,
@@ -32,6 +31,7 @@ type SummaryOver = Partial<{
   blank: boolean
   cwd: string
   parentSessionId: SessionId
+  agentAvailable: boolean
   origin: 'subagent'
 }>
 
@@ -57,17 +57,15 @@ describe('SessionManager instances', () => {
     expect(manager.get(S1)).toBe(session) // resident: same instance forever
     expect(session.getSnapshot().running).toBe(true) // list preceded instantiation
   })
-
 })
 
 describe('SessionManager query lifetime', () => {
-  it.for(['list', 'catalog'] as const)('forwards an unexpected %s failure and still completes teardown', async (target, { mock, remote }) => {
+  it('forwards an unexpected list failure and still completes teardown', async ({ mock, remote }) => {
     const manager = makeManager(mock, remote)
     const failure = new Error('query implementation failed')
-    if (target === 'list') remote.session.list.mockRejectedValueOnce(failure)
-    else remote.subagents.list.mockRejectedValueOnce(failure)
+    remote.session.list.mockRejectedValueOnce(failure)
     try {
-      await expect(target === 'list' ? manager.refreshList() : manager.refreshSubagents(S1)).rejects.toBe(failure)
+      await expect(manager.refreshList()).rejects.toBe(failure)
     } finally {
       await manager.dispose()
     }
@@ -82,44 +80,6 @@ describe('SessionManager query lifetime', () => {
       expect(manager.getListSnapshot()).toMatchObject({ state: 'error', error: failure })
     } finally {
       await manager.dispose()
-    }
-  })
-
-  it.for([false, true])('preserves a rejected Remote catalog failure with prior baseline %s', async (warm, { mock, remote }) => {
-    const manager = makeManager(mock, remote)
-    const failure = new RemoteError('gateway/internal', 'catalog unavailable', {})
-    const entries = [{ kind: 'child' as const, id: S2, mode: 'one-shot' as const, activity: 'inactive' as const, hasChildren: false }]
-    try {
-      if (warm) {
-        remote.subagents.list.mockResolvedValueOnce(ok({ entries, parentAvailable: true }))
-        await manager.refreshSubagents(S1)
-        manager.handleSessionRemoved(S1)
-      }
-      remote.subagents.list.mockRejectedValueOnce(failure)
-      const refresh = manager.refreshSubagents(S1)
-      await refresh
-      expect(manager.getListSnapshot().subagentsByParent[S1]).toMatchObject({
-        state: 'error', error: failure, entries: warm ? entries : [],
-      })
-      expect(manager.getListSnapshot().subagentsByParent[S1]?.parentAvailable).toBe(warm ? false : undefined)
-    } finally {
-      await manager.dispose()
-    }
-  })
-
-  it('cancels a queued catalog membership refresh when its consumer closes', async ({ mock, remote }) => {
-    vi.useFakeTimers()
-    const manager = makeManager(mock, remote)
-    try {
-      manager.setSubagentCatalogOpen(S1, true)
-      await manager.refreshSubagents(S1)
-      manager.handleSessionAdded(summary(S2, { parentSessionId: S1 }))
-      manager.setSubagentCatalogOpen(S1, false)
-      await vi.runAllTimersAsync()
-      expect(remote.subagents.list).toHaveBeenCalledOnce()
-    } finally {
-      await manager.dispose()
-      vi.useRealTimers()
     }
   })
 })
@@ -150,13 +110,12 @@ describe('list lifecycle', () => {
     const manager = makeManager(mock, remote)
     try {
       manager.handleSessionAdded({
-        ...summary(S1), projections: { asOfSeq: -1, values: { title: 'before history' } },
+        ...summary(S1), projections: { kind: 'sequenced', asOfSeq: -1, values: { title: 'before history' } },
       })
       manager.handleControlFrame({
-        type: 'baseline', value: { jobs: { [S1]: [] }, projections: { [S1]: { asOfSeq: -1, values: { title: 'cold baseline' } } } },
+        type: 'baseline', value: { projections: { [S1]: { asOfSeq: -1, values: { title: 'cold baseline' } } } },
       })
       expect(manager.getListSnapshot().items[0]?.title).toBe('before history')
-      expect(manager.getListSnapshot().jobsBySession).toEqual({})
     } finally {
       await manager.dispose()
     }
@@ -268,8 +227,8 @@ describe('list lifecycle', () => {
     })
     remote.session.list.mockResolvedValue(ok({
       items: [
-        { ...summary(S1), projections: { asOfSeq: 4, values: { title: 'Cold cached' } } },
-        { ...summary(S2, { updatedAt: 200 }), projections: { asOfSeq: 5, values: { title: 'List stale' } } },
+        { ...summary(S1), projections: { kind: 'sequenced', asOfSeq: 4, values: { title: 'Cold cached' } } },
+        { ...summary(S2, { updatedAt: 200 }), projections: { kind: 'sequenced', asOfSeq: 5, values: { title: 'List stale' } } },
       ] as never[],
     }))
     await manager.refreshList()
@@ -293,7 +252,6 @@ describe('list lifecycle', () => {
       manager.handleControlFrame({
         type: 'baseline',
         value: {
-          jobs: {},
           projections: { [S1]: { asOfSeq: 2, values: { title: 'Durable' } } },
         },
       })
@@ -362,26 +320,22 @@ describe('Host Remote event routing', () => {
 describe('subagent catalogs', () => {
   it('keeps a catalog-discovered child address across identity resolution and status frames', async ({ mock, remote, start }) => {
     remote.session.list.mockResolvedValue(ok({ items: [
-      summary(S1),
+      summary(S1, { agentAvailable: true }),
       summary(S2, { parentSessionId: S1, origin: 'subagent' }),
     ] as never[] }))
-    remote.subagents.list.mockResolvedValue(ok({
-      entries: [{
-        kind: 'child', id: S2, mode: 'continuable', label: 'worker',
-        activity: 'running', hasChildren: false,
-      }] as never[],
-      parentAvailable: true,
-    }))
     mock.load(sessionWorld)
     const client = await start()
     const manager = new SessionManager(client.ctx.remote)
     await manager.refreshList()
-    await manager.refreshSubagents(S1)
-    manager.resolveTarget({ parentSessionId: S1, childSessionId: S2, mode: 'continuable' })
+    manager.handleControlFrame({
+      type: 'projection', sessionId: S1, key: 'subagentCatalog', seq: 1,
+      value: [{ id: S2, mode: 'continuable', label: 'worker', createdAt: 100 }],
+    })
 
     expect(manager.subagentAddress(S2)).toEqual({
       parentSessionId: S1, childSessionId: S2, mode: 'continuable',
     })
+    manager.resolveTarget(S2)
     expect(manager.get(S2).getSnapshot().subagent).toEqual({
       address: { parentSessionId: S1, childSessionId: S2, mode: 'continuable' },
       parentAvailable: true,
@@ -404,7 +358,8 @@ describe('subagent catalogs', () => {
           kind: 'subagent', parentSessionId: S1, childSessionId: S2, mode: 'continuable',
         },
         assistantStream: true,
-        maxMessages: 50,
+        maxMessages: 500,
+        turnWindow: { minMessages: 50, minTurns: 2 },
       },
     ])
     expect(remote.session.page).not.toHaveBeenCalled()
@@ -419,13 +374,6 @@ describe('subagent catalogs', () => {
       },
     ])
     expect(remote.session.prompt).not.toHaveBeenCalled()
-    const listCalls = remote.subagents.list.mock.calls.length
-    manager.handleSessionStatus(S2, false)
-    expect(manager.getListSnapshot().subagentsByParent[S1]?.entries[0]).toMatchObject({
-      kind: 'child', id: S2, activity: 'inactive',
-    })
-    expect(remote.subagents.list).toHaveBeenCalledTimes(listCalls)
-
     manager.handleSessionRemoved(S2)
     expect(manager.getListSnapshot().items.find(item => item.sessionId === S2)).toMatchObject({
       origin: 'subagent', parentSessionId: S1, running: false,
@@ -437,271 +385,6 @@ describe('subagent catalogs', () => {
       },
     })
   }, COLD_BOOT_TIMEOUT_MS)
-
-  it('refetches debounced membership only while the parent catalog is open', async ({ mock, remote }) => {
-    vi.useFakeTimers()
-    try {
-      const manager = makeManager(mock, remote)
-      await manager.refreshSubagents(S1)
-      manager.setSubagentCatalogOpen(S1, true)
-      await Promise.resolve()
-      const baseline = remote.subagents.list.mock.calls.length
-      manager.handleSessionAdded(summary(S2, { parentSessionId: S1 }))
-      manager.handleSessionAdded(summary('fk-m3' as SessionId, { parentSessionId: S1 }))
-      await vi.advanceTimersByTimeAsync(50)
-      expect(remote.subagents.list).toHaveBeenCalledTimes(baseline + 1)
-
-      manager.setSubagentCatalogOpen(S1, false)
-      manager.handleSessionAdded(summary('fk-m4' as SessionId, { parentSessionId: S1 }))
-      await vi.advanceTimersByTimeAsync(50)
-      expect(remote.subagents.list).toHaveBeenCalledTimes(baseline + 1)
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('marks a loaded parent row expandable only for a direct subagent publication', async ({ mock, remote }) => {
-    const root = 'fk-root' as SessionId
-    remote.subagents.list.mockResolvedValue(ok({
-      entries: [
-        {
-          kind: 'child', id: S1, mode: 'continuable', label: 'parent',
-          activity: 'inactive', hasChildren: false,
-        },
-        {
-          kind: 'child', id: S2, mode: 'continuable', label: 'ordinary parent',
-          activity: 'inactive', hasChildren: false,
-        },
-      ] as never[],
-      parentAvailable: true,
-    }))
-    const manager = makeManager(mock, remote)
-    await manager.refreshSubagents(root)
-
-    manager.handleSessionAdded(summary('fk-grandchild' as SessionId, {
-      parentSessionId: S1, origin: 'subagent',
-    }))
-    manager.handleSessionAdded(summary('fk-fork' as SessionId, { parentSessionId: S2 }))
-
-    expect(manager.getListSnapshot().subagentsByParent[root]?.entries).toMatchObject([
-      { kind: 'child', id: S1, hasChildren: true },
-      { kind: 'child', id: S2, hasChildren: false },
-    ])
-  })
-
-  it('preserves a live expandability hint across only the older in-flight catalog response', async ({ mock, remote }) => {
-    const root = 'fk-root' as SessionId
-    const response = Promise.withResolvers<Awaited<ReturnType<typeof remote.subagents.list>>>()
-    remote.subagents.list.mockReturnValue(response.promise)
-    const manager = makeManager(mock, remote)
-    const refresh = manager.refreshSubagents(root)
-
-    manager.handleSessionAdded(summary('fk-grandchild' as SessionId, {
-      parentSessionId: S1, origin: 'subagent',
-    }))
-    response.resolve(ok({
-      entries: [{
-        kind: 'child', id: S1, mode: 'continuable', label: 'parent',
-        activity: 'inactive', hasChildren: false,
-      }] as never[],
-      parentAvailable: true,
-    }))
-    await refresh
-
-    expect(manager.getListSnapshot().subagentsByParent[root]?.entries).toMatchObject([
-      { kind: 'child', id: S1, hasChildren: true },
-    ])
-
-    remote.subagents.list.mockResolvedValue(ok({
-      entries: [{
-        kind: 'child', id: S1, mode: 'continuable', label: 'parent',
-        activity: 'inactive', hasChildren: false,
-      }] as never[],
-      parentAvailable: true,
-    }))
-    await manager.refreshSubagents(root)
-    expect(manager.getListSnapshot().subagentsByParent[root]?.entries).toMatchObject([
-      { kind: 'child', id: S1, hasChildren: false },
-    ])
-  })
-
-  it('replays status frames over an older in-flight catalog response', async ({ mock, remote }) => {
-    const root = 'fk-root' as SessionId
-    const response = Promise.withResolvers<Awaited<ReturnType<typeof remote.subagents.list>>>()
-    remote.subagents.list.mockReturnValue(response.promise)
-    const manager = makeManager(mock, remote)
-    const refresh = manager.refreshSubagents(root)
-
-    manager.handleSessionStatus(S1, false)
-    manager.handleSessionStatus(S2, true)
-    response.resolve(ok({
-      entries: [
-        {
-          kind: 'child', id: S1, mode: 'continuable', label: 'stopped',
-          activity: 'running', hasChildren: false,
-        },
-        {
-          kind: 'child', id: S2, mode: 'continuable', label: 'started',
-          activity: 'inactive', hasChildren: false,
-        },
-      ] as never[],
-      parentAvailable: true,
-    }))
-    await refresh
-
-    expect(manager.getListSnapshot().subagentsByParent[root]?.entries).toMatchObject([
-      { kind: 'child', id: S1, activity: 'inactive' },
-      { kind: 'child', id: S2, activity: 'running' },
-    ])
-  })
-
-  it('marks a detached catalog child inactive without requiring a selected address', async ({ mock, remote }) => {
-    remote.subagents.list.mockResolvedValue(ok({
-      entries: [{
-        kind: 'child', id: S2, mode: 'continuable', label: 'worker',
-        activity: 'running', hasChildren: false,
-      }] as never[],
-      parentAvailable: true,
-    }))
-    const manager = makeManager(mock, remote)
-    await manager.refreshSubagents(S1)
-
-    manager.handleSessionRemoved(S2)
-
-    expect(manager.getListSnapshot().subagentsByParent[S1]?.entries).toMatchObject([
-      { kind: 'child', id: S2, activity: 'inactive' },
-    ])
-  })
-
-  it('coalesces overlapping catalog reads without scheduling a trailing pull', async ({ mock, remote }) => {
-    const root = 'fk-root' as SessionId
-    const first = Promise.withResolvers<Awaited<ReturnType<typeof remote.subagents.list>>>()
-    remote.subagents.list.mockReturnValue(first.promise)
-    const manager = makeManager(mock, remote)
-
-    const refresh = manager.refreshSubagents(root)
-    expect(manager.refreshSubagents(root)).toBe(refresh)
-    remote.subagents.list.mockResolvedValue(ok({ entries: [], parentAvailable: true }))
-    first.resolve(ok({ entries: [], parentAvailable: true }))
-    await refresh
-
-    expect(remote.subagents.list).toHaveBeenCalledOnce()
-  })
-
-  it('runs one trailing catalog refresh for a membership change coalesced into an in-flight pull', async ({ mock, remote }) => {
-    vi.useFakeTimers()
-    try {
-      const root = 'fk-root' as SessionId
-      const first = Promise.withResolvers<Awaited<ReturnType<typeof remote.subagents.list>>>()
-      const second = Promise.withResolvers<Awaited<ReturnType<typeof remote.subagents.list>>>()
-      remote.subagents.list.mockReturnValue(first.promise)
-      const manager = makeManager(mock, remote)
-      const refresh = manager.refreshSubagents(root)
-      manager.setSubagentCatalogOpen(root, true)
-
-      // A membership frame arrives while the pull is in flight; the debounced
-      // refresh it schedules fires 50ms later and is coalesced into the pull —
-      // which was requested before the new child existed. The stale mark must
-      // queue one trailing pull carrying the change.
-      manager.handleSessionAdded(summary(S2, { parentSessionId: root }))
-      await vi.advanceTimersByTimeAsync(50)
-      remote.subagents.list.mockReturnValueOnce(second.promise)
-      first.resolve(ok({
-        entries: [{
-          kind: 'child', id: S1, mode: 'continuable', label: 'older',
-          activity: 'inactive', hasChildren: false,
-        }] as never[],
-        parentAvailable: true,
-      }))
-      await refresh
-      // The trailing pull is already in flight (kicked synchronously in finally).
-      second.resolve(ok({
-        entries: [
-          {
-            kind: 'child', id: S1, mode: 'continuable', label: 'older',
-            activity: 'inactive', hasChildren: false,
-          },
-          {
-            kind: 'child', id: S2, mode: 'continuable', label: 'new child',
-            activity: 'inactive', hasChildren: false,
-          },
-        ] as never[],
-        parentAvailable: true,
-      }))
-      await second.promise
-      // The Remote face resolves one microtask after the response settles.
-      await vi.advanceTimersByTimeAsync(0)
-
-      expect(remote.subagents.list).toHaveBeenCalledTimes(2)
-      expect(manager.getListSnapshot().subagentsByParent[root]?.entries).toMatchObject([
-        { kind: 'child', id: S1, label: 'older' },
-        { kind: 'child', id: S2, label: 'new child' },
-      ])
-    } finally {
-      vi.useRealTimers()
-    }
-  })
-
-  it('keeps removal invalidation across a stale success and failed trailing pull', async ({ mock, remote }) => {
-    const root = 'fk-root' as SessionId
-    const child = () => ({
-      kind: 'child' as const, id: S2, mode: 'continuable' as const, label: 'worker',
-      activity: 'inactive' as const, hasChildren: false,
-    })
-    const first = Promise.withResolvers<Awaited<ReturnType<typeof remote.subagents.list>>>()
-    remote.subagents.list.mockReturnValue(first.promise)
-    const manager = makeManager(mock, remote)
-    const refresh = manager.refreshSubagents(root)
-    first.resolve(ok({ entries: [child()] as never[], parentAvailable: true }))
-    await refresh
-    manager.resolveTarget({ parentSessionId: root, childSessionId: S2, mode: 'continuable' })
-
-    // The removal lands while a second pull is in flight: the invalidation
-    // must survive the pre-removal ok response, so one trailing pull runs.
-    const mid = Promise.withResolvers<Awaited<ReturnType<typeof remote.subagents.list>>>()
-    remote.subagents.list.mockReturnValueOnce(mid.promise)
-    const midRefresh = manager.refreshSubagents(root)
-    manager.handleSessionRemoved(root)
-    const trailing = Promise.withResolvers<Awaited<ReturnType<typeof remote.subagents.list>>>()
-    remote.subagents.list.mockReturnValueOnce(trailing.promise)
-    mid.resolve(ok({ entries: [child()] as never[], parentAvailable: true }))
-    await midRefresh
-    expect(manager.getListSnapshot().subagentsByParent[root]?.parentAvailable).toBe(false)
-    expect(manager.get(S2).getSnapshot().subagent).toMatchObject({ parentAvailable: false })
-
-    trailing.resolve(err(new RemoteError('gateway/internal', 'trailing pull failed', {})))
-    await vi.waitFor(() => {
-      expect(manager.getListSnapshot().subagentsByParent[root]).toMatchObject({
-        state: 'error',
-        parentAvailable: false,
-      })
-    })
-
-    const rootCalls = remote.subagents.list.mock.calls.filter(([call]) => call === root)
-    expect(rootCalls).toHaveLength(3)
-    expect(manager.getListSnapshot().subagentsByParent[root]?.parentAvailable).toBe(false)
-    expect(manager.get(S2).getSnapshot().subagent).toMatchObject({ parentAvailable: false })
-  })
-
-  it('invalidates catalog availability when the owning parent is removed', async ({ mock, remote }) => {
-    const root = 'fk-root' as SessionId
-    remote.subagents.list.mockResolvedValue(ok({
-      entries: [{
-        kind: 'child', id: S2, mode: 'continuable', label: 'worker',
-        activity: 'inactive', hasChildren: false,
-      }] as never[],
-      parentAvailable: true,
-    }))
-    const manager = makeManager(mock, remote)
-    await manager.refreshSubagents(root)
-    manager.resolveTarget({ parentSessionId: root, childSessionId: S2, mode: 'continuable' })
-    expect(manager.get(S2).getSnapshot().subagent).toMatchObject({ parentAvailable: true })
-
-    manager.handleSessionRemoved(root)
-
-    expect(manager.getListSnapshot().subagentsByParent[root]?.parentAvailable).toBe(false)
-    expect(manager.get(S2).getSnapshot().subagent).toMatchObject({ parentAvailable: false })
-  })
 })
 
 describe('remaining branches', () => {
@@ -759,6 +442,7 @@ describe('remaining branches', () => {
       sessionId: S2, workspaceId: 'w1',
     })))
     const manager = makeManager(mock, remote)
+    manager.handleSessionAdded(summary(S2, { parentSessionId: S1 }))
     const result = await manager.fork({ sessionId: S1 })
     expect(result).toMatchObject({ ok: false, error: { code: 'session/workspace-attach-failed' } })
     expect(manager.getListSnapshot().items).toEqual([expect.objectContaining({
@@ -894,10 +578,10 @@ describe('connected generation', () => {
       remote.session.list.mockImplementation(() => calls++ === 0 ? oldList.promise : newList.promise)
       const manager = makeManager(mock, remote)
       const oldResult = ok({ items: [{ ...summary(S1), projections: {
-        asOfSeq: 20, values: { title: 'Unpersisted title' },
+        kind: 'sequenced', asOfSeq: 20, values: { title: 'Unpersisted title' },
       } }] as never[] })
       const newResult = ok({ items: [{ ...summary(S1), projections: {
-        asOfSeq: 1, values: { title: 'Durable title' },
+        kind: 'sequenced', asOfSeq: 1, values: { title: 'Durable title' },
       } }] as never[] })
       const oldPull = manager.refreshList()
       let newPull: Promise<void> | undefined
@@ -972,41 +656,6 @@ describe('connected generation', () => {
     expect(remote.session.follow).toHaveBeenCalledOnce()
     expect(remote.session.page).toHaveBeenCalledTimes(historyCallsBefore)
   })
-
-  it('retains the durable parent address and refreshes that parent across reconnect', async ({ mock, remote }) => {
-    const address = {
-      parentSessionId: S1, childSessionId: S2, mode: 'continuable' as const,
-    }
-    const parent = Promise.withResolvers<Awaited<ReturnType<typeof remote.subagents.list>>>()
-    const child = Promise.withResolvers<Awaited<ReturnType<typeof remote.subagents.list>>>()
-    remote.subagents.list.mockImplementation(payload => (payload === S1 ? parent.promise : child.promise))
-    const manager = makeManager(mock, remote)
-    remote.subagents.list.mockResolvedValueOnce(ok({
-      entries: [{ kind: 'child', id: S2, mode: 'continuable', label: 'worker', activity: 'inactive', hasChildren: false }],
-      parentAvailable: true,
-    }))
-    await manager.refreshSubagents(S1)
-    manager.resolveTarget(address)
-    manager.get(S2)
-    remote.subagents.list.mockClear()
-
-    manager.handleConnected()
-    expect(manager.get(S2).getSnapshot().subagent).toEqual({ address, parentAvailable: true })
-    parent.resolve(ok({ entries: [], parentAvailable: true }))
-    child.resolve(ok({ entries: [], parentAvailable: true }))
-
-    await vi.waitFor(() => {
-      expect(remote.session.list).toHaveBeenCalledOnce()
-    })
-    await vi.waitFor(() => {
-      expect(remote.subagents.list.mock.calls.map(([parentSessionId]) => parentSessionId)).toEqual([S1])
-    })
-    expect(manager.get(S2).getSnapshot().subagent).toEqual({
-      address,
-      parentAvailable: true,
-    })
-    expect(manager.subagentAddress(S2)).toEqual(address)
-  })
 })
 
 describe('running facts without UI reminders', () => {
@@ -1023,66 +672,5 @@ describe('running facts without UI reminders', () => {
     expect(entry).toMatchObject({ running: false })
     expect(entry).not.toHaveProperty('completed')
     expect(manager.getListSnapshot()).not.toHaveProperty('current')
-  })
-})
-
-describe('background-job mirror', () => {
-  const view = (over: Partial<{ id: string; status: string; label: string }> = {}) => ({
-    id: 'bash-1', kind: 'bash', label: 'pnpm run build', status: 'running', startedAt: 5, ...over,
-  })
-  const tasksFrame = (
-    sessionId: SessionId,
-    jobs: unknown[],
-  ): Extract<SessionControlFrame, { type: 'jobs' }> => ({
-    type: 'jobs', sessionId, jobs: jobs as never,
-  })
-
-  it('mirrors the whole set last-wins, keyed per session, with no Session instance needed', ({ mock, remote }) => {
-    const manager = makeManager(mock, remote)
-    manager.handleControlFrame(tasksFrame(S1, [view()]))
-    manager.handleControlFrame(tasksFrame(S2, [view({ id: 'pwsh-1', label: 'other' })]))
-    const first = manager.getListSnapshot().jobsBySession
-    expect(first[S1]).toEqual([view()])
-    expect(first[S2]?.[0]?.label).toBe('other')
-
-    // Last-wins: the newer whole set replaces, it does not merge.
-    manager.handleControlFrame(tasksFrame(S1, [view({ status: 'completed' })]))
-    expect(manager.getListSnapshot().jobsBySession[S1]).toEqual([view({ status: 'completed' })])
-  })
-
-  it('stores an emptied set as an absent key so absence and [] read alike', ({ mock, remote }) => {
-    const manager = makeManager(mock, remote)
-    manager.handleControlFrame(tasksFrame(S1, [view()]))
-    expect(S1 in manager.getListSnapshot().jobsBySession).toBe(true)
-    manager.handleControlFrame(tasksFrame(S1, []))
-    expect(S1 in manager.getListSnapshot().jobsBySession).toBe(false)
-  })
-
-  it('clears the mirror when the next control baseline has no jobs', ({ mock, remote }) => {
-    const manager = makeManager(mock, remote)
-    manager.handleControlFrame(tasksFrame(S1, [view()]))
-    manager.handleControlFrame({
-      type: 'baseline',
-      value: { jobs: {}, projections: {} },
-    })
-    expect(S1 in manager.getListSnapshot().jobsBySession).toBe(false)
-  })
-
-  it('drops the rows when the session is removed, whichever stream lands first', ({ mock, remote }) => {
-    const manager = makeManager(mock, remote)
-    manager.handleSessionAdded(summary(S1, { blank: true }))
-    manager.handleControlFrame(tasksFrame(S1, [view()]))
-    manager.handleSessionRemoved(S1)
-    expect(S1 in manager.getListSnapshot().jobsBySession).toBe(false)
-  })
-
-  it('notifies list subscribers so an open header re-renders without a poll', async ({ mock, remote }) => {
-    const manager = makeManager(mock, remote)
-    const seen = vi.fn()
-    manager.subscribe(seen)
-    manager.handleControlFrame(tasksFrame(S1, [view()]))
-    // The notifier batches on a microtask; the frame itself is already applied.
-    await Promise.resolve()
-    expect(seen).toHaveBeenCalled()
   })
 })

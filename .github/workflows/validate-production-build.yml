@@ -10,10 +10,11 @@ jobs:
     timeout-minutes: 35
     env:
       DSH_TELEMETRY_DISABLED: '1'
-      NODE_OPTIONS: --max-old-space-size=6144
+      NODE_OPTIONS: --max-old-space-size=9216
     steps:
       - uses: actions/checkout@v7.0.1
         with:
+          ref: 2a47fc859fdeb6ef0824ffab1b3b0e13aed102bd
           persist-credentials: false
       - uses: pnpm/action-setup@v5.0.0
       - uses: actions/setup-node@v7.0.0
@@ -21,3 +22,5 @@ jobs:
           node-version: '24'
       - run: pnpm install --frozen-lockfile
       - run: pnpm run build
+        env:
+          DSH_GATE_CONCURRENCY: '1'

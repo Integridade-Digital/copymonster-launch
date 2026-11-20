@@ -173,6 +173,7 @@ export const en = {
   routingPolicyEnabled: 'Enable automatic failover on transient errors (429, 5xx, timeout)',
   routingSave: 'Save Routing Policy',
   routingSaving: 'Saving Policy…',
+  routingConflict: 'Routing settings changed. Review the current values before saving again.',
   routingSaved: 'Routing policy saved successfully.',
   routingError: 'Failed to save routing policy.',
 }
@@ -353,6 +354,7 @@ export const zh: { [Key in keyof typeof en]: string } = {
   routingPolicyEnabled: '在临时错误（429、5xx、超时）时启用自动故障转移',
   routingSave: '保存路由策略',
   routingSaving: '正在保存策略…',
+  routingConflict: '路由设置已更改。请检查当前值后再保存。',
   routingSaved: '路由策略已保存。',
   routingError: '保存路由策略失败。',
 }
@@ -530,6 +532,7 @@ export const ja = {
   'routingPolicyEnabled': '一時的なエラー（429、5xx、タイムアウト）で自動フェイルオーバーを有効にする',
   'routingSave': 'ルーティングポリシーを保存',
   'routingSaving': 'ポリシーを保存中…',
+  'routingConflict': 'ルーティング設定が変更されました。再保存する前に現在の値を確認してください。',
   'routingSaved': 'ルーティングポリシーを保存しました。',
   'routingError': 'ルーティングポリシーの保存に失敗しました。',
 } satisfies Record<keyof typeof en, string>
@@ -707,6 +710,7 @@ export const es = {
   routingPolicyEnabled: 'Habilitar la conmutación automática ante errores temporales (429, 5xx, tiempo de espera)',
   routingSave: 'Guardar política de enrutamiento',
   routingSaving: 'Guardando política…',
+  routingConflict: 'La configuración de enrutamiento cambió. Revisa los valores actuales antes de guardar de nuevo.',
   routingSaved: 'Política de enrutamiento guardada.',
   routingError: 'No se pudo guardar la política de enrutamiento.',
 } satisfies Record<keyof typeof en, string>
@@ -884,6 +888,7 @@ export const fr = {
   routingPolicyEnabled: 'Activer la bascule automatique sur les erreurs temporaires (429, 5xx, délai expiré)',
   routingSave: 'Enregistrer la politique de routage',
   routingSaving: 'Enregistrement de la politique…',
+  routingConflict: 'Le routage a changé. Vérifiez les valeurs actuelles avant de les enregistrer à nouveau.',
   routingSaved: 'Politique de routage enregistrée.',
   routingError: 'Échec de l\'enregistrement de la politique de routage.',
 } satisfies Record<keyof typeof en, string>
@@ -1061,6 +1066,7 @@ export const de = {
   routingPolicyEnabled: 'Automatisches Failover bei vorübergehenden Fehlern aktivieren (429, 5xx, Zeitüberschreitung)',
   routingSave: 'Routing-Richtlinie speichern',
   routingSaving: 'Richtlinie wird gespeichert…',
+  routingConflict: 'Die Routing-Einstellungen wurden geändert. Prüfen Sie die aktuellen Werte vor dem erneuten Speichern.',
   routingSaved: 'Routing-Richtlinie gespeichert.',
   routingError: 'Speichern der Routing-Richtlinie fehlgeschlagen.',
 } satisfies Record<keyof typeof en, string>
@@ -1238,6 +1244,7 @@ export const ru = {
   routingPolicyEnabled: 'Включить автоматическое переключение при временных ошибках (429, 5xx, тайм-аут)',
   routingSave: 'Сохранить политику маршрутизации',
   routingSaving: 'Сохранение политики…',
+  routingConflict: 'Настройки маршрутизации изменились. Проверьте текущие значения перед повторным сохранением.',
   routingSaved: 'Политика маршрутизации сохранена.',
   routingError: 'Не удалось сохранить политику маршрутизации.',
 } satisfies Record<keyof typeof en, string>
@@ -1415,6 +1422,7 @@ export const pt = {
   routingPolicyEnabled: 'Ativar contingência automática em erros transitórios (429, 5xx, timeout)',
   routingSave: 'Salvar Política de Roteamento',
   routingSaving: 'Salvando Política…',
+  routingConflict: 'O roteamento mudou. Revise os valores atuais antes de salvar novamente.',
   routingSaved: 'Política de roteamento salva com sucesso.',
   routingError: 'Falha ao salvar a política de roteamento.',
 } satisfies Record<keyof typeof en, string>

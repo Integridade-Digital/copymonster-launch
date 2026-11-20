@@ -23,6 +23,11 @@ export interface ContextInjectionRowProps {
  */
 const SCOPED_PACKAGE_ID = /^@[^\s/]+\/\S+$/
 
+function isToolRegistrySource(source: unknown): boolean {
+  return typeof source === 'object' && source !== null
+    && 'kind' in source && source.kind === 'tool-registry'
+}
+
 /**
  * Render logged context with the Tool calls disclosure chrome from Figma.
  *
@@ -38,6 +43,40 @@ const SCOPED_PACKAGE_ID = /^@[^\s/]+\/\S+$/
  */
 export function ContextInjectionRow({ content, source, producer, form, t }: ContextInjectionRowProps) {
   const [open, setOpen] = useState(false)
+  const additions = content.flatMap(block => block.type === 'tool-addition' ? [block.toolName] : [])
+  const removals = content.flatMap(block => block.type === 'tool-removal' ? [block.toolName] : [])
+  const isToolRegistryUpdate = isToolRegistrySource(source)
+    && content.length > 0 && additions.length + removals.length === content.length
+  if (isToolRegistryUpdate) {
+    if (content.length === 1) {
+      const name = additions[0] ?? removals[0] ?? ''
+      return <div className={css.body} data-tool-registry-update="single">
+        {t(additions.length ? 'message.toolAdded' : 'message.toolRemoved', { name })}
+      </div>
+    }
+    const summary = additions.length > 0 && removals.length > 0
+      ? t('message.toolsChanged', { added: additions.length, removed: removals.length })
+      : additions.length > 0
+        ? t('message.toolsAddedCount', { count: additions.length })
+        : t('message.toolsRemovedCount', { count: removals.length })
+    return <DisclosureRow
+      className={css.root}
+      icon={<IconContextInjectionOutline16 size={14} />}
+      chevronClassName={css.chevron}
+      title={t('message.toolsUpdated')}
+      collapsedContent={<span className={css.summary} data-context-summary>{summary}</span>}
+      keepContentWhenOpen
+      open={open}
+      expandable
+      expandOnRowClick
+      onToggle={() => { setOpen(value => !value) }}
+    >
+      <div className={css.body} data-context-injection-body data-context-form="tool-registry">
+        {additions.length > 0 && <div>{t('message.toolsAdded', { names: additions.join(', ') })}</div>}
+        {removals.length > 0 && <div>{t('message.toolsRemoved', { names: removals.join(', ') })}</div>}
+      </div>
+    </DisclosureRow>
+  }
   // Resolved rather than declared: a form whose fields are unreadable renders
   // the opaque body, and the marker must say what the row actually shows.
   const { rendered, summary, body } = contextBody(form, { content, source, t })

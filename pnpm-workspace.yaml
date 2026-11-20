@@ -49,6 +49,7 @@ allowBuilds:
   node-addon-require-builtin: false
   koffi: true
   '@deepseek-ai/dsh-subprocess-local@file:packages/subprocess/subprocess-local': true
+  '@deepseek-ai/dsh-subprocess-local@0.2.1-rc.3': true
   electron-winstaller: false
   msgpackr-extract: false
 

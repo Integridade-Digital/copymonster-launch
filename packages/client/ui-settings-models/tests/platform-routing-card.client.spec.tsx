@@ -2,6 +2,7 @@
 /** Admin provider manager card: route selects, write payload, and the automatic fallback. */
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { Mock } from 'vitest'
 import { Context } from '@deepseek-ai/cordis'
 import { bindSnapshotSelector, RemoteError } from '@deepseek-ai/dsh-client-test-runtime'
 import type { RemoteResult, SettingsNamespaceView } from '@deepseek-ai/dsh-api-remotes/client'
@@ -45,13 +46,15 @@ function maskNamespace(value: Record<string, JsonValue>, user: Record<string, Js
   }
 }
 
+type RoutingMutation = (namespace: string, ops: unknown, revision: number) => Promise<RemoteResult<SettingsNamespaceView>>
+
 function scripted(value: Record<string, JsonValue>, overrides: {
   writable?: boolean
   catalog?: () => Promise<readonly RoutingCatalogProvider[]>
-  mutate?: ReturnType<typeof vi.fn>
+  mutate?: Mock<RoutingMutation>
 } = {}) {
   const namespace = maskNamespace(value)
-  const mutate = overrides.mutate ?? vi.fn(() => Promise.resolve({
+  const mutate = overrides.mutate ?? vi.fn<RoutingMutation>(() => Promise.resolve({
     ok: true as const,
     value: { ...namespace, revision: 3 },
   }))
@@ -164,8 +167,8 @@ describe('PlatformRoutingCard', () => {
   })
 
   it('reloads the current routing after a conflict without retrying the write', async () => {
-    const mutate = vi.fn().mockResolvedValue({
-      ok: false, error: { code: 'settings/conflict', message: 'stale revision' },
+    const mutate = vi.fn<RoutingMutation>().mockResolvedValue({
+      ok: false, error: new RemoteError('settings/conflict', 'stale revision', { ns: 'model-mask', expected: 2, actual: 4 }),
     })
     const { face } = await mount({}, { mutate })
     face.settings.describe.mockResolvedValueOnce({
@@ -251,7 +254,7 @@ describe('PlatformRoutingCard', () => {
   })
 
   it('reports a refused write', async () => {
-    const mutate = vi.fn(() => Promise.resolve({
+    const mutate = vi.fn<RoutingMutation>(() => Promise.resolve({
       ok: false as const,
       error: new RemoteError('settings/rejected', 'not volatile', { ns: 'model-mask' }),
     }))

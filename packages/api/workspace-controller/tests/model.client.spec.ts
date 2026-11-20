@@ -9,7 +9,6 @@ import type {
   WorkspaceCreateValue,
   WorkspaceDeleteRequest,
   WorkspaceDeleteValue,
-  WorkspaceFollowFrame,
   WorkspaceInsertBeforeRequest,
   WorkspaceInsertSessionBeforeRequest,
   WorkspaceOrderValue,
@@ -20,7 +19,6 @@ import type {
   WorkspaceView,
 } from '../src/types.ts'
 import { RemoteError, type RemoteFailure, type RemoteResult } from '@deepseek-ai/dsh-typert-protocol'
-import type { AuthToken } from '@deepseek-ai/dsh-api-auth-context'
 import type { SessionId } from '@deepseek-ai/dsh-session/types'
 
 const sid = (id: string): SessionId => id as SessionId
@@ -133,7 +131,15 @@ class FakeWorkspaceRemote implements WorkspaceRemote {
     return this.onUnarchiveSession(request)
   }
 
-  async *follow(_authToken: AuthToken, _signal?: AbortSignal): AsyncGenerator<WorkspaceFollowFrame> {}
+  follow(): ReturnType<WorkspaceRemote['follow']> {
+    throw new Error('Workspace model tests do not open a follow stream')
+  }
+
+  pinSession: WorkspaceRemote['pinSession'] = async request =>
+    remoteOk({ pinnedSessionIds: [request.sessionId] })
+
+  unpinSession: WorkspaceRemote['unpinSession'] = async () =>
+    remoteOk({ pinnedSessionIds: [] })
 
   private record(method: string, request: unknown): void {
     this.calls.push({ method, request })
@@ -149,7 +155,7 @@ function baseline(
   items: readonly WorkspaceView[] = [],
   archivedSessionIds: readonly SessionId[] = [],
 ): void {
-  model.replaceBaseline({ items, archivedSessionIds })
+  model.replaceBaseline({ items, archivedSessionIds, pinnedSessionIds: [] })
 }
 
 describe('ClientWorkspaceModel', () => {

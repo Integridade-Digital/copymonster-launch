@@ -226,6 +226,21 @@ export class ModelsSettingsStore {
     return pending.promise
   }
 
+  /** Publish an accepted settings write in the page snapshot. */
+  async acceptSettingsView(view: SettingsNamespaceView): Promise<void> {
+    this.describeFace.acceptView(view)
+    await this.load()
+  }
+
+  /** Recover the current revision of a namespace after a rejected write. */
+  async reloadSettingsNamespace(namespace: string): Promise<void> {
+    const response = await this.ctx.remote.settings.describe()
+    if (!response.ok) throw new Error(response.error.message)
+    const view = response.value.namespaces.find(row => row.ns === namespace)
+    if (view === undefined) throw new Error(`Settings namespace "${namespace}" is unavailable`)
+    await this.acceptSettingsView(view)
+  }
+
   /** Publish one joined answer; stale answers leave the current refresh in charge. */
   private async read(generation: number): Promise<void> {
     this.store.update((s) => { s.status = 'loading'; s.error = null })

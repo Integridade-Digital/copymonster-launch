@@ -97,7 +97,7 @@ async function mount(value: Record<string, JsonValue>, overrides: Parameters<typ
   }
   const props = { ...injected, useSnapshot: bindSnapshotSelector(controller.store) } as unknown as PlatformRoutingCardProps
   render(<PlatformRoutingCard {...props} />)
-  return { mutate, controller }
+  return { mutate, controller, face }
 }
 
 describe('PlatformRoutingCard', () => {
@@ -160,6 +160,33 @@ describe('PlatformRoutingCard', () => {
       { op: 'set', path: ['fallbackPolicy', 'enabled'], value: true },
     ], 2)
     await screen.findByText(en.routingSaved)
+  })
+
+  it('reloads the current routing after a conflict without retrying the write', async () => {
+    const mutate = vi.fn().mockResolvedValue({
+      ok: false, error: { code: 'settings/conflict', message: 'stale revision' },
+    })
+    const { face } = await mount({}, { mutate })
+    face.settings.describe.mockResolvedValueOnce({
+      ok: true,
+      value: {
+        writable: true, hasDocument: false,
+        namespaces: [{ ...maskNamespace({ primaryProvider: 'openrouter', primaryModel: 'openrouter/free' }), revision: 4 }],
+      },
+    })
+    const provider = await screen.findByLabelText<HTMLSelectElement>(en.routingPrimaryProvider)
+    await waitFor(() => { expect(provider.options).toHaveLength(3) })
+    fireEvent.change(provider, { target: { value: 'deepseek-official' } })
+    fireEvent.change(screen.getByLabelText(en.routingPrimaryModel), { target: { value: 'deepseek-chat' } })
+    const save = screen.getByRole('button', { name: en.routingSave })
+    fireEvent.click(save)
+    await screen.findByText(en.routingConflict)
+    expect(provider.value).toBe('openrouter')
+    expect(mutate).toHaveBeenCalledTimes(1)
+    fireEvent.change(screen.getByLabelText(en.routingPrimaryModel), { target: { value: 'deepseek/deepseek-chat' } })
+    fireEvent.click(save)
+    await waitFor(() => expect(mutate).toHaveBeenCalledTimes(2))
+    expect(mutate.mock.calls[1]?.[2]).toBe(4)
   })
 
   it('shows the stored pin and clears it back to automatic', async () => {

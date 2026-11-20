@@ -95,7 +95,7 @@ function sameDraft(left: RoutingDraft, right: RoutingDraft): boolean {
  * @returns the administrator card.
  */
 export function PlatformRoutingCard(props: PlatformRoutingCardProps): ReactNode {
-  const { useSnapshot, operations, catalog, t } = props
+  const { useSnapshot, controller, operations, catalog, t } = props
   const state = useSnapshot(snapshot => snapshot)
 
   // Read model-mask from described namespaces
@@ -159,14 +159,21 @@ export function PlatformRoutingCard(props: PlatformRoutingCardProps): ReactNode 
         { op: 'set', path: ['fallbackPolicy', 'enabled'], value: draft.fallbackEnabled },
       // A card that reached the Host without a described namespace writes unfenced.
       ], maskNamespace?.revision)
-      if (outcome.kind === 'written') setStatusMessage({ kind: 'success', text: t('routingSaved') })
-      else setStatusMessage({ kind: 'error', text: outcome.message || t('routingError') })
+      if (outcome.kind === 'written') {
+        setStatusMessage({ kind: 'success', text: t('routingSaved') })
+        await controller.acceptSettingsView(outcome.view)
+      } else if (outcome.kind === 'conflict') {
+        await controller.reloadSettingsNamespace('model-mask')
+        setStatusMessage({ kind: 'error', text: t('routingConflict') })
+      } else {
+        setStatusMessage({ kind: 'error', text: outcome.message || t('routingError') })
+      }
     } catch (error: unknown) {
       setStatusMessage({ kind: 'error', text: error instanceof Error ? error.message : t('routingError') })
     } finally {
       setIsSaving(false)
     }
-  }, [operations, draft, maskNamespace?.revision, t])
+  }, [controller, operations, draft, maskNamespace?.revision, t])
 
   const reset = useCallback((): void => {
     setStatusMessage(null)

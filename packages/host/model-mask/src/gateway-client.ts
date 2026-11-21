@@ -38,7 +38,7 @@ export function resolveGatewayConfig(policy?: LlmRoutingPolicy): GatewayClientCo
   const token = (policy?.internalSessionToken ?? process.env.COPYMONSTER_INTERNAL_SESSION_TOKEN)?.trim()
   const model = policy?.primaryModel || policy?.virtualModel || 'copy-monster-default'
 
-  return { gatewayUrl, token: token || undefined, model }
+  return { gatewayUrl, model, ...(token ? { token } : {}) }
 }
 
 /** Flatten content blocks of a message to plain string. */
@@ -181,7 +181,7 @@ export async function* streamGateway(
       method: 'POST',
       headers,
       body: JSON.stringify(payload),
-      signal: options.signal,
+      ...(options.signal ? { signal: options.signal } : {}),
     })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
@@ -229,7 +229,7 @@ export async function* streamGateway(
         usage: {
           inputTokens: json.usage.prompt_tokens ?? 0,
           outputTokens: json.usage.completion_tokens ?? 0,
-          totalTokens: json.usage.total_tokens,
+          ...(json.usage.total_tokens === undefined ? {} : { totalTokens: json.usage.total_tokens }),
         },
       }
     }
@@ -329,7 +329,7 @@ export async function* streamGateway(
             type: 'tool-call-delta',
             index: tcIndex,
             id: ToolCallId(tc.id ?? `call-${tcIndex}`),
-            name: tc.function?.name,
+            ...(tc.function?.name === undefined ? {} : { name: tc.function.name }),
             argumentsDelta: tc.function?.arguments ?? '',
           }
         }
@@ -351,7 +351,9 @@ export async function* streamGateway(
       emittedUsage = {
         inputTokens: chunkPayload.usage.prompt_tokens ?? 0,
         outputTokens: chunkPayload.usage.completion_tokens ?? 0,
-        totalTokens: chunkPayload.usage.total_tokens,
+        ...(chunkPayload.usage.total_tokens === undefined
+          ? {}
+          : { totalTokens: chunkPayload.usage.total_tokens }),
       }
     }
   }

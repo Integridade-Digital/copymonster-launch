@@ -52,11 +52,11 @@ import { isGatewayConfigured, resolveGatewayConfig, streamGateway } from './gate
 export * from './gateway-client.ts'
 
 /** Sensitive key patterns for log redaction. */
-const SENSITIVE_KEY_PATTERN = /(?:sk-or-v1-[a-zA-Z0-9_\-]+|sk-ant-[a-zA-Z0-9_\-]+|sk-proj-[a-zA-Z0-9_\-]+|dsk-[a-zA-Z0-9_\-]+)/gi
+const SENSITIVE_KEY_PATTERN = /(?:sk-or-v1-[a-z0-9_-]+|sk-ant-[a-z0-9_-]+|sk-proj-[a-z0-9_-]+|dsk-[a-z0-9_-]+)/gi
 
 export function redactSensitiveKey(val: string): string {
-  if (!val || typeof val !== "string") return val
-  return val.replace(SENSITIVE_KEY_PATTERN, "[REDACTED_KEY]")
+  if (!val || typeof val !== 'string') return val
+  return val.replace(SENSITIVE_KEY_PATTERN, '[REDACTED_KEY]')
 }
 
 /**
@@ -209,6 +209,9 @@ export const Config = z.object({
 /** Project a plugin Config to its plain identity values, dropping the live references. */
 function plain(config: Config): LlmRoutingPolicy {
   const fallbackPolicy = config.fallbackPolicy.get()
+  const gatewayUrl = config.gatewayUrl.get() || process.env.COPYMONSTER_LLM_GATEWAY_URL
+  const internalSessionToken =
+    config.internalSessionToken.get() || process.env.COPYMONSTER_INTERNAL_SESSION_TOKEN
   return {
     virtualProvider: config.virtualProvider.get(),
     virtualModel: config.virtualModel.get(),
@@ -219,8 +222,8 @@ function plain(config: Config): LlmRoutingPolicy {
     fallbackModel: config.fallbackModel.get(),
     ...fallbackPolicy === undefined ? {} : { fallbackPolicy },
     applyToTenantsOnly: config.applyToTenantsOnly.get(),
-    gatewayUrl: config.gatewayUrl.get() || process.env.COPYMONSTER_LLM_GATEWAY_URL,
-    internalSessionToken: config.internalSessionToken.get() || process.env.COPYMONSTER_INTERNAL_SESSION_TOKEN,
+    ...(gatewayUrl ? { gatewayUrl } : {}),
+    ...(internalSessionToken ? { internalSessionToken } : {}),
   }
 }
 

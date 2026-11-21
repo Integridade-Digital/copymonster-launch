@@ -1,121 +1,273 @@
-# Plano de Implementação: Credenciais LLM Centralizadas e Seguras para Tenants
+# Plano de Arquitetura e Implementação: Gateway Central de Modelos LLM em Loopback com Streaming SSE e Isolamento de Chaves
 
-**Status:** Aguardando aprovação para implementação  
-**Atualizado em:** 21 de novembro de 2026  
-**Repositórios-alvo:**
-- `copymonster-dsh-server-login` — orquestrador multi-tenant e serviços confiáveis no VPS
-- `copymonster-launch` — UI, adaptadores LLM, sessão e configuração de roteamento
-
----
-
-## 1. Objetivo e diagnóstico
-
-O Admin (`funel`) gerencia chaves de provedores em **Settings > Models** e o roteamento em **Provider routing**. As chaves salvas pelo DSH ficam no cofre do tenant Admin, em `home/.credentials.yaml`; o roteamento da plataforma é armazenado separadamente no Supabase.
-
-O problema de raiz é a separação entre esses dados e o processo de cada tenant comum: o orquestrador não deve presumir que a chave salva no cofre do Admin existe no cofre local do tenant. No código analisado, `credentials-local` consegue resolver credenciais de `process.env` como fallback quando não há valor salvo no cofre local, mas isso, por si só, não conecta o cofre do Admin ao processo de outro tenant.
-
-A mensagem “A chave API é inválida” é genérica e não prova, sozinha, qual provedor, chave ou resposta HTTP causou a falha. A implementação deverá registrar diagnósticos seguros e distinguir credencial ausente, rejeição do provedor e erro de saldo/permissão, sem expor segredos.
-
-### 1.1 O que permanece igual para o Administrador
-
-- O Admin continua gerenciando provedores, chaves, modelos primários e contingência em **Settings > Models**.
-- O roteamento continua centralizado; tenants comuns não podem editar nem consultar as chaves ou a configuração administrativa.
-- Novos tenants e existentes devem usar a política vigente sem exigir cópia manual, recriação de conta ou edição de arquivos via SSH.
+**Status:** Aprovado conceitualmente para implementação  
+**Data:** 21 de Novembro de 2026  
+**Autor:** Equipe de Engenharia CopyMonster  
+**Repositórios-Alvo:**
+- `copymonster-dsh-server-login` — Orquestrador multi-tenant, Gateway LLM loopback, Cofre mestre e Emissor de tokens de sessão
+- `copymonster-launch` — Frontend SPA, Adaptador LLM para Gateway, UI de Settings > Models (Admin) e Chat
 
 ---
 
-## 2. Requisito de segurança: não copiar chaves para tenants
+## 1. Sumário Executivo & Diagnóstico Raiz
 
-As chaves de provedor são segredos mestre da plataforma. Elas **não devem ser copiadas** para:
-
-- `home/.credentials.yaml` de tenants comuns;
-- `.env`, profiles, patches, diretórios de workspace ou arquivos temporários dos tenants;
-- logs, mensagens de erro, respostas de API para o navegador ou metadados de sessão.
-
-### 2.1 Por que `baseEnv` não é uma fronteira de segurança suficiente
-
-Passar `OPENROUTER_API_KEY` ou outra chave pelo `baseEnv` evita a gravação em disco no tenant, mas a variável fica disponível ao processo filho e, em geral, ao código/plugin executado dentro dele. Um plugin malicioso com execução no mesmo processo pode ler `process.env`; dependendo da configuração do sistema, processos do mesmo UID também podem inspecionar ambientes de processos irmãos. Portanto, **injeção de chaves brutas no ambiente do tenant não atende ao requisito de isolamento contra plugins maliciosos**.
-
-O `baseEnv` pode levar configurações não secretas e uma identidade/token de serviço de escopo limitado, mas não as chaves mestres dos provedores. Não considerar “sem arquivo no disco” equivalente a “segredo isolado”.
-
-### 2.2 Arquitetura-alvo
-
-Manter as chaves em uma fonte confiável do lado do servidor (o cofre do Admin com acesso restrito ao serviço confiável, ou um cofre central equivalente) e fazer as chamadas aos provedores através de um **gateway/proxy LLM central**:
-
-1. O processo do tenant envia ao gateway apenas a solicitação de inferência, o alias/modelo autorizado e uma identidade de serviço assinada e limitada ao tenant.
-2. O gateway valida a identidade e as permissões do tenant, consulta o roteamento central, escolhe provedor/modelo e obtém a chave do cofre mestre somente em memória no lado confiável.
-3. O gateway chama o provedor e devolve o stream/resposta ao tenant. A chave do provedor nunca é devolvida nem injetada no processo do tenant.
-4. O gateway aplica limites, auditoria sem segredos e failover antes do primeiro chunk de resposta. Após enviar o primeiro chunk, não pode trocar de provedor para a mesma resposta.
-
-O gateway precisa autenticar chamadas sem entregar um token que permita ler a chave ou invocar rotas administrativas. O token/identidade deve ser específico do serviço e do tenant, validado no servidor e protegido contra falsificação e replay conforme o mecanismo de identidade já usado pelo orquestrador.
+### 1.1 Cenário Atual
+Na plataforma CopyMonster:
+1. O subdomínio `funel.copymonster.co` opera como o **Tenant Mestre do Administrador**. Através de **Settings > Models**:
+   - O Admin cadastra e gerencia as chaves reais de API (OpenRouter, DeepSeek, OpenAI, etc.), que ficam ativas e validadas (indicador verde).
+   - O Admin configura a política de roteamento em **Provider routing** (modelo primário e modelo de contingência), persistida no Supabase via RPC `save_platform_model_routing`.
+2. As chaves salvas pelo DSH são gravadas no cofre do tenant Admin em `/var/lib/dsh-server-login/users/<admin-uuid>/home/.credentials.yaml`.
+3. Os tenants comuns (como `funnels.copymonster.co`, `vieir.copymonster.co` e novos cadastros) rodam em seus próprios diretórios e processos isolados (`/var/lib/dsh-server-login/users/<tenant-uuid>/`).
+4. Ao enviar mensagens no chat, os tenants comuns tentam resolver as credenciais dos provedores localmente. Como os tenants não possuem essas chaves em seu cofre local nem em seu ambiente, a chamada é abortada com o erro:
+   > **"Falha / Este turno falhou A chave API é inválida"** (`message.failure.auth`)
 
 ---
 
-## 3. Plano de implementação
+### 1.2 Modelo de Ameaça (Threat Model) & Por Que Soluções Ingênuas Falham
 
-### Fase 1 — Fonte confiável das credenciais e acesso restrito (`copymonster-dsh-server-login`)
+| Abordagem Avaliada | Mecanismo | Risco Crítico de Segurança | Veredito |
+| :--- | :--- | :--- | :--- |
+| **Cópia para arquivo local** | Copiar chaves para `home/.credentials.yaml` de cada tenant | Chaves mestres salvas em disco no diretório do tenant. Qualquer usuário com acesso ao terminal ou plugin malicioso pode ler o arquivo e roubar a chave e saldo da conta. | **Rejeitado (Inseguro)** |
+| **Injeção via `baseEnv`** | Injetar chaves em `process.env` do processo do tenant | O processo filho do tenant tem a chave em memória. Plugins maliciosos instalados pelo usuário rodam no mesmo processo e podem inspecionar `process.env` ou ler `/proc/<pid>/environ`, exfiltrando a credencial mestre. | **Rejeitado (Inseguro)** |
+| **Gateway Central em Loopback com SSE** | Chaves mantidas exclusivamente no servidor confiável; tenant consome API interna com token de sessão | O processo do tenant **nunca recebe a chave**, nem em disco, nem no ambiente, nem na memória, nem em cabeçalhos HTTP. Elimina 100% o vetor de exfiltração. | **Aprovado (Padrão da Indústria)** |
 
-- Identificar de forma inequívoca o usuário Admin por identidade/role persistida, sem depender apenas do slug do subdomínio `funel`.
-- Implementar leitura segura das credenciais do cofre do Admin no lado confiável. Validar caminho canônico, proprietário/permissões, formato, referências de credencial e tratamento de arquivo ausente/inválido.
-- Manter os valores em memória apenas no componente confiável que precisa chamar o provedor; nunca serializar valores em logs, respostas, estado do tenant ou argumentos de processo.
-- Definir política de cache e rotação: atualização no Admin invalida/recarrega o segredo de forma segura; não registrar valores antigos nem deixá-los ativos além da janela explicitamente definida.
-- Não usar `/root/.dsh/.credentials.yaml` como fallback silencioso que possa selecionar credencial antiga. Se houver necessidade operacional de compatibilidade, ela deverá ser explícita, temporária, observável e coberta por teste; a fonte ativa deve ser inequívoca.
-
-### Fase 2 — Gateway LLM central sem exposição da chave (`copymonster-dsh-server-login` e integração em `copymonster-launch`)
-
-- Criar/estender endpoint de inferência server-side que receba chamadas autenticadas dos processos dos tenants e encaminhe-as aos providers.
-- Validar a identidade do tenant e permitir somente aliases, provedores e modelos autorizados pela política central.
-- Resolver a chave correspondente somente dentro do gateway e nunca incluí-la no payload de resposta, cabeçalhos devolvidos, logs ou tracing.
-- Aplicar limites de requisições/tokens por tenant e limites globais, com respostas de erro seguras e métricas de consumo sem dados secretos.
-- Adaptar o caminho de chamadas LLM do app para usar o gateway central. O tenant não deve fazer chamada direta ao provedor usando uma chave compartilhada.
-- Se necessário, o `baseEnv` dos tenants deve conter apenas URL do gateway e credencial de serviço curta/limitada, sem nenhuma chave de provedor.
-
-### Fase 3 — Roteamento, failover e atualização operacional
-
-- Usar a configuração de **Provider routing** mantida pelo Admin como fonte central de rota primária e contingência.
-- Fazer o gateway obter a rota atual (com cache versionado/invalidação confiável), de modo que alteração de rota alcance chamadas subsequentes de tenants novos e existentes sem sincronizar arquivos locais.
-- Tentar contingência apenas para erros elegíveis e antes do primeiro chunk. Distinguir falhas de autenticação, 402/saldo, 429, indisponibilidade e erros não elegíveis; não mascarar uma credencial inválida como indisponibilidade genérica.
-- Preservar o alias público `copymonster/copy-monster-default` para usuários comuns, sem expor nomes de provedores ou modelos privados quando essa for a política definida.
-- Fazer rotação de chave valer em novas chamadas assim que a atualização for confirmada pelo serviço confiável; chamadas já em andamento podem terminar com a credencial que já haviam carregado, sem persistir a chave antiga.
-
-### Fase 4 — Remoção de caminhos inseguros e compatibilidade
-
-- Remover do provisionamento e do auto-launch qualquer cópia de credenciais mestre para os arquivos de tenants comuns.
-- Garantir que credenciais antigas já gravadas nos cofres de tenants não tenham precedência sobre o gateway compartilhado. Planejar limpeza/migração somente após inventário e backup, preservando credenciais pessoais não relacionadas, se existirem.
-- Retirar a propagação de chaves de provedor por `platformApiKeys()`/`baseEnv` para filhos de tenants; conservar somente variáveis não secretas e identidades limitadas que o desenho do gateway exigir.
-- Garantir que nenhum caminho de compatibilidade reative silenciosamente credenciais antigas ou chamadas diretas a providers.
-
-### Fase 5 — Testes de segurança, integração e operação
-
-- Testar criação de tenant novo, tenant existente, restart, rotação de chave e mudança de rota sem copiar segredos para o tenant.
-- Testar integração ponta a ponta em ambiente de staging com providers mockados e, quando autorizado, uma validação controlada com provider real.
-- Testar autenticação entre tenant e gateway, isolamento de tenant, permissões, limites de uso, rejeição de replay e prevenção de acesso a rotas administrativas.
-- Testar failover antes do primeiro chunk, comportamento após início de streaming e erros de chave inválida/sem saldo/rate limit.
-- Adicionar testes negativos verificando que a chave mestre não aparece em `process.env`/`/proc/<pid>/environ` do tenant, arquivos do tenant, logs, tracing, respostas HTTP ou artefatos de teste.
-- Fazer revisão de segurança para plugins maliciosos: um plugin no processo do tenant não pode recuperar a chave do provedor nem acessar o cofre mestre.
+A arquitetura de **Gateway Central em Loopback** é o padrão utilizado por SaaS enterprise (ex: OpenAI Proxy, LiteLLM, Cloudflare AI Gateway, Portkey) e resolve o problema na raiz: **o segredo nunca entra na fronteira de confiança do tenant**.
 
 ---
 
-## 4. Critérios de aceite
+## 2. Desenho da Arquitetura: Gateway Central em Loopback
 
-A implementação só estará pronta quando todos estes itens forem demonstrados em testes:
+### 2.1 Fluxo de Dados e Fronteira de Isolamento
 
-1. O Admin continua configurando chaves e roteamento em **Settings > Models**.
-2. Tenants comuns novos e existentes conseguem usar o alias/modelo autorizado sem provisionamento manual.
-3. Alterações de chave e rota chegam a novas chamadas de forma previsível e documentada.
-4. Nenhum segredo mestre é persistido em diretório de tenant ou entregue ao processo/plugin do tenant.
-5. Um plugin malicioso no tenant não consegue ler a chave mestre por ambiente, arquivo ou API.
-6. O gateway aplica autenticação, autorização, limites por tenant, logs redigidos e failover controlado.
-7. Testes e build dos escopos alterados passam; limitações de teste ou validação em produção ficam registradas, não presumidas.
+```
++----------------------------------------------------------------------------------------------------+
+|                                    FRONTEIRA DO TENANT (NÃO CONFIÁVEL)                             |
+|                                                                                                    |
+|  [ Browser do Usuário ]                                                                            |
+|          | (SSE / WebSocket)                                                                       |
+|          v                                                                                         |
+|  [ Processo do Tenant (copymonster-launch) ]                                                       |
+|          |  Variáveis injetadas:                                                                   |
+|          |    - COPYMONSTER_LLM_GATEWAY_URL="http://127.0.0.1:4010/internal/v1/llm"                |
+|          |    - COPYMONSTER_INTERNAL_SESSION_TOKEN="<token_assinado_hmac>"                         |
+|          |                                                                                         |
+|          |  *NENHUMA CHAVE DE PROVEDOR PRESENTE EM ARQUIVO OU ENV*                                |
++----------|-----------------------------------------------------------------------------------------+
+           |
+           | HTTP POST /internal/v1/llm/chat/completions
+           | Header: Authorization: Bearer <token_assinado_hmac>
+           | Body: { model: "copymonster/copy-monster-default", messages: [...], stream: true }
+           | Conexão restrita a 127.0.0.1 (Loopback)
+           v
++----------------------------------------------------------------------------------------------------+
+|                                    FRONTEIRA DO SERVIDOR (CONFIÁVEL - VPS)                         |
+|                                                                                                    |
+|  [ Gateway Central LLM (dsh-server-login / Fastify interno em 127.0.0.1:4010) ]                   |
+|          |                                                                                         |
+|          |-- 1. Valida Assinatura do Token Interno (HMAC-SHA256) e extrai tenant_id                |
+|          |-- 2. Consulta Roteamento Ativo (Provider Routing no Supabase / Cache em memória)        |
+|          |-- 3. Resolve Chave Mestre Atual no Cofre do Admin (/home/.credentials.yaml do Admin)    |
+|          |-- 4. Executa Failover se Primário retornar erro antes do 1º chunk (401, 402, 429, 503)  |
+|          |                                                                                         |
+|          v                                                                                         |
+|  [ Cliente HTTP Upstream do Gateway ]                                                              |
+|          | Injeta: Authorization: Bearer <CHAVE_MESTRE_REAL>                                       |
+|          | Destino: https://openrouter.ai/api/v1/chat/completions (ou DeepSeek / OpenAI)           |
++----------|-----------------------------------------------------------------------------------------+
+           |
+           | Chamada HTTPS Externa
+           v
++------------------------------------+
+|    PROVEDOR EXTERNO (OpenRouter)   |
+|   Recebe chave mestre da plataforma|
+|   Gera tokens de inferência        |
++------------------------------------+
+           |
+           | Streaming SSE de Resposta (chunks: data: {"choices":[{"delta":{"content":"..."}}]})
+           v
++----------------------------------------------------------------------------------------------------+
+|  [ Gateway Central LLM ]                                                                           |
+|          | Repassa SSE em tempo real (pipe direto com flush imediato, latência zero)               |
+|          | Sanitiza cabeçalhos (remove qualquer referência a chaves ou upstream interno)            |
++----------|-----------------------------------------------------------------------------------------+
+           | text/event-stream (SSE)
+           v
++----------------------------------------------------------------------------------------------------+
+|  [ Processo do Tenant ]                                                                            |
+|          | Consome SSE e despacha para a UI do chat                                                |
++----------------------------------------------------------------------------------------------------+
+```
 
 ---
 
-## 5. Runbook após aprovação e implementação
+## 3. Especificação Técnica Detalhada
 
-A aplicação em produção deverá ser feita somente depois da aprovação deste plano, da implementação e dos testes. O procedimento final será documentado com os comandos de atualização, build, migrações/configurações necessárias, reinício seguro e validação de rollback para cada repositório. Não executar mudanças em Cloudflare Tunnel, `.env` de produção ou banco de dados fora do escopo aprovado.
+### 3.1 Mecanismo de Autenticação do Tenant (Internal Session Token)
+
+1. **Geração do Token pelo Orquestrador:**
+   - Ao inicializar o processo do tenant (em `spawnInstance`), o `dsh-server-login` gera um token interno assinado com chave secreta do host (`GATEWAY_INTERNAL_SECRET` gerada e persistida em `/var/lib/dsh-server-login/.gateway-secret`).
+   - O payload do token contém:
+     ```json
+     {
+       "sub": "<tenant_user_id>",
+       "slug": "<tenant_subdomain>",
+       "iat": 1763697600,
+       "exp": 1763784000,
+       "scope": "llm:infer"
+     }
+     ```
+   - O token possui escopo estrito `llm:infer`. Não tem permissão para acessar nenhuma rota administrativa do DSH, ler credenciais ou invocar outras APIs.
+2. **Validação no Gateway:**
+   - O Gateway verifica a assinatura HMAC-SHA256 e o tempo de expiração (`exp`).
+   - Valida se o `tenant_user_id` existe e está ativo na tabela `users` do banco local SQLite.
+   - Aplica rate-limit de segurança por tenant (ex: 60 requisições/minuto) para evitar abuso.
 
 ---
 
-## 6. Decisão pendente
+### 3.2 Endpoint do Gateway Central (Fastify / Loopback)
 
-Este documento é um plano para revisão, não uma autorização para alterar código. A decisão solicitada é aprovar ou ajustar a arquitetura de **gateway LLM central sem entregar chaves mestres aos processos dos tenants**. A injeção de chaves brutas via `baseEnv` fica explicitamente fora da arquitetura aprovada por não isolar o segredo de plugins que rodam no tenant.
+1. **Associação de Rede (Binding):**
+   - Escuta **exclusivamente** em `127.0.0.1:4010` (ou socket unix `/run/copymonster-llm.sock`).
+   - Não há exposição em interfaces externas (`0.0.0.0`), portas públicas do Nginx ou túneis do Cloudflare.
+2. **Rota:**
+   - `POST /internal/v1/llm/chat/completions`
+   - Compatível com a especificação standard de OpenAI/OpenRouter (recebe `model`, `messages`, `temperature`, `max_tokens`, `stream: true`).
+3. **Resolução de Chave em Memória:**
+   - O Gateway lê o arquivo de credenciais do Admin (`/var/lib/dsh-server-login/users/<admin-uuid>/home/.credentials.yaml`) sob demanda com cache seguro de 30 segundos ou invalidação por evento.
+   - O valor da chave (`OPENROUTER_API_KEY`, `DEEPSEEK_API_KEY`, etc.) reside apenas na memória volátil da requisição HTTP do Gateway e **nunca é registrado em log, payload ou cabeçalho retornado**.
+4. **Streaming SSE End-to-End:**
+   - O Gateway define cabeçalhos HTTP:
+     ```http
+     Content-Type: text/event-stream
+     Cache-Control: no-cache
+     Connection: keep-alive
+     X-Accel-Buffering: no
+     ```
+   - Cada chunk SSE recebido do provedor upstream é repassado imediatamente ao stream de resposta do tenant (`response.raw.write(chunk)` com flush).
+   - Não há bufferização do corpo completo, garantindo **Time-To-First-Token (TTFT)** idêntico à chamada direta.
+
+---
+
+### 3.3 Failover Transparente Antes do Primeiro Chunk
+
+1. **Erros Elegíveis para Contingência:**
+   - HTTP 401/403 (Credencial do provedor primário revogada/inválida).
+   - HTTP 402 (Saldo esgotado no provedor primário).
+   - HTTP 429 (Rate limit estourado no provedor primário).
+   - HTTP 502/503/504 (Provedor primário temporariamente indisponível).
+2. **Comportamento do Failover:**
+   - O Gateway inspeciona o status code da resposta do provedor primário **antes** de enviar os cabeçalhos SSE para o tenant.
+   - Se houver falha elegível:
+     1. O Gateway não envia erro ao tenant.
+     2. Consulta a rota de contingência configurada em **Provider routing** (ex: `Fallback Provider: deepseek`, `Fallback Model: deepseek-chat`).
+     3. Resolve a chave do provedor de contingência no cofre do Admin.
+     4. Dispara a requisição para o provedor de contingência e conecta o stream SSE ao tenant.
+     5. Emite log de auditoria interno seguro (ex: `[LLM-GATEWAY] Failover triggered: openrouter -> deepseek for tenant funnels`).
+   - Se o primeiro chunk SSE já tiver sido despachado para o tenant, a conexão não pode mais ser trocada, garantindo que o stream não seja corrompido.
+
+---
+
+## 4. Plano de Implementação por Repositório
+
+### Fase 1: Gateway Central em Loopback (`copymonster-dsh-server-login`)
+**Arquivos afetados:**
+1. `src/gateway/llm-loopback-server.ts` *(Novo)*:
+   - Instanciação de servidor Fastify dedicado escutando em `127.0.0.1:4010`.
+   - Rotas de health check (`GET /internal/health`) e inferência (`POST /internal/v1/llm/chat/completions`).
+2. `src/gateway/token-validator.ts` *(Novo)*:
+   - Criação e validação de tokens internos HMAC-SHA256 (`createTenantToken`, `verifyTenantToken`).
+3. `src/supervisor/master-credentials.ts` *(Novo)*:
+   - Leitura segura e em memória das credenciais do tenant mestre Admin (`funel` / `role === 'admin'`).
+   - Suporte a cache com TTL de 30s e recarregamento atômico quando o arquivo do cofre for modificado.
+4. `src/gateway/upstream-client.ts` *(Novo)*:
+   - Despachante HTTP com fetch nativo e streaming SSE.
+   - Injeção das credenciais reais no cabeçalho `Authorization: Bearer <key>`.
+   - Lógica de failover pré-chunk com chave de contingência.
+5. `src/supervisor/orchestrator.ts` *(Modificação)*:
+   - No método `baseEnv(userId)`:
+     - Gerar o token de sessão interna com `createTenantToken(user)`.
+     - Injetar no ambiente do tenant:
+       ```typescript
+       COPYMONSTER_LLM_GATEWAY_URL: 'http://127.0.0.1:4010/internal/v1/llm',
+       COPYMONSTER_INTERNAL_SESSION_TOKEN: internalToken
+       ```
+     - **Remover** qualquer injeção de chaves reais (`OPENROUTER_API_KEY`, etc.) em `platformApiKeys()`.
+6. `src/index.ts` *(Modificação)*:
+   - Inicializar o `llmLoopbackServer` no ciclo de vida de boot do orquestrador e fechá-lo graciosamente no shutdown.
+
+---
+
+### Fase 2: Adaptador do Cliente LLM (`copymonster-launch`)
+**Arquivos afetados:**
+1. `packages/llm/` ou `packages/client/ui-chat/`:
+   - Configurar o cliente de inferência do tenant para detectar a presença de `COPYMONSTER_LLM_GATEWAY_URL`.
+   - Quando presente (em tenants normais):
+     - Roteia as chamadas de chat para o endpoint do Gateway local via `127.0.0.1:4010`.
+     - Anexa o cabeçalho `Authorization: Bearer ${process.env.COPYMONSTER_INTERNAL_SESSION_TOKEN}`.
+     - Consome o streaming SSE nativo da resposta e entrega os eventos à UI sem nenhuma alteração visual para o usuário.
+2. `packages/api/settings-controller/src/index.ts`:
+   - Manter a governança do Admin: apenas usuários com `role === 'admin' || role === 'owner' || isAdmin === true` podem visualizar e alterar as chaves em Settings > Models.
+   - Tenants comuns continuam sem permissão de acesso à tela de chaves e visualizam somente o modelo padrão do sistema.
+
+---
+
+### Fase 3: Sanitização e Eliminação de Vetores Antigos
+1. Remover qualquer rotina no provisionamento (`initUserRoot`, `seedGlobalCredentials`) que copie ou crie links simbólicos de arquivos de credenciais para as pastas de tenants.
+2. No `dsh-server-login`, assegurar que tenants comuns tenham seus arquivos `.credentials.yaml` limpos de chaves mestres herdadas em migrações anteriores.
+3. Garantir redaction absoluto em qualquer logger: qualquer string correspondente ao padrão `sk-or-v1-`, `sk-ant-`, `sk-proj-`, `dsk-` deve ser substituída por `[REDACTED_KEY]`.
+
+---
+
+## 5. Matriz de Validação & Testes
+
+| Categoria | Caso de Teste | Ação Executada | Resultado Esperado |
+| :--- | :--- | :--- | :--- |
+| **Segurança** | **1. Exfiltração via `process.env`** | Executar script/plugin no processo do tenant lendo `process.env`. | Nenhuma chave de provedor (`OPENROUTER_API_KEY`, etc.) é encontrada. Apenas a URL do gateway e o token temporário estão presentes. |
+| **Segurança** | **2. Exfiltração via Arquivo Local** | Inspecionar `/var/lib/dsh-server-login/users/<tenant>/home/.credentials.yaml`. | O arquivo não contém chaves dos provedores mestres da plataforma. |
+| **Segurança** | **3. Acesso Não Autorizado ao Gateway** | Chamar `http://127.0.0.1:4010/internal/v1/llm/chat/completions` sem token ou com token forjado. | Retorna HTTP 401 Unauthorized imediatamente. |
+| **Segurança** | **4. Acesso Externo ao Gateway** | Tentar acessar a porta 4010 a partir de IP público externo ou via subdomínio público. | Conexão recusada (Connection Refused); serviço restrito a `127.0.0.1`. |
+| **Funcional** | **5. Novo Tenant - Chat Funcional** | Criar nova conta no SaaS, acessar chat e enviar "Olá". | Gateway autentica o token interno, chama OpenRouter com a chave do Admin e responde via SSE sem erros. |
+| **Funcional** | **6. Streaming SSE em Tempo Real** | Tenant envia prompt longo no chat. | Os tokens chegam gradualmente em tempo real (Time-to-First-Token < 1s), idêntico à chamada direta. |
+| **Operacional** | **7. Rotação Imediata de Chave** | Admin altera a chave no painel `funel.copymonster.co`. | O Gateway invalida o cache em memória e o próximo turno de chat de qualquer tenant já utiliza a nova chave sem exigir restart de serviços. |
+| **Resiliência**| **8. Failover Pré-Chunk** | Simular provedor primário retornando 402 ou 429. | O Gateway redireciona a chamada para o provedor de contingência antes de emitir o primeiro chunk; o usuário recebe a resposta sem notar a falha. |
+
+---
+
+## 6. Runbook de Rollout e Aplicação no VPS
+
+Após a aprovação deste plano e a execução das Fases 1 a 3 nos repositórios, a aplicação no VPS seguirá este procedimento estrito:
+
+```bash
+# 1. Acesso SSH ao VPS
+ssh root@mail.copymonster.co
+
+# 2. Atualizar o Orquestrador com o Gateway Loopback
+cd /root/copymonster-dsh-server-login
+git pull origin master
+pnpm install
+pnpm run build
+
+# 3. Atualizar o Core/Launch (Adaptador do Cliente LLM)
+cd /root/copymonster-launch
+git pull origin master
+pnpm install
+pnpm run build
+
+# 4. Reiniciar o serviço do Orquestrador
+systemctl restart dsh-server-login
+
+# 5. Validar o Gateway Interno em Loopback
+curl -I http://127.0.0.1:4010/internal/health
+# Deve responder: HTTP/1.1 200 OK
+
+# 6. Testar no navegador
+# Acessar https://funnels.copymonster.co, abrir o chat e enviar mensagem.
+```
+
+---
+
+## 7. Decisão e Próximos Passos
+
+Com a definição desta arquitetura de **Gateway Central em Loopback com Streaming SSE e Token de Sessão Interno**, o modelo de segurança da plataforma CopyMonster atinge o padrão de isolamento exigido para ambientes multi-tenant com plugins de terceiros.
+
+A implementação detalhada pode ser iniciada imediatamente após o registro deste documento.

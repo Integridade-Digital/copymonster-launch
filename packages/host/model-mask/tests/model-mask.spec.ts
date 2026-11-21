@@ -13,6 +13,7 @@ import {
   VIRTUAL_MODEL,
   VIRTUAL_MODEL_NAME,
   VIRTUAL_PROVIDER,
+  redactSensitiveKey,
 } from '../src/index.ts'
 
 const CHUNKS: StreamChunk[] = [
@@ -111,6 +112,12 @@ async function mount(config: Record<string, unknown> = {}): Promise<Context> {
 }
 
 describe('model-mask catalog', () => {
+  it('redactSensitiveKey masks sensitive api keys in error strings', () => {
+    expect(redactSensitiveKey('sk-or-v1-abcdef1234567890')).toBe('[REDACTED_KEY]')
+    expect(redactSensitiveKey('upstream error: invalid auth sk-ant-api03-secret')).toBe('upstream error: invalid auth [REDACTED_KEY]')
+    expect(redactSensitiveKey('openai error sk-proj-12345 with fallback dsk-67890')).toBe('openai error [REDACTED_KEY] with fallback [REDACTED_KEY]')
+  })
+
   it('registers the virtual provider route with no configured provider', async () => {
     const ctx = await mount()
     expect(ctx.llm.listProviders().map(p => p.id)).toContain(VIRTUAL_PROVIDER)

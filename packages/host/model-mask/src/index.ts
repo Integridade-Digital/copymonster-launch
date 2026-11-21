@@ -51,6 +51,14 @@ import { isGatewayConfigured, resolveGatewayConfig, streamGateway } from './gate
 
 export * from './gateway-client.ts'
 
+/** Sensitive key patterns for log redaction. */
+const SENSITIVE_KEY_PATTERN = /(?:sk-or-v1-[a-zA-Z0-9_\-]+|sk-ant-[a-zA-Z0-9_\-]+|sk-proj-[a-zA-Z0-9_\-]+|dsk-[a-zA-Z0-9_\-]+)/gi
+
+export function redactSensitiveKey(val: string): string {
+  if (!val || typeof val !== "string") return val
+  return val.replace(SENSITIVE_KEY_PATTERN, "[REDACTED_KEY]")
+}
+
 /**
  * The one `agentDefaultModel` member this plugin reads.
  *
@@ -395,7 +403,7 @@ async function listCatalog(ctx: Context): Promise<Route[]> {
     } catch (error: unknown) {
       // One provider's catalog failure must not remove the other routes from
       // the mask; the tenant still forwards the turn to a working provider.
-      ctx.logger.warn('model-mask: provider "%s" catalog unavailable (%s)', provider.id, String(error))
+      ctx.logger.warn('model-mask: provider "%s" catalog unavailable (%s)', provider.id, redactSensitiveKey(String(error)))
     }
   }
   return candidates
@@ -504,7 +512,7 @@ export function buildVirtualAdapter(deps: VirtualAdapterDeps): LlmAdapter {
               'model-mask: route "%s/%s" failed before output (%s); trying the next available route',
               route.provider,
               route.model,
-              String(error),
+              redactSensitiveKey(String(error)),
             )
             continue
           }
@@ -596,19 +604,19 @@ export function apply(ctx: Context, config: Config): void {
   ctx.on('loader/volatile-update', () => {
     service.reload(config)
     void service.refresh().catch((error: unknown) => {
-      ctx.logger.warn('model-mask: route chain refresh failed (%s)', String(error))
+      ctx.logger.warn('model-mask: route chain refresh failed (%s)', redactSensitiveKey(String(error)))
     })
   })
   // Any provider or model change re-resolves the display snapshot, so a
   // provider added in Settings > Models appears without an admin write.
   ctx.on('llm/adapters-updated', () => { void service.refresh().catch((error: unknown) => {
-    ctx.logger.warn('model-mask: route chain refresh failed (%s)', String(error))
+    ctx.logger.warn('model-mask: route chain refresh failed (%s)', redactSensitiveKey(String(error)))
   }) })
   ctx.on('settings/document-updated', () => { void service.refresh().catch((error: unknown) => {
-    ctx.logger.warn('model-mask: route chain refresh failed (%s)', String(error))
+    ctx.logger.warn('model-mask: route chain refresh failed (%s)', redactSensitiveKey(String(error)))
   }) })
   void service.refresh().catch((error: unknown) => {
-    ctx.logger.warn('model-mask: initial route chain resolution failed (%s)', String(error))
+    ctx.logger.warn('model-mask: initial route chain resolution failed (%s)', redactSensitiveKey(String(error)))
   })
 
   const adapter = buildVirtualAdapter({

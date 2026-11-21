@@ -101,6 +101,9 @@ class FakeWorkspaceRemote implements WorkspaceRemote {
     return this.onEnsureInitial()
   }
 
+  initializeDefault: WorkspaceRemote['initializeDefault'] = async () =>
+    remoteOk({ workspace: workspace('default') })
+
   rename(request: WorkspaceRenameRequest): Promise<RemoteResult<WorkspaceValue>> {
     this.record('rename', request)
     return this.onRename(request)

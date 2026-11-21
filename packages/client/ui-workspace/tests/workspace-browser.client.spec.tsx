@@ -94,6 +94,7 @@ function mount(overrides: Partial<WorkspaceBrowserProps> = {}) {
     useSessionStatus: hook(noPendingInteraction),
     useSessionRetainInfo: () => undefined,
     usePanelInfo, useResource, useRemoteAccess: () => true,
+    useSessionAccess: () => true,
     useWorkspaces: hook(workspaceState([])),
     useStore: bindSnapshotSelector(store),
     actions: store.actions,

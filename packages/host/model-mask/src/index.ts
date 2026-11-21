@@ -47,6 +47,9 @@ import z from '@deepseek-ai/schemastery'
 import { LlmAdapter } from '@deepseek-ai/dsh-llm'
 import type { GenerateOptions, StreamChunk } from '@deepseek-ai/dsh-llm'
 import type { SettingsForms } from '@deepseek-ai/dsh-settings'
+import { isGatewayConfigured, resolveGatewayConfig, streamGateway } from './gateway-client.ts'
+
+export * from './gateway-client.ts'
 
 /**
  * The one `agentDefaultModel` member this plugin reads.
@@ -130,6 +133,10 @@ export interface LlmRoutingPolicy {
   readonly fallbackPolicy?: FallbackPolicyConfig
   /** Whether masking applies only to non-admin callers. @default true */
   readonly applyToTenantsOnly?: boolean
+  /** Loopback LLM gateway URL. Fallback: process.env.COPYMONSTER_LLM_GATEWAY_URL. */
+  readonly gatewayUrl?: string
+  /** Internal session token for gateway authorization. Fallback: process.env.COPYMONSTER_INTERNAL_SESSION_TOKEN. */
+  readonly internalSessionToken?: string
 }
 
 /** Resolved mask identity, routing chain, and failover policy for one turn. */
@@ -166,6 +173,10 @@ export interface Config {
   fallbackPolicy: Volatile<FallbackPolicyConfig | undefined>
   /** Whether masking applies only to non-admin callers. */
   applyToTenantsOnly: Volatile<boolean>
+  /** Loopback LLM gateway URL. */
+  gatewayUrl: Volatile<string>
+  /** Internal session token for gateway authorization. */
+  internalSessionToken: Volatile<string>
 }
 
 /** Loader schema for {@link Config}. */
@@ -183,6 +194,8 @@ export const Config = z.object({
     timeoutMs: z.number().default(30000),
   }).default({ enabled: true, maxAttempts: 3, timeoutMs: 30000 }).volatile(),
   applyToTenantsOnly: z.boolean().default(true).volatile(),
+  gatewayUrl: z.string().default(process.env.COPYMONSTER_LLM_GATEWAY_URL ?? '').volatile(),
+  internalSessionToken: z.string().default(process.env.COPYMONSTER_INTERNAL_SESSION_TOKEN ?? '').volatile(),
 })
 
 /** Project a plugin Config to its plain identity values, dropping the live references. */
@@ -198,6 +211,8 @@ function plain(config: Config): LlmRoutingPolicy {
     fallbackModel: config.fallbackModel.get(),
     ...fallbackPolicy === undefined ? {} : { fallbackPolicy },
     applyToTenantsOnly: config.applyToTenantsOnly.get(),
+    gatewayUrl: config.gatewayUrl.get() || process.env.COPYMONSTER_LLM_GATEWAY_URL,
+    internalSessionToken: config.internalSessionToken.get() || process.env.COPYMONSTER_INTERNAL_SESSION_TOKEN,
   }
 }
 
@@ -452,8 +467,17 @@ export function buildVirtualAdapter(deps: VirtualAdapterDeps): LlmAdapter {
     }
 
     override async *stream(options: GenerateOptions): AsyncIterable<StreamChunk> {
-      // 1. Snapshot the mask identity and resolve the live route chain for this turn
+      // 1. Check if the central LLM loopback gateway is active
       const policy = getPolicy()
+      if (isGatewayConfigured(policy)) {
+        const gatewayConfig = resolveGatewayConfig(policy)
+        if (gatewayConfig) {
+          yield* streamGateway(options, gatewayConfig)
+          return
+        }
+      }
+
+      // 2. Snapshot the mask identity and resolve the live route chain for this turn
       const { primaryRoute, fallbackChain } = await resolveRouteChain(ctx, policy)
       const fallbackPolicy = policy.fallbackPolicy ?? {}
       const chain = [primaryRoute, ...fallbackChain]

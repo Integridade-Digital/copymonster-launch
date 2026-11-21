@@ -139,7 +139,7 @@ function assertAdminOrOwnerAuth(ctx: Context, action: string): void {
   if (identity === undefined) {
     throw new RemoteError('settings/unauthorized', 'Autenticação necessária para acessar recursos administrativos.', {})
   }
-  if (identity.role !== 'owner' && identity.role !== 'admin') {
+  if (identity.role !== 'owner' && identity.role !== 'admin' && identity.isAdmin !== true) {
     throw new RemoteError('settings/forbidden', `Apenas administradores podem ${action}.`, { ns: 'admin' })
   }
 }

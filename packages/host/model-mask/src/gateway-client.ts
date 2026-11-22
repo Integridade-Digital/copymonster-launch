@@ -41,6 +41,63 @@ export function resolveGatewayConfig(policy?: LlmRoutingPolicy): GatewayClientCo
   return { gatewayUrl, model, ...(token ? { token } : {}) }
 }
 
+/**
+ * Rota relativa ao endpoint de inferência do loopback. A base da URL (COPYMONSTER_LLM_GATEWAY_URL)
+ * já carrega o prefixo /internal/v1/llm conforme definido pelo orquestrador, então o cliente
+ * deve anexar apenas o segmento de rota — nunca o prefixo de novo.
+ */
+const CHAT_COMPLETIONS_PATH = '/chat/completions'
+
+/** Erro tipado para falhas de configuração do gateway de LLM (ex.: URL inválida ou não-loopback). */
+export class GatewayConfigError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'GatewayConfigError'
+  }
+}
+
+/**
+ * Constrói o endpoint absoluto de chat/completions a partir da URL base do gateway.
+ *
+ * O contrato é: COPYMONSTER_LLM_GATEWAY_URL é a base da API interna (ex:
+ * http://127.0.0.1:4010/internal/v1/llm). Esta função anexa apenas /chat/completions.
+ * Qualquer outra forma é considerada configuração inválida e falha alto.
+ *
+ * @param gatewayUrl - valor emitido pelo orquestrador, já incluindo /internal/v1/llm.
+ * @returns endpoint absoluto de inferência do loopback.
+ * @throws {GatewayConfigError} quando a URL não é válida ou aponta fora do loopback.
+ */
+export function gatewayChatEndpoint(gatewayUrl: string): string {
+  const base = gatewayUrl.trim().replace(/\/+$/, '')
+  let url: URL
+  try {
+    url = new URL(base)
+  } catch {
+    throw new GatewayConfigError(
+      `COPYMONSTER_LLM_GATEWAY_URL is not a valid URL: ${gatewayUrl}`,
+    )
+  }
+
+  // O tenant só pode falar com o gateway loopback; qualquer outro destino é
+  // configuração inválida, não um fallback silencioso (defesa em profundidade contra SSRF).
+  if (url.protocol !== 'http:' || !isLoopbackHost(url.hostname) || url.search || url.hash) {
+    throw new GatewayConfigError(
+      `COPYMONSTER_LLM_GATEWAY_URL must be a loopback http origin: ${gatewayUrl}`,
+    )
+  }
+
+  return `${base}${CHAT_COMPLETIONS_PATH}`
+}
+
+/** Retorna true apenas para hostnames do loopback IPv4/IPv6. */
+function isLoopbackHost(hostname: string): boolean {
+  const h = hostname.toLowerCase()
+  if (h === 'localhost' || h === '127.0.0.1' || h === '::1' || h === '[::1]') return true
+  // IPv4 loopback range 127.0.0.0/8
+  if (/^127\.\d{1,3}\.\d{1,3}\.\d{1,3}$/.test(h)) return true
+  return false
+}
+
 /** Flatten content blocks of a message to plain string. */
 function extractMessageContent(message: RequestMessage): string {
   if (typeof message.content === 'string') return message.content
@@ -162,8 +219,7 @@ export async function* streamGateway(
   options: GenerateOptions,
   config: GatewayClientConfig,
 ): AsyncIterable<StreamChunk> {
-  const baseUrl = config.gatewayUrl.replace(/\/+$/, '')
-  const endpoint = `${baseUrl}/internal/v1/llm/chat/completions`
+  const endpoint = gatewayChatEndpoint(config.gatewayUrl)
   const payload = formatGatewayPayload(options, config.model)
 
   const headers: Record<string, string> = {
@@ -185,7 +241,7 @@ export async function* streamGateway(
     })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
-    throw new Error(`Failed to connect to LLM gateway at ${baseUrl}: ${message}`)
+    throw new Error(`Failed to connect to LLM gateway at ${endpoint}: ${message}`)
   }
 
   if (!res.ok) {

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest'
+import { createServer } from 'node:http'
 import {
   formatGatewayPayload,
+  gatewayChatEndpoint,
+  GatewayConfigError,
   isGatewayConfigured,
   resolveGatewayConfig,
   streamGateway,
@@ -23,7 +26,7 @@ async function drainStream(stream: AsyncIterable<StreamChunk>): Promise<StreamCh
 
 describe('gateway-client configuration resolution', () => {
   it('detects gateway configured via policy', () => {
-    expect(isGatewayConfigured({ gatewayUrl: 'http://127.0.0.1:4010' })).toBe(true)
+    expect(isGatewayConfigured({ gatewayUrl: 'http://127.0.0.1:4010/internal/v1/llm' })).toBe(true)
     expect(isGatewayConfigured({ gatewayUrl: '' })).toBe(false)
     expect(isGatewayConfigured({})).toBe(false)
   })
@@ -44,14 +47,14 @@ describe('gateway-client configuration resolution', () => {
     const oldEnvUrl = process.env.COPYMONSTER_LLM_GATEWAY_URL
     const oldEnvToken = process.env.COPYMONSTER_INTERNAL_SESSION_TOKEN
     try {
-      process.env.COPYMONSTER_LLM_GATEWAY_URL = 'http://127.0.0.1:4010'
+      process.env.COPYMONSTER_LLM_GATEWAY_URL = 'http://127.0.0.1:4010/internal/v1/llm'
       process.env.COPYMONSTER_INTERNAL_SESSION_TOKEN = 'env-token-xyz'
 
       const cfg = resolveGatewayConfig({
         primaryModel: 'custom-model',
       })
       expect(cfg).toEqual({
-        gatewayUrl: 'http://127.0.0.1:4010',
+        gatewayUrl: 'http://127.0.0.1:4010/internal/v1/llm',
         token: 'env-token-xyz',
         model: 'custom-model',
       })
@@ -59,6 +62,36 @@ describe('gateway-client configuration resolution', () => {
       process.env.COPYMONSTER_LLM_GATEWAY_URL = oldEnvUrl
       process.env.COPYMONSTER_INTERNAL_SESSION_TOKEN = oldEnvToken
     }
+  })
+
+  it('contract: gatewayChatEndpoint appends only /chat/completions to the producer URL', () => {
+    // Valor emitido por LocalSpawner.baseEnv no repositório do orquestrador
+    // (test/orchestrator-gateway-env.test.mjs). Contrato único: a env já traz
+    // /internal/v1/llm; o cliente não pode colá-lo de novo.
+    const PRODUCER_GATEWAY_URL = 'http://127.0.0.1:4010/internal/v1/llm'
+    expect(gatewayChatEndpoint(PRODUCER_GATEWAY_URL)).toBe(
+      'http://127.0.0.1:4010/internal/v1/llm/chat/completions',
+    )
+  })
+
+  it('rejects non-loopback gateway URLs', () => {
+    expect(() => gatewayChatEndpoint('https://api.deepseek.com/chat/completions')).toThrow(
+      GatewayConfigError,
+    )
+    expect(() => gatewayChatEndpoint('ftp://127.0.0.1/internal/v1/llm')).toThrow(GatewayConfigError)
+    expect(() => gatewayChatEndpoint('not-a-url')).toThrow(GatewayConfigError)
+    expect(() => gatewayChatEndpoint('http://127.0.0.1:4010/internal/v1/llm?x=1')).toThrow(
+      GatewayConfigError,
+    )
+  })
+
+  it('accepts loopback variants with trailing slash', () => {
+    expect(gatewayChatEndpoint('http://127.0.0.1:4010/internal/v1/llm/')).toBe(
+      'http://127.0.0.1:4010/internal/v1/llm/chat/completions',
+    )
+    expect(gatewayChatEndpoint('http://[::1]:4010/internal/v1/llm')).toBe(
+      'http://[::1]:4010/internal/v1/llm/chat/completions',
+    )
   })
 })
 
@@ -201,7 +234,7 @@ describe('gateway-client streaming execution', () => {
           messages: [{ role: 'user', content: [{ type: 'text', text: 'Hi' }] }],
         },
         {
-          gatewayUrl: 'http://127.0.0.1:4010',
+          gatewayUrl: 'http://127.0.0.1:4010/internal/v1/llm',
           token: 'test-token-123',
         },
       )) {
@@ -257,7 +290,7 @@ describe('gateway-client streaming execution', () => {
           model: VIRTUAL_MODEL,
           messages: [{ role: 'user', content: [{ type: 'text', text: 'Hi' }] }],
         },
-        { gatewayUrl: 'http://127.0.0.1:4010' },
+        { gatewayUrl: 'http://127.0.0.1:4010/internal/v1/llm' },
       )) {
         chunks.push(chunk)
       }
@@ -295,7 +328,7 @@ describe('gateway-client streaming execution', () => {
     try {
       const stream = streamGateway(
         { provider: VIRTUAL_PROVIDER, model: VIRTUAL_MODEL, messages: [] },
-        { gatewayUrl: 'http://127.0.0.1:4010' },
+        { gatewayUrl: 'http://127.0.0.1:4010/internal/v1/llm' },
       )
       await expect(drainStream(stream)).rejects.toMatchObject({
         message: 'Unauthorized internal token',
@@ -321,11 +354,11 @@ describe('gateway-client streaming execution', () => {
             model: VIRTUAL_MODEL,
             messages: [],
           },
-          { gatewayUrl: 'http://127.0.0.1:4010' },
+          { gatewayUrl: 'http://127.0.0.1:4010/internal/v1/llm' },
         )) {}
       }
 
-      await expect(executeNetworkError()).rejects.toThrow(/Failed to connect to LLM gateway at http:\/\/127.0.0.1:4010/)
+      await expect(executeNetworkError()).rejects.toThrow(/Failed to connect to LLM gateway at http:\/\/127.0.0.1:4010\/internal\/v1\/llm\/chat\/completions/)
     } finally {
       globalThis.fetch = oldFetch
     }
@@ -367,7 +400,7 @@ describe('buildVirtualAdapter gateway integration', () => {
           virtualProvider: VIRTUAL_PROVIDER,
           virtualModel: VIRTUAL_MODEL,
           virtualModelName: VIRTUAL_MODEL_NAME,
-          gatewayUrl: 'http://127.0.0.1:4010',
+          gatewayUrl: 'http://127.0.0.1:4010/internal/v1/llm',
           internalSessionToken: 'session-token-abc',
         }),
       })
@@ -389,6 +422,69 @@ describe('buildVirtualAdapter gateway integration', () => {
       })
     } finally {
       globalThis.fetch = oldFetch
+    }
+  })
+})
+
+describe('gateway-client real-server integration', () => {
+  it('streams from a real HTTP server using the producer gateway URL', async () => {
+    const server = createServer((req, res) => {
+      if (req.method === 'POST' && req.url === '/internal/v1/llm/chat/completions') {
+        let body = ''
+        req.on('data', chunk => (body += chunk))
+        req.on('end', () => {
+          const payload = JSON.parse(body)
+          const text = Array.isArray(payload.messages)
+            ? payload.messages
+              .map((m: any) => (typeof m.content === 'string' ? m.content : ''))
+              .join('')
+            : ''
+          res.writeHead(200, { 'Content-Type': 'application/json' })
+          res.end(
+            JSON.stringify({
+              id: 'chatcmpl-real',
+              choices: [{ message: { role: 'assistant', content: `echo:${text}` } }],
+              usage: { prompt_tokens: 2, completion_tokens: 2, total_tokens: 4 },
+            }),
+          )
+        })
+      } else {
+        res.writeHead(404)
+        res.end('not found')
+      }
+    })
+
+    await new Promise<void>((resolve, reject) => {
+      server.listen(0, '127.0.0.1', err => (err ? reject(err) : resolve()))
+    })
+    const addr = server.address() as { port: number }
+    const gatewayUrl = `http://127.0.0.1:${addr.port}/internal/v1/llm`
+
+    try {
+      const chunks: StreamChunk[] = []
+      for await (const chunk of streamGateway(
+        {
+          provider: VIRTUAL_PROVIDER,
+          model: VIRTUAL_MODEL,
+          messages: [{ role: 'user', content: [{ type: 'text', text: 'Hello real' }] }],
+        },
+        { gatewayUrl },
+      )) {
+        chunks.push(chunk)
+      }
+
+      expect(chunks).toContainEqual({
+        type: 'text-delta',
+        index: 0,
+        text: 'echo:Hello real',
+      })
+      expect(chunks).toContainEqual({
+        type: 'usage',
+        usage: { inputTokens: 2, outputTokens: 2, totalTokens: 4 },
+      })
+      expect(chunks).toContainEqual({ type: 'finish', reason: { kind: 'stop' } })
+    } finally {
+      server.close()
     }
   })
 })

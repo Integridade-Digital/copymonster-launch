@@ -18,6 +18,15 @@ O núcleo (auth, isolamento multi-tenant, gateway LLM, proxy) está sólido e ve
 
 ---
 
+## Prioridade 1 — Geração de imagens e primeira publicação com `funnels`
+
+Validar este fluxo antes de avançar para as demais etapas da auditoria. O teste com `funnels` mostrou o Google Gemini como **Not configured** no Studio e o chat sugeriu provedores com contas logadas ao tentar criar um carrossel de cinco imagens. O turno exibiu 184 mil tokens e nenhuma imagem entregue. Confirmar nos registros quanto foi efetivamente debitado e quais chamadas contribuíram para esse consumo.
+
+1. **Validar o provedor no Admin.** Configurar uma credencial da plataforma e gerar uma imagem no Studio. Registrar o provedor, o modelo e o resultado, mantendo a credencial fora do relatório.
+2. **Usar a mesma rota no chat e na Galeria.** O servidor deve aplicar o provedor e o modelo definidos pelo Admin em ambos os fluxos. Ocultar os seletores e as opções de conectar contas pessoais para usuários comuns. Quando a rota estiver indisponível, informar o problema sem pedir ao cliente que conecte uma conta pessoal.
+3. **Conferir saldo e débito.** Verificar a cota do tenant antes de gerar, registrar o custo da imagem separadamente dos tokens do chat e validar a conversão para créditos do plano. Testar retentativas, falhas parciais e pedidos simultâneos para garantir que o mesmo resultado não seja debitado duas vezes. Investigar o consumo do chat no onboarding e na geração do carrossel por chamada.
+4. **Validar a primeira entrega com `funnels`.** Usar o tenant de teste já ativo no Pro, como usuário comum. Completar ou retomar os 12 blocos do DNA e confirmar que os dados persistem ao reabrir o app. Gerar cinco imagens pela rota do Admin, revisar o carrossel e, após aprovação, publicá-lo no Instagram de teste. Registrar saldo antes e depois, rota efetiva, imagens geradas e ID ou link da publicação. A publicação confirmada encerra este teste funcional. A suficiência da cota do trial permanece sem validação por este cenário.
+
 ## 1. Inventário
 
 ### 1.1 Serviços em produção (systemd)
@@ -194,6 +203,7 @@ Legenda: ✅ verificado com evidência · ⚠️ parcial/ressalva · ❌ falhou 
 
 ## 5. Ordem de correção e bloqueadores de lançamento
 
+0. **Prioridade 1** — validar a geração de imagens e a primeira publicação com `funnels` conforme o critério acima.
 1. **A-1** — commitar/push o gateway-client do launch (15 min; destrava rollback).
 2. **A-2** — alinhar `DEFAULT_CENTRAL_ROUTING_CONFIG` ao schema (10 min) + **M-1** (wirear testes; 30 min).
 3. **A-3** — habilitar dump do Supabase e testar restore em isolado (1 h).

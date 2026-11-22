@@ -212,6 +212,57 @@ describe('tenant access policy: owned Workspaces and Sessions', () => {
     expect(workspace.role.actions).toContain('session/create')
   })
 
+  it('binds historical sessions from disk/workspace index when ctx.sessions is empty post-restart', () => {
+    const historicalSessionId1 = 's-historical-1'
+    const historicalSessionId2 = 's-historical-2'
+    const ctx = new Context()
+    ctx.provide('typert', { local: { list: () => descriptors } } as never)
+    ctx.provide('workspaceRegistry', {
+      list: () => [
+        {
+          id: 'ws-own',
+          path: `${ownRoot}/default`,
+          sessionIds: [historicalSessionId1],
+        },
+      ],
+      knownHeaders: new Map([
+        [historicalSessionId1, { cwd: `${ownRoot}/default` }],
+        [historicalSessionId2, { cwd: `${ownRoot}/default` }],
+      ]),
+      archivedSessionIds: [],
+      pinnedSessionIds: [],
+    } as never)
+    // Post-restart: in-memory sessions list starts empty
+    ctx.provide('sessions', {
+      list: () => [],
+    } as never)
+
+    const policyInstance = createTenantPolicy(ctx)
+    const bindings = policyInstance.bindings(principal('member'))
+
+    const sessionIds = bindings
+      .filter(binding => binding.resource.kind === 'session')
+      .map(({ resource }) => (resource as { readonly id: string }).id)
+
+    expect(sessionIds).toContain(historicalSessionId1)
+    expect(sessionIds).toContain(historicalSessionId2)
+  })
+
+  it('does not grant tenant admins archived or pinned sessions without ownership evidence', () => {
+    const ctx = new Context()
+    ctx.provide('typert', { local: { list: () => descriptors } } as never)
+    ctx.provide('workspaceRegistry', {
+      list: () => [],
+      knownHeaders: new Map([['s-foreign', { cwd: `${foreignRoot}/default` }]]),
+      archivedSessionIds: ['s-foreign', 's-unknown'],
+      pinnedSessionIds: ['s-foreign', 's-unknown'],
+    } as never)
+    ctx.provide('sessions', { list: () => [] } as never)
+
+    const bindings = createTenantPolicy(ctx).bindings(principal('admin'))
+    expect(bindings.filter(binding => binding.resource.kind === 'session')).toEqual([])
+  })
+
   it('grants no resource binding when the Host mounts neither store', () => {
     const bindings = policy().bindings(principal())
     expect(bindings).toHaveLength(1)

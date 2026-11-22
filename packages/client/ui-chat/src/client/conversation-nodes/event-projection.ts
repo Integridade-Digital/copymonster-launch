@@ -154,12 +154,27 @@ const SENSITIVE_FAILURE_PATTERNS = [
   /\/var(?:\/[^\s'"`]*)?/i,
   /(?:^|[\s"'`(=])(?:\/[a-zA-Z0-9_]+){2,}/,
   /(?:[a-zA-Z]:\\[a-zA-Z0-9_\\]+)/,
+  /https?:\/\/[^\s'"`)]+/i,
+  /\b(?:openrouter|deepseek|openai|anthropic|cloudflare|groq|iteracompute|together|fireworks|ollama)\b/i,
+  /\b(?:rate[\s_-]*limit|too many requests|free-models|free-models-per-day)\b/i,
+  /\b(?:credits?|balance|billing|quota exceeded|insufficient_quota)\b/i,
 ]
 
 function sanitizeFailureText(raw: string, code?: string): string {
+  const lower = raw.toLowerCase()
+  if (lower.includes('rate limit') || lower.includes('too many requests') || lower.includes('free-models')) {
+    return 'Limite de requisições excedido temporariamente. Por favor, aguarde alguns instantes e tente novamente.'
+  }
+  if (lower.includes('credit') || lower.includes('cota') || lower.includes('quota') || lower.includes('balance') || lower.includes('billing')) {
+    return 'Cota de utilização do serviço de IA temporariamente indisponível. Contate o administrador.'
+  }
+  if (lower.includes('api key') || lower.includes('auth') || lower.includes('unauthorized') || code === 'AUTH') {
+    return 'A chave de API ou autenticação do modelo é inválida. Contate o administrador.'
+  }
+
   for (const pattern of SENSITIVE_FAILURE_PATTERNS) {
     if (pattern.test(raw)) {
-      return code ? `An unexpected error occurred (${code}). Please try again.` : 'An unexpected error occurred. Please try again.'
+      return 'O serviço de inteligência artificial encontrou uma instabilidade temporária. Por favor, tente novamente.'
     }
   }
   return raw
@@ -175,7 +190,13 @@ export function displayFailure(failure: unknown): DisplayFailure {
     return { message: sanitizeFailureText(String(failure)) }
   }
   const record = failure as { code?: unknown; message?: unknown }
-  const code = typeof record.code === 'string' ? record.code : undefined
+  let code = typeof record.code === 'string' ? record.code : undefined
+
+  // Sanitize code if it contains provider paths or URLs
+  if (code && (/https?:\/\//i.test(code) || /\b(?:openrouter|deepseek|openai|anthropic|groq)\b/i.test(code) || code.includes('/'))) {
+    code = undefined
+  }
+
   if (code === 'AUTH') return { code, message: '' }
 
   const rawMessage = typeof record.message === 'string' ? record.message : JSON.stringify(failure)

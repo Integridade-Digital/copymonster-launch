@@ -124,18 +124,60 @@ export function createTenantPolicy(ctx: Context): RemoteAccessPolicy<PrincipalMa
       // operator reaches every resource the Host holds.
       const sandboxRoot = resolveUserSandboxRoot(principal.tenantId, principal.userId)
       const roleName = operator ? 'tenant-operator' : 'tenant-member'
-      for (const workspace of ctx.get('workspaceRegistry')?.list() ?? []) {
-        if (!isWorkspaceOwnedByPrincipal(workspace, principal, sandboxRoot)) continue
+      const registry = ctx.get('workspaceRegistry')
+      const ownedWorkspaces = (registry?.list() ?? []).filter(ws => isWorkspaceOwnedByPrincipal(ws, principal, sandboxRoot))
+      for (const workspace of ownedWorkspaces) {
         bindings.push({
           role: { name: roleName, resource: 'workspace', actions },
           resource: { kind: 'workspace', id: workspace.id },
         })
       }
+
+      // Grant permission to sessions known from storage, owned workspaces, or live memory.
+      // After a restart, ctx.sessions.list() starts empty; sessions persist in disk JSONL
+      // and are indexed into workspace.sessionIds and registry.knownHeaders.
+      const grantedSessionIds = new Set<string>()
+
+      for (const workspace of ownedWorkspaces) {
+        const sessionIds = (workspace as { sessionIds?: readonly string[] }).sessionIds
+        if (Array.isArray(sessionIds)) {
+          for (const sessionId of sessionIds) {
+            grantedSessionIds.add(String(sessionId))
+          }
+        }
+      }
+
+      const knownHeaders = (registry as { knownHeaders?: ReadonlyMap<string, { cwd?: string }> } | undefined)?.knownHeaders
+      if (knownHeaders && typeof knownHeaders.entries === 'function') {
+        for (const [id, header] of knownHeaders.entries()) {
+          // Empty/missing cwd is accepted for a live session created by this
+          // caller, but it cannot prove ownership of an arbitrary cold disk row.
+          const cwd = header?.cwd
+          if ((principal.isAdmin || (cwd !== undefined && cwd.trim() !== ''))
+            && isSessionOwnedByPrincipal({ id: String(id), header }, principal, sandboxRoot)) {
+            grantedSessionIds.add(String(id))
+          }
+        }
+      }
+
       for (const session of ctx.get('sessions')?.list() ?? []) {
-        if (!isSessionOwnedByPrincipal(session, principal, sandboxRoot)) continue
+        if (isSessionOwnedByPrincipal(session, principal, sandboxRoot)) {
+          grantedSessionIds.add(String(session.id))
+        }
+      }
+
+      // Global archive/pin indexes carry IDs, not tenant ownership. Only the
+      // platform-wide principal may bind them without an owned workspace or
+      // an indexed header proving the session belongs to this caller.
+      if (principal.isAdmin && registry) {
+        for (const id of registry.archivedSessionIds ?? []) grantedSessionIds.add(String(id))
+        for (const id of registry.pinnedSessionIds ?? []) grantedSessionIds.add(String(id))
+      }
+
+      for (const sessionId of grantedSessionIds) {
         bindings.push({
           role: { name: roleName, resource: 'session', actions },
-          resource: { kind: 'session', id: session.id },
+          resource: { kind: 'session', id: sessionId },
         })
       }
       return bindings

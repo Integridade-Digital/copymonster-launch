@@ -57,7 +57,21 @@ function failureMessage(
   if (code === 'INTERRUPTED') return t('message.failure.interrupted')
   if (code === 'ACCOUNT_SIGN_IN_REQUIRED') return t('message.failure.accountSignInRequired')
   if (code === 'QUOTA' || code === 'ACCOUNT_QUOTA') return t('message.failure.quota')
-  return code === 'AUTH' ? t('message.failure.auth') : message
+  if (code === 'AUTH') return t('message.failure.auth')
+  if (code === 'RATE_LIMIT') return 'Limite de requisições excedido temporariamente. Por favor, aguarde alguns instantes e tente novamente.'
+  if (code === 'SERVER' || code === 'TIMEOUT') return 'O serviço de IA está temporariamente indisponível. Tente novamente em instantes.'
+
+  const lower = (message || '').toLowerCase()
+  if (lower.includes('rate limit') || lower.includes('too many requests') || lower.includes('free-models')) {
+    return 'Limite de requisições excedido temporariamente. Por favor, aguarde alguns instantes e tente novamente.'
+  }
+  if (lower.includes('credit') || lower.includes('cota') || lower.includes('quota') || lower.includes('balance') || lower.includes('billing')) {
+    return t('message.failure.quota')
+  }
+  if (lower.includes('http:') || lower.includes('https:') || lower.includes('openrouter') || lower.includes('deepseek') || lower.includes('openai') || lower.includes('anthropic')) {
+    return 'O serviço de IA está temporariamente indisponível. Tente novamente em instantes.'
+  }
+  return message
 }
 
 function ModelRetryItem({ node, active, t }: {
@@ -140,7 +154,7 @@ function TurnErrorItem({ node, t }: {
         <span className={css.turnErrorTitle}>{node.code === 'ACCOUNT_SIGNED_OUT' || node.code === 'INTERRUPTED' ? t('message.taskStopped') : t('message.turnError')}</span>
         <span className={css.turnErrorMessage}>{failureMessage(node.message, node.code, t)}</span>
       </div>
-      {node.code !== undefined && node.code !== 'INTERRUPTED' && <code className={css.turnErrorCode}>{node.code}</code>}
+      {node.code !== undefined && node.code !== 'INTERRUPTED' && !node.code.includes('/') && !node.code.includes('http') && !/\b(?:openrouter|deepseek|openai|anthropic|cloudflare|groq)\b/i.test(node.code) && <code className={css.turnErrorCode}>{node.code}</code>}
     </div>
   )
 }

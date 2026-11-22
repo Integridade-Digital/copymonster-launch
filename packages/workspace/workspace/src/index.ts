@@ -415,6 +415,17 @@ export class WorkspaceRegistry extends Service {
    * session on grouping surfaces. Pinning never touches workspace accounting.
    * @returns Session ids in pin order (most recently pinned first).
    */
+  /** The startup/live session header index read from persistence and live sessions.
+   * @returns a snapshot map of known session ids to their headers.
+   */
+  get knownHeaders(): ReadonlyMap<SessionId, SessionHeader> {
+    return new Map(this.headers)
+  }
+
+  /**
+   * Session IDs in pin order (most recently pinned first).
+   * @returns Session ids in pin order.
+   */
   get pinnedSessionIds(): readonly SessionId[] {
     return this.requireState().pinnedSessionIds
   }

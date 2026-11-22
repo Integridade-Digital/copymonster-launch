@@ -1,5 +1,6 @@
 /** Controlled configuration input shared by generated and custom forms. */
 import { useId } from 'react'
+import { isPlatformAdmin } from './platform-admin.ts'
 import css from './ConfigField.module.css'
 
 /** Field state and localized controls supplied by the owning form. */
@@ -26,11 +27,35 @@ export interface ConfigFieldProps {
   onReset: () => void
 }
 
+/** Check if a field label indicates model/provider management or API credentials. */
+export function isModelOrProviderField(label: string): boolean {
+  if (!label || typeof label !== 'string') return false
+  const lower = label.toLowerCase()
+  return (
+    lower.includes('model') ||
+    lower.includes('modelo') ||
+    lower.includes('provider') ||
+    lower.includes('provedor') ||
+    lower.includes('api key') ||
+    lower.includes('apikey') ||
+    lower.includes('api_key') ||
+    lower.includes('secret key') ||
+    lower.includes('secret_key') ||
+    lower.includes('auth token') ||
+    lower.includes('auth_token')
+  )
+}
+
 /** Render a field without owning its schema, draft, or persistence.
  * @param props Controlled field state and actions.
- * @returns A labelled input with reset and validation feedback.
+ * @returns A labelled input with reset and validation feedback, or null when hidden from non-admin tenants.
  */
 export function ConfigField(props: ConfigFieldProps) {
+  // Non-admin tenants must never see or edit model routing or provider API keys
+  if (!isPlatformAdmin() && isModelOrProviderField(props.label)) {
+    return null
+  }
+
   const id = useId()
   return <div className={css.field}>
     <div className={css.head}>

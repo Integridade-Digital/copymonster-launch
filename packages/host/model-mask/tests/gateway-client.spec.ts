@@ -3,6 +3,8 @@ import { createServer } from 'node:http'
 import {
   formatGatewayPayload,
   gatewayChatEndpoint,
+  gatewayImageEndpoint,
+  generateImageGateway,
   GatewayConfigError,
   isGatewayConfigured,
   resolveGatewayConfig,
@@ -483,6 +485,106 @@ describe('gateway-client real-server integration', () => {
         usage: { inputTokens: 2, outputTokens: 2, totalTokens: 4 },
       })
       expect(chunks).toContainEqual({ type: 'finish', reason: { kind: 'stop' } })
+    } finally {
+      server.close()
+    }
+  })
+})
+
+describe('gatewayImageEndpoint and generateImageGateway', () => {
+  it('constructs canonical image generation endpoint', () => {
+    expect(gatewayImageEndpoint('http://127.0.0.1:4010/internal/v1/llm')).toBe(
+      'http://127.0.0.1:4010/internal/v1/llm/images/generations',
+    )
+    expect(gatewayImageEndpoint('http://127.0.0.1:4010')).toBe(
+      'http://127.0.0.1:4010/images/generations',
+    )
+  })
+
+  it('successfully generates image via loopback gateway with session token', async () => {
+    let capturedAuth = ''
+    let capturedBody: any = null
+
+    const server = createServer((req, res) => {
+      capturedAuth = req.headers['authorization'] ?? ''
+      let raw = ''
+      req.on('data', chunk => { raw += chunk })
+      req.on('end', () => {
+        capturedBody = JSON.parse(raw)
+        res.writeHead(200, { 'Content-Type': 'application/json' })
+        res.end(JSON.stringify({
+          created: 1710000000,
+          data: [
+            {
+              b64_json: 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+              mime_type: 'image/png',
+            },
+          ],
+        }))
+      })
+    })
+
+    await new Promise<void>((resolve, reject) => {
+      server.listen(0, '127.0.0.1', err => (err ? reject(err) : resolve()))
+    })
+    const addr = server.address() as { port: number }
+    const gatewayUrl = `http://127.0.0.1:${addr.port}/internal/v1/llm`
+
+    try {
+      const result = await generateImageGateway(
+        {
+          prompt: 'A friendly monster mascot illustrating high conversion copy',
+          model: '@cf/black-forest-labs/flux-1-schnell',
+          numSteps: 4,
+          width: 512,
+          height: 512,
+        },
+        {
+          gatewayUrl,
+          token: 'session-jwt-token-xyz',
+        },
+      )
+
+      expect(capturedAuth).toBe('Bearer session-jwt-token-xyz')
+      expect(capturedBody.prompt).toBe('A friendly monster mascot illustrating high conversion copy')
+      expect(capturedBody.model).toBe('@cf/black-forest-labs/flux-1-schnell')
+      expect(capturedBody.num_steps).toBe(4)
+      expect(capturedBody.width).toBe(512)
+      expect(capturedBody.height).toBe(512)
+
+      expect(result.created).toBe(1710000000)
+      expect(result.data.length).toBe(1)
+      expect(result.data[0].mimeType).toBe('image/png')
+      expect(result.data[0].b64Json).toContain('iVBORw0KGgo')
+    } finally {
+      server.close()
+    }
+  })
+
+  it('handles upstream gateway error with descriptive message and status', async () => {
+    const server = createServer((_req, res) => {
+      res.writeHead(502, { 'Content-Type': 'application/json' })
+      res.end(JSON.stringify({
+        error: {
+          message: 'Upstream image generation failed: Cloudflare Workers AI rate limited',
+          type: 'upstream_error',
+        },
+      }))
+    })
+
+    await new Promise<void>((resolve, reject) => {
+      server.listen(0, '127.0.0.1', err => (err ? reject(err) : resolve()))
+    })
+    const addr = server.address() as { port: number }
+    const gatewayUrl = `http://127.0.0.1:${addr.port}/internal/v1/llm`
+
+    try {
+      await expect(
+        generateImageGateway(
+          { prompt: 'A simple test prompt' },
+          { gatewayUrl, token: 'session-jwt-token-xyz' },
+        ),
+      ).rejects.toThrow(/Cloudflare Workers AI rate limited/)
     } finally {
       server.close()
     }

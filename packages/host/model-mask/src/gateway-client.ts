@@ -441,3 +441,115 @@ function createBlockEnd(
 
   return { type: 'block-end', index, block }
 }
+
+export interface GenerateImageOptions {
+  prompt: string
+  model?: string
+  numSteps?: number
+  width?: number
+  height?: number
+  signal?: AbortSignal
+}
+
+export interface GeneratedImageData {
+  b64Json: string
+  mimeType: string
+}
+
+export interface GenerateImageResult {
+  created: number
+  data: GeneratedImageData[]
+}
+
+/** Construct loopback gateway endpoint for image generation. */
+export function gatewayImageEndpoint(gatewayUrl: string): string {
+  const base = gatewayUrl.trim().replace(/\/+$/, '')
+  let url: URL
+  try {
+    url = new URL(base)
+  } catch {
+    throw new GatewayConfigError(
+      `COPYMONSTER_LLM_GATEWAY_URL is not a valid URL: ${gatewayUrl}`,
+    )
+  }
+
+  if (url.protocol !== 'http:' || !isLoopbackHost(url.hostname) || url.search || url.hash) {
+    throw new GatewayConfigError(
+      `COPYMONSTER_LLM_GATEWAY_URL must be a loopback http origin: ${gatewayUrl}`,
+    )
+  }
+
+  return `${base}/images/generations`
+}
+
+/**
+ * Generate images via Central Loopback Gateway using session authorization.
+ */
+export async function generateImageGateway(
+  options: GenerateImageOptions,
+  config: GatewayClientConfig,
+): Promise<GenerateImageResult> {
+  const endpoint = gatewayImageEndpoint(config.gatewayUrl)
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  }
+  if (config.token) {
+    headers['Authorization'] = `Bearer ${config.token}`
+  }
+
+  const payload: Record<string, unknown> = {
+    prompt: options.prompt,
+    ...(options.model ? { model: options.model } : {}),
+    ...(typeof options.numSteps === 'number' ? { num_steps: options.numSteps } : {}),
+    ...(typeof options.width === 'number' ? { width: options.width } : {}),
+    ...(typeof options.height === 'number' ? { height: options.height } : {}),
+  }
+
+  let res: Response
+  try {
+    res = await fetch(endpoint, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(payload),
+      ...(options.signal ? { signal: options.signal } : {}),
+    })
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : String(err)
+    throw new Error(`Failed to connect to image gateway at ${endpoint}: ${message}`)
+  }
+
+  if (!res.ok) {
+    let errBody: unknown
+    try {
+      errBody = await res.json()
+    } catch {
+      try {
+        errBody = { message: await res.text() }
+      } catch {
+        errBody = { message: `Gateway image error HTTP ${res.status}` }
+      }
+    }
+
+    const obj = errBody as { error?: { message?: string; code?: string; type?: string }; message?: string } | undefined
+    const errMsg = obj?.error?.message ?? obj?.message ?? `Gateway returned HTTP ${res.status}`
+    const error = new Error(errMsg)
+    Object.assign(error, {
+      status: res.status,
+      code: obj?.error?.code ?? obj?.error?.type ?? `HTTP_${res.status}`,
+    })
+    throw error
+  }
+
+  const json = (await res.json()) as {
+    created?: number
+    data?: Array<{ b64_json?: string; mime_type?: string }>
+  }
+
+  return {
+    created: json.created ?? Math.floor(Date.now() / 1000),
+    data: (json.data ?? []).map((item) => ({
+      b64Json: item.b64_json ?? '',
+      mimeType: item.mime_type ?? 'image/png',
+    })),
+  }
+}

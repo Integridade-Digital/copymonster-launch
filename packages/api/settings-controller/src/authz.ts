@@ -44,9 +44,17 @@ export function callerIsAdmin(ctx: Context): boolean {
   if (identity !== undefined) {
     return identity.role === 'owner' || identity.role === 'admin' || identity.isAdmin === true
   }
-  const principal = ctx.invocation?.peer.principal
-  if (principal === undefined) return true
+  // No invocation means Host code calling in-process; that is the only case
+  // trusted without a principal. A Remote invocation always carries a Peer
+  // principal, so a missing one there is a defect, not an operator.
+  const invocation = ctx.invocation
+  if (invocation === undefined) return true
+  // Read defensively: the type marks `principal` as required, but a Peer built
+  // outside the connection layer can still lack it, and that must fail closed.
+  const peer = invocation.peer as { principal?: { kind: string; role?: string; isAdmin?: boolean } } | undefined
+  const principal = peer?.principal
+  if (principal === undefined) return false
   if (principal.kind === 'owner') return true
   return principal.kind === 'user'
-    && (principal.role === 'owner' || principal.role === 'admin' || principal.isAdmin)
+    && (principal.role === 'owner' || principal.role === 'admin' || principal.isAdmin === true)
 }

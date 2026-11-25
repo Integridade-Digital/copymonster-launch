@@ -22,6 +22,13 @@ describe('settings authorization', () => {
     expect(callerIsAdmin(withPrincipal({ kind: 'user', userId: 'u', tenantId: 't', role: 'member', isAdmin: false }))).toBe(false)
   })
 
+  it('M-4: refuses a Remote invocation whose peer has no principal', () => {
+    // A Remote dispatch always carries a Peer; a missing principal is a defect,
+    // so it must not fall open to an operator.
+    const ctx = new Context().extend({ invocation: { peer: {} } as never })
+    expect(callerIsAdmin(ctx)).toBe(false)
+  })
+
   it('reads a scoped auth identity before the Peer principal', () => {
     const ctx = new Context()
     ctx.provide('authIdentity', {

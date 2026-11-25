@@ -184,22 +184,22 @@ Legenda: ✅ verificado com evidência · ⚠️ parcial/ressalva · ❌ falhou 
 |---|---|---|---|---|
 | M-1 | HIGH | [RESOLVIDO] 7 arquivos de teste órfãos wireados no script `npm test`; suíte com 31 arquivos (185 testes, 184 pass, 0 fail, 1 skip). | server-login `package.json:scripts.test` | Commit `704fa431bd` em `master`. Todos os 7 testes passam sem regressões. | Wirear `bootstrap-proxy, cors-session-token, file-service-auth, llm-central-routing, spawn-setpriv, spawn, trust-proxy` concluído. |
 | M-2 | HIGH | [RESOLVIDO] Endpoints com cookie `SameSite=None` sem verificação de `Origin`/token. Mutações externas agora recebem 403. | server-login `src/web/middleware/csrf.ts` + `src/web/server.ts` | `onRequest` valida `Origin` (ou `Referer`); com cookie só aceita host próprio, apex e main app; 9 testes em `test/csrf.test.mjs`. |
-| M-3 | MED | Cookie do app principal sem `jti`/revogação (30 d) | launch `packages/api/auth-http/src/session-token.ts:452-465` | `jti` + tabela de sessão ou epoch por usuário |
-| M-4 | MED | `callerIsAdmin` fail-open quando não há principal | launch `packages/api/settings-controller/src/authz.ts:47-48` | retornar `false` para Remote sem principal; restringir `true` a in-process real |
+| M-3 | MED | [RESOLVIDO] Cookie do app principal agora carrega `jti` e valida contra a tabela `app_sessions`; logout revoga uma sessão ou todas de um usuário. Cookies emitidos antes continuam válidos até expirar. | launch `packages/api/auth-http/src/session-token.ts` | `createAppSession`/`isAppSessionActive`/`revokeAppSession` + migração implícita da tabela; 4 testes em `tests/session-revocation.spec.ts`. |
+| M-4 | MED | [RESOLVIDO] `callerIsAdmin` só confia em chamada in-process (sem `ctx.invocation`); uma invocação Remote sem `principal` agora falha fechada. | launch `packages/api/settings-controller/src/authz.ts` | Teste adicionado em `tests/authz.spec.ts`. |
 | M-5 | MED | [RESOLVIDO] Teardown paralelizado com timeout de 8 s por tenant; sockets WebSocket proxied destruídas no `stop`; teto de 45 s no `app.close()` do CLI. 3 testes em `test/teardown-parallel.test.mjs`. | server-login `src/supervisor/orchestrator.ts`, `src/cli.ts` | Elimina a serialização tenant-a-tenant que estourava o `TimeoutStopSec` de 90 s e produzia SIGKILL. |
 | M-6 | MED | Tenant iniciado não adota routing novo sem backfill/restart | server-login `local-user-fs.ts` (re-provisionamento) | invalidação via evento no volatile-update do model-mask, ou backfill pós-mudança |
-| M-7 | MED | Redação de logs cobre só 4 prefixos; `nvapi-`, `thk_live`, `apx_`, `freellm`, JWT passam | server-login `master-credentials.ts:42`; launch `model-mask/src/index.ts:55` | estender padrões; unknown-key → `[REDACTED_KEY]` completo |
+| M-7 | MED | [RESOLVIDO] Redação cobre também `sk-` longo, `nvapi-`, `thk_live_`, `apx_`, `freellm` e JWTs; `redactApiKey` usa o mesmo padrão. | server-login `src/supervisor/master-credentials.ts` | 1 teste em `test/auth-hardening.test.mjs`. |
 | M-8 | MED | [RESOLVIDO] O timeout de 60 s agora cobre só a espera por headers; liberado ao entregar o stream, então SSE longo não é abortado aos 60 s. JSON continua sob timeout até o corpo ser lido. | server-login `src/gateway/upstream-client.ts` | `tryCall` com `AbortController` cancelável + `releaseActiveTimeout`; 3 testes em `test/upstream-stream-timeout.test.mjs`. |
-| M-9 | MED | Port-guard não cerca 3080/4010 (tenant com shell alcança control-plane) | server-login `supervisor/firewall.ts:59-63` | OUTPUT REJECT p/ uids de tenant nessas portas |
-| M-10 | MED | Permissões amplas `go+rX` no root do tenant (só 3 dirs + credenciais restritas) | server-login `fs/workspace.ts:106-115` | `u+rwX,go-rwx` recursivo |
-| M-11 | MED | Fallback silencioso do gateway secret para constante pública | server-login `orchestrator.ts:445-448` | falhar no boot se secret ausente/curto |
-| M-12 | LOW | Enumeração de usuários por timing no login | server-login `routes/auth.ts:344-345` | dummy scrypt para usuário inexistente |
-| M-13 | LOW | Rate-limit do gateway não faz sweep de buckets | server-login `llm-loopback-server.ts:39` | evict por janela (como `rate-limit.ts`) |
-| M-14 | LOW | `dsh-provision.path/.service` em falha permanente (useradd rejeita UUID) | host `/usr/local/bin/provision-new-users.sh` | desativar (legado) ou corrigir `--badname` |
-| M-15 | LOW | Token de gateway de 24 h não rotativo | server-login `token-validator.ts:37-62` | TTL curto + re-mint no restart |
-| M-16 | LOW | scrypt com parâmetros default; argon2id recomendado | server-login `web/auth.ts:17-29` | elevar custo/migrar |
-| M-17 | LOW | `isAdmin` por username mágico `'funel'` | server-login `routes/auth.ts:276` | usar `config.masterTenantUsername` |
-| M-18 | LOW | Dedup ausente para eventos Stripe de plano | launch `packages/api/auth-http/src/billing.ts:405-447` | registrar ids de eventos processados |
+| M-9 | MED | [RESOLVIDO] O orquestrador instala o guard nas portas do control-plane (3081 e 4010) além das portas de tenant; `reset()` no boot limpa regras órfãs e a instalação é idempotente (sem empilhar). | server-login `src/supervisor/firewall.ts`, `src/supervisor/orchestrator.ts` | Regra `! --uid-owner 0` cobre qualquer uid de tenant. |
+| M-10 | MED | [RESOLVIDO] `grantUserRootPermissions` usa `u+rwX,go-rwx`; nenhum bit de grupo/outro fica no root do tenant. | server-login `src/fs/workspace.ts` | 1 teste em `test/workspace-permissions.test.mjs`. |
+| M-11 | MED | [RESOLVIDO] Constante de fallback removida; `baseEnv` lança erro se `gatewayInternalSecret` tiver menos de 32 caracteres. | server-login `src/supervisor/orchestrator.ts` | 3 testes em `test/gateway-secret-guard.test.mjs`. |
+| M-12 | LOW | [RESOLVIDO] Usuário inexistente passa por `burnPasswordHashCost` (um scrypt do mesmo custo) antes de responder 401. | server-login `src/web/routes/auth.ts`, `src/web/auth.ts` | Teste em `test/auth-hardening.test.mjs`. |
+| M-13 | LOW | [RESOLVIDO] `sweepRateLimits` descarta buckets com janela fechada quando o mapa passa de 1024 entradas. | server-login `src/gateway/llm-loopback-server.ts` | 2 testes em `test/rate-limit-sweep.test.mjs`. |
+| M-14 | LOW | [RESOLVIDO] `dsh-provision.path` desabilitado e `reset-failed` aplicado na VPS; não há mais unidade em falha permanente. | host systemd | Provisionamento é feito pelo orquestrador (`provisionLinuxUser`). |
+| M-15 | LOW | [RESOLVIDO] TTL padrão do token de tenant reduzido para 12 h; o orquestrador re-emite a cada spawn, então um token vazado expira antes e nenhuma geração legítima é cortada. | server-login `src/gateway/token-validator.ts` | Testes em `test/llm-token-validator.test.mjs`. |
+| M-16 | LOW | [RESOLVIDO] Novas senhas usam scrypt N=2^17,r=8,p=1 e o hash grava N/r/p; hashes legados de 3 partes continuam verificando no custo antigo. Parâmetros abusivos são recusados antes de rodar. | server-login `src/web/auth.ts` | 3 testes em `test/auth-hardening.test.mjs`. |
+| M-17 | LOW | [RESOLVIDO] O username mágico `'funel'` foi trocado por `config.masterTenantUsername`. | server-login `src/web/routes/auth.ts` | — |
+| M-18 | LOW | [RESOLVIDO] Todo evento é reclamado em `processed_stripe_events` antes da side effect; uma redelivery com o mesmo id responde `{received:true,duplicate:true}`. Se o handler falhar, o claim é liberado para a retentativa. | launch `packages/api/auth-http/src/billing.ts`, `supabase/migrations/061_processed_stripe_events.sql` | 1 teste em `tests/billing-dedupe.spec.ts`. |
 
 ---
 
@@ -212,7 +212,7 @@ Legenda: ✅ verificado com evidência · ⚠️ parcial/ressalva · ❌ falhou 
 4. **M-2 (CSRF)** — Origin-check nas rotas mutantes do orquestrador — ✅ implementado (`csrf.ts`, 9 testes).
 5. **M-5** — teardown paralelo (2 h) — elimina SIGKILLs de deploy — ✅ **CONCLUÍDO** (commit `85aecc5` em server-login).
 6. **M-8** — timeout de streaming (1 h) — corrige cortes de gerações longas — ✅ **CONCLUÍDO** (commit `9f72468` em server-login).
-7. Demais M (primeira semana): M-3, M-4, M-7, M-9, M-10, M-11, M-12…
+7. **Demais M** — ✅ **CONCLUÍDOS**: M-3, M-4, M-7, M-9, M-10, M-11, M-12, M-13, M-14, M-15, M-16, M-17, M-18. Restam M-6 (invalidação de routing em tenant ativo; exige evento no model-mask) e M-1/M-2/M-5/M-8 já concluídos.
 
 ---
 

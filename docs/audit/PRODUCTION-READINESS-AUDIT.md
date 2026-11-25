@@ -186,10 +186,10 @@ Legenda: ✅ verificado com evidência · ⚠️ parcial/ressalva · ❌ falhou 
 | M-2 | HIGH | [RESOLVIDO] Endpoints com cookie `SameSite=None` sem verificação de `Origin`/token. Mutações externas agora recebem 403. | server-login `src/web/middleware/csrf.ts` + `src/web/server.ts` | `onRequest` valida `Origin` (ou `Referer`); com cookie só aceita host próprio, apex e main app; 9 testes em `test/csrf.test.mjs`. |
 | M-3 | MED | Cookie do app principal sem `jti`/revogação (30 d) | launch `packages/api/auth-http/src/session-token.ts:452-465` | `jti` + tabela de sessão ou epoch por usuário |
 | M-4 | MED | `callerIsAdmin` fail-open quando não há principal | launch `packages/api/settings-controller/src/authz.ts:47-48` | retornar `false` para Remote sem principal; restringir `true` a in-process real |
-| M-5 | MED | Shutdown excede 90 s → SIGKILL (3×/dia) | server-login `src/supervisor/orchestrator.ts:376-379` | paralelizar `stop()` com timeout por tenant; aumentar `TimeoutStopSec` |
+| M-5 | MED | [RESOLVIDO] Teardown paralelizado com timeout de 8 s por tenant; sockets WebSocket proxied destruídas no `stop`; teto de 45 s no `app.close()` do CLI. 3 testes em `test/teardown-parallel.test.mjs`. | server-login `src/supervisor/orchestrator.ts`, `src/cli.ts` | Elimina a serialização tenant-a-tenant que estourava o `TimeoutStopSec` de 90 s e produzia SIGKILL. |
 | M-6 | MED | Tenant iniciado não adota routing novo sem backfill/restart | server-login `local-user-fs.ts` (re-provisionamento) | invalidação via evento no volatile-update do model-mask, ou backfill pós-mudança |
 | M-7 | MED | Redação de logs cobre só 4 prefixos; `nvapi-`, `thk_live`, `apx_`, `freellm`, JWT passam | server-login `master-credentials.ts:42`; launch `model-mask/src/index.ts:55` | estender padrões; unknown-key → `[REDACTED_KEY]` completo |
-| M-8 | MED | `AbortSignal.timeout(60s)` corta streams SSE longos | server-login `upstream-client.ts:187-197` | timeout só até headers; desanexar após 1º chunk |
+| M-8 | MED | [RESOLVIDO] O timeout de 60 s agora cobre só a espera por headers; liberado ao entregar o stream, então SSE longo não é abortado aos 60 s. JSON continua sob timeout até o corpo ser lido. | server-login `src/gateway/upstream-client.ts` | `tryCall` com `AbortController` cancelável + `releaseActiveTimeout`; 3 testes em `test/upstream-stream-timeout.test.mjs`. |
 | M-9 | MED | Port-guard não cerca 3080/4010 (tenant com shell alcança control-plane) | server-login `supervisor/firewall.ts:59-63` | OUTPUT REJECT p/ uids de tenant nessas portas |
 | M-10 | MED | Permissões amplas `go+rX` no root do tenant (só 3 dirs + credenciais restritas) | server-login `fs/workspace.ts:106-115` | `u+rwX,go-rwx` recursivo |
 | M-11 | MED | Fallback silencioso do gateway secret para constante pública | server-login `orchestrator.ts:445-448` | falhar no boot se secret ausente/curto |
@@ -210,8 +210,8 @@ Legenda: ✅ verificado com evidência · ⚠️ parcial/ressalva · ❌ falhou 
 2. **A-2 & M-1** — ✅ **CONCLUÍDO** (commit `704fa431bd` no `copymonster-dsh-server-login`; schema alinhado e 184/185 testes passando).
 3. **A-3** — Habilitar dump do Supabase no systemd unit da VPS e testar restore em ambiente isolado (1 h).
 4. **M-2 (CSRF)** — Origin-check nas rotas mutantes do orquestrador — ✅ implementado (`csrf.ts`, 9 testes).
-5. **M-5** — teardown paralelo (2 h) — elimina SIGKILLs de deploy.
-6. **M-8** — timeout de streaming (1 h) — corrige cortes de gerações longas.
+5. **M-5** — teardown paralelo (2 h) — elimina SIGKILLs de deploy — ✅ **CONCLUÍDO** (commit `85aecc5` em server-login).
+6. **M-8** — timeout de streaming (1 h) — corrige cortes de gerações longas — ✅ **CONCLUÍDO** (commit `9f72468` em server-login).
 7. Demais M (primeira semana): M-3, M-4, M-7, M-9, M-10, M-11, M-12…
 
 ---

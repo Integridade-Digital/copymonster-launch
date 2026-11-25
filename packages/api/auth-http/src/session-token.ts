@@ -28,7 +28,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import { DatabaseSync } from 'node:sqlite'
 import { mkdir, open } from 'node:fs/promises'
 import { dirname, resolve } from 'node:path'
-import { createHmac, timingSafeEqual } from 'node:crypto'
+import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 import { bearerToken } from './bearer-token.ts'
 import { SESSION_COOKIE_NAME } from '@deepseek-ai/dsh-constants'
 import { decodeJwt, decodeProtectedHeader, jwtVerify, type JWTPayload } from 'jose'
@@ -87,6 +87,18 @@ export interface SignedSession {
   supabaseSub: string
   username: string
   issuedAt: number
+  /**
+   * Session identifier recorded in the `app_sessions` table. A cookie with a
+   * `jti` authenticates only while its row exists, so a sign-out can revoke it
+   * before the 30-day expiry. Cookies minted before this field existed omit it
+   * and keep working until they expire.
+   */
+  jti?: string
+}
+
+/** Row shape the revocation check reads. */
+interface AppSessionRow {
+  issued_at: number
 }
 
 interface SupabaseUserResponse {
@@ -167,6 +179,7 @@ export function signSessionCookie(session: SignedSession, secret: string): strin
     s: session.supabaseSub,
     n: session.username,
     iat: session.issuedAt,
+    ...(session.jti === undefined ? {} : { jti: session.jti }),
   })).toString('base64url')
   return `${payload}.${hmac(payload, secret).toString('base64url')}`
 }
@@ -207,14 +220,22 @@ export function verifySessionCookie(
   const supabaseSub = record.s
   const username = record.n
   const issuedAt = record.iat
+  const jti = record.jti
 
   if (typeof userId !== 'number' || !Number.isSafeInteger(userId)) return null
   if (typeof supabaseSub !== 'string' || supabaseSub === '') return null
   if (typeof username !== 'string' || username === '') return null
   if (typeof issuedAt !== 'number' || !Number.isSafeInteger(issuedAt)) return null
   if (issuedAt > now || now - issuedAt > SESSION_MAX_AGE_SECONDS) return null
+  if (jti !== undefined && (typeof jti !== 'string' || jti === '')) return null
 
-  return { userId, supabaseSub, username, issuedAt }
+  return {
+    userId,
+    supabaseSub,
+    username,
+    issuedAt,
+    ...(jti === undefined ? {} : { jti }),
+  }
 }
 
 async function getDatabase(): Promise<DatabaseSync> {
@@ -249,7 +270,65 @@ async function getDatabase(): Promise<DatabaseSync> {
     CREATE INDEX IF NOT EXISTS idx_users_supabase_sub ON users(supabase_sub)
   `)
 
+  // Revocable session identifiers. A signed cookie carries a `jti` that must
+  // have a row here; deleting the row (sign-out) invalidates it immediately.
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS app_sessions (
+      jti TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      issued_at INTEGER NOT NULL
+    ) STRICT
+  `)
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_app_sessions_user ON app_sessions(user_id)
+  `)
+
   return db
+}
+
+/**
+ * Record a freshly minted session so its `jti` can later be validated and
+ * revoked.
+ * @param jti - the session identifier embedded in the cookie.
+ * @param userId - local user row the session belongs to.
+ * @param issuedAt - issue time, epoch seconds.
+ */
+export async function createAppSession(jti: string, userId: number, issuedAt: number): Promise<void> {
+  const database = await getDatabase()
+  database.prepare('INSERT OR REPLACE INTO app_sessions (jti, user_id, issued_at) VALUES (?, ?, ?)')
+    .run(jti, userId, issuedAt)
+}
+
+/**
+ * Whether a session id is still live.
+ *
+ * A cookie without a `jti` predates revocation support and is accepted by the
+ * caller's signature/expiry checks alone; this function is only asked about
+ * cookies that carry one.
+ * @param jti - session identifier from the cookie.
+ * @returns true when the row exists.
+ */
+export async function isAppSessionActive(jti: string): Promise<boolean> {
+  const database = await getDatabase()
+  const row = database.prepare('SELECT issued_at FROM app_sessions WHERE jti = ?').get(jti) as AppSessionRow | undefined
+  return row !== undefined
+}
+
+/**
+ * Revoke one session, or every session of a user on sign-out.
+ * @param jti - session identifier to revoke, when revoking just one.
+ * @param userId - revoke all of this user's sessions when `jti` is omitted.
+ */
+export async function revokeAppSession(jti: string | undefined, userId?: number): Promise<void> {
+  const database = await getDatabase()
+  if (jti !== undefined) {
+    database.prepare('DELETE FROM app_sessions WHERE jti = ?').run(jti)
+    return
+  }
+  if (userId !== undefined) {
+    database.prepare('DELETE FROM app_sessions WHERE user_id = ?').run(userId)
+  }
 }
 
 function hasAuthenticatedAudience(payload: JWTPayload): boolean {
@@ -560,11 +639,15 @@ export async function handleSessionToken(_ctx: Context, req: IncomingMessage, re
     throw error
   }
 
+  const issuedAt = Math.floor(Date.now() / 1000)
+  const jti = randomBytes(24).toString('base64url')
+  await createAppSession(jti, localUser.id, issuedAt)
   const signed = signSessionCookie({
     userId: localUser.id,
     supabaseSub: supabaseUser.id,
     username,
-    issuedAt: Math.floor(Date.now() / 1000),
+    issuedAt,
+    jti,
   }, sessionSecret)
   setSessionCookie(res, signed)
   const planSlug = await fetchPlanSlug(token)

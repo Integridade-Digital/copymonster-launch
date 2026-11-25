@@ -102,6 +102,9 @@ export {
 } from './payout-executor.ts'
 export {
   SESSION_MAX_AGE_SECONDS,
+  createAppSession,
+  isAppSessionActive,
+  revokeAppSession,
   signSessionCookie,
   verifySessionCookie,
   type SignedSession,

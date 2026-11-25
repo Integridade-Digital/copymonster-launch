@@ -110,7 +110,7 @@ Verificado com evidência:
 
 ### 2.6 Segurança (síntese — 17 achados no apêndice)
 
-Verificado bom: compariação constante, scope fixo, fail-closed no provisioning, webhook Stripe com HMAC + janela + compare constante + idempotência de comissões, rate limiters com sweep. Riscos principais: **CSRF no orquestrador (SameSite=None sem Origin-check)**, cookie do app principal não-revocável (30 d, sem `jti`), redação de logs incompleta (`nvapi-`, `thk_live`, `apx_`, JWTs), `callerIsAdmin` fail-open em chamada sem principal, AbortSignal de 60 s corta streams longos.
+Verificado bom: compariação constante, scope fixo, fail-closed no provisioning, webhook Stripe com HMAC + janela + compare constante + idempotência de comissões, rate limiters com sweep. Riscos principais: cookie do app principal não-revocável (30 d, sem `jti`), redação de logs incompleta (`nvapi-`, `thk_live`, `apx_`, JWTs), `callerIsAdmin` fail-open em chamada sem principal, AbortSignal de 60 s corta streams longos.
 
 ### 2.7 Infraestrutura e confiabilidade (medições)
 
@@ -156,7 +156,7 @@ Verificado bom: compariação constante, scope fixo, fail-closed no provisioning
 | Banco | RLS anon | ✅ passou | queries com anon → 0 linhas |
 | Banco | backup/restauração | ⚠️ parcial | backup diário com manifest ✅; restauração completa não executada; Supabase não copiado (A-3) |
 | Segurança | segredos em logs | ⚠️ parcial | F-10 (padrões incompletos) |
-| Segurança | CSRF orquestrador | ❌ falhou | F-1 (SameSite=None sem Origin-check) |
+| Segurança | CSRF orquestrador | ✅ passou (código) | M-2: `csrf.ts` + 9 testes |
 | Segurança | webhook Stripe | ✅ passou | HMAC + tolerância + idempotência de comissões |
 | Infra | memória/disco/load | ✅ ok (com swap histórico) | medições §2.7 |
 | Infra | shutdown limpo | ❌ falhou | 3× SIGKILL em 1 dia (M-5) |
@@ -183,7 +183,7 @@ Legenda: ✅ verificado com evidência · ⚠️ parcial/ressalva · ❌ falhou 
 | ID | Grav. | Achado | Local | Correção |
 |---|---|---|---|---|
 | M-1 | HIGH | [RESOLVIDO] 7 arquivos de teste órfãos wireados no script `npm test`; suíte com 31 arquivos (185 testes, 184 pass, 0 fail, 1 skip). | server-login `package.json:scripts.test` | Commit `704fa431bd` em `master`. Todos os 7 testes passam sem regressões. | Wirear `bootstrap-proxy, cors-session-token, file-service-auth, llm-central-routing, spawn-setpriv, spawn, trust-proxy` concluído. |
-| M-2 | HIGH | CSRF: endpoints com cookie SameSite=None sem verificação de `Origin`/token | server-login `src/web/auth.ts:61` + rotas mutantes | rejeitar mutações cujo `Origin` não seja origem da plataforma |
+| M-2 | HIGH | [RESOLVIDO] Endpoints com cookie `SameSite=None` sem verificação de `Origin`/token. Mutações externas agora recebem 403. | server-login `src/web/middleware/csrf.ts` + `src/web/server.ts` | `onRequest` valida `Origin` (ou `Referer`); com cookie só aceita host próprio, apex e main app; 9 testes em `test/csrf.test.mjs`. |
 | M-3 | MED | Cookie do app principal sem `jti`/revogação (30 d) | launch `packages/api/auth-http/src/session-token.ts:452-465` | `jti` + tabela de sessão ou epoch por usuário |
 | M-4 | MED | `callerIsAdmin` fail-open quando não há principal | launch `packages/api/settings-controller/src/authz.ts:47-48` | retornar `false` para Remote sem principal; restringir `true` a in-process real |
 | M-5 | MED | Shutdown excede 90 s → SIGKILL (3×/dia) | server-login `src/supervisor/orchestrator.ts:376-379` | paralelizar `stop()` com timeout por tenant; aumentar `TimeoutStopSec` |
@@ -209,7 +209,7 @@ Legenda: ✅ verificado com evidência · ⚠️ parcial/ressalva · ❌ falhou 
 1. **A-1** — ✅ **CONCLUÍDO** (commitado em `589d5d6851` e `9cf3ffacf7` no `copymonster-launch`).
 2. **A-2 & M-1** — ✅ **CONCLUÍDO** (commit `704fa431bd` no `copymonster-dsh-server-login`; schema alinhado e 184/185 testes passando).
 3. **A-3** — Habilitar dump do Supabase no systemd unit da VPS e testar restore em ambiente isolado (1 h).
-4. **M-2 (CSRF)** — Origin-check nas rotas mutantes do orquestrador (2 h).
+4. **M-2 (CSRF)** — Origin-check nas rotas mutantes do orquestrador — ✅ implementado (`csrf.ts`, 9 testes).
 5. **M-5** — teardown paralelo (2 h) — elimina SIGKILLs de deploy.
 6. **M-8** — timeout de streaming (1 h) — corrige cortes de gerações longas.
 7. Demais M (primeira semana): M-3, M-4, M-7, M-9, M-10, M-11, M-12…

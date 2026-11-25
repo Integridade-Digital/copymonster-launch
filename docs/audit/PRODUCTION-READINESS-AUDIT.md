@@ -1,20 +1,20 @@
 # Auditoria de Prontidão para Produção — CopyMonster v2
 
-**Data:** 2026-11-22 · **Ambiente:** VPS `mail.integridadedigital.com.br` (Debian, systemd, 4 vCPU AMD EPYC, 7.8 GB RAM, 72 GB disk)
+**Data:** 2026-11-25 (Revisão 2) · **Ambiente:** VPS `mail.integridadedigital.com.br` (Debian, systemd, 4 vCPU AMD EPYC, 7.8 GB RAM, 72 GB disk)
 **Escopo:** `copymonster-launch` + `copymonster-dsh-server-login` · Cloudflare Tunnel · Supabase externo. Hestia/e-mail fora do escopo.
 
-## SHAs auditados
+## SHAs auditados (Revisão 2)
 
 | Repositório | Branch | SHA | Estado da árvore |
 |---|---|---|---|
-| `copymonster-launch` | `master` | `b141797e85786bf59396af06fd87f6e55352d843` | ⚠️ **mudanças não commitadas em produção** (ver Achado A-1) |
-| `dsh-server-login` | `master` | `164db0911e347d81cd106d4e411404dcde046b67` | limpo |
+| `copymonster-launch` | `master` | `94be00612c4c9cf01e7a951d61dd05611164285c` | ✅ limpo (alinhado a `origin/master`) |
+| `dsh-server-login` | `master` | `1394741b724273156cfe6d93837c38452bf1664f` | ✅ limpo (alinhado a `origin/master`) |
 
 ---
 
-## PARECER: **APTO COM RESSALVAS** — 3 bloqueadores de lançamento
+## PARECER: **APTO COM RESSALVAS** — 2 bloqueadores remanescentes (A-2 e A-3); A-1 RESOLVIDO
 
-O núcleo (auth, isolamento multi-tenant, gateway LLM, proxy) está sólido e verificado. Os bloqueadores A-1 a A-3 abaixo devem ser resolvidos antes do go-live; os demais achados podem entrar na primeira semana pós-lançamento.
+O núcleo (auth, isolamento multi-tenant, gateway LLM, proxy) está sólido e verificado. O bloqueador A-1 foi totalmente integrado, commitado e validado no código. A perda de histórico do tenant pós-restart foi corrigida no commit `94be00612c`. Os bloqueadores A-2 e A-3 permanecem pendentes antes do go-live definitivo; os demais achados (M-1 a M-18) compõem a fila pós-lançamento/estabilização.
 
 ---
 
@@ -53,8 +53,10 @@ Supabase (Auth, Postgres, RPCs `save_platform_model_routing` / `get_runtime_llm_
 ### 1.4 Divergências documentação × código × runtime
 
 1. **Plano de gateway (`docs/plan/PLANO-PROPAGACAO-...md`) × código:** o plano descreve leitura de credenciais do cofre do Admin; o código implementou isso (`MasterCredentialsResolver`), mas o plugin `llm-credentials-supabase` (launch) permanece montável e morto na prática (`api_key_encrypted`/`api_key_env` = NULL em todas as linhas de `llm_providers`). Código residual, sem função — remover na Fase 3 do plano.
-2. **`server-login.db` vazio commitado na raiz do `copymonster-launch`** (staged) — artefato acidental; remover e gitignorar.
-3. **Git HEAD do launch ≠ produção:** o HEAD (`5b427a1669`) monta endpoint como `<base>/internal/v1/llm/chat/completions`, duplicando o prefixo que o orquestrador já envia (`/internal/v1/llm`) → 404 em build limpo. O código corrigido (+ proteção SSRF loopback) está apenas em disco, não commitado. **Bloqueador A-1.**
+2. **`server-login.db` vazio commitado na raiz do `copymonster-launch`** — artefato acidental removido; árvore limpa. [RESOLVIDO]
+3. **Git HEAD do launch ≠ produção (A-1):** resolvido nos commits `589d5d6851` e `9cf3ffacf7`. `gateway-client.ts` agora monta rotas relativas (`/chat/completions`, `/images/generations`) sobre a base `/internal/v1/llm`, com proteção SSRF loopback (`isLoopbackHost`) coberta por testes unitários. [RESOLVIDO]
+4. **Histórico do tenant perdido pós-restart:** corrigido no commit `94be00612c`. `access.ts` e `workspace/index.ts` agora garantem grants para sessões frias conhecidas (`knownHeaders`) com validação estrita de ownership, cobrindo reinicializações do DSH sem expor sessões cross-tenant. [RESOLVIDO]
+5. **Vazamento de erros brutos de upstream:** mitigado nos commits `1394741` e `94be00612c` com sanitização central no gateway e no cliente UI, prevenindo exposição de URLs ou nomes de provedores para os tenants. [RESOLVIDO]
 
 ### 1.5 Acessos/evidências que faltaram
 
@@ -172,9 +174,9 @@ Legenda: ✅ verificado com evidência · ⚠️ parcial/ressalva · ❌ falhou 
 
 | ID | Gravidade | Impacto | Repo/Arquivo | Evidência | Correção proposta |
 |---|---|---|---|---|---|
-| **A-1** | CRITICAL | Rollback/fresh-clone produzem gateway-client sem proteção SSRF **e com endpoint duplicado** (`/internal/v1/llm` ×2) → 404 em todo turno de tenant | launch `packages/host/model-mask/src/gateway-client.ts` (+62 linhas não commitadas; testes +114) | `git diff HEAD` vs build de 20:19 em produção | Commitar + push as mudanças em stage (SSRF guard + testes); remover `server-login.db` da stage e gitignorar |
-| **A-2** | HIGH | `DEFAULT_CENTRAL_ROUTING_CONFIG` viola o próprio schema (strings vazias `min(1)`); detectado por teste não-wireado | server-login `src/config/llm-central-routing.ts:103-117` | teste `llm-central-routing.spec` falha determinística | Ou remover o export (store não o usa mais) ou alinhar schema/default; wirear o arquivo de teste |
-| **A-3** | HIGH | Nenhum backup do Postgres Supabase (usuários SaaS, routing, billing) — `"skipped":["supabase.dump"]` | server-login `deploy/` systemd unit (env comentada) | manifest.json do backup 21-11 | Definir `SUPABASE_DB_URL` no unit (ou backup gerenciado do Supabase ativo) e validar restore |
+| **A-1** | CRITICAL | [RESOLVIDO] Endpoint relativo e SSRF guard integrados e commitados em `master` (`589d5d6851`, `9cf3ffacf7`). Árvore limpa sem artefatos acidentais. | launch `packages/host/model-mask/src/gateway-client.ts` | Commits `589d5d6851` e `9cf3ffacf7` no `master` | Resolvido e validado por testes unitários. |
+| **A-2** | HIGH | [PENDENTE] `DEFAULT_CENTRAL_ROUTING_CONFIG` viola o próprio schema (strings vazias violam `min(1)`); teste correspondente continua fora da suíte `test` do package.json. | server-login `src/config/llm-central-routing.ts:103-118` | Inspecionado no HEAD `1394741`; `test/llm-central-routing.test.mjs` ausente do runner `test`. | Alinhar schema/default ou remover export não utilizado; wirear o arquivo no script `test`. |
+| **A-3** | HIGH | [PENDENTE] Nenhum backup do Postgres Supabase (usuários SaaS, routing, billing) — `"skipped":["supabase.dump"]`. Variável de ambiente comentada na unit de produção. | server-login `deploy/systemd/dsh-backup.service` | `#Environment=SUPABASE_DB_URL=...` comentado no template systemd. | Definir `SUPABASE_DB_URL` no unit do host (ou garantir política gerenciada ativa no Supabase) e validar restore. |
 
 **Altos/Médios (M):**
 
@@ -203,10 +205,10 @@ Legenda: ✅ verificado com evidência · ⚠️ parcial/ressalva · ❌ falhou 
 
 ## 5. Ordem de correção e bloqueadores de lançamento
 
-0. **Prioridade 1** — validar a geração de imagens e a primeira publicação com `funnels` conforme o critério acima.
-1. **A-1** — commitar/push o gateway-client do launch (15 min; destrava rollback).
-2. **A-2** — alinhar `DEFAULT_CENTRAL_ROUTING_CONFIG` ao schema (10 min) + **M-1** (wirear testes; 30 min).
-3. **A-3** — habilitar dump do Supabase e testar restore em isolado (1 h).
+0. **Prioridade 1** — Validar a geração de imagens e a primeira publicação com `funnels`. Backend de imagens entregue via commit `1b92bba` (Cloudflare Flux Schnell + OpenAI fallback) e cliente em `9cf3ffacf7`; resta validação funcional e débito de créditos.
+1. **A-1** — ✅ **CONCLUÍDO** (commitado em `589d5d6851` e `9cf3ffacf7` no `copymonster-launch`).
+2. **A-2** — Alinhar `DEFAULT_CENTRAL_ROUTING_CONFIG` ao schema (10 min) + **M-1** (wirear os 7 testes órfãos no `npm test` do `server-login`; 30 min).
+3. **A-3** — Habilitar dump do Supabase no systemd unit e testar restore em ambiente isolado (1 h).
 4. **M-2 (CSRF)** — Origin-check nas rotas mutantes do orquestrador (2 h).
 5. **M-5** — teardown paralelo (2 h) — elimina SIGKILLs de deploy.
 6. **M-8** — timeout de streaming (1 h) — corrige cortes de gerações longas.

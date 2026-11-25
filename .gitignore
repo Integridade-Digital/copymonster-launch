@@ -130,3 +130,7 @@ worktrees/
 # `.example` seeds a new environment.
 .dsh/profiles/*/profile-overrides.yml
 native/system/test/bin/
+
+# Orchestrator SQLite database; owned by dsh-server-login, never this tree.
+server-login.db
+server-login.db-*

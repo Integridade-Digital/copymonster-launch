@@ -20,6 +20,7 @@ import type { Context } from '@deepseek-ai/cordis'
 import type { RemoteAccessAction, RemoteAccessBinding, RemoteAccessPolicy } from '@deepseek-ai/dsh-api-remote-access'
 import type { PrincipalMap } from '@deepseek-ai/dsh-typert-protocol'
 import { assertPathInSandbox, resolveUserSandboxRoot } from '@deepseek-ai/dsh-workspace'
+import { SessionId } from '@deepseek-ai/dsh-session'
 // Type-only: resolves the `workspaceRegistry` and `sessions` Context services
 // whose live rows the owned-resource bindings enumerate.
 import type {} from '@deepseek-ai/dsh-workspace'
@@ -136,13 +137,13 @@ export function createTenantPolicy(ctx: Context): RemoteAccessPolicy<PrincipalMa
       // Grant permission to sessions known from storage, owned workspaces, or live memory.
       // After a restart, ctx.sessions.list() starts empty; sessions persist in disk JSONL
       // and are indexed into workspace.sessionIds and registry.knownHeaders.
-      const grantedSessionIds = new Set<string>()
+      const grantedSessionIds = new Set<SessionId>()
 
       for (const workspace of ownedWorkspaces) {
         const sessionIds = (workspace as { sessionIds?: readonly string[] }).sessionIds
         if (Array.isArray(sessionIds)) {
           for (const sessionId of sessionIds) {
-            grantedSessionIds.add(String(sessionId))
+            grantedSessionIds.add(SessionId(sessionId))
           }
         }
       }
@@ -155,14 +156,14 @@ export function createTenantPolicy(ctx: Context): RemoteAccessPolicy<PrincipalMa
           const cwd = header?.cwd
           if ((principal.isAdmin || (cwd !== undefined && cwd.trim() !== ''))
             && isSessionOwnedByPrincipal({ id: String(id), header }, principal, sandboxRoot)) {
-            grantedSessionIds.add(String(id))
+            grantedSessionIds.add(SessionId(id))
           }
         }
       }
 
       for (const session of ctx.get('sessions')?.list() ?? []) {
         if (isSessionOwnedByPrincipal(session, principal, sandboxRoot)) {
-          grantedSessionIds.add(String(session.id))
+          grantedSessionIds.add(SessionId(session.id))
         }
       }
 
@@ -170,8 +171,8 @@ export function createTenantPolicy(ctx: Context): RemoteAccessPolicy<PrincipalMa
       // platform-wide principal may bind them without an owned workspace or
       // an indexed header proving the session belongs to this caller.
       if (principal.isAdmin && registry) {
-        for (const id of registry.archivedSessionIds ?? []) grantedSessionIds.add(String(id))
-        for (const id of registry.pinnedSessionIds ?? []) grantedSessionIds.add(String(id))
+        for (const id of registry.archivedSessionIds ?? []) grantedSessionIds.add(SessionId(id))
+        for (const id of registry.pinnedSessionIds ?? []) grantedSessionIds.add(SessionId(id))
       }
 
       for (const sessionId of grantedSessionIds) {

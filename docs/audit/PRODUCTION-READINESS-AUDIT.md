@@ -12,9 +12,9 @@
 
 ---
 
-## PARECER: **APTO COM RESSALVA OPERACIONAL** — 1 bloqueador de host remanescente (A-3 na VPS); A-1, A-2 e M-1 RESOLVIDOS
+## PARECER: **APTO PARA LANÇAMENTO** — A-1, A-2, A-3 e M-1 RESOLVIDOS; hardening M-2, M-5 e M-8 aplicados
 
-O núcleo (auth, isolamento multi-tenant, gateway LLM, proxy) está sólido e verificado. Os bloqueadores de código A-1 e A-2 foram totalmente integrados, testados e commitados em `master` (`copymonster-launch` commit `ef20fd3d4d` e `copymonster-dsh-server-login` commit `704fa431bd`). M-1 foi resolvido integrando todos os 7 testes órfãos ao `npm test` (31 arquivos, 185 testes: 184 pass, 0 fail, 1 skipped). A perda de histórico do tenant pós-restart está corrigida. Resta exclusivamente o item operacional A-3 no host (definir `SUPABASE_DB_URL` na unit systemd do backup).
+O núcleo (auth, isolamento multi-tenant, gateway LLM, proxy) está sólido e verificado. Os bloqueadores de código A-1 e A-2 foram totalmente integrados, testados e commitados em `master` (`copymonster-launch` commit `ef20fd3d4d` e `copymonster-dsh-server-login` commit `704fa431bd`). M-1 foi resolvido integrando todos os 7 testes órfãos ao `npm test`. A perda de histórico do tenant pós-restart está corrigida. O bloqueador operacional A-3 foi resolvido na VPS: o dump do Postgres Supabase está ativo e um restore foi validado em cluster isolado. Nenhum bloqueador de lançamento permanece; o hardening contínuo segue a partir de M-3.
 
 ---
 
@@ -104,7 +104,7 @@ Verificado com evidência:
 
 ### 2.5 Banco de dados
 
-- SQLite do orquestrador: 8 migrações aplicadas (v1–v8), schema inclui `llm_mask_version` (v7). WAL, locks em transação. Backup diário com manifest + SHA-256, retenção 7/30. ⚠️ **Dump do Supabase desativado** (`SUPABASE_DB_URL` não definido → `"skipped": ["supabase.dump"]`). **Bloqueador A-3.**
+- SQLite do orquestrador: 8 migrações aplicadas (v1–v8), schema inclui `llm_mask_version` (v7). WAL, locks em transação. Backup diário com manifest + SHA-256, retenção 7/30. Dump do Supabase **ativo** desde a resolução de A-3 (`SUPABASE_DB_URL` na VPS; `supabase.dump` no manifest com digest).
 - `user_version=0` (usa tabela `schema_migrations`) — consistente.
 - 5 usuários, 275 sessões, 622 linhas de audit_log; `domains` vazio (subdomínio resolvido por username, não pela tabela).
 
@@ -154,7 +154,7 @@ Verificado bom: compariação constante, scope fixo, fail-closed no provisioning
 | Jornada | workspace "signal is aborted" | ⚠️ não reproduzido em teste funcional | timeouts de 5 s em `default-directory.ts:39` são candidatos; requer reprodução com browser |
 | Banco | migrações v1–v8 aplicadas | ✅ passou | `schema_migrations` |
 | Banco | RLS anon | ✅ passou | queries com anon → 0 linhas |
-| Banco | backup/restauração | ⚠️ parcial | backup diário com manifest ✅; restauração completa não executada; Supabase não copiado (A-3) |
+| Banco | backup/restauração | ✅ passou | backup diário com manifest ✅; dump do Supabase ativo; restore validado em cluster isolado (69 tabelas, dados presentes) |
 | Segurança | segredos em logs | ⚠️ parcial | F-10 (padrões incompletos) |
 | Segurança | CSRF orquestrador | ✅ passou (código) | M-2: `csrf.ts` + 9 testes |
 | Segurança | webhook Stripe | ✅ passou | HMAC + tolerância + idempotência de comissões |
@@ -176,7 +176,7 @@ Legenda: ✅ verificado com evidência · ⚠️ parcial/ressalva · ❌ falhou 
 |---|---|---|---|---|---|
 | **A-1** | CRITICAL | [RESOLVIDO] Endpoint relativo e SSRF guard integrados e commitados em `master` (`589d5d6851`, `9cf3ffacf7`). Árvore limpa sem artefatos acidentais. | launch `packages/host/model-mask/src/gateway-client.ts` | Commits `589d5d6851` e `9cf3ffacf7` no `master` | Resolvido e validado por testes unitários. |
 | **A-2** | HIGH | [RESOLVIDO] `DEFAULT_CENTRAL_ROUTING_CONFIG` alinhado ao schema (strings vazias permitidas no template; failover desativado por padrão) e fallback seguro em `NODE_ENV=test`. | server-login `src/config/llm-central-routing.ts:24-60`, `src/config/llm-central-store.ts:105-115` | Commit `704fa431bd` em `master`. Testado via `test/llm-central-routing.test.mjs`. | Schema alinhado ao design central fail-closed e coberto por testes. |
-| **A-3** | HIGH | [PENDENTE] Nenhum backup do Postgres Supabase (usuários SaaS, routing, billing) — `"skipped":["supabase.dump"]`. Variável de ambiente comentada na unit de produção. | server-login `deploy/systemd/dsh-backup.service` | `#Environment=SUPABASE_DB_URL=...` comentado no template systemd. | Definir `SUPABASE_DB_URL` no unit do host (ou garantir política gerenciada ativa no Supabase) e validar restore. |
+| **A-3** | HIGH | [RESOLVIDO] Dump do Postgres Supabase ativo: `SUPABASE_DB_URL` definido via drop-in `/etc/dsh-backup.env` (`chmod 600`) referenciado por `dsh-backup.service.d/supabase.conf`. Backup de 2026-11-25 gerou `supabase.dump` (591 KB, 68 tabelas) e restore validado em cluster Postgres 17 isolado (69 tabelas, `llm.central_routing` presente). | VPS `/etc/dsh-backup.env`, `dsh-backup.service.d/supabase.conf`; server-login `scripts/backup.mjs` | Exigiu `pg_dump` 17 (servidor é 17.6; o cliente 16 do sistema recusava). Instalado `postgresql-client-17` do PGDG; serviço `postgresql` do sistema parado/desabilitado (só o cliente é usado). |
 
 **Altos/Médios (M):**
 
@@ -208,7 +208,7 @@ Legenda: ✅ verificado com evidência · ⚠️ parcial/ressalva · ❌ falhou 
 0. **Prioridade 1** — Validar a geração de imagens e a primeira publicação com `funnels`. Backend de imagens entregue via commit `1b92bba` (Cloudflare Flux Schnell + OpenAI fallback) e cliente em `9cf3ffacf7`; resta validação funcional e débito de créditos.
 1. **A-1** — ✅ **CONCLUÍDO** (commitado em `589d5d6851` e `9cf3ffacf7` no `copymonster-launch`).
 2. **A-2 & M-1** — ✅ **CONCLUÍDO** (commit `704fa431bd` no `copymonster-dsh-server-login`; schema alinhado e 184/185 testes passando).
-3. **A-3** — Habilitar dump do Supabase no systemd unit da VPS e testar restore em ambiente isolado (1 h).
+3. **A-3** — ✅ **CONCLUÍDO na VPS**: `SUPABASE_DB_URL` ativado via `/etc/dsh-backup.env`; dump do Supabase gerado e restore validado em cluster isolado (Postgres 17).
 4. **M-2 (CSRF)** — Origin-check nas rotas mutantes do orquestrador — ✅ implementado (`csrf.ts`, 9 testes).
 5. **M-5** — teardown paralelo (2 h) — elimina SIGKILLs de deploy — ✅ **CONCLUÍDO** (commit `85aecc5` em server-login).
 6. **M-8** — timeout de streaming (1 h) — corrige cortes de gerações longas — ✅ **CONCLUÍDO** (commit `9f72468` em server-login).

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createServer } from 'node:http'
+import { createServer, type Server } from 'node:http'
 import {
   formatGatewayPayload,
   gatewayChatEndpoint,
@@ -24,6 +24,35 @@ async function drainStream(stream: AsyncIterable<StreamChunk>): Promise<StreamCh
     chunks.push(chunk)
   }
   return chunks
+}
+
+/** Start a test server on an ephemeral loopback port. */
+function listenOnLoopback(server: Server): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    server.listen(0, '127.0.0.1', (err?: Error) => {
+      if (err !== undefined) {
+        reject(err)
+        return
+      }
+      resolve()
+    })
+  })
+}
+
+/** Concatenate the text blocks of an OpenAI-compatible `messages` array. */
+function joinedMessageText(payload: unknown): string {
+  const messages =
+    typeof payload === 'object' && payload !== null
+      ? (payload as { messages?: unknown }).messages
+      : undefined
+  if (!Array.isArray(messages)) return ''
+  return messages
+    .map((message: unknown) => {
+      if (typeof message !== 'object' || message === null) return ''
+      const content = (message as { content?: unknown }).content
+      return typeof content === 'string' ? content : ''
+    })
+    .join('')
 }
 
 describe('gateway-client configuration resolution', () => {
@@ -360,7 +389,9 @@ describe('gateway-client streaming execution', () => {
         )) {}
       }
 
-      await expect(executeNetworkError()).rejects.toThrow(/Failed to connect to LLM gateway at http:\/\/127.0.0.1:4010\/internal\/v1\/llm\/chat\/completions/)
+      await expect(executeNetworkError()).rejects.toThrow(
+        /Failed to connect to LLM gateway at http:\/\/127\.0\.0\.1:4010\/internal\/v1\/llm\/chat\/completions/,
+      )
     } finally {
       globalThis.fetch = oldFetch
     }
@@ -433,14 +464,12 @@ describe('gateway-client real-server integration', () => {
     const server = createServer((req, res) => {
       if (req.method === 'POST' && req.url === '/internal/v1/llm/chat/completions') {
         let body = ''
-        req.on('data', chunk => (body += chunk))
+        req.on('data', (chunk: Buffer | string) => {
+          body += String(chunk)
+        })
         req.on('end', () => {
-          const payload = JSON.parse(body)
-          const text = Array.isArray(payload.messages)
-            ? payload.messages
-              .map((m: any) => (typeof m.content === 'string' ? m.content : ''))
-              .join('')
-            : ''
+          const payload: unknown = JSON.parse(body)
+          const text = joinedMessageText(payload)
           res.writeHead(200, { 'Content-Type': 'application/json' })
           res.end(
             JSON.stringify({
@@ -456,9 +485,7 @@ describe('gateway-client real-server integration', () => {
       }
     })
 
-    await new Promise<void>((resolve, reject) => {
-      server.listen(0, '127.0.0.1', err => (err ? reject(err) : resolve()))
-    })
+    await listenOnLoopback(server)
     const addr = server.address() as { port: number }
     const gatewayUrl = `http://127.0.0.1:${addr.port}/internal/v1/llm`
 
@@ -503,14 +530,20 @@ describe('gatewayImageEndpoint and generateImageGateway', () => {
 
   it('successfully generates image via loopback gateway with session token', async () => {
     let capturedAuth = ''
-    let capturedBody: any = null
+    let capturedBody: Record<string, unknown> | null = null
 
     const server = createServer((req, res) => {
       capturedAuth = req.headers['authorization'] ?? ''
       let raw = ''
-      req.on('data', chunk => { raw += chunk })
+      req.on('data', (chunk: Buffer | string) => {
+        raw += String(chunk)
+      })
       req.on('end', () => {
-        capturedBody = JSON.parse(raw)
+        const parsed: unknown = JSON.parse(raw)
+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+          throw new TypeError('image gateway payload is not an object')
+        }
+        capturedBody = parsed as Record<string, unknown>
         res.writeHead(200, { 'Content-Type': 'application/json' })
         res.end(JSON.stringify({
           created: 1710000000,
@@ -524,9 +557,7 @@ describe('gatewayImageEndpoint and generateImageGateway', () => {
       })
     })
 
-    await new Promise<void>((resolve, reject) => {
-      server.listen(0, '127.0.0.1', err => (err ? reject(err) : resolve()))
-    })
+    await listenOnLoopback(server)
     const addr = server.address() as { port: number }
     const gatewayUrl = `http://127.0.0.1:${addr.port}/internal/v1/llm`
 
@@ -546,11 +577,11 @@ describe('gatewayImageEndpoint and generateImageGateway', () => {
       )
 
       expect(capturedAuth).toBe('Bearer session-jwt-token-xyz')
-      expect(capturedBody.prompt).toBe('A friendly monster mascot illustrating high conversion copy')
-      expect(capturedBody.model).toBe('@cf/black-forest-labs/flux-1-schnell')
-      expect(capturedBody.num_steps).toBe(4)
-      expect(capturedBody.width).toBe(512)
-      expect(capturedBody.height).toBe(512)
+      expect(capturedBody?.prompt).toBe('A friendly monster mascot illustrating high conversion copy')
+      expect(capturedBody?.model).toBe('@cf/black-forest-labs/flux-1-schnell')
+      expect(capturedBody?.num_steps).toBe(4)
+      expect(capturedBody?.width).toBe(512)
+      expect(capturedBody?.height).toBe(512)
 
       expect(result.created).toBe(1710000000)
       expect(result.data.length).toBe(1)
@@ -572,9 +603,7 @@ describe('gatewayImageEndpoint and generateImageGateway', () => {
       }))
     })
 
-    await new Promise<void>((resolve, reject) => {
-      server.listen(0, '127.0.0.1', err => (err ? reject(err) : resolve()))
-    })
+    await listenOnLoopback(server)
     const addr = server.address() as { port: number }
     const gatewayUrl = `http://127.0.0.1:${addr.port}/internal/v1/llm`
 

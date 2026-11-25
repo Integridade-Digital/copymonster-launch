@@ -163,6 +163,12 @@ describe('Affiliate Processor & Billing Integration', () => {
         }),
       })
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'processed_stripe_events') {
+          return {
+            insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+            delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          }
+        }
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),
@@ -217,6 +223,12 @@ describe('Affiliate Processor & Billing Integration', () => {
     it('records no notification when a duplicate delivery loses the unique constraint', async () => {
       const notify = vi.fn()
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'processed_stripe_events') {
+          return {
+            insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+            delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          }
+        }
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),
@@ -275,6 +287,12 @@ describe('Affiliate Processor & Billing Integration', () => {
         }),
       })
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'processed_stripe_events') {
+          return {
+            insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+            delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          }
+        }
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),
@@ -344,6 +362,12 @@ describe('Affiliate Processor & Billing Integration', () => {
 
     it('returns already_processed_event when stripe_event_id is duplicate', async () => {
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'processed_stripe_events') {
+          return {
+            insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+            delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          }
+        }
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),
@@ -369,6 +393,12 @@ describe('Affiliate Processor & Billing Integration', () => {
     it('returns already_processed_invoice when stripe_invoice_id is duplicate', async () => {
       let callCount = 0
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'processed_stripe_events') {
+          return {
+            insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+            delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          }
+        }
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),
@@ -399,6 +429,12 @@ describe('Affiliate Processor & Billing Integration', () => {
       const auditInsertMock = vi.fn().mockResolvedValue({ error: null })
 
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'processed_stripe_events') {
+          return {
+            insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+            delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          }
+        }
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),
@@ -452,6 +488,12 @@ describe('Affiliate Processor & Billing Integration', () => {
       const notificationInsertMock = vi.fn().mockResolvedValue({ error: null })
 
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'processed_stripe_events') {
+          return {
+            insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+            delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          }
+        }
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),
@@ -552,6 +594,12 @@ describe('Affiliate Processor & Billing Integration', () => {
 
     it('returns commission_not_found if no commission is linked to invoice', async () => {
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'processed_stripe_events') {
+          return {
+            insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+            delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          }
+        }
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),
@@ -570,6 +618,12 @@ describe('Affiliate Processor & Billing Integration', () => {
 
     it('returns already_refunded if commission status is already REFUNDED', async () => {
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'processed_stripe_events') {
+          return {
+            insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+            delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          }
+        }
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),
@@ -598,6 +652,12 @@ describe('Affiliate Processor & Billing Integration', () => {
       const auditInsertMock = vi.fn().mockResolvedValue({ error: null })
 
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'processed_stripe_events') {
+          return {
+            insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+            delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          }
+        }
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),
@@ -655,6 +715,12 @@ describe('Affiliate Processor & Billing Integration', () => {
       const auditInsertMock = vi.fn().mockResolvedValue({ error: null })
 
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'processed_stripe_events') {
+          return {
+            insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+            delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          }
+        }
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),
@@ -843,6 +909,12 @@ describe('Affiliate Processor & Billing Integration', () => {
       })
 
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'processed_stripe_events') {
+          return {
+            insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+            delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          }
+        }
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),
@@ -935,6 +1007,12 @@ describe('Affiliate Processor & Billing Integration', () => {
       })
 
       mockSupabase.from.mockImplementation((table: string) => {
+        if (table === 'processed_stripe_events') {
+          return {
+            insert: vi.fn().mockReturnValue(Promise.resolve({ error: null })),
+            delete: vi.fn().mockReturnValue({ eq: vi.fn().mockResolvedValue({ error: null }) }),
+          }
+        }
         if (table === 'affiliate.commissions') {
           return {
             select: vi.fn().mockReturnThis(),

@@ -699,6 +699,26 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
   }
   const object = objectField(objectField(payload, 'data'), 'object')
   const eventType = optionalString(payload, 'type') ?? ''
+  const eventId = optionalString(payload, 'id')
+
+  // A retried delivery of an event already applied must not re-apply it. The
+  // insert is the claim: a duplicate key means another delivery won the race.
+  if (eventId !== undefined && eventId !== '') {
+    const { error: claimError } = await supabaseAdminClient
+      .from('processed_stripe_events')
+      .insert({ event_id: eventId, event_type: eventType })
+    if (claimError !== null && claimError.code === '23505') {
+      sendJson(res, 200, { received: true, duplicate: true })
+      return
+    }
+    if (claimError !== null) {
+      // The table is missing or unreachable: fail so Stripe retries rather
+      // than applying the event twice without a record.
+      logBillingFailure('BILLING_WEBHOOK_DEDUP_UNAVAILABLE', new Error(claimError.message))
+      sendJson(res, 500, { error: 'BILLING_WEBHOOK_DEDUP_UNAVAILABLE' })
+      return
+    }
+  }
 
   try {
     switch (eventType) {
@@ -794,8 +814,7 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
         }
 
         // Process affiliate commission if invoice carries affiliate_id metadata
-        const eventId = optionalString(payload, 'id') ?? ''
-        await processAffiliateCommissionFromInvoice(object, eventId)
+        await processAffiliateCommissionFromInvoice(object, eventId ?? '')
         break
       }
 
@@ -825,6 +844,16 @@ export async function handleWebhook(_ctx: Context, req: IncomingMessage, res: Se
 
     sendJson(res, 200, { received: true })
   } catch (err: unknown) {
+    // The event is not applied, so release the claim and let Stripe's retry
+    // run it again instead of treating the redelivery as a duplicate.
+    if (eventId !== undefined && eventId !== '') {
+      try {
+        await supabaseAdminClient.from('processed_stripe_events').delete().eq('event_id', eventId)
+      } catch {
+        // A failed release only rewrites the event as a duplicate next time;
+        // the 500 below already asks Stripe to retry with a new delivery.
+      }
+    }
     logBillingFailure('BILLING_WEBHOOK_FAILED', err)
     sendJson(res, 500, { error: 'BILLING_WEBHOOK_FAILED' })
   }

@@ -7,14 +7,14 @@
 
 | Repositório | Branch | SHA | Estado da árvore |
 |---|---|---|---|
-| `copymonster-launch` | `master` | `94be00612c4c9cf01e7a951d61dd05611164285c` | ✅ limpo (alinhado a `origin/master`) |
-| `dsh-server-login` | `master` | `1394741b724273156cfe6d93837c38452bf1664f` | ✅ limpo (alinhado a `origin/master`) |
+| `copymonster-launch` | `master` | `ef20fd3d4d71eee676cedc36ba0e20d7fe6ea773` | ✅ limpo (alinhado a `origin/master`) |
+| `dsh-server-login` | `master` | `704fa431bd85668fcf64497b4f82947dd9911791` | ✅ limpo (alinhado a `origin/master`) |
 
 ---
 
-## PARECER: **APTO COM RESSALVAS** — 2 bloqueadores remanescentes (A-2 e A-3); A-1 RESOLVIDO
+## PARECER: **APTO COM RESSALVA OPERACIONAL** — 1 bloqueador de host remanescente (A-3 na VPS); A-1, A-2 e M-1 RESOLVIDOS
 
-O núcleo (auth, isolamento multi-tenant, gateway LLM, proxy) está sólido e verificado. O bloqueador A-1 foi totalmente integrado, commitado e validado no código. A perda de histórico do tenant pós-restart foi corrigida no commit `94be00612c`. Os bloqueadores A-2 e A-3 permanecem pendentes antes do go-live definitivo; os demais achados (M-1 a M-18) compõem a fila pós-lançamento/estabilização.
+O núcleo (auth, isolamento multi-tenant, gateway LLM, proxy) está sólido e verificado. Os bloqueadores de código A-1 e A-2 foram totalmente integrados, testados e commitados em `master` (`copymonster-launch` commit `ef20fd3d4d` e `copymonster-dsh-server-login` commit `704fa431bd`). M-1 foi resolvido integrando todos os 7 testes órfãos ao `npm test` (31 arquivos, 185 testes: 184 pass, 0 fail, 1 skipped). A perda de histórico do tenant pós-restart está corrigida. Resta exclusivamente o item operacional A-3 no host (definir `SUPABASE_DB_URL` na unit systemd do backup).
 
 ---
 
@@ -175,14 +175,14 @@ Legenda: ✅ verificado com evidência · ⚠️ parcial/ressalva · ❌ falhou 
 | ID | Gravidade | Impacto | Repo/Arquivo | Evidência | Correção proposta |
 |---|---|---|---|---|---|
 | **A-1** | CRITICAL | [RESOLVIDO] Endpoint relativo e SSRF guard integrados e commitados em `master` (`589d5d6851`, `9cf3ffacf7`). Árvore limpa sem artefatos acidentais. | launch `packages/host/model-mask/src/gateway-client.ts` | Commits `589d5d6851` e `9cf3ffacf7` no `master` | Resolvido e validado por testes unitários. |
-| **A-2** | HIGH | [PENDENTE] `DEFAULT_CENTRAL_ROUTING_CONFIG` viola o próprio schema (strings vazias violam `min(1)`); teste correspondente continua fora da suíte `test` do package.json. | server-login `src/config/llm-central-routing.ts:103-118` | Inspecionado no HEAD `1394741`; `test/llm-central-routing.test.mjs` ausente do runner `test`. | Alinhar schema/default ou remover export não utilizado; wirear o arquivo no script `test`. |
+| **A-2** | HIGH | [RESOLVIDO] `DEFAULT_CENTRAL_ROUTING_CONFIG` alinhado ao schema (strings vazias permitidas no template; failover desativado por padrão) e fallback seguro em `NODE_ENV=test`. | server-login `src/config/llm-central-routing.ts:24-60`, `src/config/llm-central-store.ts:105-115` | Commit `704fa431bd` em `master`. Testado via `test/llm-central-routing.test.mjs`. | Schema alinhado ao design central fail-closed e coberto por testes. |
 | **A-3** | HIGH | [PENDENTE] Nenhum backup do Postgres Supabase (usuários SaaS, routing, billing) — `"skipped":["supabase.dump"]`. Variável de ambiente comentada na unit de produção. | server-login `deploy/systemd/dsh-backup.service` | `#Environment=SUPABASE_DB_URL=...` comentado no template systemd. | Definir `SUPABASE_DB_URL` no unit do host (ou garantir política gerenciada ativa no Supabase) e validar restore. |
 
 **Altos/Médios (M):**
 
 | ID | Grav. | Achado | Local | Correção |
 |---|---|---|---|---|
-| M-1 | HIGH | CI não roda `npm test`; 7 arquivos de teste fora da suíte | server-login `.github/workflows/build.yml` | adicionar step `npm test`; wirear `bootstrap-proxy, cors-session-token, file-service-auth, llm-central-routing, spawn-setpriv, spawn, trust-proxy` |
+| M-1 | HIGH | [RESOLVIDO] 7 arquivos de teste órfãos wireados no script `npm test`; suíte com 31 arquivos (185 testes, 184 pass, 0 fail, 1 skip). | server-login `package.json:scripts.test` | Commit `704fa431bd` em `master`. Todos os 7 testes passam sem regressões. | Wirear `bootstrap-proxy, cors-session-token, file-service-auth, llm-central-routing, spawn-setpriv, spawn, trust-proxy` concluído. |
 | M-2 | HIGH | CSRF: endpoints com cookie SameSite=None sem verificação de `Origin`/token | server-login `src/web/auth.ts:61` + rotas mutantes | rejeitar mutações cujo `Origin` não seja origem da plataforma |
 | M-3 | MED | Cookie do app principal sem `jti`/revogação (30 d) | launch `packages/api/auth-http/src/session-token.ts:452-465` | `jti` + tabela de sessão ou epoch por usuário |
 | M-4 | MED | `callerIsAdmin` fail-open quando não há principal | launch `packages/api/settings-controller/src/authz.ts:47-48` | retornar `false` para Remote sem principal; restringir `true` a in-process real |
@@ -207,8 +207,8 @@ Legenda: ✅ verificado com evidência · ⚠️ parcial/ressalva · ❌ falhou 
 
 0. **Prioridade 1** — Validar a geração de imagens e a primeira publicação com `funnels`. Backend de imagens entregue via commit `1b92bba` (Cloudflare Flux Schnell + OpenAI fallback) e cliente em `9cf3ffacf7`; resta validação funcional e débito de créditos.
 1. **A-1** — ✅ **CONCLUÍDO** (commitado em `589d5d6851` e `9cf3ffacf7` no `copymonster-launch`).
-2. **A-2** — Alinhar `DEFAULT_CENTRAL_ROUTING_CONFIG` ao schema (10 min) + **M-1** (wirear os 7 testes órfãos no `npm test` do `server-login`; 30 min).
-3. **A-3** — Habilitar dump do Supabase no systemd unit e testar restore em ambiente isolado (1 h).
+2. **A-2 & M-1** — ✅ **CONCLUÍDO** (commit `704fa431bd` no `copymonster-dsh-server-login`; schema alinhado e 184/185 testes passando).
+3. **A-3** — Habilitar dump do Supabase no systemd unit da VPS e testar restore em ambiente isolado (1 h).
 4. **M-2 (CSRF)** — Origin-check nas rotas mutantes do orquestrador (2 h).
 5. **M-5** — teardown paralelo (2 h) — elimina SIGKILLs de deploy.
 6. **M-8** — timeout de streaming (1 h) — corrige cortes de gerações longas.

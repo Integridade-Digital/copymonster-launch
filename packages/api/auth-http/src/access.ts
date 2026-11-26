@@ -161,6 +161,17 @@ export function createTenantPolicy(ctx: Context): RemoteAccessPolicy<PrincipalMa
         }
       }
 
+      const sessionController = ctx.get('sessionController') as { knownHeaders?: ReadonlyMap<string, { cwd?: string }> } | undefined
+      if (sessionController?.knownHeaders && typeof sessionController.knownHeaders.entries === 'function') {
+        for (const [id, header] of sessionController.knownHeaders.entries()) {
+          const cwd = header?.cwd
+          if ((principal.isAdmin || (cwd !== undefined && cwd.trim() !== ''))
+            && isSessionOwnedByPrincipal({ id: String(id), header }, principal, sandboxRoot)) {
+            grantedSessionIds.add(SessionId(id))
+          }
+        }
+      }
+
       for (const session of ctx.get('sessions')?.list() ?? []) {
         if (isSessionOwnedByPrincipal(session, principal, sandboxRoot)) {
           grantedSessionIds.add(SessionId(session.id))

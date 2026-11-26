@@ -190,6 +190,11 @@ export class SessionController extends TypertRemoteService {
   private readonly quotaCheck: TenantQuotaCheck | undefined
   private readonly listWorkSliceMs: number
   private readonly promotions = new Set<Promise<void>>()
+  private readonly knownSessionHeaders = new Map<string, { cwd?: string }>()
+
+  get knownHeaders(): ReadonlyMap<string, { cwd?: string }> {
+    return this.knownSessionHeaders
+  }
 
   /**
    * @param ctx - Host context containing the Session capability assembly.
@@ -238,6 +243,9 @@ export class SessionController extends TypertRemoteService {
     ctx.plugin(ArchivedSessionGate)
 
     ctx.on('session/created', (session) => {
+      if (session?.id) {
+        this.knownSessionHeaders.set(String(session.id), session.header ?? { cwd: (session as { cwd?: string }).cwd })
+      }
       ctx.emit('api-session/added', this.listState.summaryFor(session))
     })
     ctx.on('session/disposed', (session) => {
@@ -245,6 +253,14 @@ export class SessionController extends TypertRemoteService {
       markSessionStatus(session.id, 'completed', sessionTenantMap.get(session)?.authToken)
       ctx.emit('api-session/removed', session.id)
     })
+    ctx.on('session/deleted', (sessionId) => {
+      this.knownSessionHeaders.delete(String(sessionId))
+    })
+    void ctx.sessionPersistence.list().then((snapshots) => {
+      for (const snapshot of snapshots) {
+        this.knownSessionHeaders.set(String(snapshot.header.id), snapshot.header)
+      }
+    }).catch(() => {})
     const publishAgentAvailability = ({ agent }: { agent: Agent }): undefined => {
       if (ctx.sessions.get(agent.id) === agent.session) {
         ctx.emit('api-session/added', this.listState.summaryFor(agent.session))
@@ -349,6 +365,11 @@ export class SessionController extends TypertRemoteService {
     const identity = requireAuthIdentity(this.ctx)
     const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
     const items = await this.listState.list(signal, sandboxRoot)
+    for (const item of items) {
+      if (item.cwd) {
+        this.knownSessionHeaders.set(String(item.sessionId), { cwd: item.cwd })
+      }
+    }
     return { items: items.filter(item => this.ctx.remoteAccess.allows({ kind: 'session', id: item.sessionId })) }
   }
 
@@ -555,10 +576,19 @@ export class SessionController extends TypertRemoteService {
    * @returns deletion confirmation; idempotent for an already-absent Session.
    */
   @RemoteScope('auth', 'delete')
-  delete(request: SessionDeleteRequest): Promise<SessionDeleteValue> {
+  async delete(request: SessionDeleteRequest): Promise<SessionDeleteValue> {
     const identity = requireAuthIdentity(this.ctx)
-    const sandboxRoot = resolveUserSandboxRoot(identity.tenantId, identity.userId)
-    return this.commands.delete(request, sandboxRoot)
+    const isOp = identity.role === 'admin' || identity.role === 'owner' || identity.isAdmin
+    const sandboxRoot = isOp ? undefined : resolveUserSandboxRoot(identity.tenantId, identity.userId)
+    try {
+      const snapshot = await this.ctx.sessionPersistence.stat(request.sessionId)
+      if (snapshot?.header?.cwd) {
+        this.knownSessionHeaders.set(String(request.sessionId), snapshot.header)
+      }
+    } catch {}
+    const result = await this.commands.delete(request, sandboxRoot)
+    this.knownSessionHeaders.delete(String(request.sessionId))
+    return result
   }
 
   /**

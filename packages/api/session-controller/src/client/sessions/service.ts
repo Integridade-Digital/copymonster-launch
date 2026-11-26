@@ -252,6 +252,7 @@ export class ClientSessions implements ISessions {
   private readonly retainObservers = new Map<SessionId, RetentionObserver>()
   private readonly scopeDrops = new Set<Promise<void>>()
   private closed = false
+  private readonly remote: SessionRemotes
 
   /**
    * @param ctx - client root context (scope fibers mount under it).
@@ -261,6 +262,7 @@ export class ClientSessions implements ISessions {
     private readonly rootCtx: Context,
     remote: SessionRemotes,
   ) {
+    this.remote = remote
     this.manager = new SessionManager(remote)
     this.list = createSnapshotStore<SessionListState>({
       ids: [], byId: {}, phase: 'pending', projectionsBySession: {},
@@ -494,11 +496,8 @@ export class ClientSessions implements ISessions {
    * @returns completion; a business failure rejects with its message.
    */
   async delete(sessionId: SessionId): Promise<void> {
-    const result = await this.using(
-      sessionId,
-      { source: 'controllerOperation' },
-      reference => reference.binding.session.delete(),
-    )
+    const id = this.manager.resolveTarget(sessionId)
+    const result = await this.remote.session.delete({ sessionId: id })
     if (!result.ok) throw new Error(result.error.message)
     await this.refresh()
   }

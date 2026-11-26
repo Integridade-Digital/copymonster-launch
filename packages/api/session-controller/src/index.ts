@@ -253,9 +253,6 @@ export class SessionController extends TypertRemoteService {
       markSessionStatus(session.id, 'completed', sessionTenantMap.get(session)?.authToken)
       ctx.emit('api-session/removed', session.id)
     })
-    ctx.on('session/deleted', (sessionId) => {
-      this.knownSessionHeaders.delete(String(sessionId))
-    })
     void ctx.sessionPersistence.list().then((snapshots) => {
       for (const snapshot of snapshots) {
         this.knownSessionHeaders.set(String(snapshot.header.id), snapshot.header)

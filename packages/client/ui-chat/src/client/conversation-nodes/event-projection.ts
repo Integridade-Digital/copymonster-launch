@@ -161,6 +161,11 @@ const SENSITIVE_FAILURE_PATTERNS = [
 ]
 
 function sanitizeFailureText(raw: string, code?: string): string {
+  // First-party session quota refusals carry a user-facing message; do not sanitize.
+  if (code?.startsWith('session/')) {
+    return raw
+  }
+
   const lower = raw.toLowerCase()
   if (lower.includes('rate limit') || lower.includes('too many requests') || lower.includes('free-models')) {
     return 'Limite de requisições excedido temporariamente. Por favor, aguarde alguns instantes e tente novamente.'
@@ -192,8 +197,8 @@ export function displayFailure(failure: unknown): DisplayFailure {
   const record = failure as { code?: unknown; message?: unknown }
   let code = typeof record.code === 'string' ? record.code : undefined
 
-  // Sanitize code if it contains provider paths or URLs
-  if (code && (/https?:\/\//i.test(code) || /\b(?:openrouter|deepseek|openai|anthropic|groq)\b/i.test(code) || code.includes('/'))) {
+  // Sanitize code if it contains provider paths or URLs; keep first-party session/* codes.
+  if (code && !code.startsWith('session/') && (/https?:\/\//i.test(code) || /\b(?:openrouter|deepseek|openai|anthropic|groq)\b/i.test(code) || code.includes('/'))) {
     code = undefined
   }
 

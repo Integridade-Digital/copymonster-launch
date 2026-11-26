@@ -123,9 +123,22 @@ describe('displayFailure sanitization', () => {
     expect(result.code).toBeUndefined()
   })
 
-  it('sanitizes quota and credit balance error messages', () => {
+  it('sanitizes quota and credit balance error messages from providers', () => {
     const raw = 'insufficient balance on provider account'
     const result = displayFailure({ message: raw })
     expect(result.message).toContain('Cota de utilização do serviço de IA temporariamente indisponível')
+  })
+
+  it('does NOT sanitize first-party session quota refusals', () => {
+    const raw = 'Seu período de teste terminou. Seu uso de IA atingiu o limite do plano ou o período de teste encerrou. Ajuste seu plano para continuar. (trial_expired)'
+    const result = displayFailure({ message: raw, code: 'session/quota-exceeded' })
+    expect(result.message).toBe(raw)
+    expect(result.code).toBe('session/quota-exceeded')
+  })
+
+  it('does NOT sanitize other first-party session/* errors', () => {
+    const raw = 'Limite de sessões atingido (5/5). Arquive uma sessão ou faça upgrade do plano.'
+    const result = displayFailure({ message: raw, code: 'session/quota-exceeded' })
+    expect(result.message).toBe(raw)
   })
 })

@@ -1,0 +1,16 @@
+# Bilingual-pair consistency record for guide.md (docs/i18n/README.md): per heading
+# section, a hash of its English and Chinese blocks outside code blocks and generated regions.
+# After editing either side, bring the other along and re-record with:
+#   pnpm run verify-translation-pairing --write docs/upgrade-guide/v0.2.1-rc.3/quota-refusal-reason/guide.md
+/:
+  en: 9f034457a8004093
+  zh: adc32e7304b4a50f
+/quota-refusals-name-the-exhausted-allowance:
+  en: 7ec46cf125b48627
+  zh: 776157e219b1bd43
+/quota-refusals-name-the-exhausted-allowance/change:
+  en: 8584baff8adcb508
+  zh: 7b8757e55a4963fc
+/quota-refusals-name-the-exhausted-allowance/migration:
+  en: 8ea08cb3dac45085
+  zh: 16d036571f960392

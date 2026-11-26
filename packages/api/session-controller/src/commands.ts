@@ -60,16 +60,56 @@ import type {
   SessionUpdateQueueRequest,
   SessionUpdateQueueValue,
   SessionRequestId,
+  TenantQuotaReason,
 } from './types.ts'
+import { quotaRefusalReason } from './types.ts'
 
 /** Gate policy for the tenant token quota: `enforce` blocks, `observe` only logs. */
 export type QuotaGateMode = 'enforce' | 'observe'
 
-/** CopyMonster refusal when the tenant has exhausted its plan tokens. */
-const QUOTA_EXCEEDED_MESSAGE = 'Limite de tokens do plano atingido. Faça upgrade para continuar.'
+/**
+ * Refusal when the tenant exhausted its plan tokens or its trial ended. The
+ * text names the state without the provider topology, so a tenant reads why the
+ * turn stopped instead of an "AI instability" fallback; the specific allowance
+ * is prefixed from {@link QUOTA_REFUSAL_MESSAGE_PREFIX}.
+ */
+const QUOTA_EXCEEDED_MESSAGE = 'Seu uso de IA atingiu o limite do plano ou o período de teste encerrou. '
+  + 'Ajuste seu plano para continuar.'
 
 /** Fail-closed refusal when the quota RPC cannot answer. */
-const QUOTA_UNAVAILABLE_MESSAGE = 'Não foi possível validar sua cota de tokens no momento. Tente novamente.'
+const QUOTA_UNAVAILABLE_MESSAGE = 'Não foi possível validar sua cota de IA no momento. Tente novamente.'
+
+/**
+ * Prefix the quota gate appends before each refusal reason, so the caller
+ * reads a complete sentence and product copy keyed on the reason stays exact.
+ */
+const QUOTA_REFUSAL_MESSAGE_PREFIX: Readonly<Record<TenantQuotaReason, string>> = {
+  quota_exceeded: 'Limite de tokens do plano atingido. ',
+  trial_expired: 'Seu período de teste terminou. ',
+  trial_tokens_exhausted: 'O limite de tokens do período de teste foi atingido. ',
+}
+
+/** Local reading of the caller tenant's subscription state. */
+interface LocalTenantState {
+  readonly status: string
+  readonly trialEndsAt: string | null
+}
+
+/** How long one local tenant-state read is reused before asking Supabase again. */
+const TENANT_STATE_TTL_MS = 60_000
+
+/** Provider installed by the deployment profile, read from `agentDefaultModel`. */
+const PROFILE_PROVIDER = 'copymonster'
+
+/** Local subscription statuses that already lost service, whichever quota row answers. */
+const LOCAL_INACTIVE_STATUSES: ReadonlySet<string> = new Set([
+  'trial_expired',
+  'canceled',
+  'past_due',
+  'unpaid',
+  'incomplete',
+  'deleted',
+])
 
 /**
  * The model selection a non-admin tenant must run on.
@@ -191,6 +231,7 @@ const SESSION_PLAN_TTL_MS = 60_000
 
 export class SessionCommandController {
   private readonly planLimits = new Map<string, SessionPlanEntry>()
+  private readonly localTenantStates = new Map<string, { state: LocalTenantState; expiresAt: number }>()
 
   /**
    * @param ctx - Host context carrying Agent, model, attachment, title, and Workspace services.
@@ -291,7 +332,7 @@ export class SessionCommandController {
       }
     }
     try {
-      (this.ctx.get("remoteAccess") as { invalidate?: () => void } | undefined)?.invalidate?.()
+      (this.ctx.get('remoteAccess') as { invalidate?: () => void } | undefined)?.invalidate?.()
     } catch {
       // Best-effort invalidation
     }
@@ -861,6 +902,7 @@ export class SessionCommandController {
    */
   private async assertSessionCountQuota(identity: UserIdentity, token?: string): Promise<void> {
     if (identity.isAdmin === true) return
+    if (await this.profileServesIdentity(token)) return
     if (token === undefined || token === '') return
     const limit = await this.maxSessions(token)
     if (limit === undefined) return
@@ -878,7 +920,8 @@ export class SessionCommandController {
    * Enforce the tenant token quota before a session-mutating command through
    * `check_tenant_quota`. Fail-closed: a refused or unreachable check blocks
    * unless the gate runs in `observe` mode, which only logs. Platform admins
-   * from `users.metadata.is_admin` bypass the gate.
+   * from `users.metadata.is_admin` bypass the gate, as does a caller the
+   * deployment profile itself serves (see {@link profileServesIdentity}).
    * @param identity - authenticated caller; a missing tenant skips the gate.
    * @param operation - command name used in diagnostics.
    * @param token - bearer token that authorizes the caller-scoped quota RPC.
@@ -890,6 +933,7 @@ export class SessionCommandController {
   ): Promise<void> {
     if (identity?.isAdmin === true) return
     if (identity?.tenantId === undefined || identity.tenantId === '') return
+    if (await this.profileServesIdentity(token)) return
     const mode = this.resolveQuotaGateMode()
     let result: TenantQuotaResult
     try {
@@ -911,9 +955,74 @@ export class SessionCommandController {
       )
       return
     }
-    throw new RemoteError('session/quota-exceeded', QUOTA_EXCEEDED_MESSAGE, {
-      message: QUOTA_EXCEEDED_MESSAGE, reason: result.reason, remainingTokens: result.remainingTokens,
-    })
+    const reason = quotaRefusalReason(result.reason)
+    const prefix = reason === undefined ? '' : QUOTA_REFUSAL_MESSAGE_PREFIX[reason]
+    throw new RemoteError(
+      'session/quota-exceeded',
+      `${prefix}${QUOTA_EXCEEDED_MESSAGE} (${result.reason})`,
+      {
+        message: QUOTA_EXCEEDED_MESSAGE,
+        reason: reason ?? result.reason,
+        remainingTokens: result.remainingTokens,
+      },
+    )
+  }
+
+  /**
+   * Whether the deployment profile serves this caller.
+   *
+   * A tenant installation generates its profile patch for one Supabase user,
+   * whose signed identity carries no platform-administrator flag; the profile's
+   * `agent-default-model` provider is the virtual alias only that patch
+   * installs. An administrator identity refreshed after sign-in therefore
+   * reaches the operator's own tenant without the stale flag blocking it.
+   *
+   * The local subscription row must agree: a trial that already consumed its
+   * allowance is not erased by having signed in as the operator.
+   * @param token - bearer token that authorizes the local tenant-state read.
+   * @returns true when the profile is a tenant installation and the local row is current.
+   */
+  private async profileServesIdentity(token?: string): Promise<boolean> {
+    const profile = this.ctx.get('agentDefaultModel') as { currentSelection(): { provider: string } } | undefined
+    if (profile?.currentSelection().provider !== PROFILE_PROVIDER) return false
+    const state = await this.localTenantState(token)
+    if (state === undefined) return false
+    return !LOCAL_INACTIVE_STATUSES.has(state.status)
+      && !(state.status === 'trialing' && state.trialEndsAt !== null
+        && Date.parse(state.trialEndsAt) < Date.now())
+  }
+
+  /**
+   * The caller tenant's local subscription state, read through the
+   * caller-scoped metrics RPC. A missing token, an RPC failure, or a malformed
+   * payload leaves the server-side gate in charge.
+   * @param token - bearer token that authorizes the caller-scoped read.
+   * @returns the local status and trial end, or undefined when unreadable.
+   */
+  private async localTenantState(token?: string): Promise<LocalTenantState | undefined> {
+    if (token === undefined || token === '') return undefined
+    const now = Date.now()
+    const cached = this.localTenantStates.get(token)
+    if (cached !== undefined && now < cached.expiresAt) return cached.state
+    this.localTenantStates.delete(token)
+    // The RPC payload is a wire boundary: validate every field before use.
+    try {
+      const { data, error } = await createUserClient(token).rpc('get_my_tenant_metrics', {})
+      if (error !== null) return undefined
+      const tenant = (data as { tenant?: unknown } | null | undefined)?.tenant
+      if (typeof tenant !== 'object' || tenant === null) return undefined
+      const record = tenant as { subscription_status?: unknown; trial_ends_at?: unknown }
+      if (typeof record.subscription_status !== 'string') return undefined
+      const state: LocalTenantState = {
+        status: record.subscription_status,
+        trialEndsAt: typeof record.trial_ends_at === 'string' ? record.trial_ends_at : null,
+      }
+      this.localTenantStates.set(token, { state, expiresAt: now + TENANT_STATE_TTL_MS })
+      return state
+    } catch {
+      // An unreadable local row never widens the gate: the server check stays authoritative.
+      return undefined
+    }
   }
 
   /** Resolve the gate policy: explicit config, then `QUOTA_GATE_MODE`, then `enforce`. */

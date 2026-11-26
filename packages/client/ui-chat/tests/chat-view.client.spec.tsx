@@ -2496,6 +2496,27 @@ describe('ChatView', () => {
     expect(view.queryByRole('button', { name: '去充值' })).toBeNull()
   })
 
+  it('renders the quota refusal with the allowance the Host named', () => {
+    const refusal = (seq: number, message: string): TurnErrorNode => ({
+      kind: 'turn-error', seq, time: seq * 1_000, turn: 1, step: 0,
+      message, code: 'session/quota-exceeded',
+    })
+    const h = makeHarness({ nodes: [
+      user(1, 'try'),
+      refusal(2, 'Limite de tokens do plano atingido. Seu uso de IA atingiu o limite do plano (quota_exceeded)'),
+      refusal(3, 'Seu período de teste terminou. Seu uso de IA atingiu o limite (trial_expired)'),
+      refusal(4, 'O limite de tokens do período de teste foi atingido. (subscription_inactive:trial_expired)'),
+    ] })
+    const view = render(<h.ChatView {...h.props} />)
+    expect(view.getAllByRole('status').map(status => status.textContent)).toEqual([
+      '本轮运行失败套餐的 Token 额度已用尽。请升级套餐后继续。',
+      '本轮运行失败免费试用已结束。请选择套餐后继续。',
+      '本轮运行失败免费试用的 Token 额度已用尽。请选择套餐后继续。',
+    ])
+    expect(view.queryByText(/instabilidade|temporariamente indisponível/i)).toBeNull()
+    expect(view.queryByRole('alert')).toBeNull()
+  })
+
   it('renders the max-tokens notice with localized guidance, distinct from turn errors', () => {
     const h = makeHarness({ nodes: [user(1, 'try'), assistant(2, 'truncated'), turnMaxTokens(3)] })
     const view = render(<h.ChatView {...h.props} />)

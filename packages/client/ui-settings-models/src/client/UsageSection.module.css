@@ -74,6 +74,12 @@
   gap: 8px;
 }
 
+.hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--dsw-alias-label-tertiary);
+}
+
 .meterHead {
   display: flex;
   align-items: baseline;

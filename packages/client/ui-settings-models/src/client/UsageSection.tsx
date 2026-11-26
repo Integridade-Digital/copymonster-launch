@@ -57,6 +57,24 @@ function tokens(value: number): string {
 }
 
 /**
+ * Localized label for the tenant's subscription state.
+ * @param status - `subscription_status` reported for the tenant.
+ * @returns copy naming the state, or the stored status for one this build does not know.
+ */
+function statusLabel(status: string, t: UsageSectionInjected['t']): string {
+  switch (status) {
+    case 'active': return t('usageStatusActive')
+    case 'trial':
+    case 'trialing': return t('usageStatusTrial')
+    case 'trial_expired': return t('usageStatusTrialExpired')
+    case 'past_due': return t('usageStatusPastDue')
+    case 'canceled': return t('usageStatusCanceled')
+    case 'inactive': return t('usageStatusInactive')
+    default: return status
+  }
+}
+
+/**
  * Render the plan, trial and period usage of the signed-in tenant.
  * @param props - section owner state and the metrics loader.
  * @returns the usage panel.
@@ -128,7 +146,7 @@ export function UsageSection(props: UsageSectionProps): ReactNode {
         </div>
         <div className={styles.fact}>
           <dt>{t('usageStatus')}</dt>
-          <dd>{metrics.subscriptionStatus}</dd>
+          <dd>{statusLabel(metrics.subscriptionStatus, t)}</dd>
         </div>
         <div className={styles.fact}>
           <dt>{t('usageTrialEnds')}</dt>
@@ -159,6 +177,7 @@ export function UsageSection(props: UsageSectionProps): ReactNode {
         >
           <div className={styles.fill} style={{ width: `${trialPercent}%` }} />
         </div>
+        <p className={styles.hint}>{t('usageTrialConsumed')}</p>
       </section>
 
       <section className={styles.meter}>

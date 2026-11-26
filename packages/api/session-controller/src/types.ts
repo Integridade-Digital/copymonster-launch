@@ -191,6 +191,36 @@ export const SESSION_SEARCH_RESULT_LIMIT = 20
 /** Maximum search snippet length in Unicode code points. */
 export const SESSION_SEARCH_SNIPPET_MAX_CODE_POINTS = 240
 
+/**
+ * Stable reason carried by a `session/quota-exceeded` refusal. Callers key
+ * recovery copy on it instead of parsing the human message.
+ */
+export type TenantQuotaReason =
+  /** The active billing period reached the plan's token ceiling. */
+  | 'quota_exceeded'
+  /** The trial date passed before the trial was used. */
+  | 'trial_expired'
+  /** The trial consumed its token allowance before its date. */
+  | 'trial_tokens_exhausted'
+
+/**
+ * Classify one `check_my_tenant_quota` refusal reason.
+ * @param reason - the RPC's `reason` column, for example `quota_exceeded` or
+ *   `subscription_inactive:canceled`.
+ * @returns the refusal reason a caller reads, or undefined when the quota check
+ *   made no refusal decision at all.
+ */
+export function quotaRefusalReason(reason: string): TenantQuotaReason | undefined {
+  if (reason === 'quota_exceeded') return 'quota_exceeded'
+  if (reason === 'trial_expired') return 'trial_expired'
+  if (reason.startsWith('subscription_inactive:')) {
+    // An inactive subscription never billed a period, so the ceiling it crossed
+    // is the trial allowance recorded on the same row.
+    return 'trial_tokens_exhausted'
+  }
+  return undefined
+}
+
 declare module '@deepseek-ai/dsh-typert-protocol' {
   interface RemoteErrorDetailsMap {
     'session/subscription-inactive': { readonly message?: string; readonly subscriptionStatus?: string }

@@ -43,6 +43,26 @@ function retrySeconds(milliseconds: number): number {
   return Math.max(1, Math.ceil(milliseconds / 1_000))
 }
 
+/**
+ * Product copy for a quota refusal. The Host names the exhausted allowance in
+ * the `session/quota-exceeded` code, so the turn explains the ceiling the tenant
+ * reached instead of the generic provider-unavailable message.
+ * @param message - diagnostic the Host carried, which keeps the server reason.
+ * @param code - stable failure code carried by the turn error.
+ * @param t - locale-bound translator.
+ * @returns the localized explanation, or undefined for any other failure.
+ */
+function quotaFailureCopy(
+  message: string,
+  code: unknown,
+  t: ChatViewSlotProps['t'],
+): string | undefined {
+  if (code !== 'session/quota-exceeded') return undefined
+  if (/\(trial_expired\)/.test(message)) return t('message.failure.quota.trialExpired')
+  if (/\(subscription_inactive:/.test(message)) return t('message.failure.quota.trialTokens')
+  return t('message.failure.quota.exceeded')
+}
+
 interface RetryCountdown {
   deadline: number
   seconds: number
@@ -53,6 +73,8 @@ function failureMessage(
   code: unknown,
   t: ChatViewSlotProps['t'],
 ): string {
+  const quotaCopy = quotaFailureCopy(message, code, t)
+  if (quotaCopy !== undefined) return quotaCopy
   if (code === 'ACCOUNT_SIGNED_OUT') return t('message.failure.accountSignedOut')
   if (code === 'INTERRUPTED') return t('message.failure.interrupted')
   if (code === 'ACCOUNT_SIGN_IN_REQUIRED') return t('message.failure.accountSignInRequired')

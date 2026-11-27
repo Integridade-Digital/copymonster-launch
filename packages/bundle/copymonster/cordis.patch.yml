@@ -94,3 +94,17 @@
           maxAttempts: 3
           timeoutMs: 30000
         applyToTenantsOnly: true
+
+    # Image generation via the internal CopyMonster LLM loopback gateway.
+    # The dsh-image-gen plugin runs in openai-compat (relay) mode: it never
+    # asks a tenant for a Gemini/OpenAI key. It POSTs to the platform gateway
+    # (127.0.0.1:4010/internal/v1/llm), which validates the tenant's scoped
+    # session token, applies rate limits, and uses the platform's master
+    # credentials (Cloudflare Flux Schnell, OpenAI DALL-E or Gemini). Tokens
+    # are debited from the tenant's quota by the gateway, not by the plugin.
+    - id: image-gen
+      name: dsh-image-gen
+      config:
+        provider: openai-compat
+        openaiCompatBaseURL: !!js "process.env.COPYMONSTER_LLM_GATEWAY_URL ?? 'http://127.0.0.1:4010/internal/v1/llm'"
+        openaiCompatModel: '@cf/black-forest-labs/flux-1-schnell'

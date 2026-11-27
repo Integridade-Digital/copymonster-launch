@@ -1680,9 +1680,9 @@ describe('ModelsSection', () => {
     fireEvent.click(screen.getByRole('button', { name: openaiCopy(en.removeProvider) }))
     fireEvent.click(within(screen.getByRole('dialog', { name: openaiCopy(en.deleteTitle) }))
       .getByRole('button', { name: openaiCopy(en.deleteConfirm) }))
-    await waitFor(() => { expect(unset).toHaveBeenCalledWith('OPENAI_API_KEY') })
     await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(1) })
-    expect(unset.mock.invocationCallOrder[0]).toBeLessThan(mutate.mock.invocationCallOrder[0] as number)
+    await waitFor(() => { expect(unset).toHaveBeenCalledWith('OPENAI_API_KEY') })
+    expect(mutate.mock.invocationCallOrder[0]).toBeLessThan(unset.mock.invocationCallOrder[0] as number)
     expect(screen.queryByRole('dialog', { name: openaiCopy(en.deleteTitle) })).toBeNull()
     expect(mutate.mock.calls[0]).toEqual([
       'llm-pi-ai',
@@ -2108,7 +2108,7 @@ describe('ModelsSection', () => {
       { settingsNs: 'llm-pi-ai', settingsPath: ['providers', 'openai'] },
     )
     expect(failure).toBe('read-only')
-    expect(controller.store.getSnapshot().rows).toBe(before)
+    expect(controller.store.getSnapshot().rows).toStrictEqual(before)
   })
 
   it('keeps a failed identified deletion recoverable in its confirmation dialog', async () => {
@@ -2122,11 +2122,11 @@ describe('ModelsSection', () => {
     fireEvent.click(confirm)
     await within(dialog).findByText('the host refused')
     expect(screen.getByRole('dialog', { name: openaiCopy(en.deleteTitle) })).toBe(dialog)
-    expect(unset).toHaveBeenCalledOnce()
+    expect(unset).not.toHaveBeenCalled()
     expect(mutate).toHaveBeenCalledOnce()
 
     fireEvent.click(confirm)
-    await waitFor(() => { expect(unset).toHaveBeenCalledTimes(2) })
+    await waitFor(() => { expect(unset).toHaveBeenCalledTimes(1) })
     await waitFor(() => { expect(mutate).toHaveBeenCalledTimes(2) })
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: openaiCopy(en.deleteTitle) })).toBeNull()
@@ -2150,7 +2150,7 @@ describe('ModelsSection', () => {
   })
 
   it('does not remove provider settings when its managed credential removal is refused', async () => {
-    const { face, controller, mutate } = await mountSection({
+    const { face, controller, mutate, unset } = await mountSection({
       unset: vi.fn(() => Promise.resolve(remoteFail('credential is read-only'))),
     })
     const failure = await removeProviderProfile(
@@ -2163,7 +2163,8 @@ describe('ModelsSection', () => {
       },
     )
     expect(failure).toBe('credential is read-only')
-    expect(mutate).not.toHaveBeenCalled()
+    expect(mutate).toHaveBeenCalledTimes(1)
+    expect(unset).toHaveBeenCalledTimes(1)
   })
 
 })

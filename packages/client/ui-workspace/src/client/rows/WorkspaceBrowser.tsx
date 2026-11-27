@@ -1089,6 +1089,7 @@ export function WorkspaceBrowser({
   const [sessionDeleting, setSessionDeleting] = useState(false)
   const [sessionDeleteError, setSessionDeleteError] = useState<string | null>(null)
   const onSessionDelete = (sessionId: SessionNode['id'], currentTitle: string) => {
+    console.log('[WorkspaceBrowser.onSessionDelete] called', { sessionId, currentTitle })
     setSessionDeleteTarget({ sessionId, title: currentTitle })
     setSessionDeleteArmed(false)
     setSessionDeleteError(null)
@@ -1099,18 +1100,25 @@ export function WorkspaceBrowser({
     setSessionDeleteError(null)
   }
   const confirmSessionDelete = () => {
+    console.log('[WorkspaceBrowser.confirmSessionDelete] called', { sessionDeleteTarget, sessionDeleteArmed, sessionDeleting })
     /* v8 ignore next -- the Modal is absent without a target and its button is disabled while deleting. */
-    if (sessionDeleting || sessionDeleteTarget === null) return
+    if (sessionDeleting || sessionDeleteTarget === null) {
+      console.log('[WorkspaceBrowser.confirmSessionDelete] early return', { sessionDeleting, sessionDeleteTarget })
+      return
+    }
     if (!sessionDeleteArmed) {
+      console.log('[WorkspaceBrowser.confirmSessionDelete] arming')
       setSessionDeleteArmed(true)
       return
     }
     setSessionDeleting(true)
     setSessionDeleteError(null)
     deleteSession(sessionDeleteTarget.sessionId).then(() => {
+      console.log('[WorkspaceBrowser.confirmSessionDelete] deleteSession success')
       setSessionDeleting(false)
       setSessionDeleteTarget(null)
     }).catch((reason: unknown) => {
+      console.log('[WorkspaceBrowser.confirmSessionDelete] deleteSession error', { reason: reason instanceof Error ? reason.message : String(reason) })
       setSessionDeleting(false)
       setSessionDeleteError(reason instanceof Error ? reason.message : String(reason))
     })
@@ -1137,9 +1145,14 @@ export function WorkspaceBrowser({
     setDeleteError(null)
   }
   const confirmDelete = () => {
+    console.log('[WorkspaceBrowser.confirmDelete] called', { deleteTarget, deleteArmed, deleting })
     /* v8 ignore next -- the Modal is absent without a target and its button is disabled while deleting. */
-    if (deleting || deleteTarget === null) return
+    if (deleting || deleteTarget === null) {
+      console.log('[WorkspaceBrowser.confirmDelete] early return', { deleting, deleteTarget })
+      return
+    }
     if (!deleteArmed) {
+      console.log('[WorkspaceBrowser.confirmDelete] arming')
       setDeleteArmed(true)
       return
     }
@@ -1147,11 +1160,13 @@ export function WorkspaceBrowser({
     setDeleteCommittedId(null)
     setDeleteError(null)
     deleteWorkspace(deleteTarget.workspaceId).then(() => {
+      console.log('[WorkspaceBrowser.confirmDelete] deleteWorkspace success')
       // Keep the confirmation pending until this component has rendered the
       // committed list projection without the deleted id. Closing earlier
       // exposes one stale React frame to the next Create Workspace gesture.
       setDeleteCommittedId(deleteTarget.workspaceId)
     }).catch((reason: unknown) => {
+      console.log('[WorkspaceBrowser.confirmDelete] deleteWorkspace error', { reason: reason instanceof Error ? reason.message : String(reason) })
       setDeleting(false)
       setDeleteError(reason instanceof Error ? reason.message : String(reason))
     })
@@ -1352,6 +1367,7 @@ export function WorkspaceBrowser({
                   setRenameError(null)
                 }}
                 onDeleteRequest={(workspaceId, title) => {
+                  console.log('[WorkspaceBrowser.onDeleteRequest] called', { workspaceId, title })
                   setDeleteTarget({ workspaceId, title })
                   setDeleteError(null)
                 }}

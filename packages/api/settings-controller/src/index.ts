@@ -237,10 +237,13 @@ export class SettingsController extends TypertRemoteService {
     ops: SettingsPathOpView[],
     expectedRevision: number | undefined,
   ): Promise<SettingsNamespaceView> {
+    console.log('[SettingsController.mutate] called', { ns, ops, expectedRevision })
     if (isProtectedNamespace(ns)) {
       assertAdminRole(this.ctx, 'configurar provedores de IA', ns)
     }
-    return this.write(ns, 'mutate', ops, expectedRevision)
+    const result = await this.write(ns, 'mutate', ops, expectedRevision)
+    console.log('[SettingsController.mutate] success', { ns })
+    return result
   }
 
   /**
@@ -462,8 +465,10 @@ export class SettingsController extends TypertRemoteService {
     input: Record<string, JsonValue> | SettingsPathOpView[],
     expectedRevision: number | undefined,
   ): Promise<SettingsNamespaceView> {
+    console.log('[SettingsController.write] called', { ns, mode, input, expectedRevision })
     const parsed = settingsNamespaceRequestSchema.safeParse({ ns })
     if (!parsed.success) {
+      console.log('[SettingsController.write] bad request', { issues: parsed.error.issues })
       throw new RemoteError('gateway/bad-request', `invalid payload for settings.${mode}`, { issues: parsed.error.issues })
     }
     const settings = this.provider()
@@ -473,14 +478,15 @@ export class SettingsController extends TypertRemoteService {
       else if (mode === 'replace') await settings.replace(namespace, input, expectedRevision)
       else await settings.mutate(namespace, input as SettingsPathOp[], expectedRevision)
     } catch (error: unknown) {
+      console.log('[SettingsController.write] error', { ns, mode, error: error instanceof Error ? error.message : String(error) })
       throw rejected(ns, error)
     }
     const descriptor = settings.describe({ redactSecrets: true }).find(candidate => candidate.ns === namespace)
     if (descriptor === undefined) {
-      // The write committed but the namespace vanished before this read: only a
-      // concurrent registrant disposal can produce it.
+      console.log('[SettingsController.write] namespace vanished after write')
       throw new RemoteError('gateway/internal', `settings namespace "${ns}" was disposed after the ${mode}`, {})
     }
+    console.log('[SettingsController.write] success', { ns })
     return namespaceView(descriptor)
   }
 

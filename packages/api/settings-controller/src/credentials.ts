@@ -124,13 +124,16 @@ export class CredentialsController extends TypertRemoteService {
    */
   @Remote
   async unset(ref: string): Promise<void> {
+    console.log('[CredentialsController.unset] called', { ref })
     if (!callerIsAdmin(this.ctx)) {
+      console.log('[CredentialsController.unset] forbidden - not admin')
       throw new RemoteError('credential/forbidden', 'Apenas administradores podem remover credenciais e chaves de API.', { ref })
     }
     const request = parseRequest('credentials.unset', unsetRequestSchema, { ref })
     const branded = credentialRef(request.ref)
     const credentials = this.provider()
     await this.write(request.ref, () => credentials.unset(branded))
+    console.log('[CredentialsController.unset] success', { ref })
   }
 
   /** Resolve the optional provider or report how to supply it. */
@@ -156,9 +159,12 @@ export class CredentialsController extends TypertRemoteService {
    * carry the value back out.
    */
   private async write(ref: string, write: () => Promise<void>): Promise<void> {
+    console.log('[CredentialsController.write] called', { ref })
     try {
       await write()
+      console.log('[CredentialsController.write] success', { ref })
     } catch (error: unknown) {
+      console.log('[CredentialsController.write] error', { ref, error: error instanceof Error ? error.message : String(error) })
       throw new RemoteError(
         'credential/rejected',
         error instanceof Error ? error.message : String(error),

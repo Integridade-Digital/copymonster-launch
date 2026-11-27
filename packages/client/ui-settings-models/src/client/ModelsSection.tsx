@@ -121,16 +121,27 @@ export async function removeProviderProfile(
   controller: ModelsSettingsStore,
   target: { settingsNs: string; settingsPath: readonly string[]; credentialRef?: string },
 ): Promise<string | undefined> {
-  if (target.credentialRef !== undefined) {
-    const credential = await operations.removeCredential(target.credentialRef)
-    if (credential !== undefined) return credential
-  }
+  console.log('[removeProviderProfile] called', { target })
   const written = await operations.writeSettings(
     target.settingsNs,
     [{ op: 'unset', path: [...target.settingsPath] }],
     undefined,
   )
-  if (written.kind !== 'written') return written.message
+  console.log('[removeProviderProfile] writeSettings result', { written })
+  if (written.kind !== 'written') {
+    await controller.load()
+    return written.message
+  }
+
+  if (target.credentialRef !== undefined) {
+    const credential = await operations.removeCredential(target.credentialRef)
+    console.log('[removeProviderProfile] removeCredential result', { credential })
+    if (credential !== undefined) {
+      await controller.load()
+      return credential
+    }
+  }
+
   await controller.load()
   return undefined
 }
@@ -258,17 +269,28 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
   }
 
   const confirmDelete = (): void => {
+    console.log('[ModelsSection.confirmDelete] called', { deleteTarget, deleting })
     /* v8 ignore next -- the action only renders with a target and is disabled while a deletion is pending */
-    if (deleteTarget === undefined || deleting) return
+    if (deleteTarget === undefined || deleting) {
+      console.log('[ModelsSection.confirmDelete] early return', { deleteTarget, deleting })
+      return
+    }
     setDeleting(true)
     setDeleteFailure(undefined)
     void removeProviderProfile(operations, controller, deleteTarget)
-      .then((failure) => {
+      .then(async (failure) => {
+        console.log('[ModelsSection.confirmDelete] removeProviderProfile result', { failure })
         if (failure !== undefined) {
           setDeleteFailure(failure)
-          return
+        } else {
+          setDeleteTarget(undefined)
         }
-        setDeleteTarget(undefined)
+        await controller.load()
+      })
+      .catch((error: unknown) => {
+        console.log('[ModelsSection.confirmDelete] error', { error: error instanceof Error ? error.message : String(error) })
+        setDeleteFailure(error instanceof Error ? error.message : String(error))
+        void controller.load()
       })
       .finally(() => { setDeleting(false) })
   }
@@ -426,6 +448,7 @@ function Loaded({ injected, renderSlot }: { injected: ModelsSectionFace; renderS
                         aria-label={providerCopy(t('removeProvider'), target)}
                         disabled={!state.writable}
                         onClick={() => {
+                          console.log('[ModelsSection] Remove button clicked', { target, writable: state.writable })
                           setSavedTarget(undefined)
                           setDeleteFailure(undefined)
                           setDeleteTarget(target)

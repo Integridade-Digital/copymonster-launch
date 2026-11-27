@@ -499,19 +499,33 @@ export class SessionCommandController {
    * @returns deletion confirmation.
    */
   async delete(request: SessionDeleteRequest, sandboxRoot?: string): Promise<SessionDeleteValue> {
+    console.log('[SessionCommandController.delete] called', { sessionId: request.sessionId, sandboxRoot })
     const snapshot = await this.ctx.sessionPersistence.stat(request.sessionId)
-    if (snapshot === undefined) return { deleted: true }
+    if (snapshot === undefined) {
+      console.log('[SessionCommandController.delete] session not found, returning deleted: true')
+      return { deleted: true }
+    }
+    console.log('[SessionCommandController.delete] snapshot found', { sessionId: request.sessionId, cwd: snapshot.header.cwd })
     const cwd = snapshot.header.cwd
     if (cwd !== undefined && sandboxRoot !== undefined) this.assertCwdInSandbox(cwd, sandboxRoot)
     const live = this.ctx.agents.get(request.sessionId)
-    if (live?.status === 'running') throw sessionWriterHeld(request.sessionId)
+    if (live?.status === 'running') {
+      console.log('[SessionCommandController.delete] session is running, throwing sessionWriterHeld')
+      throw sessionWriterHeld(request.sessionId)
+    }
+    console.log('[SessionCommandController.delete] disposing agent')
     await this.agents.disposeAgent(request.sessionId)
+    console.log('[SessionCommandController.delete] deleting from persistence')
     try {
       await this.ctx.sessionPersistence.delete(request.sessionId)
     } catch (error) {
-      if (error instanceof SessionAlreadyOwnedError) throw sessionWriterHeld(request.sessionId)
+      if (error instanceof SessionAlreadyOwnedError) {
+        console.log('[SessionCommandController.delete] SessionAlreadyOwnedError, throwing sessionWriterHeld')
+        throw sessionWriterHeld(request.sessionId)
+      }
       throw error
     }
+    console.log('[SessionCommandController.delete] success')
     return { deleted: true }
   }
 

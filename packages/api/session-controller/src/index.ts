@@ -574,6 +574,7 @@ export class SessionController extends TypertRemoteService {
    */
   @RemoteScope('auth', 'delete')
   async delete(request: SessionDeleteRequest): Promise<SessionDeleteValue> {
+    console.log('[SessionController.delete] called', { sessionId: request.sessionId })
     const identity = requireAuthIdentity(this.ctx)
     const isOp = identity.role === 'admin' || identity.role === 'owner' || identity.isAdmin
     const sandboxRoot = isOp ? undefined : resolveUserSandboxRoot(identity.tenantId, identity.userId)
@@ -585,6 +586,7 @@ export class SessionController extends TypertRemoteService {
     } catch {}
     const result = await this.commands.delete(request, sandboxRoot)
     this.knownSessionHeaders.delete(String(request.sessionId))
+    console.log('[SessionController.delete] success', { sessionId: request.sessionId })
     return result
   }
 

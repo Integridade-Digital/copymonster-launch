@@ -10,7 +10,7 @@
  * @module @deepseek-ai/dsh-tool-fs/src/generate-image
  */
 
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import { defineTool, ToolCallView } from '@deepseek-ai/dsh-tools'
 import type { Context } from '@deepseek-ai/cordis'
 
 /** Register the `generate_image` tool on the given context. */
@@ -79,8 +79,10 @@ export function applyGenerateImageTool(ctx: Context): void {
         if (val.data && val.data.length > 0) {
           for (let i = 0; i < val.data.length; i++) {
             const item = val.data[i]
+            // Assert item is defined since we checked val.data.length > 0
+            const typedItem = item as { mimeType: string; b64Json?: string }
             lines.push(
-              `Image ${i + 1}: ${item.mimeType}, ${item.b64Json?.length} chars base64`,
+              `Image ${i + 1}: ${typedItem.mimeType}, ${typedItem.b64Json?.length} chars base64`,
             )
           }
         }
@@ -137,7 +139,7 @@ export function applyGenerateImageTool(ctx: Context): void {
 
     isConcurrencySafe: () => true,
 
-    presentCall(args): unknown {
+    presentCall(args): ToolCallView | undefined {
       const promptTitle = String(args?.prompt).slice(0, 50)
       const hasTruncation = Boolean(args?.prompt) && String(args?.prompt).length > 50
       return {

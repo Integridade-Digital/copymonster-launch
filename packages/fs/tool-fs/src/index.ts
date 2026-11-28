@@ -15,7 +15,7 @@ import { applyEditTool } from './edit.ts'
 import { applyReadImageTool } from './read-image.ts'
 import { READ_MAX_BYTES, READ_MAX_LINE_LENGTH } from './read-render.ts'
 import { FsSandboxController } from './sandbox.ts'
-import { defineTool } from '@deepseek-ai/dsh-tools'
+import { defineTool, ToolCallView } from '@deepseek-ai/dsh-tools'
 
 /** Cordis plugin name used by loader diagnostics. */
 export const name = 'tool-fs'
@@ -120,13 +120,15 @@ export function applyGenerateImageTool(ctx: Context): void {
         },
       },
       render: (_args, value: unknown) => {
+        // Assert value matches the output schema shape.
+        const val = value as { created?: number; data?: Array<{ b64Json: string; mimeType: string }> | undefined }
         const lines: string[] = []
-        if (value.created) {
-          lines.push(`Generated at: ${new Date(value.created * 1000).toISOString()}`)
+        if (val.created) {
+          lines.push(`Generated at: ${new Date(val.created * 1000).toISOString()}`)
         }
-        if (value.data && value.data.length > 0) {
-          for (let i = 0; i < value.data.length; i++) {
-            const item = value.data[i]
+        if (val.data && val.data.length > 0) {
+          for (let i = 0; i < val.data.length; i++) {
+            const item = val.data[i]
             lines.push(
               `Image ${i + 1}: ${item.mimeType}, ${item.b64Json?.length} chars base64`,
             )
@@ -135,7 +137,7 @@ export function applyGenerateImageTool(ctx: Context): void {
         return [{ type: 'text', text: lines.join('\n') }]
       },
     },
-    async execute(args, _exec): Promise<unknown> {
+    async execute(args, _exec): Promise<{ created?: number; data?: Array<{ b64Json: string; mimeType: string }> }> {
       // Coerce args.prompt to string safely.
       const prompt = String(args?.prompt)
       if (!prompt || prompt.trim().length === 0) {
@@ -185,7 +187,7 @@ export function applyGenerateImageTool(ctx: Context): void {
 
     isConcurrencySafe: () => true,
 
-    presentCall(args): unknown {
+    presentCall(args): ToolCallView | undefined {
       const promptTitle = String(args?.prompt).slice(0, 50)
       const hasTruncation = Boolean(args?.prompt) && String(args?.prompt).length > 50
       return {

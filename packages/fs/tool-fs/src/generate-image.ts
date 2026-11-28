@@ -1,0 +1,148 @@
+/**
+ * The model-facing `generate_image` tool generates an image using the
+ * CopyMonster LLM loopback gateway with OpenRouter admin API key.
+ *
+ * The gateway validates the tenant's session token (HMAC) from the
+ * Authorization header, then calls the OpenRouter images API and returns
+ * the generated image. The cost in USD is debited from the tenant's
+ * quota ledger (not the admin's personal account).
+ *
+ * @module @deepseek-ai/dsh-tool-fs/src/generate-image
+ */
+
+import { defineTool } from '@deepseek-ai/dsh-tools'
+import type { Context } from '@deepseek-ai/cordis'
+
+/** Register the `generate_image` tool on the given context. */
+export function applyGenerateImageTool(ctx: Context): void {
+  ctx.tools.register(defineTool({
+    name: 'generate_image',
+    description:
+      'Generate an image using the CopyMonster LLM loopback gateway with OpenRouter. The gateway validates the session token and uses the admin\'s OpenRouter API key. Cost is debited from the tenant\'s quota.',
+    parameters: {
+      prompt: {
+        type: 'string',
+        description:
+          'The text prompt describing the image to generate.',
+        required: true,
+      },
+      model: {
+        type: 'string',
+        description: 'Optional image generation model override.',
+      },
+      width: {
+        type: 'integer',
+        description: 'Optional image width in pixels.',
+      },
+      height: {
+        type: 'integer',
+        description: 'Optional image height in pixels.',
+      },
+    },
+    output: {
+      schema: {
+        type: 'object',
+        additionalProperties: false,
+        properties: {
+          created: {
+            type: 'integer',
+            description: 'Unix timestamp when the image was created.',
+          },
+          data: {
+            type: 'array',
+            items: {
+              type: 'object',
+              additionalProperties: false,
+              properties: {
+                b64Json: {
+                  type: 'string',
+                  description: 'Base64-encoded image data.',
+                },
+                mimeType: {
+                  type: 'string',
+                  description: 'MIME type of the image.',
+                },
+              },
+              required: ['b64Json', 'mimeType'],
+            },
+            description: 'Array of generated image data.',
+          },
+        },
+      },
+      render: (_args, value: unknown) => {
+        const lines: string[] = []
+        if (value.created) {
+          lines.push(`Generated at: ${new Date(value.created * 1000).toISOString()}`)
+        }
+        if (value.data && value.data.length > 0) {
+          for (let i = 0; i < value.data.length; i++) {
+            const item = value.data[i]
+            lines.push(
+              `Image ${i + 1}: ${item.mimeType}, ${item.b64Json?.length} chars base64`,
+            )
+          }
+        }
+        return [{ type: 'text', text: lines.join('\n') }]
+      },
+    },
+    async execute(args, _exec): Promise<unknown> {
+      // Coerce args.prompt to string safely.
+      const prompt = String(args?.prompt)
+      if (!prompt || prompt.trim().length === 0) {
+        throw new Error('prompt is required and must not be empty')
+      }
+
+      // The gateway expects the session token in the Authorization header.
+      // The gateway will validate the token and use the admin's OPENROUTER_API_KEY.
+      // We forward the request to the gateway loopback.
+      const gatewayUrl =
+        process.env.COPYMONSTER_LLM_GATEWAY_URL ?? 'http://127.0.0.1:4010/internal/v1/llm'
+
+      const payload = {
+        prompt: String(prompt),
+        ...(args.model ? { model: String(args.model) } : {}),
+        ...(args.width !== undefined ? { width: Number(args.width) } : {}),
+        ...(args.height !== undefined ? { height: Number(args.height) } : {}),
+      }
+
+      try {
+        const res = await fetch(`${gatewayUrl}/images/generations`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payload),
+        })
+
+        if (!res.ok) {
+          const errorText = await res.text()
+          throw new Error(`Gateway error ${res.status}: ${errorText}`)
+        }
+
+        const result = await res.json()
+
+        return {
+          created: result.created ?? Math.floor(Date.now() / 1000),
+          data: (result.data ?? []).map((item: unknown) => ({
+            b64Json: item.b64_json ?? '',
+            mimeType: item.mime_type ?? 'image/png',
+          })),
+        }
+      } catch (error: unknown) {
+        throw new Error(`Failed to generate image: ${error.message}`)
+      }
+    },
+
+    isConcurrencySafe: () => true,
+
+    presentCall(args): unknown {
+      const promptTitle = String(args?.prompt).slice(0, 50)
+      const hasTruncation = Boolean(args?.prompt) && String(args?.prompt).length > 50
+      return {
+        card: 'generic',
+        title: `Generate image: ${promptTitle}${hasTruncation ? '...' : ''}`,
+        kind: 'generate',
+      }
+    },
+  }))
+}

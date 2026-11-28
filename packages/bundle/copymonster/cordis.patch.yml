@@ -68,9 +68,6 @@
       config:
         rules:
           - primary: deepseek-official
-            fallbacks:
-              - provider: openrouter
-                model: openrouter/free
 
     # Virtual-model mask: tenants see only `copy-monster-default` / "Model
     # CopyMonster". The Admin provider manager (`PlatformRoutingCard` in

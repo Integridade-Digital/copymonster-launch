@@ -70,13 +70,15 @@ export function applyGenerateImageTool(ctx: Context): void {
         },
       },
       render: (_args, value: unknown) => {
+        // Assert value matches the output schema shape.
+        const val = value as { created?: number; data?: Array<{ b64Json: string; mimeType: string }> | undefined }
         const lines: string[] = []
-        if (value.created) {
-          lines.push(`Generated at: ${new Date(value.created * 1000).toISOString()}`)
+        if (val.created) {
+          lines.push(`Generated at: ${new Date(val.created * 1000).toISOString()}`)
         }
-        if (value.data && value.data.length > 0) {
-          for (let i = 0; i < value.data.length; i++) {
-            const item = value.data[i]
+        if (val.data && val.data.length > 0) {
+          for (let i = 0; i < val.data.length; i++) {
+            const item = val.data[i]
             lines.push(
               `Image ${i + 1}: ${item.mimeType}, ${item.b64Json?.length} chars base64`,
             )
@@ -85,7 +87,7 @@ export function applyGenerateImageTool(ctx: Context): void {
         return [{ type: 'text', text: lines.join('\n') }]
       },
     },
-    async execute(args, _exec): Promise<unknown> {
+    async execute(args, _exec): Promise<{ created?: number; data?: Array<{ b64Json: string; mimeType: string }> }> {
       // Coerce args.prompt to string safely.
       const prompt = String(args?.prompt)
       if (!prompt || prompt.trim().length === 0) {
@@ -123,13 +125,13 @@ export function applyGenerateImageTool(ctx: Context): void {
 
         return {
           created: result.created ?? Math.floor(Date.now() / 1000),
-          data: (result.data ?? []).map((item: unknown) => ({
-            b64Json: item.b64_json ?? '',
-            mimeType: item.mime_type ?? 'image/png',
+          data: (result.data ?? []).map((item: { b64_json: string; mime_type: string }) => ({
+            b64Json: item.b64_json,
+            mimeType: item.mime_type,
           })),
         }
       } catch (error: unknown) {
-        throw new Error(`Failed to generate image: ${error.message}`)
+        throw new Error(`Failed to generate image: ${error instanceof Error ? error.message : String(error)}`)
       }
     },
 

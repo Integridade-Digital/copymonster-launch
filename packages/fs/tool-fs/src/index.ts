@@ -128,7 +128,7 @@ export function applyGenerateImageTool(ctx: Context): void {
         }
         if (val.data && val.data.length > 0) {
           for (let i = 0; i < val.data.length; i++) {
-            const item = val.data[i]
+            const item = val.data[i] as { mimeType: string; b64Json?: string }
             lines.push(
               `Image ${i + 1}: ${item.mimeType}, ${item.b64Json?.length} chars base64`,
             )
@@ -175,13 +175,13 @@ export function applyGenerateImageTool(ctx: Context): void {
 
         return {
           created: result.created ?? Math.floor(Date.now() / 1000),
-          data: (result.data ?? []).map((item: unknown) => ({
-            b64Json: item.b64_json ?? '',
-            mimeType: item.mime_type ?? 'image/png',
+          data: (result.data ?? []).map((item: { b64_json: string; mime_type: string }) => ({
+            b64Json: item.b64_json,
+            mimeType: item.mime_type,
           })),
         }
       } catch (error: unknown) {
-        throw new Error(`Failed to generate image: ${error.message}`)
+        throw new Error(`Failed to generate image: ${error instanceof Error ? error.message : String(error)}`)
       }
     },
 
@@ -193,7 +193,7 @@ export function applyGenerateImageTool(ctx: Context): void {
       return {
         card: 'generic',
         title: `Generate image: ${promptTitle}${hasTruncation ? '...' : ''}`,
-        kind: 'generate',
+        kind: 'execute',
       }
     },
   }))

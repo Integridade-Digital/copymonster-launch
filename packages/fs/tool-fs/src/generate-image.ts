@@ -145,7 +145,7 @@ export function applyGenerateImageTool(ctx: Context): void {
       return {
         card: 'generic',
         title: `Generate image: ${promptTitle}${hasTruncation ? '...' : ''}`,
-        kind: 'generate',
+        kind: 'execute',
       }
     },
   }))

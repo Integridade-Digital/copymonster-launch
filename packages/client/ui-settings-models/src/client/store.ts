@@ -270,7 +270,6 @@ export class ModelsSettingsStore {
       const removable = namespace !== undefined
         && entry.settingsPath.length > 0
         && this.schema.hasPath(namespace.user, entry.settingsPath)
-        && !this.schema.hasPath(namespace.base, entry.settingsPath)
       return {
         entry,
         configured,

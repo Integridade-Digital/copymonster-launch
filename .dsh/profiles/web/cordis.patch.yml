@@ -73,26 +73,6 @@
               high: high
               max: max
 
-      agentrouter:
-        displayName: AgentRouter
-        apiKeyEnv: AGENTROUTER_API_KEY
-        api: openai-completions
-        baseURL: https://agentrouter.org/v1
-        models:
-          - id: deepseek-v4-flash
-            name: DeepSeek V4 Flash
-          - id: claude-opus-5
-            name: Opus 5
-          - id: glm-5.3
-            name: GLM 5.3
-          - id: gpt-5.6-sol
-            name: GPT 5.6 Sol
-          - id: kimi-k3
-            name: Kimi k3
-          - id: gpt-6-astra
-            name: GPT 6 Astra
-          - id: claude-opus-4-8
-            name: Opus 4.9
       openrouter:
         baseURL: https://openrouter.ai/api/v1
         models:
@@ -123,24 +103,6 @@
             name: Nemotron 3 Ultra 550B
           - id: nvidia/nemotron-3-super-120b-a12b
             name: Nemotron 3 Super 120B
-      bai:
-        displayName: B.AI
-        apiKeyEnv: BAI_API_KEY
-        api: openai-completions
-        baseURL: https://api.b.ai/v1/chat/completions
-        models:
-          - id: mimo-v2.5
-            name: MIMO V2.5
-          - id: qwen3.8-flash
-            name: QWEN 3.8 Flash
-      apx:
-        displayName: Apmix
-        apiKeyEnv: APX_API_KEY
-        api: openai-completions
-        baseURL: https://api.apmix.ai/v1
-        models:
-          - id: claude-sonnet-4-6-free
-            name: Claude Sonnet 4.6 free
       tokenharbor:
         displayName: Harbor
         apiKeyEnv: TOKENHARBOR_API_KEY

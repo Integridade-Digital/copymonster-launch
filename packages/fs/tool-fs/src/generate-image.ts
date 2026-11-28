@@ -57,13 +57,14 @@ export function applyGenerateImageTool(ctx: Context): void {
                 b64Json: {
                   type: 'string',
                   description: 'Base64-encoded image data.',
+                  required: true,
                 },
                 mimeType: {
                   type: 'string',
                   description: 'MIME type of the image.',
+                  required: true,
                 },
               },
-              required: ['b64Json', 'mimeType'],
             },
             description: 'Array of generated image data.',
           },
